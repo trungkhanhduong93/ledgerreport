@@ -1889,6 +1889,216 @@ def get_warehouse_stream_csv():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
+# =============== WAREHOUSE_BALANCE_ACTUAL (Danh sách tồn kho thực tế) ===============
+# Bảng số dư tồn kho theo (Đơn vị x Kho x Mặt hàng) TẠI TỪNG NGÀY (TRAN_DATE = ngày snapshot,
+# KHÔNG phải ngày phát sinh giao dịch — không có TRAN_NO/TRAN_ID vì đây không phải chứng từ).
+# AMOUNT/UNIT_PRICE/QUANTITY_EXTRA/JOB_ID/PACKAGE/BARCODE/ACCOUNT_ID_ADJUST luôn rỗng/=0 ở DB
+# CHULONG nên KHÔNG đưa vào SELECT. QUANTITY_ADJ/UNIT_ID_ADJ = số lượng/đơn vị đóng gói GỐC
+# trước quy đổi ra đơn vị theo dõi tồn kho (VD 68 BICH quy đổi = 34000 G) — hiển thị "SL nguyên"/
+# "ĐVT nguyên". Không lọc IS_APPROVED — hiển thị nguyên trạng cả 0 và 1.
+WAREHOUSE_BALANCE_BASE_COLUMNS = [
+    "TRAN_DATE", "ORGANIZATION_ID", "WAREHOUSE_ID", "ITEM_ID",
+    "QUANTITY", "QUANTITY_ADJ", "UNIT_ID_ADJ", "USER_ID", "ACCOUNT_ID", "IS_APPROVED",
+]
+
+WAREHOUSE_BALANCE_SORT_WHITELIST = {col: f"WBA.{col}" for col in WAREHOUSE_BALANCE_BASE_COLUMNS}
+WAREHOUSE_BALANCE_SORT_WHITELIST["ORGANIZATION_NAME"] = "O.ORGANIZATION_NAME"
+WAREHOUSE_BALANCE_SORT_WHITELIST["WAREHOUSE_NAME"]    = "WH.WAREHOUSE_NAME"
+WAREHOUSE_BALANCE_SORT_WHITELIST["ITEM_NAME"]         = "I.ITEM_NAME"
+WAREHOUSE_BALANCE_SORT_WHITELIST["UNIT_ID"]           = "I.UNIT_ID"
+
+WAREHOUSE_BALANCE_CSV_COLS = [
+    ("TRAN_DATE", "Ngày"),
+    ("ORGANIZATION_ID", "Mã ĐV"), ("ORGANIZATION_NAME", "Tên đơn vị"),
+    ("WAREHOUSE_ID", "Mã kho"), ("WAREHOUSE_NAME", "Tên kho"),
+    ("ITEM_ID", "Mã hàng"), ("ITEM_NAME", "Tên hàng"), ("UNIT_ID", "ĐVT"),
+    ("QUANTITY", "Số lượng"),
+    ("QUANTITY_ADJ", "SL nguyên"), ("UNIT_ID_ADJ", "ĐVT nguyên"),
+    ("USER_ID", "Người thực hiện"), ("ACCOUNT_ID", "Tài khoản"),
+    ("IS_APPROVED", "Đã duyệt"),
+]
+
+_WBA_JOIN_SQL = """
+    FROM dbo.WAREHOUSE_BALANCE_ACTUAL WBA WITH (NOLOCK)
+    LEFT JOIN dbo.DM_ORGANIZATION O  WITH (NOLOCK) ON WBA.ORGANIZATION_ID = O.ORGANIZATION_ID
+    LEFT JOIN dbo.DM_WAREHOUSE    WH WITH (NOLOCK) ON WBA.WAREHOUSE_ID    = WH.WAREHOUSE_ID
+    LEFT JOIN dbo.DM_ITEM         I  WITH (NOLOCK) ON WBA.ITEM_ID         = I.ITEM_ID
+"""
+
+
+def _warehouse_balance_select_list():
+    parts = [f"WBA.{c}" for c in WAREHOUSE_BALANCE_BASE_COLUMNS]
+    parts.append("O.ORGANIZATION_NAME AS ORGANIZATION_NAME")
+    parts.append("WH.WAREHOUSE_NAME AS WAREHOUSE_NAME")
+    parts.append("I.ITEM_NAME AS ITEM_NAME")
+    parts.append("I.UNIT_ID AS UNIT_ID")
+    return ", ".join(parts)
+
+
+def _build_warehouse_balance_where(request_args):
+    f_date = request_args.get("from_date", "01/01/2026")
+    t_date = request_args.get("to_date",  "31/12/2026")
+    from_dt = datetime.strptime(f_date, "%d/%m/%Y").date()
+    to_dt   = datetime.strptime(t_date, "%d/%m/%Y").date()
+
+    clauses = ["WBA.TRAN_DATE >= ?", "WBA.TRAN_DATE <= ?"]
+    params  = [from_dt.strftime("%Y%m%d"), to_dt.strftime("%Y%m%d")]
+
+    for field, arg in [
+        ("WBA.ORGANIZATION_ID", "org_ids"),
+        ("WBA.WAREHOUSE_ID",    "wh_ids"),
+        ("WBA.ITEM_ID",         "item_ids"),
+        ("WBA.ACCOUNT_ID",      "acc_ids"),
+    ]:
+        raw = request_args.get(arg, "")
+        vals = [v for v in raw.split(",") if v]
+        if vals:
+            clauses.append(f"{field} IN ({','.join(['?']*len(vals))})")
+            params.extend(vals)
+
+    for field, arg in [
+        ("WBA.ORGANIZATION_ID", "s_org_id"),
+        ("WBA.WAREHOUSE_ID",    "s_wh_id"),
+        ("WBA.ITEM_ID",         "s_item_id"),
+        ("WBA.USER_ID",         "s_user_id"),
+        ("WBA.ACCOUNT_ID",      "s_acc_id"),
+    ]:
+        val = request_args.get(arg, "").strip()
+        if val:
+            clauses.append(f"{field} LIKE ?")
+            params.append(f"{val}%")
+
+    for field, arg in [
+        ("O.ORGANIZATION_NAME", "s_org_name"),
+        ("WH.WAREHOUSE_NAME",   "s_wh_name"),
+        ("I.ITEM_NAME",         "s_item_name"),
+    ]:
+        val = request_args.get(arg, "").strip()
+        if val:
+            clauses.append(f"{field} LIKE ?")
+            params.append(f"%{val}%")
+
+    return " AND ".join(clauses), params
+
+
+@app.route("/api/warehouse_balance")
+@with_db_lock
+def get_warehouse_balance():
+    try:
+        page      = int(request.args.get("page", 1))
+        page_size = int(request.args.get("page_size", 100))
+        export_all  = request.args.get("export_all") == "1"
+        known_total = request.args.get("known_total")
+        skip_count  = page > 1 and known_total is not None and not export_all
+
+        where_sql, params = _build_warehouse_balance_where(request.args)
+        order_by_sql = _resolve_order_by(
+            request.args, WAREHOUSE_BALANCE_SORT_WHITELIST,
+            "WBA.TRAN_DATE DESC, WBA.WAREHOUSE_ID, WBA.ITEM_ID"
+        )
+        SELECT_LIST = _warehouse_balance_select_list()
+
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        if export_all:
+            sql = f"SELECT {SELECT_LIST} {_WBA_JOIN_SQL} WHERE {where_sql} ORDER BY {order_by_sql}"
+            cursor.execute(sql, params)
+            columns  = [c[0] for c in cursor.description]
+            raw_rows = cursor.fetchall()
+            total_rows = len(raw_rows)
+        else:
+            if skip_count:
+                total_rows = int(known_total)
+            else:
+                cursor.execute(f"SELECT COUNT(*) {_WBA_JOIN_SQL} WHERE {where_sql}", params)
+                total_rows = cursor.fetchone()[0] or 0
+
+            offset = (page - 1) * page_size
+            sql = f"""
+                SELECT * FROM (
+                    SELECT {SELECT_LIST},
+                           ROW_NUMBER() OVER (ORDER BY {order_by_sql}) AS RowNum
+                    {_WBA_JOIN_SQL}
+                    WHERE {where_sql}
+                ) AS RowConstrainedResult
+                WHERE RowNum > ? AND RowNum <= ?
+            """
+            cursor.execute(sql, params + [offset, offset + page_size])
+            columns  = [c[0] for c in cursor.description]
+            raw_rows = cursor.fetchall()
+
+        rows = []
+        for raw in raw_rows:
+            r = dict(zip(columns, raw))
+            v = r.get("TRAN_DATE")
+            if isinstance(v, (date, datetime)):
+                r["TRAN_DATE"] = v.strftime("%d/%m/%Y")
+            for nk in ("QUANTITY", "QUANTITY_ADJ"):
+                v = r.get(nk)
+                if v is not None:
+                    try: r[nk] = float(v)
+                    except: pass
+            rows.append(r)
+
+        return jsonify({
+            "status": "ok",
+            "data": rows,
+            "pagination": {
+                "total_rows": total_rows,
+                "total_pages": max(1, (total_rows + page_size - 1) // page_size),
+                "page": page if not export_all else 1
+            }
+        })
+    except Exception as e:
+        msg = str(e)
+        if "đăng nhập" not in msg:
+            invalidate_pool()
+        return jsonify({"status": "error", "message": msg}), 401 if "đăng nhập" in msg else 500
+
+
+@app.route("/api/warehouse_balance/count")
+@with_db_lock
+def get_warehouse_balance_count():
+    try:
+        where_sql, params = _build_warehouse_balance_where(request.args)
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute(f"SELECT COUNT(*) {_WBA_JOIN_SQL} WHERE {where_sql}", params)
+        total = cursor.fetchone()[0] or 0
+        return jsonify({"status": "ok", "total": int(total)})
+    except Exception as e:
+        msg = str(e)
+        if "đăng nhập" not in msg:
+            invalidate_pool()
+        return jsonify({"status": "error", "message": msg}), 401 if "đăng nhập" in msg else 500
+
+
+@app.route("/api/warehouse_balance/stream_csv", methods=["POST", "GET"])
+def get_warehouse_balance_stream_csv():
+    try:
+        args = request.args
+        total_estimate = int(args.get("total", 0) or 0)
+        where_sql, params = _build_warehouse_balance_where(args)
+        order_by_sql = _resolve_order_by(
+            args, WAREHOUSE_BALANCE_SORT_WHITELIST,
+            "WBA.TRAN_DATE DESC, WBA.WAREHOUSE_ID, WBA.ITEM_ID"
+        )
+        SELECT_LIST = _warehouse_balance_select_list()
+        sql = f"SELECT {SELECT_LIST} {_WBA_JOIN_SQL} WHERE {where_sql} ORDER BY {order_by_sql}"
+
+        def transform(raw, sql_cols):
+            d = dict(zip(sql_cols, raw))
+            return [d.get(key) for key, _ in WAREHOUSE_BALANCE_CSV_COLS]
+
+        headers = [label for _, label in WAREHOUSE_BALANCE_CSV_COLS]
+        fname   = f"TonKhoThucTe_{args.get('from_date','').replace('/','')}-{args.get('to_date','').replace('/','')}.{args.get('format', 'csv')}"
+        job_id  = _start_export_job(fname, headers, sql, params, transform, total_estimate)
+        return jsonify({"status": "ok", "job_id": job_id, "filename": fname})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
 # =============== SALE_VIEW (Danh sách chứng từ bán hàng) ===============
 # Nguồn dbo.SALE_VIEW (152 cột, mức dòng hàng). ITEM_NAME/JOB_NAME/PR_DETAIL_NAME
 # đã có sẵn trong view; ORGANIZATION_NAME/EXPENSE_NAME lấy qua JOIN như Purchase.

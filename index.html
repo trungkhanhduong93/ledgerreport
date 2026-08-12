@@ -816,7 +816,7 @@ window.showConnectionLost = function() {
             }, []);
             return v;
         };
-        const APP_NAME = 'iPOS Ledger Studio';
+        const APP_NAME = 'iPOS Accounting Report';
         const REPORT_TYPES = [
             { id: 'BC013', name: '6.2 - BẢNG KÊ HÓA ĐƠN, CHỨNG TỪ HÀNG HÓA, DỊCH VỤ BÁN RA' },
             { id: 'BC005', name: 'BẢNG CÂN ĐỐI KẾ TOÁN' },
@@ -2903,6 +2903,7 @@ const exportJournalCsv = (mode) => {
             { id: 'purchase',  name: 'Danh sách chứng từ nhập kho' },
             { id: 'warehouse', name: 'Danh sách chứng từ kho' },
             { id: 'income_alloc', name: 'Danh sách doanh thu chờ phân bổ' },
+            { id: 'warehouse_balance', name: 'Danh sách tồn kho thực tế' },
         ];
 
         const DocumentTabDropdown = ({ activeTab, setActiveTab }) => {
@@ -3934,6 +3935,99 @@ const exportJournalCsv = (mode) => {
                 if (isLoggedIn && activeTab === 'warehouse') loadWarehouseData(1, filters.page_size);
             }, [warehouseSort]);
 
+            // ============ WAREHOUSE_BALANCE TAB STATE & LOADER (Danh sách tồn kho thực tế) ============
+            // Danh sách RIÊNG BIỆT — nguồn dbo.WAREHOUSE_BALANCE_ACTUAL (số dư tồn kho theo Đơn vị x Kho x
+            // Mặt hàng TẠI TỪNG NGÀY snapshot), KHÔNG liên quan gì tới tab 'warehouse' (WAREHOUSE_VIEW, phiếu
+            // nhập/xuất). State/fetch/render hoàn toàn độc lập, chỉ dùng chung filters.from_date/to_date/
+            // org_ids/item_ids/acc_ids theo đúng quy ước chung toàn app (mọi tab đều dùng chung khối này).
+            const warehouseBalanceScrollRef = useRef();
+            const [warehouseBalanceSort, setWarehouseBalanceSort] = useState({ field: null, dir: 'desc' });
+            const [warehouseBalanceData, setWarehouseBalanceData] = useState([]);
+            const [warehouseBalancePagination, setWarehouseBalancePagination] = useState({ total_rows: 0, total_pages: 1, page: 1 });
+            const [warehouseBalanceColSearch, setWarehouseBalanceColSearch] = useState({});
+            const [warehouseBalanceLoading, setWarehouseBalanceLoading] = useState(false);
+            const [warehouseBalanceFilters, setWarehouseBalanceFilters] = useState({ wh_ids: [] });
+
+            const toggleWarehouseBalanceFilter = (key, id) => {
+                setWarehouseBalanceFilters(p => ({ ...p, [key]: p[key].includes(id) ? p[key].filter(x => x !== id) : [...p[key], id] }));
+            };
+
+            // Lọc client-side ngay trên trang đang tải (giống Warehouse) — không gọi lại server khi gõ
+            const warehouseBalanceFlatData = useMemo(() => {
+                const searchKeys = Object.keys(warehouseBalanceColSearch).filter(k => (warehouseBalanceColSearch[k] || '').trim() !== '');
+                if (searchKeys.length === 0) return warehouseBalanceData;
+                return warehouseBalanceData.filter(row => searchKeys.every(k => {
+                    const val = String(row[k] || '').toLowerCase();
+                    const query = warehouseBalanceColSearch[k].trim().toLowerCase();
+                    return val.includes(query);
+                }));
+            }, [warehouseBalanceData, warehouseBalanceColSearch]);
+
+            const warehouseBalanceVS = useVirtualScroll(warehouseBalanceFlatData, 28, warehouseBalanceScrollRef);
+
+            const warehouseBalanceRow2Count = useMemo(() => (
+                (filters.acc_ids?.length || 0) + (filters.item_ids?.length || 0) + (warehouseBalanceFilters.wh_ids?.length || 0)
+            ), [filters.acc_ids, filters.item_ids, warehouseBalanceFilters.wh_ids]);
+
+            const buildWarehouseBalanceQuery = (targetPage = 1, targetPageSize = filters.page_size, searchOverride = null, extra = {}) => {
+                const cs = searchOverride !== null ? searchOverride : warehouseBalanceColSearch;
+                const query = new URLSearchParams();
+                query.set('from_date', filters.from_date);
+                query.set('to_date', filters.to_date);
+                query.set('page', targetPage);
+                query.set('page_size', targetPageSize);
+                query.set('org_ids', (filters.org_ids || []).join(','));
+                query.set('item_ids', (filters.item_ids || []).join(','));
+                query.set('acc_ids', (filters.acc_ids || []).join(','));
+                query.set('wh_ids', (warehouseBalanceFilters.wh_ids || []).join(','));
+
+                const take = (v) => { const x = (v || '').trim(); return x || null; };
+                const sp = {
+                    s_org_id:    take(cs.ORGANIZATION_ID),
+                    s_org_name:  take(cs.ORGANIZATION_NAME),
+                    s_wh_id:     take(cs.WAREHOUSE_ID),
+                    s_wh_name:   take(cs.WAREHOUSE_NAME),
+                    s_item_id:   take(cs.ITEM_ID),
+                    s_item_name: take(cs.ITEM_NAME),
+                    s_user_id:   take(cs.USER_ID),
+                    s_acc_id:    take(cs.ACCOUNT_ID),
+                };
+                Object.keys(sp).forEach(k => { if (sp[k]) query.set(k, sp[k]); });
+                if (warehouseBalanceSort.field) { query.set('order_by', warehouseBalanceSort.field); query.set('order_dir', warehouseBalanceSort.dir); }
+                Object.keys(extra).forEach(k => query.set(k, extra[k]));
+                return query;
+            };
+
+            const loadWarehouseBalanceData = async (targetPage = 1, targetPageSize = filters.page_size, searchOverride = null) => {
+                if (abortRef.current) abortRef.current.abort();
+                const _ctrl = new AbortController(); abortRef.current = _ctrl;
+                setWarehouseBalanceLoading(true);
+                try {
+                    const extras = {};
+                    if (targetPage > 1 && targetPageSize === filters.page_size && warehouseBalancePagination.total_rows > 0) {
+                        extras.known_total = warehouseBalancePagination.total_rows;
+                    }
+                    const query = buildWarehouseBalanceQuery(targetPage, targetPageSize, searchOverride, extras);
+                    const r = await fetch(`/api/warehouse_balance?${query.toString()}`, { signal: _ctrl.signal });
+                    if (r.status === 401) { setIsLoggedIn(false); return; }
+                    const res = await r.json();
+                    if (res.status === 'ok') {
+                        setWarehouseBalanceData(res.data);
+                        setWarehouseBalancePagination(res.pagination);
+                        setFilters(p => ({ ...p, page_size: targetPageSize }));
+                    } else {
+                        alert('Lỗi truy vấn tồn kho thực tế:\n\n' + (res.message || JSON.stringify(res)));
+                    }
+                } catch (err) {
+                    if (err.name === 'AbortError' || _ctrl.signal.aborted) return;
+                    alert('Lỗi mạng / parse: ' + err.message);
+                } finally { setWarehouseBalanceLoading(false); }
+            };
+
+            useEffect(() => {
+                if (isLoggedIn && activeTab === 'warehouse_balance') loadWarehouseBalanceData(1, filters.page_size);
+            }, [warehouseBalanceSort]);
+
             // ============ EXCEL EXPORT ============
             const LEDGER_EXPORT_COLS = [
                 ['TRAN_DATE','Ngày CT'],['TRAN_NO','Số chứng từ'],['TRAN_ID','Mã CT'],['TRAN_NAME','Tên chứng từ'],
@@ -3967,6 +4061,17 @@ const exportJournalCsv = (mode) => {
                 ['PR_DETAIL_ID','Mã đối tượng'],['PR_DETAIL_NAME','Tên đối tượng'],
                 ['EXPENSE_ID','Mã MCP'],['EXPENSE_NAME','Tên MCP'],
                 ['JOB_ID','Mã công việc'],['JOB_NAME','Tên công việc'],
+            ];
+
+            const WAREHOUSE_BALANCE_EXPORT_COLS = [
+                ['TRAN_DATE','Ngày'],
+                ['ORGANIZATION_ID','Mã ĐV'],['ORGANIZATION_NAME','Tên đơn vị'],
+                ['WAREHOUSE_ID','Mã kho'],['WAREHOUSE_NAME','Tên kho'],
+                ['ITEM_ID','Mã hàng'],['ITEM_NAME','Tên hàng'],['UNIT_ID','ĐVT'],
+                ['QUANTITY','Số lượng'],
+                ['QUANTITY_ADJ','SL nguyên'],['UNIT_ID_ADJ','ĐVT nguyên'],
+                ['USER_ID','Người thực hiện'],['ACCOUNT_ID','Tài khoản'],
+                ['IS_APPROVED','Đã duyệt'],
             ];
 
             const PURCHASE_EXPORT_COLS = [
@@ -4137,6 +4242,7 @@ const exportJournalCsv = (mode) => {
                 if (kind === 'sale') return buildSaleQuery(1, 1, null, {});
                 if (kind === 'voucher') return buildVoucherQuery(1, 1, null, {});
                 if (kind === 'income_alloc') return buildIncomeAllocQuery(1, 1, {});
+                if (kind === 'warehouse_balance') return buildWarehouseBalanceQuery(1, 1, null, {});
                 return buildWarehouseQuery(1, 1, null, {});
             };
 
@@ -4253,6 +4359,8 @@ const exportJournalCsv = (mode) => {
                         url = `/api/voucher?${buildVoucherQuery(1, 1, null, { export_all: '1' }).toString()}`;
                     } else if (kind === 'income_alloc') {
                         url = `/api/income_alloc?${buildIncomeAllocQuery(1, 1, { export_all: '1' }).toString()}`;
+                    } else if (kind === 'warehouse_balance') {
+                        url = `/api/warehouse_balance?${buildWarehouseBalanceQuery(1, 1, null, { export_all: '1' }).toString()}`;
                     } else {
                         url = `/api/warehouse?${buildWarehouseQuery(1, 1, null, { export_all: '1' }).toString()}`;
                     }
@@ -4270,10 +4378,11 @@ const exportJournalCsv = (mode) => {
                                : kind === 'sale' ? SALE_EXPORT_COLS
                                : kind === 'voucher' ? VOUCHER_EXPORT_COLS
                                : kind === 'income_alloc' ? INCOME_ALLOC_EXPORT_COLS
+                               : kind === 'warehouse_balance' ? WAREHOUSE_BALANCE_EXPORT_COLS
                                : WAREHOUSE_EXPORT_COLS;
                     const extractor = kind === 'ledger' ? extractLedgerRow : (r) => extractRowGeneric(cols, r);
 
-                    const prefix = kind === 'ledger' ? 'ChungTuTongHop_' : (kind === 'purchase' ? 'PhieuNhapKho_' : (kind === 'sale' ? 'ChungTuBanHang_' : (kind === 'voucher' ? 'ChungTuTien_' : (kind === 'income_alloc' ? 'DoanhThuChoPhanBo_' : 'ChungTuKho_'))));
+                    const prefix = kind === 'ledger' ? 'ChungTuTongHop_' : (kind === 'purchase' ? 'PhieuNhapKho_' : (kind === 'sale' ? 'ChungTuBanHang_' : (kind === 'voucher' ? 'ChungTuTien_' : (kind === 'income_alloc' ? 'DoanhThuChoPhanBo_' : (kind === 'warehouse_balance' ? 'TonKhoThucTe_' : 'ChungTuKho_')))));
                     const fname = prefix + filters.from_date.replace(/\//g,'') + '-' + filters.to_date.replace(/\//g,'') + '.xlsx';
 
                     setExportProgress({ phase: 'build', current: 0, total: rows.length });
@@ -5827,6 +5936,132 @@ const exportJournalCsv = (mode) => {
                                             <span className="text-[9px] font-black text-slate-300 uppercase tracking-tighter">Warehouse Detail View</span>
                                             <span className="text-[11px] font-black text-indigo-400 uppercase tracking-widest">
                                                 {isWarehouseGroupedOrSearched ? `${warehouseData.length.toLocaleString()} dòng | Gom nhóm & tìm kiếm` : `Trang ${warehousePagination.page} / ${warehousePagination.total_pages}`}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    {activeTab === 'warehouse_balance' && (
+                        <>
+                            <div className="bg-white border-b border-slate-200 p-4 px-6 shrink-0 shadow-sm z-[900]">
+                                <div className="space-y-4">
+                                    <div className="flex items-end gap-4">
+                                        <div className="w-64"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
+                                        <div className="w-32"><IOSDatePicker label="Từ ngày" value={filters.from_date} onChange={val => toggleFilter('from_date', val)} disabled={period.type !== 'custom'} /></div>
+                                        <div className="w-32"><IOSDatePicker label="Đến ngày" value={filters.to_date} onChange={val => toggleFilter('to_date', val)} disabled={period.type !== 'custom'} /></div>
+                                        <div className="w-40"><PremiumDropdown label="Đơn vị" items={meta.orgs} selectedItems={filters.org_ids} onSelect={id => toggleFilter('org_ids', id)} isActive={activeDropdown === 'Đơn vị'} onToggle={setActiveDropdown} /></div>
+                                        <div className="ml-auto flex items-center gap-2">
+                                            <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/60 rounded-xl px-3 py-1 shrink-0 h-[40px]">
+                                                <div className="flex flex-col items-start shrink-0">
+                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.1em] mb-0.5">Hiển thị</span>
+                                                    <PageSizeDropdown
+                                                        value={filters.page_size}
+                                                        onChange={newSize => { setFilters(p => ({ ...p, page_size: newSize, page: 1 })); }}
+                                                    />
+                                                </div>
+                                                <div className="h-6 w-px bg-slate-200"></div>
+                                                <div className="flex flex-col items-end shrink-0">
+                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em] mb-0.5">Results</span>
+                                                    <div className="text-[12px] font-black text-indigo-600 tabular-nums leading-none tracking-tighter">
+                                                        {warehouseBalancePagination.total_rows?.toLocaleString()}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button onClick={() => loadWarehouseBalanceData()} disabled={warehouseBalanceLoading} className="group relative overflow-hidden bg-slate-900 text-white px-4 h-[40px] rounded-xl font-black text-[10px] uppercase tracking-wider transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-indigo-500/30 shrink-0">
+                                                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-violet-600 opacity-90 group-hover:opacity-100 transition-opacity"></div>
+                                                <div className="relative flex items-center gap-2">
+                                                    {warehouseBalanceLoading ? <Icon name="loader" className="animate-spin" /> : <Icon name="search" size={12} className="group-hover:rotate-12 transition-transform"/>}
+                                                    <span>{warehouseBalanceLoading ? 'ĐANG TẢI...' : 'TRUY VẤN'}</span>
+                                                </div>
+                                            </button>
+                                            <FilterToggleButton expanded={filtersExpanded} onToggle={() => setFiltersExpanded(v => !v)} count={warehouseBalanceRow2Count} />
+                                            <ExportButton kind="warehouse_balance" />
+                                        </div>
+                                    </div>
+                                    {filtersExpanded && <div className="grid grid-cols-8 gap-1.5">
+                                        <PremiumDropdown label="Kho" items={meta.warehouses} selectedItems={warehouseBalanceFilters.wh_ids} onSelect={id => toggleWarehouseBalanceFilter('wh_ids', id)} isActive={activeDropdown === 'Kho'} onToggle={setActiveDropdown} />
+                                        <PremiumDropdown label="Hàng hóa" items={meta.items} selectedItems={filters.item_ids} onSelect={id => toggleFilter('item_ids', id)} isActive={activeDropdown === 'Hàng hóa'} onToggle={setActiveDropdown} />
+                                        <PremiumDropdown label="Tài khoản" items={meta.accounts} selectedItems={filters.acc_ids} onSelect={id => toggleFilter('acc_ids', id)} isActive={activeDropdown === 'Tài khoản'} onToggle={setActiveDropdown} align="right" />
+                                    </div>}
+                                </div>
+                            </div>
+                            <div className="flex-1 min-h-0 p-3 overflow-hidden bg-slate-50 flex flex-col relative">
+                                {warehouseBalanceLoading && <div className="absolute inset-0 bg-white/40 z-50 flex flex-col items-center justify-center backdrop-blur-[2px] transition-all"><div className="bg-white p-6 rounded-3xl shadow-2xl flex flex-col items-center gap-4 border border-indigo-50"><Icon name="loader" size={48} className="animate-spin text-indigo-600"/><div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest animate-pulse">Đang truy vấn dữ liệu...</div></div></div>}
+                                <div className="flex-1 min-h-0 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden flex flex-col mx-0">
+                                    <div className="flex-1 min-h-0 overflow-auto custom-scrollbar" ref={warehouseBalanceScrollRef}>
+                                        <table className="w-max border-collapse" style={{ width: 'max-content', minWidth: '100%' }}>
+                                            <thead className="sticky top-0 bg-slate-50/95 backdrop-blur-md z-30 shadow-sm">
+                                                <tr className="text-slate-400 uppercase text-[9px] font-black tracking-widest text-center">
+                                                    <th className="border-r w-12">#</th>
+                                                    <SortableHeader field="TRAN_DATE"         sort={warehouseBalanceSort} onSort={f => setWarehouseBalanceSort(s => cycleSort(s, f))} className="border-r w-24">Ngày</SortableHeader>
+                                                    <SortableHeader field="ORGANIZATION_ID"   sort={warehouseBalanceSort} onSort={f => setWarehouseBalanceSort(s => cycleSort(s, f))} className="border-r w-20">Mã ĐV</SortableHeader>
+                                                    <SortableHeader field="ORGANIZATION_NAME" sort={warehouseBalanceSort} onSort={f => setWarehouseBalanceSort(s => cycleSort(s, f))} className="border-r w-40 px-3" align="left">Tên đơn vị</SortableHeader>
+                                                    <SortableHeader field="WAREHOUSE_ID"      sort={warehouseBalanceSort} onSort={f => setWarehouseBalanceSort(s => cycleSort(s, f))} className="border-r w-20">Mã kho</SortableHeader>
+                                                    <SortableHeader field="WAREHOUSE_NAME"    sort={warehouseBalanceSort} onSort={f => setWarehouseBalanceSort(s => cycleSort(s, f))} className="border-r w-36 px-3" align="left">Tên kho</SortableHeader>
+                                                    <SortableHeader field="ITEM_ID"           sort={warehouseBalanceSort} onSort={f => setWarehouseBalanceSort(s => cycleSort(s, f))} className="border-r w-24">Mã hàng</SortableHeader>
+                                                    <SortableHeader field="ITEM_NAME"         sort={warehouseBalanceSort} onSort={f => setWarehouseBalanceSort(s => cycleSort(s, f))} className="border-r w-44 px-3" align="left">Tên hàng</SortableHeader>
+                                                    <SortableHeader field="UNIT_ID"           sort={warehouseBalanceSort} onSort={f => setWarehouseBalanceSort(s => cycleSort(s, f))} className="border-r w-16">ĐVT</SortableHeader>
+                                                    <SortableHeader field="QUANTITY"          sort={warehouseBalanceSort} onSort={f => setWarehouseBalanceSort(s => cycleSort(s, f))} className="border-r w-24 px-2" align="right">Số lượng</SortableHeader>
+                                                    <SortableHeader field="QUANTITY_ADJ"      sort={warehouseBalanceSort} onSort={f => setWarehouseBalanceSort(s => cycleSort(s, f))} className="border-r w-24 px-2" align="right">SL nguyên</SortableHeader>
+                                                    <SortableHeader field="UNIT_ID_ADJ"       sort={warehouseBalanceSort} onSort={f => setWarehouseBalanceSort(s => cycleSort(s, f))} className="border-r w-20">ĐVT nguyên</SortableHeader>
+                                                    <SortableHeader field="USER_ID"           sort={warehouseBalanceSort} onSort={f => setWarehouseBalanceSort(s => cycleSort(s, f))} className="border-r w-28">Người thực hiện</SortableHeader>
+                                                    <SortableHeader field="ACCOUNT_ID"        sort={warehouseBalanceSort} onSort={f => setWarehouseBalanceSort(s => cycleSort(s, f))} className="border-r w-20">Tài khoản</SortableHeader>
+                                                    <SortableHeader field="IS_APPROVED"       sort={warehouseBalanceSort} onSort={f => setWarehouseBalanceSort(s => cycleSort(s, f))} className="w-24">Đã duyệt</SortableHeader>
+                                                </tr>
+                                                <tr className="bg-indigo-50/60 border-b-2 border-indigo-200">
+                                                    {['','','ORGANIZATION_ID','ORGANIZATION_NAME','WAREHOUSE_ID','WAREHOUSE_NAME','ITEM_ID','ITEM_NAME','','','','','USER_ID','ACCOUNT_ID',''].map((key, idx) => (
+                                                        <th key={idx} className="border-r px-1 py-1">
+                                                            {key ? <input
+                                                                type="text"
+                                                                value={warehouseBalanceColSearch[key] || ''}
+                                                                onChange={e => setWarehouseBalanceColSearch(p => ({...p, [key]: e.target.value}))}
+                                                                className="w-full bg-white border border-slate-200 rounded-md px-1.5 py-1 text-[10px] font-semibold text-slate-700 outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-200 focus:bg-indigo-50/30 transition-all placeholder:text-slate-300 placeholder:text-center"
+                                                            /> : null}
+                                                        </th>
+                                                    ))}
+                                                </tr>
+                                            </thead>
+                                            <tbody className="text-[11px] font-medium text-slate-700">
+                                                {warehouseBalanceVS.topPadding > 0 && <tr><td colSpan={100} style={{ height: warehouseBalanceVS.topPadding, padding: 0, border: 0 }}></td></tr>}
+                                                {warehouseBalanceFlatData.slice(warehouseBalanceVS.startIndex, warehouseBalanceVS.endIndex + 1).map((row, i) => (
+                                                    <tr key={warehouseBalanceVS.startIndex + i} className="border-b hover:bg-indigo-50/30 text-center">
+                                                        <td className="border-r text-slate-300 font-mono">{warehouseBalanceVS.startIndex + i + 1}</td>
+                                                        <td className="border-r">{row.TRAN_DATE}</td>
+                                                        <td className="border-r">{row.ORGANIZATION_ID}</td>
+                                                        <td className="border-r px-3 text-left">{row.ORGANIZATION_NAME}</td>
+                                                        <td className="border-r">{row.WAREHOUSE_ID}</td>
+                                                        <td className="border-r px-3 text-left">{row.WAREHOUSE_NAME}</td>
+                                                        <td className="border-r">{row.ITEM_ID}</td>
+                                                        <td className="border-r px-3 text-left">{row.ITEM_NAME}</td>
+                                                        <td className="border-r">{row.UNIT_ID}</td>
+                                                        <td className="border-r px-2 text-right font-mono">{Number(row.QUANTITY||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+                                                        <td className="border-r px-2 text-right font-mono">{Number(row.QUANTITY_ADJ||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+                                                        <td className="border-r">{row.UNIT_ID_ADJ}</td>
+                                                        <td className="border-r">{row.USER_ID}</td>
+                                                        <td className="border-r">{row.ACCOUNT_ID}</td>
+                                                        <td className={row.IS_APPROVED ? 'text-emerald-600 font-black' : 'text-amber-600 font-black'}>{row.IS_APPROVED ? 'Đã duyệt' : 'Chưa duyệt'}</td>
+                                                    </tr>
+                                                ))}
+                                                {warehouseBalanceVS.bottomPadding > 0 && <tr><td colSpan={100} style={{ height: warehouseBalanceVS.bottomPadding, padding: 0, border: 0 }}></td></tr>}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div className="p-4 bg-white border-t flex justify-between items-center px-10 shrink-0 z-40 shadow-inner">
+                                        <div className="flex items-center gap-8">
+                                            <div className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic underline">iPOS Accounting Report</div>
+                                        </div>
+                                        <div className="flex items-center gap-6">
+                                            <div className="flex items-center gap-2">
+                                                <PageJumper page={warehouseBalancePagination.page} totalPages={warehouseBalancePagination.total_pages} onGoto={p => loadWarehouseBalanceData(p)} />
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-col items-end">
+                                            <span className="text-[9px] font-black text-slate-300 uppercase tracking-tighter">Warehouse Balance View</span>
+                                            <span className="text-[11px] font-black text-indigo-400 uppercase tracking-widest">
+                                                Trang {warehouseBalancePagination.page} / {warehouseBalancePagination.total_pages}
                                             </span>
                                         </div>
                                     </div>

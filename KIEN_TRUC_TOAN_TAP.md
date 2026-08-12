@@ -8,8 +8,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 > **File này là nguồn tham chiếu DUY NHẤT.** Một agent mới chỉ cần đọc hết file này là hiểu toàn bộ 2 ứng dụng,
 > sửa được lỗi, thêm được báo cáo, tối ưu hiệu năng — KHÔNG cần đọc lại kiến trúc từ đầu.
-> Cập nhật lần cuối: 2026-08-03. Ngôn ngữ code + UI: tiếng Việt.
-> **Thay đổi mới nhất (03/08/2026) → xem mục 13 "Changelog".**
+> Cập nhật lần cuối: 2026-08-12. Ngôn ngữ code + UI: tiếng Việt.
+> **Thay đổi mới nhất (12/08/2026) → xem mục 13 "Changelog".**
 
 ---
 
@@ -29,7 +29,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 |---|---|---|
 | EXE | `dist/iPOS_Accounting_Report.exe` | `dist/iPOS_Ledger_Studio.exe` |
 | Tên app (JS `APP_NAME`) | iPOS Accounting Report | iPOS Ledger Studio |
-| Tab dữ liệu | Chứng từ tổng hợp (LEDGER), Mua hàng, Kho, Bán hàng, Chứng từ tiền + tab Báo cáo | tương tự |
+| Tab dữ liệu | Chứng từ tổng hợp (LEDGER), Mua hàng, Kho, Bán hàng, Chứng từ tiền, Doanh thu chờ phân bổ, **Tồn kho thực tế** + tab Báo cáo | tương tự (không có Tồn kho thực tế) |
 | **REPORT_TYPES** | BC001→BC014 | BC005→BC013 (không có BC001–BC004, BC009/BC010 có) |
 | **BC011 nghĩa là gì** | LCTT gián tiếp (Chú Long) | **Tổng hợp phát sinh công nợ** |
 | **BC013 nghĩa là gì** | Tổng hợp phát sinh công nợ (clone của Studio BC011) | **Bảng kê hóa đơn hàng hóa, dịch vụ BÁN RA (6.2-GTGT)** |
@@ -285,6 +285,34 @@ Một công cụ/script "thêm NOLOCK" chạy lên `server.py` đã **làm hỏn
 ---
 
 ## 13. Changelog & bàn giao chi tiết
+
+### 2026-08-12 — Thêm tab mới "Danh sách tồn kho thực tế" + vá 2 bug đặt tên có sẵn *(chỉ LedgerReport)*
+
+**Yêu cầu:** Thêm 1 danh sách mới hiển thị số dư tồn kho theo (Đơn vị × Kho × Mặt hàng) TẠI TỪNG NGÀY, nguồn bảng `dbo.WAREHOUSE_BALANCE_ACTUAL` (bảng snapshot số dư, KHÔNG có `TRAN_NO`/`TRAN_ID` — khác hẳn "chứng từ"). Yêu cầu rõ: tách biệt hoàn toàn, không gộp vào tab "Kho" (WAREHOUSE_VIEW) đang có.
+
+**Khảo sát dữ liệu trước khi code (DB `IACC_CHULONG`):** bảng có 19 cột, ~830k dòng lũy kế 236 ngày (06/12/2025→nay), **1 ngày cụ thể ≈ 4.000 dòng** (74 đơn vị/kho). `AMOUNT`/`UNIT_PRICE`/`QUANTITY_EXTRA`/`JOB_ID`/`PACKAGE`/`BARCODE`/`ACCOUNT_ID_ADJUST` rỗng/=0 toàn bộ ở DB này → không đưa vào SELECT. `QUANTITY_ADJ`+`UNIT_ID_ADJ` = số lượng/đơn vị đóng gói GỐC trước quy đổi (VD kho `KTONG`: "Cafe (bột)" `QUANTITY=34000 G`, `QUANTITY_ADJ=68 BICH`) — hiển thị nhãn "SL nguyên"/"ĐVT nguyên". `DM_ITEM.UNIT_ID` JOIN theo `ITEM_ID` cho đơn vị tính chính. Không lọc `IS_APPROVED` — hiển thị nguyên trạng cả 0 và 1 (thêm cột "Đã duyệt").
+
+**Backend `server.py` (+210 dòng, thuần cộng thêm, không sửa code Kho cũ):**
+- 3 route mới: `GET /api/warehouse_balance` (phân trang `ROW_NUMBER`), `GET /api/warehouse_balance/count`, `POST|GET /api/warehouse_balance/stream_csv` (export nền qua `_start_export_job` có sẵn).
+- `WAREHOUSE_BALANCE_BASE_COLUMNS`, `_build_warehouse_balance_where()` (from_date/to_date range + IN filter org/wh/item/acc + LIKE search theo cột), `WAREHOUSE_BALANCE_SORT_WHITELIST`, `WAREHOUSE_BALANCE_CSV_COLS`. JOIN `DM_ORGANIZATION`/`DM_WAREHOUSE`/`DM_ITEM` lấy tên + đơn vị tính.
+
+**Frontend `index.html` (+237 dòng, 1 dòng sửa):**
+- Thêm `{id:'warehouse_balance', name:'Danh sách tồn kho thực tế'}` vào `DOC_TABS` (dropdown "Danh mục" — KHÔNG phải mã BC, đây không phải báo cáo BC0xx).
+- State/fetch/query builder riêng hoàn toàn (`warehouseBalance*`), dùng chung `filters.from_date/to_date/org_ids/item_ids/acc_ids` theo đúng quy ước chung toàn app (như mọi tab khác), riêng `wh_ids` local giống tab Kho.
+- Bảng 14 cột: Ngày, Mã/Tên đơn vị, Mã/Tên kho, Mã/Tên hàng, ĐVT, Số lượng, SL nguyên, ĐVT nguyên, Người thực hiện, Tài khoản, Đã duyệt. Virtual scroll, sort, search theo cột, filter bar (Đơn vị/Kho/Hàng hóa/Tài khoản).
+- `WAREHOUSE_BALANCE_EXPORT_COLS` + gắn `warehouse_balance` vào `buildExportQuery`/`doExport` (cả nhánh `single` server-stream lẫn nhánh `by_org` client xlsx) — tránh bug ExportButton dùng chung component 3 nút mà thiếu case sẽ âm thầm export nhầm dữ liệu Kho cũ.
+
+**2 bug có sẵn phát hiện & vá kèm (không liên quan tính năng mới, phát hiện khi build/test):**
+1. `build_exe.py` dòng 6 so khớp `'LedgerReport' in os.getcwd()` **phân biệt hoa/thường** — thư mục thật là `ledgerreport` (chữ thường, đúng tên repo GitHub) nên luôn rơi vào nhánh `else`, build nhầm thành `iPOS_Ledger_Studio.exe` thay vì `iPOS_Accounting_Report.exe`. Đã sửa thành `'ledgerreport' in os.getcwd().lower()`.
+2. `index.html` dòng 819 `const APP_NAME = 'iPOS Ledger Studio'` (hardcode sai) — khiến màn hình đăng nhập hiện sai tên app dù `<title>`/footer JSX đều đúng "iPOS Accounting Report". Đã sửa thành đúng tên.
+
+**Verify:**
+- Backend: test bằng `test_client` in-process với DB thật `IACC_CHULONG` — count đúng 4.032 dòng (01/08/2026), phân trang/JOIN tên/filter kho/search/sort đều đúng, export CSV job chạy xong ra đúng 4.032 dòng + header.
+- Frontend: parse JSX bằng `@babel/parser` (`node_modules` cài mới, `--no-save`) — OK, không lỗi cú pháp.
+- **Test UI thật qua browser** (đăng nhập DB thật, không chỉ đọc code): chuyển tab đúng tên, bấm TRUY VẤN tải **107.499 dòng** thật (tháng 1/2026), sort theo cột hoạt động đúng.
+- Build EXE: `python build_exe.py` → `iPOS_Accounting_Report.exe v1.7.6`, đã verify mtime khớp thời điểm build (không phải file cũ do khoá tiến trình). Chạy thử EXE thật (không phải dev server) → login, hiển thị đúng tên "iPOS Accounting Report" v1.7.6.
+
+**Lưu ý cho agent sau:** báo cáo trong `REPORT_TYPES` (mã BC, tab "Báo cáo") và danh sách trong `DOC_TABS` (dropdown "Danh mục") là **2 khái niệm khác nhau, độc lập** — đừng nhầm khi tài liệu cũ (`HUONG_DAN_BC007_BC010.md` mục 8.4) ghi nhầm "REPORT_TYPES" cho Sale (thực tế Sale nằm ở `DOC_TABS`).
 
 ### 2026-08-03 — Bổ sung cột "Tài khoản công nợ" (ACCOUNT_ID_PR) vào Danh sách chứng từ Bán hàng *(LedgerStudio)*
 

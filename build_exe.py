@@ -3,7 +3,7 @@ import sys
 import subprocess
 
 # Config
-if 'LedgerReport' in os.getcwd():
+if 'ledgerreport' in os.getcwd().lower():
     APP_NAME = 'iPOS_Accounting_Report'
 else:
     APP_NAME = 'iPOS_Ledger_Studio'

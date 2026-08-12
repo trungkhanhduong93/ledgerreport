@@ -19,7 +19,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Mỗi app = **`server.py`** (Flask + pyodbc, ~4000 dòng) + **`index.html`** (React qua CDN + Babel standalone, single-file ~430KB) → đóng gói **1 file EXE** bằng PyInstaller.
 - Sửa backend → `server.py`; sửa UI/báo cáo → `index.html`. Sau khi sửa **PHẢI**: (1) syntax-check, (2) test bằng `test_client` in-process, (3) build EXE.
 - **BẪY TEST LỚN NHẤT:** đừng test qua `python server.py` + curl (dễ dính "ghost server" cũ còn giữ port 5050). **Luôn test bằng Flask `test_client` in-process** (mục 9.1).
-- DB test: server `171.244.129.176,9001`, user `ipchulong`, pass `iP0So@$$`, db `IACC_CHULONG` (dữ liệu 2026-01 → 2026-10).
+- DB test: db `IACC_CHULONG` (dữ liệu 2026-01 → 2026-10). **Thông tin kết nối (server/user/password) KHÔNG lưu trong repo** — hỏi chủ dự án để được cấp khi cần test.
 
 ---
 
@@ -213,7 +213,7 @@ export PYTHONIOENCODING=utf-8   # tránh UnicodeEncodeError khi print tiếng Vi
 python -c "
 import server
 c = server.app.test_client()
-c.post('/api/login', json={'server':'171.244.129.176,9001','database':'IACC_CHULONG','user':'ipchulong','password':'iP0So@\$\$','driver':'ODBC Driver 17 for SQL Server'})
+c.post('/api/login', json={'server':'<SERVER>','database':'IACC_CHULONG','user':'<USER>','password':'<PASSWORD>','driver':'ODBC Driver 17 for SQL Server'})
 d = c.get('/api/cash_book?from_date=01/01/2026&to_date=31/01/2026&acc_ids=111&page=1').get_json()
 print(d['pagination'], len(d['rows']))
 "

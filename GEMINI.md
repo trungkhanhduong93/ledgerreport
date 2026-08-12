@@ -175,7 +175,7 @@ python -c "import ast; ast.parse(open('server.py', encoding='utf-8').read()); pr
 python -c "
 import server
 c = server.app.test_client()
-c.post('/api/login', json={'server':'171.244.129.176,9001','database':'IACC_CHULONG','user':'ipchulong','password':'iP0So@$$','driver':'ODBC Driver 17 for SQL Server'})
+c.post('/api/login', json={'server':'<SERVER>','database':'IACC_CHULONG','user':'<USER>','password':'<PASSWORD>','driver':'ODBC Driver 17 for SQL Server'})
 d = c.get('/api/cash_book?from_date=01/01/2026&to_date=31/01/2026&acc_ids=111&page=1').get_json()
 print('PAGINATION:', d['pagination'])
 "

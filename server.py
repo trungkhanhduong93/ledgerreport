@@ -5332,6 +5332,7 @@ if __name__ == "__main__":
 
         try:
             # close_fds + KHÔNG dùng shell → có handle process thật để wait()
+            _t_spawn = time.time()
             proc = subprocess.Popen(args, close_fds=True)
         except Exception:
             webbrowser.open(APP_URL)
@@ -5342,6 +5343,19 @@ if __name__ == "__main__":
             proc.wait()
         except Exception:
             pass
+
+        # ⚠️ BẪY ĐÃ TỪNG LÀM SERVER "CHẾT NGAY KHI VỪA LÊN" (phát hiện 12/08/2026):
+        # Nếu ĐÃ có sẵn 1 Chrome đang dùng chung --user-data-dir này (cửa sổ app cũ chưa đóng
+        # hẳn, hoặc process mồ côi còn sót), thì chrome.exe vừa spawn sẽ BÀN GIAO việc mở cửa sổ
+        # cho instance cũ rồi TỰ THOÁT NGAY (<1s). proc.wait() trả về tức thì → hiểu nhầm là
+        # "user đã đóng cửa sổ" → server taskkill chính nó → EXE thoát mã 1, mọi request sau đó
+        # báo "Failed to fetch" dù code hoàn toàn đúng. Triệu chứng điển hình: vừa build xong,
+        # chạy EXE là chết ngay, phải đóng hết Chrome mới chạy được.
+        # => Thoát quá nhanh = bàn giao, KHÔNG phải user đóng cửa sổ. Giữ server chạy ngầm,
+        #    đúng như nhánh dự phòng "không track được" ở trên.
+        if time.time() - _t_spawn < 5:
+            print("[launcher] Chrome ban giao cho instance cu (thoat <5s) -> giu server chay ngam")
+            return
 
         # User đã đóng cửa sổ → shutdown toàn bộ
         _shutdown_everything("Cua so app da bi dong")

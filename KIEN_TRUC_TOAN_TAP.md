@@ -314,6 +314,29 @@ Một công cụ/script "thêm NOLOCK" chạy lên `server.py` đã **làm hỏn
 
 **Lưu ý cho agent sau:** báo cáo trong `REPORT_TYPES` (mã BC, tab "Báo cáo") và danh sách trong `DOC_TABS` (dropdown "Danh mục") là **2 khái niệm khác nhau, độc lập** — đừng nhầm khi tài liệu cũ (`HUONG_DAN_BC007_BC010.md` mục 8.4) ghi nhầm "REPORT_TYPES" cho Sale (thực tế Sale nằm ở `DOC_TABS`).
 
+### 2026-08-12 (tiếp) — 🔥 VÁ BUG "build xong chạy EXE là chết ngay / Failed to fetch" *(cả 2 app đều dính — mới vá LedgerReport)*
+
+**Triệu chứng người dùng gặp lặp đi lặp lại nhiều lần:** vừa build EXE xong, chạy lên là app chết ngay (EXE thoát mã 1), hoặc đang dùng bình thường thì mọi thao tác báo **`Failed to fetch`** / `net::ERR_CONNECTION_REFUSED` — dù code hoàn toàn đúng. Trước đây hay bị quy oan cho code vừa sửa.
+
+**Nguyên nhân gốc (khối `__main__`, `server.py` ~5334):** EXE khởi động sẽ spawn 1 cửa sổ **Chrome `--app`** dùng profile riêng `%LocalAppData%\iPOS_Ledger_Studio\AppProfile`, rồi `proc.wait()` chờ tiến trình đó; khi cửa sổ đóng → `_shutdown_everything()` → `taskkill /F /T` **chính server**. Thiết kế này đúng khi dùng bình thường, NHƯNG:
+> Nếu ĐÃ có sẵn một Chrome đang dùng chung `--user-data-dir` đó (cửa sổ app cũ chưa đóng hẳn, hoặc process mồ côi còn sót), thì `chrome.exe` vừa spawn chỉ **bàn giao** việc mở cửa sổ cho instance cũ rồi **tự thoát ngay (<1s)**. `proc.wait()` trả về tức thì → server hiểu nhầm "user đã đóng cửa sổ" → **tự sát ngay khi vừa lên**.
+
+**Cách nhận biết nhanh khi gặp lại:**
+```powershell
+# Con so > 0 = dang dinh dieu kien gay bug
+@(Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" |
+  Where-Object { $_.CommandLine -like "*iPOS_Ledger_Studio*" }).Count
+```
+EXE thoát ngay với `ExitCode 1` (bắt bằng `Start-Process -PassThru` rồi kiểm `.HasExited`) là dấu hiệu chắc chắn.
+
+**Đã vá:** đo thời điểm spawn (`_t_spawn`); nếu `proc.wait()` trả về **< 5 giây** ⇒ hiểu là bàn giao chứ KHÔNG phải user đóng cửa sổ ⇒ **`return` giữ server chạy ngầm** (đúng như nhánh dự phòng "không track được" đã có sẵn phía trên). Hành vi "đóng cửa sổ app → tắt server" khi dùng bình thường **giữ nguyên**.
+
+**Verify:** tái hiện đúng điều kiện gây lỗi (mở sẵn Chrome chiếm `AppProfile` → 8 tiến trình) rồi chạy EXE mới: trước khi vá EXE thoát `ExitCode 1`; sau khi vá **EXE vẫn chạy, `HTTP 200`**, UI hiện đúng **v1.7.7**. EXE: `dist/iPOS_Accounting_Report.exe` **v1.7.7** (12/08/2026 13:40, đã verify mtime).
+
+**⚠️ CHƯA PORT SANG LEDGERSTUDIO** — Studio dùng chung y hệt khối launcher này (cùng profile dir `iPOS_Ledger_Studio`) nên **chắc chắn cũng dính**. Agent sau đụng Studio nhớ port bản vá này qua.
+
+**Bài học vận hành cho agent:** khi user đang mở app mà cần build lại (build đòi đóng app để không khoá file EXE) thì **PHẢI báo trước**, đừng `Stop-Process` ngang — user sẽ thấy "Failed to fetch" giữa chừng và tưởng tính năng vừa làm bị lỗi. Muốn chạy server để test mà KHÔNG dính launcher Chrome: import `server` rồi gọi thẳng `server.app.run(host="0.0.0.0", port=5050, use_reloader=False)` (bỏ qua khối `__main__`).
+
 ### 2026-08-03 — Bổ sung cột "Tài khoản công nợ" (ACCOUNT_ID_PR) vào Danh sách chứng từ Bán hàng *(LedgerStudio)*
 
 **Yêu cầu:** Thêm cột `ACCOUNT_ID_PR` (Tài khoản công nợ) vào Bảng danh sách chứng từ Bán hàng (`SALE_VIEW`), export CSV và export Excel.

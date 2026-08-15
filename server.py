@@ -553,6 +553,14 @@ def _build_where(request_args):
         if vals:
             clauses.append(f"{field} IN ({','.join(['?']*len(vals))})")
             params.extend(vals)
+        elif arg == "org_ids":
+            # KHÔNG chọn đơn vị ⇒ LOẠI đơn vị ngoài cây '00' (vd '66') — mặc định giống
+            # mọi báo cáo, để tổng cuối danh sách tie được với BC001/BC005/BC006/BC009…
+            # Muốn xem riêng đơn vị ngoài cây thì tự chọn nó ở bộ lọc Đơn vị.
+            _oc, _op = _org_filter_sql([], field)
+            if _oc:
+                clauses.append(_oc)
+                params.extend(_op)
 
     # Tài khoản / TK đối ứng: nếu chọn TK mẹ (vd 641) → match cả TK con (6411..6419)
     # Dùng LIKE 'xxx%' (SARGable) thay cho IN exact match
@@ -931,6 +939,14 @@ def _build_purchase_where(request_args):
         if vals:
             clauses.append(f"{field} IN ({','.join(['?']*len(vals))})")
             params.extend(vals)
+        elif arg == "org_ids":
+            # KHÔNG chọn đơn vị ⇒ LOẠI đơn vị ngoài cây '00' (vd '66') — mặc định giống
+            # mọi báo cáo, để tổng cuối danh sách tie được với BC001/BC005/BC006/BC009…
+            # Muốn xem riêng đơn vị ngoài cây thì tự chọn nó ở bộ lọc Đơn vị.
+            _oc, _op = _org_filter_sql([], field)
+            if _oc:
+                clauses.append(_oc)
+                params.extend(_op)
 
     # ID prefix LIKE
     for field, arg in [
@@ -1179,6 +1195,14 @@ def _build_warehouse_where(request_args):
         if vals:
             clauses.append(f"{field} IN ({','.join(['?']*len(vals))})")
             params.extend(vals)
+        elif arg == "org_ids":
+            # KHÔNG chọn đơn vị ⇒ LOẠI đơn vị ngoài cây '00' (vd '66') — mặc định giống
+            # mọi báo cáo, để tổng cuối danh sách tie được với BC001/BC005/BC006/BC009…
+            # Muốn xem riêng đơn vị ngoài cây thì tự chọn nó ở bộ lọc Đơn vị.
+            _oc, _op = _org_filter_sql([], field)
+            if _oc:
+                clauses.append(_oc)
+                params.extend(_op)
 
     ir = request_args.get("issue_receive", "").strip()
     if ir in ("N", "X"):
@@ -1988,6 +2012,14 @@ def _build_warehouse_balance_where(request_args):
         if vals:
             clauses.append(f"{field} IN ({','.join(['?']*len(vals))})")
             params.extend(vals)
+        elif arg == "org_ids":
+            # KHÔNG chọn đơn vị ⇒ LOẠI đơn vị ngoài cây '00' (vd '66') — mặc định giống
+            # mọi báo cáo, để tổng cuối danh sách tie được với BC001/BC005/BC006/BC009…
+            # Muốn xem riêng đơn vị ngoài cây thì tự chọn nó ở bộ lọc Đơn vị.
+            _oc, _op = _org_filter_sql([], field)
+            if _oc:
+                clauses.append(_oc)
+                params.extend(_op)
 
     for field, arg in [
         ("WBA.ORGANIZATION_ID", "s_org_id"),
@@ -2184,6 +2216,14 @@ def _build_sale_where(request_args):
         if vals:
             clauses.append(f"{field} IN ({','.join(['?']*len(vals))})")
             params.extend(vals)
+        elif arg == "org_ids":
+            # KHÔNG chọn đơn vị ⇒ LOẠI đơn vị ngoài cây '00' (vd '66') — mặc định giống
+            # mọi báo cáo, để tổng cuối danh sách tie được với BC001/BC005/BC006/BC009…
+            # Muốn xem riêng đơn vị ngoài cây thì tự chọn nó ở bộ lọc Đơn vị.
+            _oc, _op = _org_filter_sql([], field)
+            if _oc:
+                clauses.append(_oc)
+                params.extend(_op)
 
     # Lọc hàng bán trả lại (IS_RETURN): '1' chỉ hàng trả, '0' chỉ bán thường
     ret = request_args.get("is_return", "").strip()
@@ -2575,6 +2615,14 @@ def _build_voucher_where(request_args):
         if vals:
             clauses.append(f"{field} IN ({','.join(['?']*len(vals))})")
             params.extend(vals)
+        elif arg == "org_ids":
+            # KHÔNG chọn đơn vị ⇒ LOẠI đơn vị ngoài cây '00' (vd '66') — mặc định giống
+            # mọi báo cáo, để tổng cuối danh sách tie được với BC001/BC005/BC006/BC009…
+            # Muốn xem riêng đơn vị ngoài cây thì tự chọn nó ở bộ lọc Đơn vị.
+            _oc, _op = _org_filter_sql([], field)
+            if _oc:
+                clauses.append(_oc)
+                params.extend(_op)
 
     for arg, field_debit, field_credit in [
         ("acc_ids", "D.ACCOUNT_ID_DEBIT", "D.ACCOUNT_ID_CREDIT"),
@@ -2651,324 +2699,6 @@ def _voucher_enrich(rows_dicts, cursor):
                 except: pass
     return rows_dicts
 
-
-# ======================================================================
-# DOANH THU CHỜ PHÂN BỔ (INCOME_ALLOCATION) — xem theo mốc "as-of" cuối kỳ
-# ----------------------------------------------------------------------
-# INCOME_ALLOCATION        : mỗi dòng = 1 khoản doanh thu trả trước cần phân bổ
-# INCOME_ALLOCATION_DETAIL : lịch phân bổ theo kỳ (FR_KEY -> INCOME_ALLOCATION.PR_KEY)
-#   • Dthu kỳ này = SUM(AMOUNT) các kỳ chi tiết GIAO với [from_date, to_date]
-#   • Lũy kế      = SUM(AMOUNT) các kỳ chi tiết có DAY_END <= to_date (cộng dồn tới hết kỳ)
-#   • Còn lại     = INCOME_AMOUNT - Lũy kế
-# Không dùng bảng _TAM (chỉ là bảng tạm nghiệp vụ).
-# ======================================================================
-
-INCOME_ALLOC_COLUMNS = [
-    "PR_KEY", "TRAN_ID", "TRAN_DATE", "TRAN_NO", "DESCRIPTION", "ITEM_ID", "QUANTITY",
-    "INCOME_AMOUNT", "ALLOCATION_METHOD", "ALLOCATION_RATE", "ACCOUNT_ID", "ACCOUNT_ID_CONTRA",
-    "ACCOUNT_ID_DES", "PR_DETAIL_ID", "EXPENSE_ID", "JOB_ID", "ORGANIZATION_ID", "ACTIVE",
-    "COMMENTS", "USE_DATE", "RECEIVE_DATE",
-]
-INCOME_ALLOC_SORT_WHITELIST = {c: f"A.{c}" for c in INCOME_ALLOC_COLUMNS}
-INCOME_ALLOC_SORT_WHITELIST.update({
-    "PERIOD_AMT": "ISNULL(D.PERIOD_AMT,0)",
-    "CUM_AMT":    "ISNULL(D.CUM_AMT,0)",
-    "CON_LAI":    "(A.INCOME_AMOUNT - ISNULL(D.CUM_AMT,0))",
-})
-INCOME_ALLOC_NUM_COLS  = ("QUANTITY", "INCOME_AMOUNT", "ALLOCATION_RATE", "PERIOD_AMT", "CUM_AMT", "CON_LAI")
-INCOME_ALLOC_DATE_COLS = ("TRAN_DATE", "USE_DATE", "RECEIVE_DATE")
-ALLOC_METHOD_MAP = {"0": "Tháng", "1": "Ngày", "2": "Quý", "3": "Năm", "4": "Tuần"}
-
-INCOME_ALLOC_SELECT_LIST = """
-    A.PR_KEY, A.TRAN_ID, A.TRAN_DATE, A.TRAN_NO, A.DESCRIPTION, A.ITEM_ID, A.QUANTITY,
-    A.INCOME_AMOUNT, A.ALLOCATION_METHOD, A.ALLOCATION_RATE, A.ACCOUNT_ID, A.ACCOUNT_ID_CONTRA,
-    A.ACCOUNT_ID_DES, A.PR_DETAIL_ID, A.EXPENSE_ID, A.JOB_ID, A.ORGANIZATION_ID, A.ACTIVE,
-    A.COMMENTS, A.USE_DATE, A.RECEIVE_DATE,
-    ISNULL(D.PERIOD_AMT,0) AS PERIOD_AMT,
-    ISNULL(D.CUM_AMT,0)    AS CUM_AMT,
-    (A.INCOME_AMOUNT - ISNULL(D.CUM_AMT,0)) AS CON_LAI
-"""
-INCOME_ALLOC_FROM = "FROM dbo.INCOME_ALLOCATION A WITH (NOLOCK) LEFT JOIN D ON D.FR_KEY = A.PR_KEY"
-
-
-def _income_alloc_cte(from_dt, to_dt):
-    """CTE D tổng hợp chi tiết phân bổ + 3 tham số ngày (thứ tự khớp SQL text)."""
-    d_sql = """
-        WITH D AS (
-            SELECT FR_KEY,
-                   SUM(CASE WHEN DAY_START <= ? AND DAY_END >= ? THEN AMOUNT ELSE 0 END) AS PERIOD_AMT,
-                   SUM(CASE WHEN DAY_END <= ? THEN AMOUNT ELSE 0 END) AS CUM_AMT
-            FROM dbo.INCOME_ALLOCATION_DETAIL WITH (NOLOCK)
-            GROUP BY FR_KEY
-        )
-    """
-    d_params = [to_dt.strftime("%Y%m%d"), from_dt.strftime("%Y%m%d"), to_dt.strftime("%Y%m%d")]
-    return d_sql, d_params
-
-
-def _build_income_alloc_where(args):
-    """WHERE + params cho INCOME_ALLOCATION (alias A, có ref D.CUM_AMT). Trả (where_sql, params, from_dt, to_dt)."""
-    f_date = args.get("from_date", "01/01/2026")
-    t_date = args.get("to_date",  "31/12/2026")
-    from_dt = datetime.strptime(f_date, "%d/%m/%Y").date()
-    to_dt   = datetime.strptime(t_date, "%d/%m/%Y").date()
-
-    # Chỉ lấy chứng từ phát sinh tới hết ngày cuối kỳ (as-of)
-    clauses = ["A.TRAN_DATE <= ?"]
-    params  = [to_dt.strftime("%Y%m%d")]
-
-    # Trạng thái ACTIVE: '1' đang hiệu lực, '0' ngừng, '' = tất cả
-    active = args.get("active", "").strip()
-    if active in ("0", "1"):
-        clauses.append("A.ACTIVE = ?")
-        params.append(int(active))
-
-    # Trạng thái phân bổ: 'remaining' (còn giá trị) | 'done' (đã hết) | '' (tất cả). Mặc định 'remaining'.
-    alloc_status = args.get("alloc_status", "remaining").strip()
-    if alloc_status == "remaining":
-        clauses.append("(A.INCOME_AMOUNT - ISNULL(D.CUM_AMT,0)) > 0")
-    elif alloc_status == "done":
-        clauses.append("(A.INCOME_AMOUNT - ISNULL(D.CUM_AMT,0)) <= 0")
-
-    for field, arg in [
-        ("A.TRAN_ID",         "tran_ids"),
-        ("A.ORGANIZATION_ID", "org_ids"),
-        ("A.JOB_ID",          "job_ids"),
-        ("A.ITEM_ID",         "item_ids"),
-        ("A.EXPENSE_ID",      "expense_ids"),
-        ("A.PR_DETAIL_ID",    "pr_detail_ids"),
-        ("A.ACCOUNT_ID_DES",  "acc_des_ids"),
-    ]:
-        raw = args.get(arg, "")
-        vals = [v for v in raw.split(",") if v]
-        if vals:
-            clauses.append(f"{field} IN ({','.join(['?']*len(vals))})")
-            params.extend(vals)
-
-    # ID prefix LIKE (SARGable)
-    for field, arg in [
-        ("A.TRAN_NO",         "tran_no"),
-        ("A.TRAN_NO",         "s_tran_no"),
-        ("A.TRAN_ID",         "s_tran_id"),
-        ("A.ORGANIZATION_ID", "s_org_id"),
-        ("A.ITEM_ID",         "s_item_id"),
-        ("A.ACCOUNT_ID",      "s_acc_id"),
-        ("A.ACCOUNT_ID_DES",  "s_acc_des"),
-        ("A.ACCOUNT_ID_CONTRA", "s_acc_contra"),
-        ("A.PR_DETAIL_ID",    "s_pr_id"),
-        ("A.JOB_ID",          "s_job_id"),
-        ("A.EXPENSE_ID",      "s_exp_id"),
-    ]:
-        val = args.get(arg, "").strip()
-        if val:
-            clauses.append(f"{field} LIKE ?")
-            params.append(f"{val}%")
-
-    # text contains LIKE
-    for field, arg in [
-        ("A.DESCRIPTION", "s_desc"),
-        ("A.COMMENTS",    "s_comment"),
-    ]:
-        val = args.get(arg, "").strip()
-        if val:
-            clauses.append(f"{field} LIKE ?")
-            params.append(f"%{val}%")
-
-    return " AND ".join(clauses), params, from_dt, to_dt
-
-
-def _income_alloc_name_maps():
-    """Map ID → tên cho đơn vị / hàng hóa / công việc / đối tượng / mục chi phí / chứng từ (từ _meta_cache)."""
-    db_name = session.get('db_config', {}).get('database', 'N/A')
-    meta = _meta_cache.get(db_name) or {}
-    def mp(key):
-        return {(it.get('id') or '').strip(): it.get('name') or '' for it in meta.get(key, [])}
-    return mp('orgs'), mp('items'), mp('jobs'), mp('pr_details'), mp('expenses'), mp('tran_ids')
-
-
-def _income_alloc_enrich(rows, columns_present=True):
-    """Bổ sung tên + format ngày/số cho danh sách dict INCOME_ALLOCATION."""
-    org_map, item_map, job_map, pr_map, exp_map, tran_map = _income_alloc_name_maps()
-    out = []
-    for r in rows:
-        r['ORGANIZATION_NAME'] = org_map.get((str(r.get('ORGANIZATION_ID') or '')).strip(), '')
-        r['ITEM_NAME']         = item_map.get((str(r.get('ITEM_ID') or '')).strip(), '')
-        r['JOB_NAME']          = job_map.get((str(r.get('JOB_ID') or '')).strip(), '')
-        r['PR_DETAIL_NAME']    = pr_map.get((str(r.get('PR_DETAIL_ID') or '')).strip(), '')
-        r['EXPENSE_NAME']      = exp_map.get((str(r.get('EXPENSE_ID') or '')).strip(), '')
-        r['TRAN_NAME']         = tran_map.get((str(r.get('TRAN_ID') or '')).strip(), '')
-        r['ALLOCATION_METHOD_NAME'] = ALLOC_METHOD_MAP.get(str(r.get('ALLOCATION_METHOD') or '').strip(),
-                                                           str(r.get('ALLOCATION_METHOD') or ''))
-        for dk in INCOME_ALLOC_DATE_COLS:
-            v = r.get(dk)
-            if isinstance(v, (date, datetime)):
-                r[dk] = v.strftime("%d/%m/%Y")
-        for nk in INCOME_ALLOC_NUM_COLS:
-            v = r.get(nk)
-            if v is not None:
-                try: r[nk] = float(v)
-                except: pass
-        r.pop('RowNum', None)
-        out.append(r)
-    return out
-
-
-@app.route("/api/income_alloc")
-@with_db_lock
-def get_income_alloc():
-    """Danh sách doanh thu chờ phân bổ — INCOME_ALLOCATION as-of cuối kỳ (Dthu kỳ này / Lũy kế / Còn lại)."""
-    try:
-        page      = int(request.args.get("page", 1))
-        page_size = int(request.args.get("page_size", 100))
-        export_all = request.args.get("export_all") == "1"
-        known_total = request.args.get("known_total")
-        known_sums  = request.args.get("known_sums")
-        skip_count  = page > 1 and known_total is not None and known_sums is not None and not export_all
-
-        where_sql, w_params, from_dt, to_dt = _build_income_alloc_where(request.args)
-        d_sql, d_params = _income_alloc_cte(from_dt, to_dt)
-        order_by_sql = _resolve_order_by(request.args, INCOME_ALLOC_SORT_WHITELIST, "A.TRAN_DATE DESC, A.TRAN_NO")
-
-        conn = get_connection()
-        cursor = conn.cursor()
-        empty_sum = {"income_amount": 0, "period_amt": 0, "cum_amt": 0, "con_lai": 0, "quantity": 0}
-
-        if export_all:
-            sql = f"{d_sql} SELECT {INCOME_ALLOC_SELECT_LIST} {INCOME_ALLOC_FROM} WHERE {where_sql} ORDER BY {order_by_sql}"
-            cursor.execute(sql, d_params + w_params)
-            columns  = [c[0] for c in cursor.description]
-            raw_rows = cursor.fetchall()
-            total_rows = len(raw_rows)
-            qi = {c: i for i, c in enumerate(columns)}
-            summary = dict(empty_sum)
-            for r in raw_rows:
-                summary["income_amount"] += float(r[qi["INCOME_AMOUNT"]] or 0)
-                summary["period_amt"]    += float(r[qi["PERIOD_AMT"]]    or 0)
-                summary["cum_amt"]       += float(r[qi["CUM_AMT"]]       or 0)
-                summary["con_lai"]       += float(r[qi["CON_LAI"]]       or 0)
-                summary["quantity"]      += float(r[qi["QUANTITY"]]      or 0)
-        else:
-            if skip_count:
-                import json as _json
-                total_rows = int(known_total)
-                try:    summary = _json.loads(known_sums)
-                except: summary = dict(empty_sum)
-            else:
-                cnt_sql = f"""{d_sql}
-                    SELECT COUNT(*),
-                           SUM(A.INCOME_AMOUNT),
-                           SUM(ISNULL(D.PERIOD_AMT,0)),
-                           SUM(ISNULL(D.CUM_AMT,0)),
-                           SUM(A.INCOME_AMOUNT - ISNULL(D.CUM_AMT,0)),
-                           SUM(A.QUANTITY)
-                    {INCOME_ALLOC_FROM} WHERE {where_sql}"""
-                cursor.execute(cnt_sql, d_params + w_params)
-                row = cursor.fetchone()
-                total_rows = row[0] or 0
-                summary = {
-                    "income_amount": float(row[1] or 0),
-                    "period_amt":    float(row[2] or 0),
-                    "cum_amt":       float(row[3] or 0),
-                    "con_lai":       float(row[4] or 0),
-                    "quantity":      float(row[5] or 0),
-                }
-
-            offset = (page - 1) * page_size
-            sql = f"""{d_sql}
-                SELECT * FROM (
-                    SELECT {INCOME_ALLOC_SELECT_LIST},
-                           ROW_NUMBER() OVER (ORDER BY {order_by_sql}) AS RowNum
-                    {INCOME_ALLOC_FROM}
-                    WHERE {where_sql}
-                ) AS T
-                WHERE RowNum > ? AND RowNum <= ?"""
-            cursor.execute(sql, d_params + w_params + [offset, offset + page_size])
-            columns  = [c[0] for c in cursor.description]
-            raw_rows = cursor.fetchall()
-
-        rows = _income_alloc_enrich([dict(zip(columns, raw)) for raw in raw_rows])
-
-        return jsonify({
-            "status": "ok",
-            "data": rows,
-            "pagination": {
-                "total_rows":  total_rows,
-                "total_pages": max(1, (total_rows + page_size - 1) // page_size),
-                "page": page if not export_all else 1
-            },
-            "summary": summary
-        })
-    except Exception as e:
-        msg = str(e)
-        if "đăng nhập" not in msg:
-            invalidate_pool()
-        return jsonify({"status": "error", "message": msg}), 401 if "đăng nhập" in msg else 500
-
-
-@app.route("/api/income_alloc/count")
-@with_db_lock
-def get_income_alloc_count():
-    try:
-        where_sql, w_params, from_dt, to_dt = _build_income_alloc_where(request.args)
-        d_sql, d_params = _income_alloc_cte(from_dt, to_dt)
-        conn = get_connection()
-        cursor = conn.cursor()
-        sql = f"{d_sql} SELECT COUNT(*) {INCOME_ALLOC_FROM} WHERE {where_sql}"
-        cursor.execute(sql, d_params + w_params)
-        total = cursor.fetchone()[0] or 0
-        return jsonify({"status": "ok", "total": int(total)})
-    except Exception as e:
-        msg = str(e)
-        if "đăng nhập" not in msg:
-            invalidate_pool()
-        return jsonify({"status": "error", "message": msg}), 401 if "đăng nhập" in msg else 500
-
-
-# Cột xuất CSV — thứ tự/nhãn khớp INCOME_ALLOC_EXPORT_COLS ở index.html (mode "mỗi đơn vị 1 sheet")
-INCOME_ALLOC_CSV_COLS = [
-    ("ORGANIZATION_ID","Đơn vị"), ("ORGANIZATION_NAME","Tên đơn vị"),
-    ("TRAN_ID","Mã CT"), ("TRAN_NAME","Tên chứng từ"), ("TRAN_NO","Số CT"), ("TRAN_DATE","Ngày CT"),
-    ("USE_DATE","Ngày phân bổ"), ("RECEIVE_DATE","Ngày nhận"),
-    ("DESCRIPTION","Diễn giải"), ("ITEM_ID","Hàng hóa"), ("ITEM_NAME","Tên hàng hóa"), ("QUANTITY","Số lượng"),
-    ("ALLOCATION_RATE","Tỷ lệ pb"), ("ALLOCATION_METHOD_NAME","Tiêu thức pb"),
-    ("INCOME_AMOUNT","Doanh thu"), ("PERIOD_AMT","Dthu kỳ này"), ("CUM_AMT","Lũy kế"), ("CON_LAI","Còn lại"),
-    ("ACCOUNT_ID_DES","Tk đích"), ("ACCOUNT_ID","TK"), ("ACCOUNT_ID_CONTRA","Tk đối ứng"),
-    ("PR_DETAIL_ID","Mã đối tượng"), ("PR_DETAIL_NAME","Tên đối tượng"),
-    ("JOB_ID","Công việc"), ("EXPENSE_ID","Mục chi phí"),
-    ("ACTIVE","Active"), ("COMMENTS","Ghi chú"),
-]
-
-
-@app.route("/api/income_alloc/stream_csv", methods=["POST", "GET"])
-def get_income_alloc_stream_csv():
-    """Tạo job ghi CSV vào disk + trả job_id để poll progress (giống 5 danh sách còn lại)."""
-    try:
-        args = request.args
-        total_estimate = int(args.get("total", 0) or 0)
-        where_sql, w_params, from_dt, to_dt = _build_income_alloc_where(args)
-        d_sql, d_params = _income_alloc_cte(from_dt, to_dt)
-        order_by_sql = _resolve_order_by(args, INCOME_ALLOC_SORT_WHITELIST, "A.TRAN_DATE DESC, A.TRAN_NO")
-        sql = f"{d_sql} SELECT {INCOME_ALLOC_SELECT_LIST} {INCOME_ALLOC_FROM} WHERE {where_sql} ORDER BY {order_by_sql}"
-
-        # Map tên chuẩn bị sẵn (1 lần) — transform chạy ở thread nền nên KHÔNG được đụng session/DB
-        org_map, item_map, job_map, pr_map, exp_map, tran_map = _income_alloc_name_maps()
-
-        def transform(raw, sql_cols):
-            d = dict(zip(sql_cols, raw))
-            d['ORGANIZATION_NAME'] = org_map.get((str(d.get('ORGANIZATION_ID') or '')).strip(), '')
-            d['ITEM_NAME']         = item_map.get((str(d.get('ITEM_ID') or '')).strip(), '')
-            d['PR_DETAIL_NAME']    = pr_map.get((str(d.get('PR_DETAIL_ID') or '')).strip(), '')
-            d['TRAN_NAME']         = tran_map.get((str(d.get('TRAN_ID') or '')).strip(), '')
-            d['ALLOCATION_METHOD_NAME'] = ALLOC_METHOD_MAP.get(str(d.get('ALLOCATION_METHOD') or '').strip(),
-                                                               str(d.get('ALLOCATION_METHOD') or ''))
-            return [d.get(key) for key, _ in INCOME_ALLOC_CSV_COLS]
-
-        headers = [label for _, label in INCOME_ALLOC_CSV_COLS]
-        fname   = f"DoanhThuChoPhanBo_{args.get('from_date','').replace('/','')}-{args.get('to_date','').replace('/','')}.{args.get('format', 'csv')}"
-        job_id  = _start_export_job(fname, headers, sql, d_params + w_params, transform, total_estimate)
-        return jsonify({"status": "ok", "job_id": job_id, "filename": fname})
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 @app.route("/api/voucher")
@@ -3520,11 +3250,11 @@ def get_balance_sheet():
         from_dt = datetime.strptime(f_date, "%d/%m/%Y").date()
         to_dt   = datetime.strptime(t_date, "%d/%m/%Y").date()
 
-        org_where = ""
-        org_params = []
-        if org_ids:
-            org_where = f" AND ORGANIZATION_ID IN ({','.join(['?']*len(org_ids))})"
-            org_params = list(org_ids)
+        # Không chọn đơn vị ⇒ LOẠI đơn vị ngoài cây '00' (vd '66'), giống BC001/BC009/BC010/BC011.
+        # Trước 15/08/2026 chỗ này để rỗng ⇒ báo cáo GỘP CẢ đơn vị ngoài cây → không tie được
+        # với các báo cáo khác, và làm Bảng cân đối kế toán không cân.
+        _oc, org_params = _org_filter_sql(org_ids, "ORGANIZATION_ID")
+        org_where = (" AND " + _oc) if _oc else ""
 
         cur = get_connection().cursor()
 
@@ -3547,7 +3277,9 @@ def get_balance_sheet():
                 WHERE TRAN_DATE = ? {org_where}
                 GROUP BY ACCOUNT_ID, ISNULL(PR_DETAIL_ID, ''), ISNULL(ORGANIZATION_ID, '')
             """
-            org_params_open = [first_day_of_year] + list(org_ids)
+            # PHẢI là org_params (khớp số dấu ? trong org_where), KHÔNG phải org_ids —
+            # khi không chọn đơn vị thì org_ids rỗng nhưng org_where vẫn có NOT IN (?).
+            org_params_open = [first_day_of_year] + list(org_params)
         else:
             q_open = f"""
                 SELECT ACCOUNT_ID, ISNULL(PR_DETAIL_ID, ''), '' AS ORGANIZATION_ID,
@@ -3571,9 +3303,13 @@ def get_balance_sheet():
             if end_date_exclusive is not None:
                 where.append("L.TRAN_DATE < ?")
                 params.append(end_date_exclusive.strftime("%Y%m%d"))
-            if org_ids:
-                where.append(f"L.ORGANIZATION_ID IN ({','.join(['?']*len(org_ids))})")
-                params.extend(org_ids)
+            # Đây là truy vấn sinh ra số dư thật của BC005 — phải LOẠI đơn vị ngoài cây '00'
+            # y như org_where ở trên, nếu không thì bảng cân đối KHÔNG CÂN (đơn vị 66 mang theo
+            # số dư TK 6xx chưa kết chuyển, không có chỗ trên CĐKT).
+            _lc, _lp = _org_filter_sql(org_ids, "L.ORGANIZATION_ID")
+            if _lc:
+                where.append(_lc)
+                params.extend(_lp)
             q = f"""
                 SELECT L.ACCOUNT_ID, ISNULL(L.PR_DETAIL_ID, ''), ISNULL(L.ORGANIZATION_ID, ''),
                        SUM(CASE WHEN L.DEBIT_CREDIT='DEB' THEN L.AMOUNT WHEN L.DEBIT_CREDIT='CRD' THEN -L.AMOUNT ELSE 0 END) AS BAL
@@ -3671,11 +3407,11 @@ def get_trial_balance():
         from_dt = datetime.strptime(f_date, "%d/%m/%Y").date()
         to_dt   = datetime.strptime(t_date, "%d/%m/%Y").date()
 
-        org_where = ""
-        org_params = []
-        if org_ids:
-            org_where = f" AND ORGANIZATION_ID IN ({','.join(['?']*len(org_ids))})"
-            org_params = list(org_ids)
+        # Không chọn đơn vị ⇒ LOẠI đơn vị ngoài cây '00' (vd '66'), giống BC001/BC009/BC010/BC011.
+        # Trước 15/08/2026 chỗ này để org_where rỗng ⇒ BC006 GỘP CẢ đơn vị ngoài cây → không tie
+        # được với các báo cáo khác.
+        _oc, org_params = _org_filter_sql(org_ids, "ORGANIZATION_ID")
+        org_where = (" AND " + _oc) if _oc else ""
 
         cur = get_connection().cursor()
         first_day_of_year = date(from_dt.year, 1, 1).strftime("%Y%m%d")
@@ -3728,7 +3464,7 @@ def get_trial_balance():
             WHERE TRAN_DATE = ? {org_where}
             GROUP BY ACCOUNT_ID, ISNULL(PR_DETAIL_ID, '')
         """
-        org_params_open = [first_day_of_year] + list(org_ids)
+        org_params_open = [first_day_of_year] + list(org_params)   # org_params, KHÔNG phải org_ids
         cur.execute(q_open, org_params_open)
         opening_year = { ((r[0] or '').strip(), (r[1] or '').strip()): float(r[2] or 0) for r in cur.fetchall() }
 
@@ -3737,9 +3473,10 @@ def get_trial_balance():
         if from_dt > date(from_dt.year, 1, 1):
             where_start = ["L.TRAN_DATE >= ?", "L.TRAN_DATE < ?"]
             params_start = [first_day_of_year, from_dt.strftime("%Y%m%d")]
-            if org_ids:
-                where_start.append(f"L.ORGANIZATION_ID IN ({','.join(['?']*len(org_ids))})")
-                params_start.extend(org_ids)
+            _lc, _lp = _org_filter_sql(org_ids, "L.ORGANIZATION_ID")
+            if _lc:
+                where_start.append(_lc)
+                params_start.extend(_lp)
             q_ledger_start = f"""
                 SELECT L.ACCOUNT_ID, ISNULL(L.PR_DETAIL_ID, ''),
                        SUM(CASE WHEN L.DEBIT_CREDIT='DEB' THEN L.AMOUNT WHEN L.DEBIT_CREDIT='CRD' THEN -L.AMOUNT ELSE 0 END) AS BAL
@@ -3753,9 +3490,10 @@ def get_trial_balance():
         # 3. Lấy Phát sinh trong kỳ
         where_period = ["L.TRAN_DATE >= ?", "L.TRAN_DATE <= ?"]
         params_period = [from_dt.strftime("%Y%m%d"), to_dt.strftime("%Y%m%d")]
-        if org_ids:
-            where_period.append(f"L.ORGANIZATION_ID IN ({','.join(['?']*len(org_ids))})")
-            params_period.extend(org_ids)
+        _lc2, _lp2 = _org_filter_sql(org_ids, "L.ORGANIZATION_ID")
+        if _lc2:
+            where_period.append(_lc2)
+            params_period.extend(_lp2)
         q_period = f"""
             SELECT L.ACCOUNT_ID, ISNULL(L.PR_DETAIL_ID, ''),
                    SUM(CASE WHEN L.DEBIT_CREDIT='DEB' THEN L.AMOUNT ELSE 0 END) AS DEB,
@@ -3896,10 +3634,9 @@ def get_debt_summary():
         acc_clause = "(" + " OR ".join(["ACCOUNT_ID LIKE ?"] * len(acc_ids)) + ")"
         acc_params = [a + "%" for a in acc_ids]
 
-        org_clause, org_params = "", []
-        if org_ids:
-            org_clause = f" AND ORGANIZATION_ID IN ({','.join(['?']*len(org_ids))})"
-            org_params = list(org_ids)
+        # Không chọn đơn vị ⇒ LOẠI đơn vị ngoài cây '00' (vd '66'), giống các báo cáo khác.
+        _oc, org_params = _org_filter_sql(org_ids, "ORGANIZATION_ID")
+        org_clause = (" AND " + _oc) if _oc else ""
 
         pr_clause, pr_params = "", []
         if pr_ids:
@@ -4008,11 +3745,11 @@ def export_excel_backend():
         from_dt = datetime.strptime(f_date, "%d/%m/%Y").date()
         to_dt = datetime.strptime(t_date, "%d/%m/%Y").date()
         
-        org_where = ""
-        org_params = []
-        if org_ids:
-            org_where = f" AND ORGANIZATION_ID IN ({','.join(['?']*len(org_ids))})"
-            org_params = list(org_ids)
+        # Không chọn đơn vị ⇒ LOẠI đơn vị ngoài cây '00' (vd '66'), giống BC001/BC009/BC010/BC011.
+        # Trước 15/08/2026 chỗ này để rỗng ⇒ báo cáo GỘP CẢ đơn vị ngoài cây → không tie được
+        # với các báo cáo khác, và làm Bảng cân đối kế toán không cân.
+        _oc, org_params = _org_filter_sql(org_ids, "ORGANIZATION_ID")
+        org_where = (" AND " + _oc) if _oc else ""
 
         cur = get_connection().cursor()
         
@@ -4285,21 +4022,23 @@ def report_export_csv():
         if not db_cfg:
             return jsonify({"status": "error", "message": "Chưa đăng nhập SQL Server"}), 401
 
-        org_where, org_params = "", []
-        if org_ids:
-            org_where = f" AND ORGANIZATION_ID IN ({','.join(['?']*len(org_ids))})"
-            org_params = list(org_ids)
+        # Xuất CSV phải lọc đơn vị Y HỆT bản trên màn hình, nếu không file xuất ra sẽ nhiều
+        # dòng hơn báo cáo đang xem (gồm cả đơn vị ngoài cây '00').
+        _oc, org_params = _org_filter_sql(org_ids, "ORGANIZATION_ID")
+        org_where = (" AND " + _oc) if _oc else ""
 
         d_from = from_dt.strftime("%Y%m%d")
         d_to   = to_dt.strftime("%Y%m%d")
         first_day = date(from_dt.year, 1, 1).strftime("%Y%m%d")
 
-        # org filter với alias L. (LEDGER) và LV. (LEDGER_VIEW) — tránh nhập nhằng khi JOIN DM_ORGANIZATION
-        org_where_l, org_where_lv = "", ""
-        if org_ids:
-            _ph = ','.join(['?'] * len(org_ids))
-            org_where_l  = f" AND L.ORGANIZATION_ID IN ({_ph})"
-            org_where_lv = f" AND LV.ORGANIZATION_ID IN ({_ph})"
+        # org filter với alias L. (LEDGER) và LV. (LEDGER_VIEW) — tránh nhập nhằng khi JOIN DM_ORGANIZATION.
+        # PHẢI đi qua _org_filter_sql y như org_where ở trên: ba biến này dùng CHUNG một mảng
+        # org_params, nên nếu chỗ này còn dựng theo org_ids (rỗng khi không chọn đơn vị) thì số dấu ?
+        # không khớp số params → "SQL contains 2 parameter markers, but 3 parameters were supplied".
+        _lc, _lp   = _org_filter_sql(org_ids, "L.ORGANIZATION_ID")
+        _lvc, _lvp = _org_filter_sql(org_ids, "LV.ORGANIZATION_ID")
+        org_where_l  = (" AND " + _lc)  if _lc  else ""
+        org_where_lv = (" AND " + _lvc) if _lvc else ""
 
         if report_type == "BC007" and mode == "detail":
             # NHẬT KÝ CHUNG CHI TIẾT — theo mẫu SQL người dùng cung cấp (bổ sung Tên đơn vị)
@@ -4518,7 +4257,15 @@ def _get_external_org_ids():
                     return True
                 seen.add(c); c = par.get(c, '')
             return False
-        ext = [o for o in par if o != '00' and not reaches_root(o)]
+        if '00' not in par:
+            # ⛔ CHỐT AN TOÀN: DB không hề có đơn vị gốc '00' (DB của khách khác có thể đánh mã
+            # khác hẳn). Khi đó reaches_root() trả False cho MỌI đơn vị ⇒ ext = toàn bộ danh sách
+            # ⇒ mệnh đề NOT IN (tất cả) ⇒ mọi báo cáo trả 0 dòng mà KHÔNG báo lỗi gì.
+            # Không có gốc '00' thì coi như không có khái niệm "ngoài cây" → không lọc.
+            logger.warning("DM_ORGANIZATION khong co don vi goc '00' — bo qua loc don vi ngoai cay.")
+            ext = []
+        else:
+            ext = [o for o in par if o != '00' and not reaches_root(o)]
     except Exception:
         ext = []
     _external_orgs_cache[db_name] = ext
@@ -4743,11 +4490,11 @@ def get_journal():
         from_dt = datetime.strptime(f_date, "%d/%m/%Y").date()
         to_dt = datetime.strptime(t_date, "%d/%m/%Y").date()
 
-        org_where = ""
-        org_params = []
-        if org_ids:
-            org_where = f" AND ORGANIZATION_ID IN ({','.join(['?']*len(org_ids))})"
-            org_params = list(org_ids)
+        # Không chọn đơn vị ⇒ LOẠI đơn vị ngoài cây '00' (vd '66'), giống BC001/BC009/BC010/BC011.
+        # Trước 15/08/2026 chỗ này để rỗng ⇒ báo cáo GỘP CẢ đơn vị ngoài cây → không tie được
+        # với các báo cáo khác, và làm Bảng cân đối kế toán không cân.
+        _oc, org_params = _org_filter_sql(org_ids, "ORGANIZATION_ID")
+        org_where = (" AND " + _oc) if _oc else ""
 
         cur = get_connection().cursor()
         
@@ -4841,11 +4588,11 @@ def get_account_details():
         to_dt = datetime.strptime(t_date, "%d/%m/%Y").date()
         first_day_of_year = date(from_dt.year, 1, 1).strftime("%Y%m%d")
 
-        org_where = ""
-        org_params = []
-        if org_ids:
-            org_where = f" AND ORGANIZATION_ID IN ({','.join(['?']*len(org_ids))})"
-            org_params = list(org_ids)
+        # Không chọn đơn vị ⇒ LOẠI đơn vị ngoài cây '00' (vd '66'), giống BC001/BC009/BC010/BC011.
+        # Trước 15/08/2026 chỗ này để rỗng ⇒ báo cáo GỘP CẢ đơn vị ngoài cây → không tie được
+        # với các báo cáo khác, và làm Bảng cân đối kế toán không cân.
+        _oc, org_params = _org_filter_sql(org_ids, "ORGANIZATION_ID")
+        org_where = (" AND " + _oc) if _oc else ""
 
         cur = get_connection().cursor()
 

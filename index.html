@@ -473,36 +473,6 @@ window.showConnectionLost = function() {
             </tr>
         ));
 
-        // ===== Danh sách DOANH THU CHỜ PHÂN BỔ (INCOME_ALLOCATION) =====
-        const IncomeAllocRow = memo(({ r, idx }) => (
-            <tr className="hover:bg-indigo-50 border-b border-slate-50">
-                <td className="border-r text-center">{idx}</td>
-                <td className="border-r text-center italic">{r.ORGANIZATION_ID}</td>
-                <td className="border-r whitespace-nowrap px-3 font-bold">{r.ORGANIZATION_NAME}</td>
-                <td className="border-r text-center italic">{r.TRAN_ID}</td>
-                <td className="border-r font-black px-3 whitespace-nowrap">{r.TRAN_NO}</td>
-                <td className="border-r text-center font-bold">{r.TRAN_DATE}</td>
-                <td className="border-r text-center">{r.USE_DATE}</td>
-                <td className="border-r whitespace-nowrap truncate max-w-[250px] px-3 py-1.5">{r.DESCRIPTION}</td>
-                <td className="border-r text-center font-black text-indigo-600">{r.ITEM_ID}</td>
-                <td className="border-r whitespace-nowrap px-3">{r.ITEM_NAME}</td>
-                <td className="border-r text-right font-mono px-2">{fmtNum(r.ALLOCATION_RATE)}</td>
-                <td className="border-r text-right font-mono px-2 font-black">{fmtInt(r.INCOME_AMOUNT)}</td>
-                <td className="border-r text-right font-mono px-2 text-emerald-600">{fmtInt(r.PERIOD_AMT)}</td>
-                <td className="border-r text-right font-mono px-2 text-violet-600">{fmtInt(r.CUM_AMT)}</td>
-                <td className="border-r text-right font-mono px-2 font-black text-rose-600">{fmtInt(r.CON_LAI)}</td>
-                <td className="border-r text-center font-black text-indigo-600">{r.ACCOUNT_ID_DES}</td>
-                <td className="border-r text-center italic">{r.PR_DETAIL_ID}</td>
-                <td className="border-r whitespace-nowrap px-3 font-bold">{r.PR_DETAIL_NAME}</td>
-                <td className="border-r text-center">{r.ALLOCATION_METHOD_NAME}</td>
-                <td className="border-r text-center italic">{r.JOB_ID}</td>
-                <td className="border-r text-center italic">{r.ACCOUNT_ID}</td>
-                <td className="border-r text-center italic">{r.ACCOUNT_ID_CONTRA}</td>
-                <td className="border-r text-center italic">{r.EXPENSE_ID}</td>
-                <td className="border-r text-center font-black">{Number(r.ACTIVE) === 1 ? <span className="text-emerald-600">✓</span> : <span className="text-slate-300">—</span>}</td>
-                <td className="whitespace-nowrap px-3 py-1.5 italic">{r.COMMENTS}</td>
-            </tr>
-        ));
 
         // ===== Danh sách chứng từ TIỀN (VOUCHER_VIEW) =====
         const VoucherGroupRow = ({ node, toggleExpand }) => {
@@ -3074,7 +3044,6 @@ const exportJournalCsv = (mode) => {
             { id: 'voucher',   name: 'Danh sách chứng từ tiền' },
             { id: 'purchase',  name: 'Danh sách chứng từ nhập kho' },
             { id: 'warehouse', name: 'Danh sách chứng từ kho' },
-            { id: 'income_alloc', name: 'Danh sách doanh thu chờ phân bổ' },
             { id: 'warehouse_balance', name: 'Danh sách tồn kho thực tế' },
         ];
 
@@ -3580,82 +3549,6 @@ const exportJournalCsv = (mode) => {
 
             const isSaleGroupedOrSearched = groupBySale.length > 0 || Object.values(saleColSearch).some(val => (val || '').trim() !== '');
 
-            // ============ DOANH THU CHỜ PHÂN BỔ (INCOME_ALLOCATION) TAB STATE & LOADER ============
-            const [incomeAllocData, setIncomeAllocData] = useState([]);
-            const [incomeAllocPagination, setIncomeAllocPagination] = useState({ total_rows: 0, total_pages: 1, page: 1 });
-            const [incomeAllocSummary, setIncomeAllocSummary] = useState({ income_amount: 0, period_amt: 0, cum_amt: 0, con_lai: 0, quantity: 0 });
-            const [incomeAllocLoading, setIncomeAllocLoading] = useState(false);
-            const [incomeAllocSort, setIncomeAllocSort] = useState({ field: null, dir: 'desc' });
-            // active: '1' đang hiệu lực | '0' ngừng | '' tất cả ; alloc_status: 'remaining' còn | 'done' hết | '' tất cả
-            const [incomeAllocFilters, setIncomeAllocFilters] = useState({ active: '1', alloc_status: 'remaining', acc_des_ids: [], tran_no_search: '' });
-            // Page size RIÊNG cho tab này (mặc định 1.000 cho nhẹ — 44k dòng x nhiều cột enrich rất nặng nếu 10k/trang).
-            const [incomeAllocPageSize, setIncomeAllocPageSize] = useState(1000);
-            const incomeAllocScrollRef = useRef();
-            const incomeAllocVS = useVirtualScroll(incomeAllocData, 28, incomeAllocScrollRef);
-
-            const toggleIncomeAllocFilter = (key, id) => {
-                setIncomeAllocFilters(p => {
-                    if (Array.isArray(p[key])) return { ...p, [key]: p[key].includes(id) ? p[key].filter(x => x !== id) : [...p[key], id] };
-                    return { ...p, [key]: id };
-                });
-            };
-
-            const incomeAllocRow2Count = useMemo(() => (
-                ['item_ids','expense_ids','job_ids','pr_detail_ids','tran_ids'].reduce((n,k) => n + (filters[k]?.length || 0), 0)
-                + (incomeAllocFilters.acc_des_ids?.length || 0)
-            ), [filters, incomeAllocFilters]);
-
-            const buildIncomeAllocQuery = (targetPage = 1, targetPageSize = incomeAllocPageSize, extra = {}) => {
-                const base = {
-                    from_date: filters.from_date, to_date: filters.to_date,
-                    active: incomeAllocFilters.active,
-                    alloc_status: incomeAllocFilters.alloc_status,
-                    page: targetPage, page_size: targetPageSize,
-                };
-                const query = new URLSearchParams({ ...base, ...extra });
-                ['tran_ids','org_ids','job_ids','item_ids','expense_ids','pr_detail_ids'].forEach(k => {
-                    if ((filters[k] || []).length) query.set(k, filters[k].join(','));
-                });
-                if ((incomeAllocFilters.acc_des_ids || []).length) query.set('acc_des_ids', incomeAllocFilters.acc_des_ids.join(','));
-                if (incomeAllocFilters.tran_no_search?.trim()) query.set('tran_no', incomeAllocFilters.tran_no_search.trim());
-                if (incomeAllocSort.field) { query.set('order_by', incomeAllocSort.field); query.set('order_dir', incomeAllocSort.dir); }
-                return query;
-            };
-
-            const loadIncomeAllocData = async (targetPage = 1, targetPageSize = incomeAllocPageSize) => {
-                if (abortRef.current) abortRef.current.abort();
-                const _ctrl = new AbortController(); abortRef.current = _ctrl;
-                setIncomeAllocLoading(true);
-                const extras = {};
-                if (targetPage > 1 && targetPageSize === incomeAllocPageSize && incomeAllocPagination.total_rows > 0) {
-                    extras.known_total = incomeAllocPagination.total_rows;
-                    extras.known_sums  = JSON.stringify(incomeAllocSummary);
-                }
-                const query = buildIncomeAllocQuery(targetPage, targetPageSize, extras);
-                try {
-                    const r = await fetch(`/api/income_alloc?${query.toString()}`, { signal: _ctrl.signal });
-                    if (r.status === 401) { setIsLoggedIn(false); return; }
-                    const res = await r.json();
-                    if (res.status === 'ok') {
-                        setIncomeAllocData(res.data);
-                        setIncomeAllocPagination(res.pagination);
-                        if (res.summary) setIncomeAllocSummary(res.summary);
-                    } else {
-                        alert('Lỗi truy vấn Doanh thu chờ phân bổ:\n\n' + (res.message || JSON.stringify(res)));
-                    }
-                } catch (err) {
-                    if (err.name === 'AbortError' || _ctrl.signal.aborted) return;
-                    alert('Lỗi mạng / parse: ' + err.message);
-                } finally { setIncomeAllocLoading(false); }
-            };
-
-            // CHỈ tải lại khi đổi sort cột (giống các tab khác). Mở tab / đổi bộ lọc / đổi kỳ
-            // đều KHÔNG tự tải — người dùng bấm TRUY VẤN mới tải.
-            const incomeAllocFirstSort = useRef(true);
-            useEffect(() => {
-                if (incomeAllocFirstSort.current) { incomeAllocFirstSort.current = false; return; }
-                if (isLoggedIn && activeTab === 'income_alloc') loadIncomeAllocData(1, incomeAllocPageSize);
-            }, [incomeAllocSort]);
 
             // ============ VOUCHER (CHỨNG TỪ TIỀN) TAB STATE & LOADER ============
             const [groupByVoucher, setGroupByVoucher] = useState([]);
@@ -4298,18 +4191,6 @@ const exportJournalCsv = (mode) => {
                 ['EMPLOYEE_ID','Mã NV'],['CURRENCY_ID','Tiền tệ'],['STATUS','Trạng thái']
             ];
 
-            const INCOME_ALLOC_EXPORT_COLS = [
-                ['ORGANIZATION_ID','Đơn vị'],['ORGANIZATION_NAME','Tên đơn vị'],
-                ['TRAN_ID','Mã CT'],['TRAN_NAME','Tên chứng từ'],['TRAN_NO','Số CT'],['TRAN_DATE','Ngày CT'],
-                ['USE_DATE','Ngày phân bổ'],['RECEIVE_DATE','Ngày nhận'],
-                ['DESCRIPTION','Diễn giải'],['ITEM_ID','Hàng hóa'],['ITEM_NAME','Tên hàng hóa'],['QUANTITY','Số lượng'],
-                ['ALLOCATION_RATE','Tỷ lệ pb'],['ALLOCATION_METHOD_NAME','Tiêu thức pb'],
-                ['INCOME_AMOUNT','Doanh thu'],['PERIOD_AMT','Dthu kỳ này'],['CUM_AMT','Lũy kế'],['CON_LAI','Còn lại'],
-                ['ACCOUNT_ID_DES','Tk đích'],['ACCOUNT_ID','TK'],['ACCOUNT_ID_CONTRA','Tk đối ứng'],
-                ['PR_DETAIL_ID','Mã đối tượng'],['PR_DETAIL_NAME','Tên đối tượng'],
-                ['JOB_ID','Công việc'],['EXPENSE_ID','Mục chi phí'],
-                ['ACTIVE','Active'],['COMMENTS','Ghi chú']
-            ];
 
             const orgNameMap = () => {
                 const m = {};
@@ -4413,7 +4294,6 @@ const exportJournalCsv = (mode) => {
                 if (kind === 'purchase') return buildPurchaseQuery(1, 1, null, {});
                 if (kind === 'sale') return buildSaleQuery(1, 1, null, {});
                 if (kind === 'voucher') return buildVoucherQuery(1, 1, null, {});
-                if (kind === 'income_alloc') return buildIncomeAllocQuery(1, 1, {});
                 if (kind === 'warehouse_balance') return buildWarehouseBalanceQuery(1, 1, null, {});
                 return buildWarehouseQuery(1, 1, null, {});
             };
@@ -4494,7 +4374,7 @@ const exportJournalCsv = (mode) => {
             };
 
             const doExport = async (kind, mode, format = 'xlsx') => {
-                // kind: 'ledger' | 'purchase' | 'warehouse' | 'sale' | 'voucher' | 'income_alloc' ; mode: 'single' | 'by_org' ; format: 'xlsx' | 'csv'
+                // kind: 'ledger' | 'purchase' | 'warehouse' | 'sale' | 'voucher' ; mode: 'single' | 'by_org' ; format: 'xlsx' | 'csv'
                 if (typeof XLSX === 'undefined' && mode === 'by_org') { alert('Thư viện XLSX chưa tải được. Vui lòng kiểm tra kết nối.'); return; }
                 setExporting(true);
                 setExportOpen(null);
@@ -4529,8 +4409,6 @@ const exportJournalCsv = (mode) => {
                         url = `/api/sale?${buildSaleQuery(1, 1, null, { export_all: '1' }).toString()}`;
                     } else if (kind === 'voucher') {
                         url = `/api/voucher?${buildVoucherQuery(1, 1, null, { export_all: '1' }).toString()}`;
-                    } else if (kind === 'income_alloc') {
-                        url = `/api/income_alloc?${buildIncomeAllocQuery(1, 1, { export_all: '1' }).toString()}`;
                     } else if (kind === 'warehouse_balance') {
                         url = `/api/warehouse_balance?${buildWarehouseBalanceQuery(1, 1, null, { export_all: '1' }).toString()}`;
                     } else {
@@ -4549,12 +4427,11 @@ const exportJournalCsv = (mode) => {
                                : kind === 'purchase' ? PURCHASE_EXPORT_COLS
                                : kind === 'sale' ? SALE_EXPORT_COLS
                                : kind === 'voucher' ? VOUCHER_EXPORT_COLS
-                               : kind === 'income_alloc' ? INCOME_ALLOC_EXPORT_COLS
                                : kind === 'warehouse_balance' ? WAREHOUSE_BALANCE_EXPORT_COLS
                                : WAREHOUSE_EXPORT_COLS;
                     const extractor = kind === 'ledger' ? extractLedgerRow : (r) => extractRowGeneric(cols, r);
 
-                    const prefix = kind === 'ledger' ? 'ChungTuTongHop_' : (kind === 'purchase' ? 'PhieuNhapKho_' : (kind === 'sale' ? 'ChungTuBanHang_' : (kind === 'voucher' ? 'ChungTuTien_' : (kind === 'income_alloc' ? 'DoanhThuChoPhanBo_' : (kind === 'warehouse_balance' ? 'TonKhoThucTe_' : 'ChungTuKho_')))));
+                    const prefix = kind === 'ledger' ? 'ChungTuTongHop_' : (kind === 'purchase' ? 'PhieuNhapKho_' : (kind === 'sale' ? 'ChungTuBanHang_' : (kind === 'voucher' ? 'ChungTuTien_' : (kind === 'warehouse_balance' ? 'TonKhoThucTe_' : 'ChungTuKho_'))));
                     const fname = prefix + filters.from_date.replace(/\//g,'') + '-' + filters.to_date.replace(/\//g,'') + '.xlsx';
 
                     setExportProgress({ phase: 'build', current: 0, total: rows.length });
@@ -5423,141 +5300,6 @@ const exportJournalCsv = (mode) => {
                         </>
                     )}
 
-                    {activeTab === 'income_alloc' && (
-                        <>
-                            <div className="bg-white border-b border-slate-200 p-4 px-6 shrink-0 shadow-sm z-[900]">
-                                <div className="space-y-3">
-                                    <div className="flex items-end gap-4">
-                                        <div className="w-64"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
-                                        <div className="w-32"><IOSDatePicker label="Từ ngày" value={filters.from_date} onChange={val => toggleFilter('from_date', val)} disabled={period.type !== 'custom'} /></div>
-                                        <div className="w-32"><IOSDatePicker label="Đến hết ngày" value={filters.to_date} onChange={val => toggleFilter('to_date', val)} disabled={period.type !== 'custom'} /></div>
-                                        <div className="w-44">
-                                            <div className="label-text text-indigo-600">Số chứng từ</div>
-                                            <div className="relative">
-                                                <Icon name="search" size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-indigo-400 pointer-events-none z-10"/>
-                                                <input type="text" value={incomeAllocFilters.tran_no_search} onChange={e => setIncomeAllocFilters(p => ({...p, tran_no_search: e.target.value}))} onKeyDown={e => { if (e.key === 'Enter') loadIncomeAllocData(); }} placeholder="Nhập số CT..." className={`filter-control pl-8 text-[11px] font-bold border-indigo-300 shadow-inner focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 ${incomeAllocFilters.tran_no_search ? 'bg-indigo-50 text-indigo-700' : 'bg-indigo-50/40'}`} />
-                                            </div>
-                                        </div>
-                                        <div className="w-40"><PremiumDropdown label="Đơn vị" items={meta.orgs} selectedItems={filters.org_ids} onSelect={id => toggleFilter('org_ids', id)} isActive={activeDropdown === 'Đơn vị'} onToggle={setActiveDropdown} align="right" /></div>
-                                        <div className="ml-auto flex items-center gap-2">
-                                            <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/60 rounded-xl px-3 py-1 shrink-0 h-[40px]">
-                                                <div className="flex flex-col items-start shrink-0">
-                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.1em] mb-0.5">Hiển thị</span>
-                                                    <PageSizeDropdown value={incomeAllocPageSize} onChange={newSize => { setIncomeAllocPageSize(newSize); }} />
-                                                </div>
-                                                <div className="h-6 w-px bg-slate-200"></div>
-                                                <div className="flex flex-col items-end shrink-0">
-                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em] mb-0.5">Results</span>
-                                                    <div className="text-[12px] font-black text-indigo-600 tabular-nums leading-none tracking-tighter">{incomeAllocPagination.total_rows?.toLocaleString()}</div>
-                                                </div>
-                                            </div>
-                                            <button onClick={() => loadIncomeAllocData()} disabled={incomeAllocLoading} className="group relative overflow-hidden bg-slate-900 text-white px-4 h-[40px] rounded-xl font-black text-[10px] uppercase tracking-wider transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-indigo-500/30 shrink-0">
-                                                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-violet-600 opacity-90 group-hover:opacity-100 transition-opacity"></div>
-                                                <div className="relative flex items-center gap-2">
-                                                    {incomeAllocLoading ? <Icon name="loader" className="animate-spin" /> : <Icon name="search" size={12} className="group-hover:rotate-12 transition-transform"/>}
-                                                    <span>{incomeAllocLoading ? 'ĐANG TẢI...' : 'TRUY VẤN'}</span>
-                                                </div>
-                                            </button>
-                                            <FilterToggleButton expanded={filtersExpanded} onToggle={() => setFiltersExpanded(v => !v)} count={incomeAllocRow2Count} />
-                                            <ExportButton kind="income_alloc" />
-                                        </div>
-                                    </div>
-                                    <div className="flex items-end gap-6">
-                                        <div className="flex flex-col">
-                                            <div className="label-text text-indigo-600">Trạng thái thẻ</div>
-                                            <div className="flex bg-slate-100 rounded-lg p-0.5 h-[34px] items-center">
-                                                {[['1','Đang hiệu lực'],['0','Ngừng'],['','Tất cả']].map(([v,l]) => (
-                                                    <button key={v+'a'} onClick={() => setIncomeAllocFilters(p => ({...p, active: v}))} className={`px-3 h-[28px] rounded-md text-[10px] font-black transition-all ${incomeAllocFilters.active===v ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>{l}</button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <div className="label-text text-indigo-600">Giá trị phân bổ</div>
-                                            <div className="flex bg-slate-100 rounded-lg p-0.5 h-[34px] items-center">
-                                                {[['remaining','Còn giá trị'],['done','Đã hết'],['','Tất cả']].map(([v,l]) => (
-                                                    <button key={v+'s'} onClick={() => setIncomeAllocFilters(p => ({...p, alloc_status: v}))} className={`px-3 h-[28px] rounded-md text-[10px] font-black transition-all ${incomeAllocFilters.alloc_status===v ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>{l}</button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <div className="text-[10px] text-slate-400 font-semibold italic pb-2">Lũy kế & Còn lại tính đến hết ngày "Đến hết ngày".</div>
-                                    </div>
-                                    {filtersExpanded && <div className="grid grid-cols-6 gap-1.5">
-                                        <PremiumDropdown label="Hàng hóa" items={meta.items} selectedItems={filters.item_ids} onSelect={id => toggleFilter('item_ids', id)} isActive={activeDropdown === 'Hàng hóa'} onToggle={setActiveDropdown} />
-                                        <PremiumDropdown label="Mục chi phí" items={meta.expenses} selectedItems={filters.expense_ids} onSelect={id => toggleFilter('expense_ids', id)} isActive={activeDropdown === 'Mục chi phí'} onToggle={setActiveDropdown} />
-                                        <PremiumDropdown label="Công việc" items={meta.jobs} selectedItems={filters.job_ids} onSelect={id => toggleFilter('job_ids', id)} isActive={activeDropdown === 'Công việc'} onToggle={setActiveDropdown} />
-                                        <PremiumDropdown label="Đối tượng" items={meta.pr_details} selectedItems={filters.pr_detail_ids} onSelect={id => toggleFilter('pr_detail_ids', id)} isActive={activeDropdown === 'Đối tượng'} onToggle={setActiveDropdown} />
-                                        <PremiumDropdown label="TK đích" items={meta.accounts} selectedItems={incomeAllocFilters.acc_des_ids} onSelect={id => toggleIncomeAllocFilter('acc_des_ids', id)} isActive={activeDropdown === 'TK đích'} onToggle={setActiveDropdown} align="right" />
-                                        <PremiumDropdown label="Loại CT" items={meta.tran_ids} selectedItems={filters.tran_ids} onSelect={id => toggleFilter('tran_ids', id)} isActive={activeDropdown === 'Loại CT'} onToggle={setActiveDropdown} align="right" />
-                                    </div>}
-                                </div>
-                            </div>
-                            <div className="flex-1 min-h-0 p-3 overflow-hidden bg-slate-50 flex flex-col relative">
-                                {incomeAllocLoading && <div className="absolute inset-0 bg-white/40 z-50 flex flex-col items-center justify-center backdrop-blur-[2px] transition-all"><div className="bg-white p-6 rounded-3xl shadow-2xl flex flex-col items-center gap-4 border border-indigo-50"><Icon name="loader" size={48} className="animate-spin text-indigo-600"/><div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest animate-pulse">Đang truy vấn dữ liệu...</div></div></div>}
-                                <div className="flex-1 min-h-0 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden flex flex-col mx-0 mt-1">
-                                    <div className="flex-1 min-h-0 overflow-auto custom-scrollbar" ref={incomeAllocScrollRef}>
-                                        <table className="w-max border-collapse" style={{ width: 'max-content', minWidth: '100%' }}>
-                                            <thead className="sticky top-0 bg-slate-50/95 backdrop-blur-md z-30 shadow-sm">
-                                                <tr className="text-slate-400 uppercase text-[9px] font-black tracking-widest text-center">
-                                                    <th className="border-r w-12">#</th>
-                                                    <SortableHeader field="ORGANIZATION_ID"  sort={incomeAllocSort} onSort={f => setIncomeAllocSort(s => cycleSort(s, f))} className="border-r w-16">Đơn vị</SortableHeader>
-                                                    <th className="border-r w-40 px-3">Tên đơn vị</th>
-                                                    <SortableHeader field="TRAN_ID"          sort={incomeAllocSort} onSort={f => setIncomeAllocSort(s => cycleSort(s, f))} className="border-r w-16">Mã CT</SortableHeader>
-                                                    <SortableHeader field="TRAN_NO"          sort={incomeAllocSort} onSort={f => setIncomeAllocSort(s => cycleSort(s, f))} className="border-r w-32 px-3">Số CT</SortableHeader>
-                                                    <SortableHeader field="TRAN_DATE"        sort={incomeAllocSort} onSort={f => setIncomeAllocSort(s => cycleSort(s, f))} className="border-r w-24">Ngày CT</SortableHeader>
-                                                    <SortableHeader field="USE_DATE"         sort={incomeAllocSort} onSort={f => setIncomeAllocSort(s => cycleSort(s, f))} className="border-r w-24">Ngày pbổ</SortableHeader>
-                                                    <SortableHeader field="DESCRIPTION"      sort={incomeAllocSort} onSort={f => setIncomeAllocSort(s => cycleSort(s, f))} className="border-r w-56 px-3" align="left">Diễn giải</SortableHeader>
-                                                    <SortableHeader field="ITEM_ID"          sort={incomeAllocSort} onSort={f => setIncomeAllocSort(s => cycleSort(s, f))} className="border-r w-20">Hàng hóa</SortableHeader>
-                                                    <th className="border-r w-40 px-3">Tên hàng hóa</th>
-                                                    <SortableHeader field="ALLOCATION_RATE"  sort={incomeAllocSort} onSort={f => setIncomeAllocSort(s => cycleSort(s, f))} className="border-r w-16 px-2" align="right">Tỷ lệ pb</SortableHeader>
-                                                    <SortableHeader field="INCOME_AMOUNT"    sort={incomeAllocSort} onSort={f => setIncomeAllocSort(s => cycleSort(s, f))} className="border-r w-32 px-2" align="right">Doanh thu</SortableHeader>
-                                                    <SortableHeader field="PERIOD_AMT"       sort={incomeAllocSort} onSort={f => setIncomeAllocSort(s => cycleSort(s, f))} className="border-r w-32 px-2" align="right">Dthu kỳ này</SortableHeader>
-                                                    <SortableHeader field="CUM_AMT"          sort={incomeAllocSort} onSort={f => setIncomeAllocSort(s => cycleSort(s, f))} className="border-r w-32 px-2" align="right">Lũy kế</SortableHeader>
-                                                    <SortableHeader field="CON_LAI"          sort={incomeAllocSort} onSort={f => setIncomeAllocSort(s => cycleSort(s, f))} className="border-r w-32 px-2" align="right">Còn lại</SortableHeader>
-                                                    <SortableHeader field="ACCOUNT_ID_DES"   sort={incomeAllocSort} onSort={f => setIncomeAllocSort(s => cycleSort(s, f))} className="border-r w-20">Tk đích</SortableHeader>
-                                                    <SortableHeader field="PR_DETAIL_ID"     sort={incomeAllocSort} onSort={f => setIncomeAllocSort(s => cycleSort(s, f))} className="border-r w-24">Đối tượng</SortableHeader>
-                                                    <th className="border-r w-44 px-3">Tên đối tượng</th>
-                                                    <SortableHeader field="ALLOCATION_METHOD" sort={incomeAllocSort} onSort={f => setIncomeAllocSort(s => cycleSort(s, f))} className="border-r w-20">Tiêu thức</SortableHeader>
-                                                    <SortableHeader field="JOB_ID"           sort={incomeAllocSort} onSort={f => setIncomeAllocSort(s => cycleSort(s, f))} className="border-r w-20">Công việc</SortableHeader>
-                                                    <SortableHeader field="ACCOUNT_ID"       sort={incomeAllocSort} onSort={f => setIncomeAllocSort(s => cycleSort(s, f))} className="border-r w-16">TK</SortableHeader>
-                                                    <SortableHeader field="ACCOUNT_ID_CONTRA" sort={incomeAllocSort} onSort={f => setIncomeAllocSort(s => cycleSort(s, f))} className="border-r w-16">Tk đ/ứ</SortableHeader>
-                                                    <SortableHeader field="EXPENSE_ID"       sort={incomeAllocSort} onSort={f => setIncomeAllocSort(s => cycleSort(s, f))} className="border-r w-20">Mục cp</SortableHeader>
-                                                    <SortableHeader field="ACTIVE"           sort={incomeAllocSort} onSort={f => setIncomeAllocSort(s => cycleSort(s, f))} className="border-r w-16">Active</SortableHeader>
-                                                    <th className="w-56 px-3">Ghi chú</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="text-[11px] font-medium text-slate-700">
-                                                {incomeAllocVS.topPadding > 0 && <tr><td colSpan={100} style={{ height: incomeAllocVS.topPadding, padding: 0, border: 0 }}></td></tr>}
-                                                {incomeAllocData.slice(incomeAllocVS.startIndex, incomeAllocVS.endIndex + 1).map((row, i) => (
-                                                    <IncomeAllocRow key={incomeAllocVS.startIndex + i} r={row} idx={incomeAllocVS.startIndex + i + 1} />
-                                                ))}
-                                                {incomeAllocVS.bottomPadding > 0 && <tr><td colSpan={100} style={{ height: incomeAllocVS.bottomPadding, padding: 0, border: 0 }}></td></tr>}
-                                            </tbody>
-                                            <tfoot className="sticky-footer">
-                                                <tr className="text-slate-800 font-black text-[12px] bg-slate-50/95">
-                                                    <td colSpan="11" className="border-r text-right px-4 py-3 uppercase text-[10px] text-slate-400">Tổng ({Number(incomeAllocPagination.total_rows||0).toLocaleString()} thẻ):</td>
-                                                    <td className="border-r text-right font-mono px-2 bg-slate-100/40">{Math.round(Number(incomeAllocSummary.income_amount||0)).toLocaleString('en-US')}</td>
-                                                    <td className="border-r text-right font-mono px-2 text-emerald-700 bg-emerald-100/40">{Math.round(Number(incomeAllocSummary.period_amt||0)).toLocaleString('en-US')}</td>
-                                                    <td className="border-r text-right font-mono px-2 text-violet-700 bg-violet-100/40">{Math.round(Number(incomeAllocSummary.cum_amt||0)).toLocaleString('en-US')}</td>
-                                                    <td className="border-r text-right font-mono px-2 text-rose-700 bg-rose-100/40">{Math.round(Number(incomeAllocSummary.con_lai||0)).toLocaleString('en-US')}</td>
-                                                    <td colSpan="10"></td>
-                                                </tr>
-                                            </tfoot>
-                                        </table>
-                                    </div>
-                                    <div className="p-4 bg-white border-t flex justify-between items-center px-10 shrink-0 z-40 shadow-inner">
-                                        <div className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic underline">iPOS Accounting · Doanh thu chờ phân bổ</div>
-                                        <div className="flex items-center gap-2">
-                                            <PageJumper page={incomeAllocPagination.page} totalPages={incomeAllocPagination.total_pages} onGoto={p => loadIncomeAllocData(p)} />
-                                        </div>
-                                        <div className="flex flex-col items-end">
-                                            <span className="text-[9px] font-black text-slate-300 uppercase tracking-tighter">Income Allocation</span>
-                                            <span className="text-[11px] font-black text-indigo-400 uppercase tracking-widest">Trang {incomeAllocPagination.page} / {incomeAllocPagination.total_pages}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </>
-                    )}
 
                     {activeTab === 'voucher' && (
                         <>

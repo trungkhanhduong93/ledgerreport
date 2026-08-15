@@ -8,22 +8,65 @@
 
 ## 0. ⛔ KHOÁ NGỮ CẢNH — ĐỌC TRƯỚC KHI GÕ DÒNG CODE ĐẦU TIÊN
 
-Trong workspace `ACC PMKT/` có **hai project song song, kiến trúc giống hệt nhau**:
+Trong workspace `ACC PMKT/` có **hai project song song, kiến trúc giống hệt nhau nhưng phục vụ hai
+mục đích khác nhau**:
 
 | | LedgerReport (**file này**) | LedgerStudio |
 |---|---|---|
+| **Sinh ra để làm gì** | **Riêng cho `IACC_CHULONG`** — mang cả luật nghiệp vụ đặc thù của Chú Long | **DB iPOS chung chung** của khách khác |
 | Thư mục | `D:\IACC HCM\iPOS ACC\ACC PMKT\LedgerReport` | `…\ACC PMKT\LedgerStudio` |
 | EXE | `dist\iPOS_Accounting_Report.exe` | `dist\iPOS_Ledger_Studio.exe` |
-| Repo GitHub | [trungkhanhduong93/ledgerreport](https://github.com/trungkhanhduong93/ledgerreport) | (riêng) |
+| **Git** | **Có** — repo con `ledgerreport\` → [trungkhanhduong93/ledgerreport](https://github.com/trungkhanhduong93/ledgerreport) | **KHÔNG có git, KHÔNG push đi đâu** — chỉ nằm local |
+| **Phát hành** | `Sync-And-Backup.ps1 -Commit` → Actions tự tạo Release | **Build EXE thẳng vào thư mục của chính nó.** Hết. |
 
-**Đang làm ở LedgerReport thì CHỈ sửa LedgerReport.** Được phép ĐỌC LedgerStudio để tham chiếu, **cấm edit**.
+⛔ **Làm ở LedgerStudio thì TUYỆT ĐỐI không `git add/commit/push`.** Sửa xong chỉ cần chạy
+`python build_exe.py` **đứng trong thư mục LedgerStudio** — script tự đặt tên `iPOS_Ledger_Studio`
+theo đường dẫn hiện hành, chạy sai thư mục là ra sai tên EXE.
+
+### 0.1 Khác biệt bản chất: báo cáo đặc thù Chú Long
+
+**LedgerReport có, LedgerStudio KHÔNG có:**
+
+| Mã | Tên | Vì sao đặc thù |
+|---|---|---|
+| BC001 | KQKD theo tháng | Phân loại chỉ tiêu theo `ITEM_CLASS1_ID` (CF, THUCAN, MC, TA, CB…) và `EXPENSE_CLASS_ID` (THTT, TTTM, CPVH, TL, BH…) — **bộ mã danh mục riêng của Chú Long**, DB khác không có |
+| BC002 | KQKD theo công việc | như trên, tách thêm theo `JOB_ID` |
+| BC003 | KQKD theo tháng (tuỳ chỉnh) | như BC001 + dòng phụ VH.PHH / VH.PQC |
+| BC004 | KQKD theo công việc (tuỳ chỉnh) | như BC002 |
+| BC011 | **LCTT gián tiếp (Chú Long)** | Mẫu riêng theo yêu cầu Chú Long, không phải B03-DN chuẩn |
+
+Bốn báo cáo KQKD chạy qua engine `_calc_results()` — engine này **map cứng** bộ mã danh mục của
+Chú Long vào ~40 chỉ tiêu. Bê sang DB khác thì mọi chỉ tiêu về 0 mà không báo lỗi.
+
+**Phần còn lại (BC005–BC010, BC012–BC014 và 6 tab danh sách) là chuẩn kế toán VN, hai bên dùng chung.**
+
+### 0.2 Luật nghiệp vụ riêng của Chú Long — cẩn thận khi bê qua lại
+
+- **Loại đơn vị ngoài cây `'00'`**: `IACC_CHULONG` có đúng 1 đơn vị mồ côi (`66` — CPMCL-HCM-SEVEN AM)
+  phải loại khỏi mọi báo cáo mặc định. `_get_external_org_ids()` suy ra bằng cách lần `PARENT_ORGANIZATION_ID`
+  về gốc `'00'`.
+  ⚠️ **DB không có đơn vị gốc `'00'` thì mọi đơn vị bị coi là "ngoài cây" → báo cáo trả 0 dòng, không
+  báo lỗi.** Đã có chốt an toàn trong `_get_external_org_ids()` (không thấy `'00'` ⇒ không lọc gì).
+- **Mã CĐKT `1311`/`1312`** tách theo nhóm đơn vị `{42, 51, 36, 65, 18, 31}` — danh sách cứng của Chú Long.
+- `BALANCE_VIEW` của `IACC_CHULONG` **trống 0 dòng**, số dư đầu kỳ phải dồn từ `LEDGER` kể từ 01/01.
+  DB khác có thể có `BALANCE_VIEW` thật — đừng giả định là trống.
+
+### 0.3 Luật cứng
+
+**Đang làm ở LedgerReport thì CHỈ sửa LedgerReport.** Được phép ĐỌC LedgerStudio để tham chiếu,
+**cấm edit** — trừ khi người dùng yêu cầu rõ ràng làm việc bên đó.
 
 ⚠️ **Mã BC0xx cùng số nhưng khác nghĩa giữa hai bên.** Ở LedgerReport:
 `BC011` = LCTT gián tiếp (Chú Long), `BC013` = Tổng hợp phát sinh công nợ.
 Ở LedgerStudio thì `BC011` = công nợ. Nhìn nhầm là sửa nhầm báo cáo.
 
 > Lịch sử: file CLAUDE.md cũ trong chính thư mục này lại mô tả **LedgerStudio** — đã gây nhầm lẫn thật.
+> Tab "Doanh thu chờ phân bổ" cũng bị copy nhầm từ Studio sang Report rồi chết vì cột `RECEIVE_DATE`
+> không tồn tại — đã gỡ 15/08/2026.
 > Nếu thấy tài liệu nào mâu thuẫn với file này, **file này thắng**, và sửa file kia ngay.
+
+📄 **Sự cố 15/08/2026 và 8 lỗi đã trả giá: xem [SU_CO_15082026.md](SU_CO_15082026.md)** — đọc trước
+khi được giao bất kỳ việc "khôi phục / dọn dẹp / viết lại" nào.
 
 ---
 

@@ -47,6 +47,7 @@ $Files = @(
     'README.md',
     'START_HERE.md',
     'KIEN_TRUC_TOAN_TAP.md',
+    'SU_CO_15082026.md',
     'Sync-And-Backup.ps1'
 )
 

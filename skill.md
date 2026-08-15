@@ -179,3 +179,14 @@ Nếu chuyển thư mục sang máy khác hoặc gặp lỗi không rõ nguyên 
 *   **Dấu hiệu**: Chạy app báo lỗi `Address already in use`.
 *   **Nguyên nhân**: Một process cũ chưa tắt hẳn, vẫn đang ngậm Port 5050.
 *   **Xử lý trong Code**: Hàm `kill_process_on_port(5050)` ở đầu `server.py` tự động `taskkill` tiến trình đang chiếm dụng port trước khi khởi động.
+
+---
+
+## 7. ⚡ Quy Tắc Đồng Bộ & Git Push Bắt Buộc (@git-workflow)
+
+Mỗi khi chỉnh sửa xong mã nguồn và thực hiện build EXE tại thư mục `LedgerReport` (`D:\IACC HCM\iPOS ACC\ACC PMKT\LedgerReport`), **bất kỳ AI agent hay lập trình viên nào BẮT BUỘC PHẢI THỰC HIỆN**:
+
+1. **Đồng bộ mã nguồn:** Sao chép/sync toàn bộ các file đã sửa (`server.py`, `index.html`, `build_exe.py`, `version.txt`, `version_info.txt`, các file tài liệu `.md`, `BaoCaoMau/`,...) sang thư mục con `ledgerreport` (`D:\IACC HCM\iPOS ACC\ACC PMKT\LedgerReport\ledgerreport`).
+2. **Commit & Push GitHub:** Chuyển vào thư mục `ledgerreport`, thực hiện `git add`, `git commit` và `git push` lên nhánh `main` của repository GitHub: [trungkhanhduong93/ledgerreport](https://github.com/trungkhanhduong93/ledgerreport).
+3. **CẤM PUSH GITLAB:** Tuyệt đối không push sang remote GitLab nội bộ.
+

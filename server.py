@@ -5221,6 +5221,511 @@ def _cashbook_csv_stream(flat):
                             n(deb), n(crd), n(r["balance"])]) + "\r\n"
 
 
+# =====================================================================
+# BÁO CÁO KQKD (BC001-BC004) & LCTT CHÚ LONG (BC011)
+# =====================================================================
+
+@app.route("/api/cash_flow_cl")
+@with_db_lock
+def get_cash_flow_cl():
+    """BC011 — LCTT gián tiếp kiểu 'Chú Long': suất phát từ LN trước thuế (KQKD)
+    + biến động chi tiết các khoản mục trên Bảng cân đối kế toán (CĐKT) + biến động
+    TK 411 cho hoạt động tài chính. Liệt kê 12 dòng vốn lưu động, KHÔNG dùng dòng plug.
+    Chênh lệch nhỏ (nếu có, do bút toán P&L chưa kết chuyển hết) gom vào Mã 16/17."""
+    if not session.get("logged_in"):
+        return jsonify({"status": "error", "message": "Chưa đăng nhập"}), 401
+    try:
+        f_date  = request.args.get("from_date")
+        t_date  = request.args.get("to_date")
+        org_ids = [v for v in request.args.get("org_ids", "").split(",") if v]
+        if not f_date or not t_date:
+            return jsonify({"status": "error", "message": "Thiếu tham số từ ngày/đến ngày"}), 400
+        from_dt = datetime.strptime(f_date, "%d/%m/%Y").date()
+        to_dt   = datetime.strptime(t_date, "%d/%m/%Y").date()
+        f_str, t_str = from_dt.strftime("%Y%m%d"), to_dt.strftime("%Y%m%d")
+        first_day_of_year = date(from_dt.year, 1, 1).strftime("%Y%m%d")
+
+        # 1) Số dư CĐKT đầu/cuối kỳ (dùng chung engine BC005)
+        opening, closing = _compute_cdkt(from_dt, to_dt, org_ids)
+        def dlt(code): return closing.get(code, 0.0) - opening.get(code, 0.0)  # biến động trong kỳ
+
+        cur = get_connection().cursor()
+        _rc, _rp = _org_filter_sql(org_ids, "L.ORGANIZATION_ID")
+        org_and = (" AND " + _rc) if _rc else ""
+
+        # 2) LN trước thuế (Mã 01) + khấu hao/dự phòng/lãi vay: dùng engine KQKD (_calc_results)
+        cur.execute(f"""
+            SELECT L.ACCOUNT_ID, L.ACCOUNT_ID_CONTRA, L.DEBIT_CREDIT, SUM(L.AMOUNT)
+            FROM dbo.LEDGER L WITH (NOLOCK)
+            WHERE L.TRAN_DATE >= ? AND L.TRAN_DATE <= ?{org_and}
+            GROUP BY L.ACCOUNT_ID, L.ACCOUNT_ID_CONTRA, L.DEBIT_CREDIT
+        """, [f_str, t_str] + list(_rp))
+        pl = cur.fetchall()
+        def s(pfx, dc, excl=()):
+            return sum(float(r[3] or 0) for r in pl
+                       if (r[0] or "").strip().startswith(pfx) and r[2] == dc
+                       and not any((r[1] or "").strip().startswith(e) for e in excl))
+        cf_data = [{"acc": (r[0] or "").strip(), "contra": (r[1] or "").strip(),
+                    "dc": r[2], "val": float(r[3] or 0),
+                    "item_class": "", "expense_class": "", "expense_id": "",
+                    "month": from_dt.month, "year": from_dt.year} for r in pl]
+        kq = _calc_results(cf_data, {}, {})
+
+        # 3) Hoạt động đầu tư & tài chính (lấy theo dòng tiền thực tế + biến động TK 411)
+        # Thu lãi/cổ tức (Mã 27): tiền THU đối ứng 515/121/128/1281
+        def cash_in(contra_prefixes):
+            tot = 0.0
+            where = ["(L.ACCOUNT_ID LIKE '111%' OR L.ACCOUNT_ID LIKE '112%' OR L.ACCOUNT_ID LIKE '113%' OR L.ACCOUNT_ID LIKE '1281%')",
+                     "L.DEBIT_CREDIT='DEB'", "L.TRAN_DATE>=?", "L.TRAN_DATE<=?"]
+            params = [f_str, t_str]
+            ors = " OR ".join("L.ACCOUNT_ID_CONTRA LIKE ?" for _ in contra_prefixes)
+            where.append("(" + ors + ")")
+            params += [p_ + "%" for p_ in contra_prefixes]
+            if _rc: where.append(_rc); params += list(_rp)
+            cur.execute(f"SELECT ISNULL(SUM(L.AMOUNT),0) FROM dbo.LEDGER L WITH (NOLOCK) WHERE {' AND '.join(where)}", params)
+            return float((cur.fetchone() or [0])[0] or 0)
+
+        m27 = cash_in(["515", "121", "128", "1281"])      # thu lãi cho vay, cổ tức, LN được chia
+        # Mã 21 chi mua TSCĐ = tăng nguyên giá TSCĐ (CĐKT 222 + 240 XDCB)
+        m21 = -(dlt('222') + dlt('227') + dlt('240'))     # 222 hữu hình, 227 vô hình, 240 XDCB dở dang
+        if abs(m21) < 1: m21 = 0.0
+
+        # Tài chính: biến động TK 411 trong kỳ (Có = nhận vốn → Mã 31 ; Nợ = trả vốn → Mã 32)
+        m31 = s("411", "CRD")
+        m32 = -s("411", "DEB")
+
+        # 4) Mã 60 / 70 — tiền & tương đương tiền đầu/cuối kỳ (theo từng nhóm TK)
+        def cash_bal(acc_like, end_inclusive=None, end_exclusive=None):
+            where = [acc_like, "L.TRAN_DATE >= ?"]; params = [first_day_of_year]
+            if end_inclusive: where.append("L.TRAN_DATE <= ?"); params.append(end_inclusive)
+            if end_exclusive: where.append("L.TRAN_DATE < ?");  params.append(end_exclusive)
+            if _rc: where.append(_rc); params += list(_rp)
+            cur.execute(f"""SELECT ISNULL(SUM(CASE WHEN L.DEBIT_CREDIT='DEB' THEN L.AMOUNT ELSE -L.AMOUNT END),0)
+                            FROM dbo.LEDGER L WITH (NOLOCK) WHERE {' AND '.join(where)}""", params)
+            return float((cur.fetchone() or [0])[0] or 0)
+        likes = {'111': "L.ACCOUNT_ID LIKE '111%'", '112': "L.ACCOUNT_ID LIKE '112%'",
+                 '113': "(L.ACCOUNT_ID LIKE '113%' OR L.ACCOUNT_ID LIKE '1281%')"}
+        o = {}  # tiền đầu kỳ theo nhóm
+        cl_ = {} # tiền cuối kỳ theo nhóm
+        for k, lk in likes.items():
+            o[k]  = cash_bal(lk, end_exclusive=f_str)
+            cl_[k] = cash_bal(lk, end_inclusive=t_str)
+        m60 = o['111'] + o['112'] + o['113']
+        m70 = cl_['111'] + cl_['112'] + cl_['113']
+        net_cash = m70 - m60   # biến động tiền thực tế trong kỳ
+
+        # 5) Lắp báo cáo
+        r = {}
+        r['01'] = kq.get('13', 0.0)                       # LN trước thuế
+        r['02'] = s("214", "CRD", ["911"]) - s("214", "DEB", ["911"])   # khấu hao
+        r['03'] = sum((s(p_, "CRD", ["911"]) - s(p_, "DEB", ["911"])) for p_ in ("229", "352", "159"))
+        r['04'] = 0.0
+        r['05'] = -m27                                    # loại lãi/lỗ từ HĐĐT khỏi HĐKD
+        r['06'] = kq.get('07', 0.0)                       # chi phí lãi vay
+        r['08'] = r['01'] + r['02'] + r['03'] + r['04'] + r['05'] + r['06']
+        # 12 dòng thay đổi vốn lưu động (tài sản: -Δ ; nợ phải trả: +Δ) — map theo dòng CĐKT
+        r['w01'] = -dlt('131')                            # phải thu KH
+        r['w02'] = -dlt('132')                            # trả trước người bán
+        r['w03'] = -dlt('133')                            # phải thu nội bộ
+        r['w04'] = -dlt('136')                            # phải thu khác
+        r['w05'] = -dlt('141')                            # hàng tồn kho
+        r['w06'] = -(dlt('151') + dlt('152') + dlt('153') + dlt('155'))  # chi phí trả trước & TS NH khác
+        r['w07'] = dlt('311')                             # phải trả người bán
+        r['w08'] = dlt('312')                             # người mua trả tiền trước
+        r['w09'] = dlt('313')                             # thuế & phải nộp NN
+        r['w10'] = dlt('314')                             # phải trả người lao động
+        r['w11'] = dlt('316')                             # phải trả nội bộ
+        r['w12'] = dlt('315') + dlt('317') + dlt('318') + dlt('319') + dlt('320') + dlt('321') + dlt('322') + dlt('323')  # phải trả, phải nộp khác
+        sum_wc = sum(r[f'w{n:02d}'] for n in range(1, 13))
+        # Mã 30 / 40
+        r['21'], r['22'], r['23'], r['24'], r['25'], r['26'], r['27'] = m21, 0.0, 0.0, 0.0, 0.0, 0.0, m27
+        r['30'] = m21 + m27
+        r['31'], r['32'], r['33'], r['34'], r['35'], r['36'] = m31, m32, 0.0, 0.0, 0.0, 0.0
+        r['40'] = m31 + m32
+        # Mã 20 từ các thành phần; chênh lệch còn lại (nếu có) gom vào tiền thu/chi khác HĐKD (16/17)
+        m20_components = r['08'] + sum_wc
+        residual = net_cash - (m20_components + r['30'] + r['40'])
+        r['16'] = residual if residual >= 0 else 0.0      # tiền thu khác HĐKD
+        r['17'] = residual if residual < 0 else 0.0       # tiền chi khác HĐKD
+        r['20'] = m20_components + r['16'] + r['17']
+        r['50'] = r['20'] + r['30'] + r['40']
+        r['60'] = m60; r['61'] = 0.0; r['70'] = m70
+        r['60_111'], r['60_112'], r['60_113'] = o['111'], o['112'], o['113']
+        r['70_111'], r['70_112'], r['70_113'] = cl_['111'], cl_['112'], cl_['113']
+
+        return jsonify({"status": "ok", "data": r})
+    except Exception as e:
+        msg = str(e)
+        if "đăng nhập" not in msg:
+            invalidate_pool()
+        return jsonify({"status": "error", "message": msg}), 401 if "đăng nhập" in msg else 500
+
+
+def _calc_results(data, thtt_expense_list, expense_classes):
+    sum_map = {}
+    excl_map = {}
+    exp_cls_map = {}
+    exp_id_map = {}
+    for d in data:
+        acc = d['acc']; contra = d['contra']; dc = d['dc']
+        ic = d['item_class']; ec = d['expense_class']; eid = d['expense_id']; val = d['val']
+        k1 = (acc, dc, ic);             sum_map[k1]     = sum_map.get(k1, 0) + val
+        k2 = (acc, contra[:3], dc, ic); excl_map[k2]    = excl_map.get(k2, 0) + val
+        k3 = (acc, dc, ec);             exp_cls_map[k3] = exp_cls_map.get(k3, 0) + val
+        k4 = (acc, dc, eid);            exp_id_map[k4]  = exp_id_map.get(k4, 0) + val
+
+    def s(acc_prefix, dc, item_classes=None):
+        if isinstance(item_classes, str): item_classes = [item_classes]
+        total = 0
+        for (acc, d_c, ic), val in sum_map.items():
+            if d_c == dc and acc.startswith(acc_prefix):
+                if item_classes is None or ic in item_classes:
+                    total += val
+        return total
+
+    def s_excl(acc_prefix, dc, excl_contras, item_classes=None):
+        if isinstance(item_classes, str): item_classes = [item_classes]
+        total = 0
+        for (acc, contra, d_c, ic), val in excl_map.items():
+            if d_c == dc and acc.startswith(acc_prefix):
+                if item_classes is None or ic in item_classes:
+                    if not any(contra.startswith(c) for c in excl_contras):
+                        total += val
+        return total
+
+    def s_multi(acc_prefixes, dc, item_classes=None):
+        if isinstance(item_classes, str): item_classes = [item_classes]
+        if isinstance(acc_prefixes, str): acc_prefixes = [acc_prefixes]
+        total = 0
+        for (acc, d_c, ic), val in sum_map.items():
+            if d_c == dc and any(acc.startswith(p) for p in acc_prefixes):
+                if item_classes is None or ic in item_classes:
+                    total += val
+        return total
+
+    def s_multi_excl(acc_prefixes, dc, excl_contras, item_classes=None):
+        if isinstance(item_classes, str): item_classes = [item_classes]
+        if isinstance(acc_prefixes, str): acc_prefixes = [acc_prefixes]
+        total = 0
+        for (acc, contra, d_c, ic), val in excl_map.items():
+            if d_c == dc and any(acc.startswith(p) for p in acc_prefixes):
+                if item_classes is None or ic in item_classes:
+                    if not any(contra.startswith(c) for c in excl_contras):
+                        total += val
+        return total
+
+    r = {}
+    r['01']  = s('511', 'CRD') - s_excl('511', 'DEB', ['911', '521'])
+    r['011'] = s('511', 'CRD', 'CF') - s_excl('511', 'DEB', ['911', '521'], 'CF')
+    _oth = ['ITEM_TYPE_OTHER', 'KHAC', 'SC', 'TEA', 'TRA', 'T', 'TUI']
+    r['012'] = s('511', 'CRD', list(_oth)) - s_excl('511', 'DEB', ['911', '521'], list(_oth))
+    r['013'] = s('511', 'CRD', 'THUCAN') - s_excl('511', 'DEB', ['911', '521'], 'THUCAN')
+    r['014'] = s('511', 'CRD', ['ITEM_TYPE-CA65', 'ITEM_TYPE-ZJWK']) - s_excl('511', 'DEB', ['911', '521'], ['ITEM_TYPE-CA65', 'ITEM_TYPE-ZJWK'])
+    r['015'] = s('511', 'CRD', 'MC') - s_excl('511', 'DEB', ['911', '521'], 'MC')
+    r['016'] = s('511', 'CRD', 'TA') - s_excl('511', 'DEB', ['911', '521'], 'TA')
+    r['017'] = s('511', 'CRD', 'ITEM_TYPE-6CAX') - s_excl('511', 'DEB', ['911', '521'], 'ITEM_TYPE-6CAX')
+    r['018'] = s('511', 'CRD', 'CB') - s_excl('511', 'DEB', ['911', '521'], 'CB')
+    r['019'] = r['01'] - (r['011'] + r['012'] + r['013'] + r['014'] + r['015'] + r['016'] + r['017'] + r['018'])
+    r['02']  = s('521', 'DEB') - s_excl('521', 'CRD', ['511'])
+    r['020'] = r['02']
+    r['03']  = r['01'] - r['02']
+    r['04']  = s('632', 'DEB') - s_excl('632', 'CRD', ['911'])
+    r['05']  = r['03'] - r['04']
+    r['06']  = s('515', 'CRD') - s_excl('515', 'DEB', ['911'])
+    r['061'] = r['06']
+    r['07']  = s('635', 'DEB') - s_excl('635', 'CRD', ['911'])
+    r['071'] = sum(d['val'] for d in data if d['acc'].startswith('635') and d['dc'] == 'DEB' and not any(d['contra'].startswith(c) for c in ('911',)))
+    r['08']  = s_multi(['641', '642'], 'DEB') - s_multi_excl(['641', '642'], 'CRD', ['911'])
+
+    thtt_deb = sum(d['val'] for d in data if any(d['acc'].startswith(p) for p in ('641', '642')) and d['dc'] == 'DEB' and d['expense_id'].strip().upper().startswith('THTT.'))
+    thtt_crd = sum(d['val'] for d in data if any(d['acc'].startswith(p) for p in ('641', '642')) and d['dc'] == 'CRD' and d['expense_id'].strip().upper().startswith('THTT.') and not any(d['contra'].startswith(c) for c in ('911',)))
+    r['081'] = thtt_deb - thtt_crd
+
+    thtt_map = {}
+    for eid, ename in thtt_expense_list.items():
+        thtt_map[eid] = {'deb': 0, 'crd': 0, 'name': ename}
+    for d in data:
+        if not any(d['acc'].startswith(p) for p in ('641', '642')): continue
+        eid = d['expense_id'].upper()
+        if eid not in thtt_map: continue
+        if d['dc'] == 'DEB':
+            thtt_map[eid]['deb'] += d['val']
+        elif d['dc'] == 'CRD' and not any(d['contra'].startswith(c) for c in ('911',)):
+            thtt_map[eid]['crd'] += d['val']
+    r['_081_details'] = [{'id': eid, 'name': info['name'], 'val': info['deb'] - info['crd']} for eid, info in sorted(thtt_map.items())]
+
+    expense_class_mapping = {'082': 'TTTM', '083': 'TTTT', '084': 'CPVH', '085': 'TL', '086': 'BH', '087': 'TAX', '088': 'CPKH', '089': 'CPC'}
+    for line_id, exp_class in expense_class_mapping.items():
+        cls_deb = sum(d['val'] for d in data if any(d['acc'].startswith(p) for p in ('641', '642')) and d['dc'] == 'DEB' and d['expense_class'] == exp_class)
+        cls_crd = sum(d['val'] for d in data if any(d['acc'].startswith(p) for p in ('641', '642')) and d['dc'] == 'CRD' and d['expense_class'] == exp_class and not any(d['contra'].startswith(c) for c in ('911',)))
+        r[line_id] = cls_deb - cls_crd
+        cls_expenses = expense_classes.get(exp_class, {})
+        cls_map = {}
+        for eid, ename in cls_expenses.items():
+            cls_map[eid] = {'deb': 0, 'crd': 0, 'name': ename}
+        for d in data:
+            if not any(d['acc'].startswith(p) for p in ('641', '642')): continue
+            if d['expense_class'] != exp_class: continue
+            eid = d['expense_id'].upper()
+            if eid not in cls_map: continue
+            if d['dc'] == 'DEB':
+                cls_map[eid]['deb'] += d['val']
+            elif d['dc'] == 'CRD' and not any(d['contra'].startswith(c) for c in ('911',)):
+                cls_map[eid]['crd'] += d['val']
+        r["_" + line_id + "_details"] = [{'id': eid, 'name': info['name'], 'val': info['deb'] - info['crd']} for eid, info in sorted(cls_map.items())]
+
+    _subs = ('08201', '08202', '08203', '08204', '08205', '08301', '08302', '08303', '08304', '08305', '08306', '08401', '08402', '08403', '08404', '08405', '08406', '08407', '08408', '084081', '08409', '08410', '08411', '08412', '084121', '08413', '08501', '08502', '08503', '08504', '08601', '08602', '08603', '08604', '08605', '08701', '08702', '08703', '08704', '08705', '08801', '08901', '08902', '08903', '08904', '08905', '08906', '08907', '08908', '08909', '08910', '08911', '08912', '08913', '08914', '08915', '08916', '08917', '08918', '08919', '08920', '08921', '08922')
+    for sub in _subs:
+        r[sub] = 0
+
+    # --- Bổ sung chi phí 641/642 nằm ngoài các nhóm chuẩn để 08 = Σ(081..089) ---
+    extra_084 = 0
+    for d in data:
+        if not any(d['acc'].startswith(p) for p in ('641', '642')): continue
+        if d['expense_class'] not in ('04', '01'): continue
+        if d['dc'] == 'DEB':
+            extra_084 += d['val']
+        elif d['dc'] == 'CRD' and not any(d['contra'].startswith(c) for c in ('911',)):
+            extra_084 -= d['val']
+    if abs(extra_084) >= 1:
+        r['084'] = r.get('084', 0) + extra_084
+        r.setdefault('_084_details', []).append({'id': '', 'name': 'Chi phí Nguyên vật liệu khác', 'val': extra_084})
+
+    residual_089 = r['08'] - (r.get('081', 0) + r.get('082', 0) + r.get('083', 0) + r.get('084', 0)
+                              + r.get('085', 0) + r.get('086', 0) + r.get('087', 0) + r.get('088', 0) + r.get('089', 0))
+    if abs(residual_089) >= 1:
+        r['089'] = r.get('089', 0) + residual_089
+        r.setdefault('_089_details', []).append({'id': '', 'name': 'Chi phí chung khác', 'val': residual_089})
+
+    r['09'] = r['05'] + r['06'] - r['07'] - r['08']
+    r['10'] = s('711', 'CRD') - s_excl('711', 'DEB', ['911'])
+    r['11'] = s('811', 'DEB') - s_excl('811', 'CRD', ['911'])
+    r['12'] = r['10'] - r['11']
+    r['13'] = r['09'] + r['12']
+    r['14'] = s('8211', 'DEB') - s_excl('8211', 'CRD', ['911'])
+    r['15'] = s('8212', 'DEB') - s_excl('8212', 'CRD', ['911'])
+    r['16'] = r['13'] - r['14'] - r['15']
+    r['17'] = 0
+    r['18'] = 0
+    return r
+
+
+@app.route('/api/report')
+@with_db_lock
+def get_report():
+    if not session.get("logged_in"):
+        return jsonify({"status": "error", "message": "Chưa đăng nhập"}), 401
+    try:
+        from_date = request.args.get('from_date')
+        to_date = request.args.get('to_date')
+        org_ids = [v for v in request.args.get('org_ids', '').split(',') if v]
+        job_ids = [v for v in request.args.get('job_ids', '').split(',') if v]
+        if not from_date or not to_date:
+            return jsonify({"status": "error", "message": "Thiếu tham số từ ngày/đến ngày"}), 400
+
+        from_dt = datetime.strptime(from_date, '%d/%m/%Y').date()
+        to_dt = datetime.strptime(to_date, '%d/%m/%Y').date()
+
+        month_list = []
+        cur_y, cur_m = from_dt.year, from_dt.month
+        end_y, end_m = to_dt.year, to_dt.month
+        while (cur_y, cur_m) <= (end_y, end_m):
+            month_list.append({"month": cur_m, "year": cur_y})
+            cur_m += 1
+            if cur_m > 12:
+                cur_m = 1
+                cur_y += 1
+
+        where_clauses = ["L.TRAN_DATE >= ?", "L.TRAN_DATE <= ?"]
+        params = [from_dt.strftime('%Y%m%d'), to_dt.strftime('%Y%m%d')]
+        _oc, _op = _org_filter_sql(org_ids, "L.ORGANIZATION_ID")
+        if _oc:
+            where_clauses.append(_oc)
+            params.extend(_op)
+        if job_ids:
+            where_clauses.append(f"L.JOB_ID IN ({','.join(['?'] * len(job_ids))})")
+            params.extend(job_ids)
+        where_sql = " AND ".join(where_clauses)
+
+        query = f"""
+            SELECT L.ACCOUNT_ID, L.ACCOUNT_ID_CONTRA, L.DEBIT_CREDIT,
+                   I.ITEM_CLASS1_ID, E.EXPENSE_CLASS_ID, L.EXPENSE_ID,
+                   MONTH(L.TRAN_DATE) AS M, YEAR(L.TRAN_DATE) AS Y,
+                   SUM(L.AMOUNT) as TOTAL
+            FROM dbo.LEDGER L WITH (NOLOCK)
+            LEFT JOIN dbo.DM_ITEM I WITH (NOLOCK) ON L.ITEM_ID = I.ITEM_ID
+            LEFT JOIN dbo.DM_EXPENSE E WITH (NOLOCK) ON L.EXPENSE_ID = E.EXPENSE_ID
+            WHERE {where_sql}
+            GROUP BY L.ACCOUNT_ID, L.ACCOUNT_ID_CONTRA, L.DEBIT_CREDIT,
+                     I.ITEM_CLASS1_ID, E.EXPENSE_CLASS_ID, L.EXPENSE_ID,
+                     MONTH(L.TRAN_DATE), YEAR(L.TRAN_DATE)
+        """
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute(query, params)
+        raw = cursor.fetchall()
+
+        cursor.execute("""
+            SELECT EXPENSE_CLASS_ID, EXPENSE_ID, EXPENSE_NAME
+            FROM dbo.DM_EXPENSE WITH (NOLOCK)
+            WHERE EXPENSE_CLASS_ID IN ('THTT','TTTM','TTTT','CPVH','TL','BH','TAX','CPKH','CPC')
+            ORDER BY EXPENSE_CLASS_ID, EXPENSE_ID
+        """)
+        expense_classes = {}
+        for r in cursor.fetchall():
+            cls = (r[0] or '').strip()
+            eid = (r[1] or '').strip().upper()
+            ename = (r[2] or '').strip()
+            if cls not in expense_classes:
+                expense_classes[cls] = {}
+            expense_classes[cls][eid] = ename
+        thtt_expense_list = expense_classes.get('THTT', {})
+
+        all_data = [{
+            'acc': (r[0] or '').strip(),
+            'contra': (r[1] or '').strip(),
+            'dc': r[2],
+            'item_class': (r[3] or '').strip().upper(),
+            'expense_class': (r[4] or '').strip().upper(),
+            'expense_id': (r[5] or '').strip().upper(),
+            'month': r[6],
+            'year': r[7],
+            'val': float(r[8] or 0)
+        } for r in raw]
+
+        total_results = _calc_results(all_data, thtt_expense_list, expense_classes)
+
+        monthly = {}
+        for mp in month_list:
+            m_data = [d for d in all_data if d['month'] == mp['month'] and d['year'] == mp['year']]
+            m_key = f"{mp['month']}_{mp['year']}"
+            monthly[m_key] = _calc_results(m_data, thtt_expense_list, expense_classes)
+
+        return jsonify({
+            "status": "ok",
+            "data": total_results,
+            "monthly": monthly,
+            "month_list": month_list
+        })
+    except Exception as e:
+        msg = str(e)
+        if 'đăng nhập' in msg:
+            invalidate_pool()
+        return jsonify({"status": "error", "message": msg}), (401 if 'đăng nhập' in msg else 500)
+
+
+@app.route('/api/report_by_job')
+@with_db_lock
+def get_report_by_job():
+    if not session.get("logged_in"):
+        return jsonify({"status": "error", "message": "Chưa đăng nhập"}), 401
+    try:
+        from_date = request.args.get('from_date')
+        to_date = request.args.get('to_date')
+        org_ids = [v for v in request.args.get('org_ids', '').split(',') if v]
+        job_ids = [v for v in request.args.get('job_ids', '').split(',') if v]
+        if not from_date or not to_date:
+            return jsonify({"status": "error", "message": "Thiếu tham số từ ngày/đến ngày"}), 400
+
+        from_dt = datetime.strptime(from_date, '%d/%m/%Y').date()
+        to_dt = datetime.strptime(to_date, '%d/%m/%Y').date()
+
+        where_clauses = ["L.TRAN_DATE >= ?", "L.TRAN_DATE <= ?"]
+        params = [from_dt.strftime('%Y%m%d'), to_dt.strftime('%Y%m%d')]
+        _oc, _op = _org_filter_sql(org_ids, "L.ORGANIZATION_ID")
+        if _oc:
+            where_clauses.append(_oc)
+            params.extend(_op)
+        if job_ids:
+            where_clauses.append(f"L.JOB_ID IN ({','.join(['?'] * len(job_ids))})")
+            params.extend(job_ids)
+        where_sql = " AND ".join(where_clauses)
+
+        query = f"""
+            SELECT L.ACCOUNT_ID, L.ACCOUNT_ID_CONTRA, L.DEBIT_CREDIT,
+                   I.ITEM_CLASS1_ID, E.EXPENSE_CLASS_ID, L.EXPENSE_ID,
+                   L.EXPENSE_NAME, L.JOB_ID,
+                   SUM(L.AMOUNT) as TOTAL
+            FROM dbo.LEDGER L WITH (NOLOCK)
+            LEFT JOIN dbo.DM_ITEM I WITH (NOLOCK) ON L.ITEM_ID = I.ITEM_ID
+            LEFT JOIN dbo.DM_EXPENSE E WITH (NOLOCK) ON L.EXPENSE_ID = E.EXPENSE_ID
+            WHERE {where_sql}
+            GROUP BY L.ACCOUNT_ID, L.ACCOUNT_ID_CONTRA, L.DEBIT_CREDIT,
+                     I.ITEM_CLASS1_ID, E.EXPENSE_CLASS_ID, L.EXPENSE_ID,
+                     L.EXPENSE_NAME, L.JOB_ID
+        """
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute(query, params)
+        raw = cursor.fetchall()
+
+        cursor.execute("""
+            SELECT EXPENSE_CLASS_ID, EXPENSE_ID, EXPENSE_NAME
+            FROM dbo.DM_EXPENSE WITH (NOLOCK)
+            WHERE EXPENSE_CLASS_ID IN ('THTT','TTTM','TTTT','CPVH','TL','BH','TAX','CPKH','CPC')
+            ORDER BY EXPENSE_CLASS_ID, EXPENSE_ID
+        """)
+        expense_classes = {}
+        for r in cursor.fetchall():
+            cls = (r[0] or '').strip()
+            eid = (r[1] or '').strip().upper()
+            ename = (r[2] or '').strip()
+            if cls not in expense_classes:
+                expense_classes[cls] = {}
+            expense_classes[cls][eid] = ename
+        thtt_expense_list = expense_classes.get('THTT', {})
+
+        all_data = [{
+            'acc': (r[0] or '').strip(),
+            'contra': (r[1] or '').strip(),
+            'dc': r[2],
+            'item_class': (r[3] or '').strip().upper(),
+            'expense_class': (r[4] or '').strip().upper(),
+            'expense_id': (r[5] or '').strip().upper(),
+            'expense_name': (r[6] or '').strip(),
+            'job_id': (r[7] or '').strip(),
+            'val': float(r[8] or 0),
+        } for r in raw]
+
+        if job_ids:
+            seen_jobs = set(d['job_id'] for d in all_data)
+            job_list_ids = [j for j in job_ids if j in seen_jobs]
+        else:
+            seen = set()
+            job_list_ids = []
+            for d in all_data:
+                jid = d['job_id']
+                if jid and jid not in seen:
+                    seen.add(jid)
+                    job_list_ids.append(jid)
+            job_list_ids.sort()
+
+        db_name = session.get('db_config', {}).get('database', 'N/A')
+        meta = _meta_cache.get(db_name) or {}
+        job_name_map = {(j.get('id') or '').strip(): (j.get('name') or '') for j in meta.get('jobs', [])}
+        job_list = [{"id": jid, "name": job_name_map.get(jid, '')} for jid in job_list_ids]
+
+        total_results = _calc_results(all_data, thtt_expense_list, expense_classes)
+
+        jobs_result = {}
+        for jid in job_list_ids:
+            j_data = [d for d in all_data if d['job_id'] == jid]
+            jobs_result[jid] = _calc_results(j_data, thtt_expense_list, expense_classes)
+
+        return jsonify({
+            "status": "ok",
+            "data": total_results,
+            "jobs": jobs_result,
+            "job_list": job_list
+        })
+    except Exception as e:
+        msg = str(e)
+        if 'đăng nhập' in msg:
+            invalidate_pool()
+        return jsonify({"status": "error", "message": msg}), (401 if 'đăng nhập' in msg else 500)
+
+
+
 if __name__ == "__main__":
     import threading
 

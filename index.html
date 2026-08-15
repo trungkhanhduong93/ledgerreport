@@ -1430,20 +1430,39 @@ window.showConnectionLost = function() {
                         if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') st += 'background-color:' + bg + ';';
                         if (cs.fontStyle !== 'normal') st += 'font-style:' + cs.fontStyle + ';';
                         cc.setAttribute('style', st);
-                        if ((oc.classList.contains('col-value') || oc.classList.contains('col-rate') || oc.classList.contains('text-right')) && !isHdr) {
-                            cc.classList.add('xnum');
+                        if (!isHdr) {
+                            // Ô hiển thị số âm theo kiểu kế toán "(1,000,000)" → đưa về dấu trừ cho Excel.
                             let txt = (cc.textContent || '').trim();
                             let isNeg = false;
                             if (txt.startsWith('(') && txt.endsWith(')')) {
                                 isNeg = true;
                                 txt = txt.slice(1, -1).trim();
                             }
-                            if (txt && /^[\d,]+(\.\d+)?$/.test(txt)) {
-                                cc.textContent = (isNeg ? '-' : '') + txt.replace(/,/g, '');
+                            // ── Ô PHẦN TRĂM ("15.54%") ─────────────────────────────────────────────
+                            // Excel phải giữ value THẬT là phân số (0.1554) rồi tự hiển thị 15.54%,
+                            // nếu để nguyên chuỗi "15.54%" thì ô thành text, không tính toán được.
+                            // Giữ đúng số chữ số thập phân đang hiển thị trên web (xpct0..xpct4).
+                            // Dịch dấu thập phân bằng toFixed thay vì chia 100 trần — 15.54/100 trong
+                            // JS ra 0.15539999999999998, ghi vào Excel là lệch.
+                            if (/^[\d,]+(\.\d+)?\s*%$/.test(txt)) {
+                                const numTxt = txt.slice(0, -1).trim().replace(/,/g, '');
+                                const dec = Math.min((numTxt.split('.')[1] || '').length, 4);
+                                cc.classList.add('xpct' + dec);
+                                cc.textContent = (isNeg ? '-' : '') + (parseFloat(numTxt) / 100).toFixed(dec + 2);
                             }
-                        }
-                        if ((oc.classList.contains('col-code') || oc.classList.contains('text-center')) && !isHdr) {
-                            cc.classList.add('xtext');
+                            // ── Ô TIỀN ─────────────────────────────────────────────────────────────
+                            // Bỏ dấu phẩy ngăn nghìn để value là 1000000, format #,##0 lo phần hiển thị.
+                            else if (oc.classList.contains('col-value') || oc.classList.contains('col-rate')
+                                     || oc.classList.contains('text-right')) {
+                                cc.classList.add('xnum');
+                                if (txt && /^[\d,]+(\.\d+)?$/.test(txt)) {
+                                    cc.textContent = (isNeg ? '-' : '') + txt.replace(/,/g, '');
+                                }
+                            }
+                            // Mã TK / số chứng từ: ép text để Excel không ăn mất số 0 đứng đầu.
+                            else if (oc.classList.contains('col-code') || oc.classList.contains('text-center')) {
+                                cc.classList.add('xtext');
+                            }
                         }
                     }
                 }
@@ -1618,7 +1637,11 @@ window.showConnectionLost = function() {
                     '<head><meta charset="utf-8"><meta name="ProgId" content="Excel.Sheet">' +
                     '<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets>' + wsXml +
                     '</x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->' +
-                    '<style>table{border-collapse:collapse}th,td{border:1px solid #000}.xnum{mso-number-format:"\\#\\,\\#\\#0"}.xtext{mso-number-format:"\\@"}</style>' +
+                    '<style>table{border-collapse:collapse}th,td{border:1px solid #000}' +
+                    '.xnum{mso-number-format:"\\#\\,\\#\\#0"}.xtext{mso-number-format:"\\@"}' +
+                    '.xpct0{mso-number-format:"0\\%"}.xpct1{mso-number-format:"0\\.0\\%"}' +
+                    '.xpct2{mso-number-format:"0\\.00\\%"}.xpct3{mso-number-format:"0\\.000\\%"}' +
+                    '.xpct4{mso-number-format:"0\\.0000\\%"}</style>' +
                     '</head><body>' + bodyHtml + '</body></html>';
 
                 const dateSuffix = period.type === 'custom' 
@@ -3182,7 +3205,7 @@ const exportJournalCsv = (mode) => {
             const [monthlyData, setMonthlyData] = useState({});
             const [jobList, setJobList] = useState([]);
             const [jobData, setJobData] = useState({});
-            const [reportType, setReportType] = useState('BC005');
+            const [reportType, setReportType] = useState('BC001');
             const [trialBalanceData, setTrialBalanceData] = useState([]);
             const [cashBookData, setCashBookData] = useState({ rows: [], pagination: { total_rows: 0, total_pages: 1, page: 1 } });
         const [vatSalesTotals, setVatSalesTotals] = useState({ total_amount_item: 0, taxable_amount_item: 0, total_vat_amount: 0 });

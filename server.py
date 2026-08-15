@@ -93,9 +93,26 @@ def _gzip_response(response):
             return response
         if response.headers.get('Content-Encoding'):
             return response
+        # File tĩnh (send_from_directory) đi đường direct_passthrough VÀ cũng bị tính là
+        # is_streamed, nhưng nó có Content-Length rõ ràng nên nén an toàn → phải xét TRƯỚC
+        # nhánh is_streamed. Trước đây get_data() ném RuntimeError trên direct_passthrough,
+        # bị nuốt ở except cuối hàm ⇒ index.html (~575KB) CHƯA TỪNG được nén, mỗi lần mở app
+        # là tải nguyên 575KB.
+        if response.direct_passthrough:
+            clen = response.content_length
+            if clen is None or clen > 8 * 1024 * 1024:   # chặn ngưỡng, không ôm file lớn vào RAM
+                return response
+            response.direct_passthrough = False
+        # ⚠️ Response dạng STREAM (các endpoint xuất CSV dùng stream_with_context):
+        # get_data() sẽ NUỐT TRỌN generator vào RAM rồi mới gửi → mất sạch tác dụng streaming
+        # mà chính các endpoint đó được viết ra để có. Hệ quả: file lớn thì trình duyệt đứng
+        # im không nhận được byte nào cho tới khi chạy xong, RAM phình theo kích thước file.
+        elif response.is_streamed:
+            return response
         ctype = (response.content_type or '').lower()
         # Chỉ nén text/JSON, không nén binary đã nén sẵn
-        if not (ctype.startswith('application/json') or ctype.startswith('text/')):
+        if not (ctype.startswith('application/json') or ctype.startswith('text/')
+                or ctype.startswith('application/javascript')):
             return response
         data = response.get_data()
         if len(data) < 1024:  # payload nhỏ thì bỏ qua, overhead không đáng
@@ -162,6 +179,10 @@ _external_orgs_cache = {}
 # Tránh mở-đóng connection mỗi request (tiết kiệm 200-500ms / request)
 _conn_pool = {}
 _pool_lock = threading.Lock()
+# Lần cuối mỗi connection được dùng — để khỏi bắn "SELECT 1" dò sống trước mọi request.
+import time
+_conn_last_used = {}
+_POOL_PROBE_AFTER_SEC = 30
 
 def _pool_key(db_config):
     """Tạo key ổn định từ db_config (không chứa password plaintext trong key)."""
@@ -217,18 +238,29 @@ def get_connection():
     with _pool_lock:
         conn = _conn_pool.get(key)
         if conn is not None:
-            # Test connection còn sống không
+            # Test connection còn sống không — nhưng CHỈ khi đã nhàn rỗi một lúc.
+            # "SELECT 1" là một vòng đi-về tới SQL Server; bắn nó trước MỌI request khiến
+            # mỗi thao tác gánh thêm nguyên một round-trip mạng (thấy rõ khi server ở xa).
+            # Connection vừa dùng cách đây vài giây thì gần như chắc chắn còn sống, mà nếu
+            # có chết thật thì @with_db_lock đã bắt lỗi kết nối, invalidate_pool rồi chạy
+            # lại lần 2 với connection sạch → vẫn an toàn, chỉ mất 1 lần thử.
+            if (time.time() - _conn_last_used.get(key, 0)) < _POOL_PROBE_AFTER_SEC:
+                _conn_last_used[key] = time.time()
+                return conn
             try:
                 conn.cursor().execute("SELECT 1").fetchone()
+                _conn_last_used[key] = time.time()
                 return conn
             except Exception:
                 try: conn.close()
                 except: pass
                 _conn_pool.pop(key, None)
+                _conn_last_used.pop(key, None)
 
         # Tạo connection mới
         conn = _make_conn(db_config)
         _conn_pool[key] = conn
+        _conn_last_used[key] = time.time()
         return conn
 
 def close_pool_for(db_config):
@@ -238,6 +270,7 @@ def close_pool_for(db_config):
     key = _pool_key(db_config)
     with _pool_lock:
         conn = _conn_pool.pop(key, None)
+        _conn_last_used.pop(key, None)   # bỏ luôn mốc thời gian, giữ 2 dict luôn khớp nhau
     if conn:
         try: conn.close()
         except: pass
@@ -3063,7 +3096,12 @@ def get_voucher_stream_csv():
         job_id  = _start_export_job(fname, headers, sql, params, transform, total_estimate)
         return jsonify({"status": "ok", "job_id": job_id, "filename": fname})
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        # Route này KHÔNG có @with_db_lock nên không được tự thử lại → phải tự vứt connection
+        # hỏng khỏi pool, nếu không lần bấm sau vẫn vớ đúng connection chết đó và lỗi tiếp.
+        msg = str(e)
+        if "đăng nhập" not in msg:
+            invalidate_pool()
+        return jsonify({"status": "error", "message": msg}), 500
 
 
 @app.route("/api/ledger/export")

@@ -1,27 +1,30 @@
-# 👉 ĐỌC FILE NÀY ĐẦU TIÊN (cho Gemini / dev mới tiếp nhận)
+# 👉 ĐỌC FILE NÀY ĐẦU TIÊN
 
-Đây là dự án **iPOS Accounting Ledger Report** — báo cáo kế toán iPOS ACC.
-Backend Python (Flask) `server.py` + frontend single-file React `index.html`, đóng gói EXE.
+Dự án **iPOS Accounting Ledger Report** (`LedgerReport`) — báo cáo kế toán iPOS ACC.
+Flask `server.py` + React single-file `index.html`, đóng gói EXE.
 
-## Đọc theo thứ tự này để hiểu toàn bộ:
+## Đọc gì
 
-1. **`README.md`** — đọc đầu tiên. Nắm toàn bộ: kiến trúc, cách chạy/build, bảng API, 2 bẫy nghiệp vụ, bản đồ file. Riêng file này là đủ để hiểu tổng thể.
-2. **`skill.md`** — đọc khi cần đào sâu: chuẩn UI, quy trình 4 bước thêm báo cáo mới, vibe-guard (lỗi React/JSX/SQL hay gặp).
-3. **`claude-memory/*.md`** — 2 bẫy ĐÃ TỪNG làm hỏng app, đọc trước khi sửa báo cáo KQKD hoặc query LEDGER:
-   - `bc-report-calc-results-restore.md` — logic `_calc_results` (BC001–004), đừng xóa nhầm.
-   - `ledger-tran-date-type.md` — `TRAN_DATE` là `smalldatetime`, KHÔNG phải VARCHAR.
-4. **`FIX_OFFLINE_FILTERS.md`** — chỉ khi máy đích lỗi màn hình trắng / không có Internet cho CDN.
+**[CLAUDE.md](CLAUDE.md) — nguồn sự thật duy nhất.** Rule, kiến trúc, ma trận BC001–BC014,
+12 bẫy đã trả giá, phương án backup, quy trình build/release. Đọc hết file đó là đủ.
 
-Code chính: **`server.py`** (backend + toàn bộ API) và **`index.html`** (frontend) — đọc trực tiếp khi cần sửa.
+`GEMINI.md` và `AGENTS.md` chỉ là con trỏ về `CLAUDE.md` — không có nội dung riêng.
+`README.md`, `skill.md`, `KIEN_TRUC_TOAN_TAP.md` là tài liệu cũ, **có thể đã lỗi thời**;
+chỗ nào mâu thuẫn thì `CLAUDE.md` thắng.
 
-## ⚠️ 2 điều TUYỆT ĐỐI nhớ trước khi sửa code:
+## 3 điều nhớ trước khi gõ dòng code đầu tiên
 
-- **`_calc_results` trong `server.py`** = bộ não phân loại chỉ tiêu KQKD BC001–004. Cột `ITEM_CLASS1_ID` / `EXPENSE_CLASS_ID` lấy qua JOIN `DM_ITEM` / `DM_EXPENSE` (KHÔNG có sẵn trong LEDGER). Đừng tưởng cột không tồn tại mà xóa — đã từng hỏng form vì lý do này.
-- **`dbo.LEDGER.TRAN_DATE` là `smalldatetime`**, không phải VARCHAR. Dùng `MONTH()/YEAR()/CONVERT(...,103)`, KHÔNG dùng `SUBSTRING` (văng lỗi 8116).
+1. **Đây là `LedgerReport`, KHÔNG phải `LedgerStudio`.** Hai project song song, kiến trúc giống hệt,
+   mã `BC0xx` cùng số nhưng khác nghĩa. Ở đây: `BC011` = LCTT Chú Long, `BC013` = công nợ.
+2. **Sửa xong phải chạy `.\Sync-And-Backup.ps1 -Commit`.** Thư mục làm việc và repo con `ledgerreport\`
+   là hai bản copy riêng — chỉ repo con mới lên GitHub. Quên đồng bộ = code chưa hề được sao lưu.
+3. **Hàm bị mất thì tìm trong git trước, đừng viết lại.** `git show b6553f6:server.py` là bản đầy đủ
+   đã chạy thật. Viết lại từ đầu đã một lần cho ra số liệu sai (BC011, 15/08/2026).
 
-## Chạy thử nhanh & Quy trình bàn giao:
-- Dev: cần Python 3.9+ → chạy `RunReport.bat` → mở `http://localhost:5050`.
-- Chạy EXE: `dist/iPOS_Accounting_Report.exe` (cần ODBC Driver 17 for SQL Server + Internet cho CDN).
-- Build lại EXE: chạy `python build_exe.py` (hoặc `BuildEXE.bat`).
-- ⚡ **BẮT BUỘC ĐỒNG BỘ & GIT PUSH:** Mỗi khi sửa xong và build EXE ở `LedgerReport` (`D:\IACC HCM\iPOS ACC\ACC PMKT\LedgerReport`), **bắt buộc đồng bộ toàn bộ** sang thư mục con `ledgerreport` (`D:\IACC HCM\iPOS ACC\ACC PMKT\LedgerReport\ledgerreport`), sau đó tự động commit và push git vào nhánh `main` của repo [trungkhanhduong93/ledgerreport](https://github.com/trungkhanhduong93/ledgerreport).
+## Chạy nhanh
 
+```bash
+python server.py                 # dev, mở http://localhost:5050
+python build_exe.py              # build EXE (nhớ taskkill EXE cũ trước)
+.\Sync-And-Backup.ps1 -Commit    # đồng bộ + push GitHub → Actions tự tạo Release
+```

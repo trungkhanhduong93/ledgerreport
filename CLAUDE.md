@@ -1,204 +1,283 @@
-# 📘 CLAUDE.md / GEMINI.md — BỘ NGUYÊN TẮC LÀM VIỆC & KIẾN TRÚC TOÀN TẬP LEDGERSTUDIO
+# CLAUDE.md — NGUỒN SỰ THẬT DUY NHẤT CỦA **LedgerReport**
 
-> 📌 **DÀNH CHO TẤT CẢ AGENT AI (Claude Code, Gemini, Antigravity, Cursor, Windsurf, ChatGPT):**
-> File này là **NGUỒN SỰ THẬT DUY NHẤT (Single Source of Truth)** của dự án `LedgerStudio`. Khi được yêu cầu *"đọc toàn bộ file md hướng dẫn và kiến trúc"*, bạn **BẮT BUỘC** tuân thủ 100% các nguyên tắc, ma trận báo cáo, quy trình test/build và danh sách bẫy bug dưới đây trước khi thực hiện bất kỳ chỉnh sửa nào.
-> **Dự án:** LedgerStudio (`iPOS Ledger Studio`)  
-> **GitHub Repository:** [trungkhanhduong93/ledgerreport](https://github.com/trungkhanhduong93/ledgerreport)  
-> **Cập nhật gần nhất:** 12/08/2026
+> Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
+> `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
+> Cập nhật gần nhất: **15/08/2026** · Bản EXE hiện hành: **iPOS_Accounting_Report v1.8.x**
 
 ---
 
-## 1. ⚡ CÂY QUYẾT ĐỊNH ƯU TIÊN & 8 NGUYÊN TẮC VÀNG LÀM VIỆC
+## 0. ⛔ KHOÁ NGỮ CẢNH — ĐỌC TRƯỚC KHI GÕ DÒNG CODE ĐẦU TIÊN
 
-### 1.1 Cây quyết định ưu tiên 3 giây
+Trong workspace `ACC PMKT/` có **hai project song song, kiến trúc giống hệt nhau**:
+
+| | LedgerReport (**file này**) | LedgerStudio |
+|---|---|---|
+| Thư mục | `D:\IACC HCM\iPOS ACC\ACC PMKT\LedgerReport` | `…\ACC PMKT\LedgerStudio` |
+| EXE | `dist\iPOS_Accounting_Report.exe` | `dist\iPOS_Ledger_Studio.exe` |
+| Repo GitHub | [trungkhanhduong93/ledgerreport](https://github.com/trungkhanhduong93/ledgerreport) | (riêng) |
+
+**Đang làm ở LedgerReport thì CHỈ sửa LedgerReport.** Được phép ĐỌC LedgerStudio để tham chiếu, **cấm edit**.
+
+⚠️ **Mã BC0xx cùng số nhưng khác nghĩa giữa hai bên.** Ở LedgerReport:
+`BC011` = LCTT gián tiếp (Chú Long), `BC013` = Tổng hợp phát sinh công nợ.
+Ở LedgerStudio thì `BC011` = công nợ. Nhìn nhầm là sửa nhầm báo cáo.
+
+> Lịch sử: file CLAUDE.md cũ trong chính thư mục này lại mô tả **LedgerStudio** — đã gây nhầm lẫn thật.
+> Nếu thấy tài liệu nào mâu thuẫn với file này, **file này thắng**, và sửa file kia ngay.
+
+---
+
+## 1. 🏗️ KIẾN TRÚC
+
 ```
-1. Yêu cầu trực tiếp của USER trong phiên hiện tại (ĐỘ ƯU TIÊN CAO NHẤT)
-2. Quy định môi trường dự án (GEMINI.md / CLAUDE.md)
-3. Sổ tay vận hành (iacc-agent-skills Lean Master Index & 7 Sub-Modules)
-4. Skill / Tài liệu chuyên môn lẻ
-5. Mặc định của Model (ĐỘ ƯU TIÊN THẤP NHẤT)
+Trình duyệt (Chrome --app)  ──HTTP──>  Flask (server.py, cổng 5050)  ──pyodbc──>  SQL Server
+        index.html                          51 route                          IACC_CHULONG
+   React + Babel standalone            connection pool 1/DB                (2025 Express)
+   (biên dịch JSX ngay trong                gzip response
+      trình duyệt, 1 file)
 ```
 
-### 1.2 8 Nguyên tắc vàng vận hành
-1. **Khóa ngữ cảnh:** Xác định chính xác project/stack trước khi code. Trong workspace `ACC PMKT/`: đang ở thư mục `LedgerStudio` thì **CHỈ sửa LedgerStudio**, cấm sửa nhầm sang `LedgerReport`.
-2. **Code Targeted:** Xem file bằng `view_file` trước khi edit. Sửa đúng vị trí, tuyệt đối không rewrite cả file lớn.
-3. **Verify 4 Mức (M1 ➔ M4):**
-   - **M1 (Compile):** Cú pháp Python (`ast.parse`) + JSX (`@babel/parser`).
-   - **M2 (Test Repo):** Chạy `test_client` Flask in-process.
-   - **M3 (Chạy thật):** Khởi chạy server / build EXE thật.
-   - **M4 (Khớp nguồn sự thật):** Số liệu báo cáo khớp 100% với form gốc sổ sách kế toán.
-4. **Rà 14 điểm mù:** Kiểm tra checklist điểm mù theo stack (Flask, React/Babel, SQL Server, EXE build) trước khi bàn giao.
-5. **Đồng bộ, Push GitHub & Auto Release:**
-   - Mỗi khi sửa xong và build EXE ở `LedgerReport` (`D:\IACC HCM\iPOS ACC\ACC PMKT\LedgerReport`), **bắt buộc đồng bộ** toàn bộ sang thư mục `ledgerreport` (`D:\IACC HCM\iPOS ACC\ACC PMKT\LedgerReport\ledgerreport`).
-   - Tự động `git commit` và `git push` lên nhánh `main` của repo GitHub [trungkhanhduong93/ledgerreport](https://github.com/trungkhanhduong93/ledgerreport).
-   - **Tự động Release:** Khi code được push lên nhánh `main`, GitHub Actions CI/CD (`.github/workflows/release.yml`) sẽ tự động đóng gói EXE và tạo bản phát hành mới nhất trên [GitHub Releases](https://github.com/trungkhanhduong93/ledgerreport/releases).
-   - **CHỈ PUSH GITHUB, CẤM PUSH GITLAB**. Nếu có sự cố sau push, dùng `git revert` (CẤM force-reset).
-6. **Cập nhật tài liệu LIVE:** Chỉ cập nhật file `.md` bản LIVE (`GEMINI.md` / `CLAUDE.md` / `KIEN_TRUC_TOAN_TAP.md`).
-7. **Báo cáo trung thực:** Trình bày rõ ràng: `🎯 Mục tiêu` ➔ `✅ Đã sửa` ➔ `🧪 Verify` ➔ `📦 Git` ➔ `🔍 Điểm mù` ➔ `📝 Docs`.
-8. **An toàn Release:** File `.exe` đóng gói nằm ở `dist/` được tự động phát hành qua **GitHub Releases** ([Release Link](https://github.com/trungkhanhduong93/ledgerreport/releases)), giữ mã nguồn Git luôn gọn nhẹ và sạch sẽ.
+- **Backend** — [server.py](server.py) (~5.900 dòng, Python 3.12 + Flask 3 + pyodbc). Một file duy nhất.
+- **Frontend** — [index.html](index.html) (~575 KB, một file duy nhất). React + Babel standalone + Tailwind CDN.
+  Không có bước build; sửa file là chạy được ngay.
+- **Đóng gói** — PyInstaller one-file no-console qua [build_exe.py](build_exe.py) → `dist\iPOS_Accounting_Report.exe`.
+  `index.html`, `version.txt`, `icon`, `manifest.json` được nhúng vào EXE bằng `--add-data`.
+- **Phiên đăng nhập** — chỉ lưu `session['db_config']`. **KHÔNG có khoá `session['logged_in']`** (xem Bẫy 1).
+- **Cache** — `_meta_cache[db_name]` giữ danh mục (đơn vị, TK, hàng hoá, MCP, công việc…) để khỏi JOIN bảng dimension.
+
+### 1.1 Màn hình
+
+**8 tab dữ liệu thô** (đều virtual-scroll, lọc theo cột, xuất CSV stream):
+`ledger` (chứng từ tổng hợp) · `sale` · `purchase` · `warehouse` · `warehouse_balance` (tồn kho thực tế) ·
+`voucher` (chứng từ tiền) · `income_alloc` (doanh thu chờ phân bổ) · `report`.
+
+### 1.2 Ma trận báo cáo — **BC001 → BC014**
+
+| Mã | Tên | Endpoint | Nguồn |
+|---|---|---|---|
+| BC001 | KQKD theo tháng | `/api/report` | LEDGER ⋈ DM_ITEM ⋈ DM_EXPENSE |
+| BC002 | KQKD theo công việc | `/api/report_by_job` | như trên + `JOB_ID` |
+| BC003 | KQKD theo tháng (tuỳ chỉnh) | `/api/report` | như BC001 |
+| BC004 | KQKD theo công việc (tuỳ chỉnh) | `/api/report_by_job` | như BC002 |
+| BC005 | Bảng cân đối kế toán (TT200, B01-DN) | `/api/balance_sheet` | BALANCE_VIEW + LEDGER |
+| BC006 | Bảng cân đối phát sinh (B09-DN) | `/api/trial_balance` | BALANCE_VIEW + LEDGER |
+| BC007 | Sổ nhật ký chung (S03a-DN) | `/api/journal` | LEDGER ⋈ DM_ORGANIZATION |
+| BC008 | Sổ chi tiết tài khoản (S38-DN) | `/api/account_details` | BALANCE_VIEW + LEDGER |
+| BC009 | LCTT trực tiếp (B03-DN) | `/api/cash_flow` | LEDGER theo TK đối ứng |
+| BC010 | LCTT gián tiếp (B03-DN) | `/api/cash_flow` | LEDGER theo TK đối ứng |
+| BC011 | **LCTT gián tiếp (Chú Long)** | `/api/cash_flow_cl` | `_compute_cdkt` (engine BC005) + LEDGER |
+| BC012 | Sổ tiền mặt & tiền ngân hàng | `/api/cash_book` | VOUCHER_VIEW |
+| BC013 | **Tổng hợp phát sinh công nợ** | `/api/debt_summary` | BALANCE_VIEW + LEDGER |
+| BC014 | 6.2 — Bảng kê hoá đơn bán ra | `/api/vat_sales_report` | VAT_TRANSACTION_VIEW (`DEBIT_CREDIT='CRD'`) |
+
+Engine dùng chung — **sửa một chỗ, ảnh hưởng nhiều báo cáo**:
+- `_calc_results()` — phân loại chỉ tiêu KQKD. Dùng bởi BC001–BC004, **và cả BC009/BC010/BC011** (lấy `r['13']` LN trước thuế, `r['07']` chi phí lãi vay). Chỉ được có **MỘT** định nghĩa trong file.
+- `_calc_cdkt_balances()` / `_map_account_to_cdkt()` — mã chỉ tiêu CĐKT. Dùng bởi BC005 và `_compute_cdkt` (BC011).
+- `_org_filter_sql()` — lọc đơn vị, mặc định **loại đơn vị ngoài cây `'00'`** khi người dùng không chọn.
 
 ---
 
-## 2. 🏗️ KIẾN TRÚC TOÀN TẬP DỰ ÁN
+## 2. 💾 PHƯƠNG ÁN BACKUP & PHỤC HỒI
 
-### 2.1 Tổng quan Công nghệ (Tech Stack)
-- **Backend:** Python 3.12 + Flask + PyODBC (Kết nối SQL Server 2008-2025). Đóng gói trong [server.py](file:///d:/IACC%20HCM/iPOS%20ACC/ACC%20PMKT/LedgerStudio/server.py).
-- **Frontend:** Single-File HTML [index.html](file:///d:/IACC%20HCM/iPOS%20ACC/ACC%20PMKT/LedgerStudio/index.html) (~530KB). Sử dụng React + Babel Standalone (biên dịch JSX trực tiếp trong trình duyệt) + Vanilla CSS/Tailwind (CDN).
-- **Virtual Scroll:** Hook `useVirtualScroll` tự tạo cho các tab dữ liệu thô (xử lý mượt hàng trăm nghìn dòng).
-- **Đóng gói EXE:** PyInstaller one-file, no-console thông qua script [build_exe.py](file:///d:/IACC%20HCM/iPOS%20ACC/ACC%20PMKT/LedgerStudio/build_exe.py). Output: `dist/iPOS_Ledger_Studio.exe`.
+> Phần này sinh ra sau sự cố 15/08/2026: một agent "khôi phục" báo cáo bằng cách nối code vào cuối
+> `server.py`, làm chết BC001–BC004 + BC009–BC011. Cứu được **chỉ vì** còn bản git đầy đủ để đối chiếu.
 
-### 2.2 Ma trận Báo cáo & Phân nhánh 2 App
+### 2.1 Bốn tầng backup — thiếu tầng nào là có ngày mất
 
-| Mã BC | Tên Báo Cáo | Endpoint API | Nguồn dữ liệu DB | Đã hỗ trợ ở |
-|---|---|---|---|---|
-| **BC005** | Bảng cân đối kế toán (TT200) | `/api/balance_sheet` | `BALANCE_VIEW` + `LEDGER_VIEW` | LedgerStudio & LedgerReport |
-| **BC006** | Bảng cân đối phát sinh | `/api/trial_balance` | `BALANCE_VIEW` + `LEDGER` | LedgerStudio & LedgerReport |
-| **BC007** | Sổ nhật ký chung (S03a-DN) | `/api/journal` | `LEDGER_VIEW` ⋈ `DM_ORGANIZATION` | LedgerStudio & LedgerReport |
-| **BC008** | Sổ chi tiết tài khoản | `/api/account_details` | `BALANCE_VIEW` + `LEDGER_VIEW` | LedgerStudio & LedgerReport |
-| **BC009** | LCTT trực tiếp (B03-DN) | `/api/cash_flow` | `LEDGER` theo TK đối ứng | LedgerStudio & LedgerReport |
-| **BC010** | LCTT gián tiếp (B03-DN) | `/api/cash_flow` | `LEDGER` theo TK đối ứng | LedgerStudio & LedgerReport |
-| **BC011** | **TH phát sinh công nợ (Studio)** | `/api/debt_summary` | `BALANCE_VIEW` + `LEDGER` (Group by `PR_DETAIL_ID, ACCOUNT_ID`) | **LedgerStudio** *(ở Report là BC013)* |
-| **BC012** | **Sổ tiền mặt & tiền ngân hàng (Sổ quỹ)** | `/api/cash_book` | `VOUCHER_VIEW` (Định khoản kép, Cache Flat) | **LedgerStudio & LedgerReport** |
-| **BC013** | **Bảng kê bán ra (6.2-GTGT)** | `/api/vat_sales_report` | `VAT_TRANSACTION_VIEW` (`DEBIT_CREDIT='CRD'`) | **LedgerStudio** |
+| Tầng | Cái gì | Ở đâu | Ai làm |
+|---|---|---|---|
+| 1 | **Mã nguồn** | repo con `ledgerreport\` → push GitHub `main` | `.\Sync-And-Backup.ps1 -Commit` |
+| 2 | **Bản build EXE** | [GitHub Releases](https://github.com/trungkhanhduong93/ledgerreport/releases) | GitHub Actions tự chạy khi push `main` |
+| 3 | **Dữ liệu kế toán** | file `.bak` của SQL Server, chép sang ổ khác / NAS / cloud | job SQL Agent hoặc tay (mục 2.4) |
+| 4 | **Bản đối chiếu khi nghi mất code** | git history + EXE cũ trong Releases | mục 2.3 |
 
-> ⚠️ **Chú ý phân nhánh mã BC:** BC011 ở Studio là **TH phát sinh công nợ**, trong khi ở LedgerReport TH phát sinh công nợ là **BC013**. Khi làm việc ở Studio, luôn kiểm tra đúng mã `BC011` cho công nợ và `BC013` cho Bảng kê bán ra 6.2-GTGT.
+### 2.2 ⚠️ Rủi ro cấu trúc PHẢI biết
 
----
+Thư mục làm việc `LedgerReport\` và repo con `LedgerReport\ledgerreport\` là **HAI BẢN COPY RIÊNG**.
+**Chỉ repo con mới được push lên GitHub.** File sửa ở thư mục cha mà quên đồng bộ thì:
+GitHub không có, và ổ D hỏng là mất vĩnh viễn.
 
-## 3. 📺 MO TẢ CHI TIẾT TỪNG MÀN HÌNH & TÍNH NĂNG
+Git của **thư mục cha** đứng ở commit cũ (bản Vercel 04/07/2026) và có hàng chục file chưa commit —
+**đừng tin `git status` ở thư mục cha**, nó không phản ánh cái gì đã được sao lưu.
 
-### 3.1 Màn hình Đăng nhập (Login Modal)
-- **Tính năng:** Nhập cấu hình máy chủ SQL Server (`Server`, `Database`, `User`, `Password`, `Driver`).
-- **Xử lý Backend:** API `POST /api/login` thực hiện `_make_conn()`, thiết lập `session['db_config']`. Tự động nhận diện danh sách Driver SQL Server (ưu tiên `ODBC Driver 17 for SQL Server`).
-- **Ghi nhớ:** Lưu cấu hình vào `localStorage` giúp đăng nhập nhanh lần sau.
+➡️ **Luật cứng: sửa xong là chạy [`Sync-And-Backup.ps1`](Sync-And-Backup.ps1). Không copy tay từng file.**
 
-### 3.2 Các Màn hình Dữ liệu thô (Data Tabs)
-1. **Chứng từ tổng hợp (Tab LEDGER):**
-   - **Tính năng:** Xem toàn bộ sổ cái kế toán (43 cột).
-   - **Công nghệ:** Virtual Scroll cuộn mượt. Cho phép sắp xếp (Sort), tìm kiếm cột, lọc khoảng ngày, lọc đơn vị.
-   - **Xuất dữ liệu:** Nút "Xuất Excel" ➔ Mode "1 file" xuất CSV stream server-side qua `/api/ledger/stream_csv` (không giới hạn dòng, lưu vào `Downloads\iPOS_Ledger_Studio\`).
-2. **Chứng từ mua hàng (Tab PURCHASE):** 40 cột, tích hợp Virtual Scroll, hỗ trợ filter & xuất CSV.
-3. **Chứng từ kho (Tab WAREHOUSE):** 41 cột, virtual scroll, filter theo kho/hàng hóa.
-4. **Chứng từ bán hàng (Tab SALE):**
-   - 44 cột dữ liệu. Đã bổ sung cột `ACCOUNT_ID_PR` (TK công nợ, màu cyan đậm), `PAYMENT_METHOD_NAME`, `EXTRA_NAME_2`, `INCOME_AMOUNT`, `VAT_INCOME_AMOUNT`, `COMMENTS`.
-   - Virtual scroll 44 cột đồng bộ hoàn hảo giữa Header, Search Row, Row Render và Footer summary.
-5. **Chứng từ tiền (Tab VOUCHER):** 35 cột, nguồn từ `VOUCHER` ⋈ `VOUCHER_DETAIL`, hỗ trợ phân trang SQL Server (`OFFSET/FETCH`).
-6. **Doanh thu chờ phân bổ (Tab INCOME_ALLOC):** Sử dụng CTE SQL nâng cao, xuất CSV stream 27 cột qua `/api/income_alloc/stream_csv`.
+```powershell
+.\Sync-And-Backup.ps1                          # đồng bộ + đối chiếu hash, chưa commit
+.\Sync-And-Backup.ps1 -Commit -Message "fix: ..."   # đồng bộ + commit + push GitHub
+.\Sync-And-Backup.ps1 -ZipTo "E:\Backup"       # kèm zip mã nguồn ra ổ khác
+```
 
-### 3.3 Màn hình Báo cáo Kế toán (ReportTab)
-Tất cả các báo cáo hiển thị dưới dạng tờ **A4/A4 Ngang (`.report-paper`)**:
-- **BC005 - Bảng Cân Đối Kế Toán (TT200):** Cấu trúc chuẩn Thông tư 200/2014, tự động tính tổng tài sản & nguồn vốn.
-- **BC006 - Bảng Cân Đối Phát Sinh:** Dư đầu kỳ, phát sinh Nợ/Có trong kỳ, dư cuối kỳ theo từng tài khoản.
-- **BC007 - Sổ Nhật Ký Chung (S03a-DN):**
-  - Hỗ trợ 2 chế độ xem trên Web: **Chi tiết** (13 cột) & **Tổng hợp** (10 cột - ẩn 3 cột Đơn vị, Tên đơn vị, Ngày ghi sổ).
-  - Phân trang server-side 1.000 dòng/trang với bộ điều hướng **`PageJumper`** (gõ số trang + Enter).
-  - Nút xuất Excel bật Modal lựa chọn 2 chế độ xuất CSV stream (`summary` hoặc `detail`).
-- **BC008 - Sổ Chi Tiết Tài Khoản:**
-  - Hỗ trợ lọc đa tài khoản (ví dụ `111,112`), phân trang 1.000 dòng/trang.
-  - Nút xuất Excel hỗ trợ **`exportFullXls`** (lấy toàn bộ dữ liệu qua `page_size=0` ở backend mà không bị mất trang).
-- **BC009 & BC010 - LCTT Trực Tiếp & Gián Tiếp (B03-DN):** Tự động bóc tách dòng tiền theo tài khoản đối ứng.
-- **BC011 - Bảng Tổng Hợp Phát Sinh Công Nợ (Studio):**
-  - Gộp theo cặp `(PR_DETAIL_ID, ACCOUNT_ID)`. Có **cột TK** ở cuối bảng.
-  - Định dạng A4 Ngang, tự động tính dư net lưỡng tính cho từng đối tượng công nợ.
-- **BC012 - Sổ Tiền Mặt & Tiền Ngân Hàng (Sổ Quỹ):**
-  - Truy vấn từ `VOUCHER_VIEW`, phân trang 10.000 dòng/trang.
-  - Tích hợp bộ nhớ đệm Flat Cache (`_cashbook_flat_cached`) giúp chuyển trang tức thì.
-- **BC013 - Bảng Kê Bán Ra (Mẫu 6.2-GTGT):**
-  - Nguồn `VAT_TRANSACTION_VIEW` (`DEBIT_CREDIT='CRD'`). Hỗ trợ 2 chế độ xem: **Chi tiết** và **Tổng hợp**.
-  - Áp dụng `content-visibility: auto` và `Intl.NumberFormat` giúp render mượt mà 0% CPU lag.
-  - Nút xuất Excel hỗ trợ xuất Excel giữ form đầy đủ (`exportFullXls`) hoặc xuất CSV toàn bộ (`/api/report_export_csv?report_type=BC013`).
+Script tự: đối chiếu **hash từng file** (không tin lệnh copy), **chặn push nếu remote là GitLab**,
+và **cảnh báo file `.py`/`.html` mới chưa nằm trong danh sách đồng bộ**.
+Tạo file mới → thêm tên vào mảng `$Files` **ngay lúc đó**, đừng đợi tới lúc build.
 
----
+### 2.3 Khi nghi ngờ "mất code / báo cáo biến mất"
 
-## 4. 🐛 TỔNG HỢP BẪY BUG THỰC TẾ & CÁCH KHẮC PHỤC (PITFALLS)
+**Đừng viết lại. Tìm trong lịch sử trước** — lần trước viết lại đã cho ra số sai.
 
-### Bẫy 1: "Ghost Server" trên Port 5050 khi Test Backend
-- **Triệu chứng:** Sửa code trong `server.py` nhưng chạy `curl` hoặc test web vẫn ra kết quả của code cũ.
-- **Nguyên nhân:** Một tiến trình `python.exe` hoặc `iPOS_Ledger_Studio.exe` cũ vẫn đang chạy ngầm chiếm giữ port 5050.
-- **Cách khắc phục:** **Luôn test backend bằng Flask `test_client` in-process** không qua port:
-  ```python
-  import server
-  c = server.app.test_client()
-  c.post('/api/login', json={...})
-  res = c.get('/api/cash_book?...').get_json()
-  ```
-
-### Bẫy 2: Lệch Thứ Tự Tham Số SQL Bind (Params Mismatch)
-- **Triệu chứng:** SQL query đúng nhưng API trả về 0 dòng dữ liệu.
-- **Nguyên nhân:** Bộ lọc đơn vị `_org_filter_sql` (mặc định `col NOT IN (<externals>)`) được chèn vào mệnh đề WHERE trước các bộ lọc khác, nhưng mảng `params` lại được `append()` ở cuối cùng.
-- **Cách khắc phục:** Mảng `params` truyền vào PyODBC **phải nối đúng theo thứ tự xuất hiện của dấu `?` trong chuỗi SQL**.
-
-### Bẫy 3: Cột `TRAN_DATE` kiểu `smalldatetime`
-- **Triệu chứng:** SQL Server ném lỗi **Error 8180 / 8116**.
-- **Nguyên nhân:** Dùng hàm `SUBSTRING(TRAN_DATE, ...)` trên cột kiểu `smalldatetime`.
-- **Cách khắc phục:** Dùng `CONVERT(VARCHAR(8), TRAN_DATE, 112)` hoặc `MONTH()`, `YEAR()`. Khi truyền tham số ngày từ Python, luôn format `.strftime('%Y%m%d')`.
-
-### Bẫy 4: Sự cố Công cụ tự động chèn `WITH (NOLOCK)` (Lỗi SQL 8180)
-- **Triệu chứng:** Alert "Incorrect syntax near the keyword 'with'".
-- **Nguyên nhân:** Tool tự động chèn `WITH (NOLOCK)` làm tách tên Alias (vd `PD2` ➔ `PD WITH (NOLOCK)2`) hoặc nhân đôi hint.
-- **Cách khắc phục:** Sử dụng script Regex 3 lượt trong Python để ghép lại Alias và loại bỏ hint thừa.
-
-### Bẫy 5: Truy vấn Cột không tồn tại trên View
-- **Triệu chứng:** API crash 500 và làm ngắt Connection Pool (`HY000`).
-- **Cách khắc phục:** Luôn introspect schema (`INFORMATION_SCHEMA.COLUMNS`) trước khi SELECT các cột mở rộng (ví dụ trong `SALE_VIEW`).
-
-### Bẫy 6: Xuất Excel Báo Cáo Phân Trang bị Thiếu Dòng
-- **Triệu chứng:** Xuất file Excel BC008/BC012/BC013 chỉ ra 1.000 dòng của trang hiện tại.
-- **Cách khắc phục:** Sử dụng helper `exportFullXls` ở Frontend. Backend tiếp nhận `page_size=0` để trả toàn bộ dữ liệu. **Lưu ý:** Backend phải chặn chia cho 0 (`ZeroDivisionError`) khi `page_size=0`.
-
-### Bẫy 7: Lọc Đa Tài Khoản Trả 0 Dòng
-- **Triệu chứng:** Nhập `111,112` thì báo cáo trả về bảng rỗng.
-- **Nguyên nhân:** Dùng SQL `ACCOUNT_ID LIKE '111,112%'`.
-- **Cách khắc phục:** Dùng helper `_acc_like_sql("111,112", "ACCOUNT_ID")` để sinh chuỗi SQL `(ACCOUNT_ID LIKE '111%' OR ACCOUNT_ID LIKE '112%')`.
-
-### Bẫy 8: `<colgroup>` làm vỡ Bố cục File `.xls` (HTML-mso)
-- **Triệu chứng:** File Excel xuất ra bị tràn cột hoặc lệch độ rộng.
-- **Cách khắc phục:** Trong hàm `exportReportXls()`, phải xoá toàn bộ thẻ `<colgroup>` khỏi DOM clone trước khi ghi file (`clone.querySelectorAll('colgroup').forEach(cg => cg.remove())`).
-
-### Bẫy 9: Icon vô hình do dùng Tên Icon không tồn tại
-- **Triệu chứng:** Nút bấm hoặc Modal không hiển thị Icon.
-- **Nguyên nhân:** Khai báo `<Icon name="x"/>` nhưng bộ `const icons` trong `index.html` chỉ có 19 icon và không có tên `"x"` hay `"list"`.
-- **Cách khắc phục:** Kiểm tra hằng `const icons` trước khi dùng, hoặc dùng trực tiếp ký tự Unicode (như `✕`).
-
-### Bẫy 10: Tự động khóa file EXE khi đang mở app
-- **Triệu chứng:** `build_exe.py` báo SUCCESS nhưng file `.exe` trong `dist/` không thay đổi.
-- **Nguyên nhân:** File `iPOS_Ledger_Studio.exe` đang chạy ngầm nên PyInstaller không thể ghi đè.
-- **Cách khắc phục:** Tắt tất cả tiến trình `iPOS_Ledger_Studio.exe` trong Task Manager trước khi chạy build.
-
----
-
-## 5. 🛠️ QUY TRÌNH DEV, TEST & BUILD EXE CHUẨN
-
-### Bước 1: Kiểm tra Cú pháp (Syntax Check)
 ```bash
-# Kiểm tra cú pháp Python
-python -c "import ast; ast.parse(open('server.py', encoding='utf-8').read()); print('PYTHON_SYNTAX_OK')"
+cd ledgerreport
+git log --oneline                       # commit b6553f6 (04/07/2026) là bản ĐẦY ĐỦ đã chạy thật
+git show b6553f6:server.py  > /tmp/head_server.py
+git show b6553f6:index.html > /tmp/head_index.html
 ```
 
-### Bước 2: Test Backend qua Flask `test_client`
+Rồi **đối chiếu theo TỪNG HÀM**, đừng diff cả file (file đã tiến hoá nhiều, diff toàn phần vô dụng).
+Và luôn so **danh sách hàm + route** giữa hai bản để phát hiện thứ bị xoá mất:
+
 ```python
 python -c "
-import server
-c = server.app.test_client()
-c.post('/api/login', json={'server':'<SERVER>','database':'IACC_CHULONG','user':'<USER>','password':'<PASSWORD>','driver':'ODBC Driver 17 for SQL Server'})
-d = c.get('/api/cash_book?from_date=01/01/2026&to_date=31/01/2026&acc_ids=111&page=1').get_json()
-print('PAGINATION:', d['pagination'])
+import ast
+def names(p):
+    t=ast.parse(open(p,encoding='utf-8').read())
+    fn={n.name for n in t.body if isinstance(n,ast.FunctionDef)}
+    rt={d.args[0].value for n in ast.walk(t) if isinstance(n,ast.FunctionDef)
+        for d in n.decorator_list
+        if isinstance(d,ast.Call) and getattr(d.func,'attr','')=='route' and d.args}
+    return fn,rt
+hf,hr=names('/tmp/head_server.py'); cf,cr=names('server.py')
+print('HAM BI MAT  :', sorted(hf-cf) or '(khong)')
+print('ROUTE BI MAT:', sorted(hr-cr) or '(khong)')
 "
 ```
 
-### Bước 3: Build File Thực Thi EXE
-```bash
-# Đóng tất cả tiến trình đang chạy
-taskkill /F /IM iPOS_Ledger_Studio.exe /T 2>nul
+Nếu git cũng không có: **tải EXE cũ từ GitHub Releases**, giải nén bằng `pyinstxtractor`, dịch ngược
+`server.pyc` — đã làm thật ngày 15/06/2026 để dựng lại `_calc_results`. Các file `*_dis.txt`,
+`get_report_full.txt` trong thư mục này là sản phẩm của lần đó, **giữ lại, đừng xoá**.
 
-# Chạy build script tự động tăng version
-python build_exe.py
+### 2.4 Backup dữ liệu kế toán (SQL Server)
+
+DB `IACC_CHULONG` ~10,6 GB, recovery model **SIMPLE** (không có log backup → chỉ phục hồi được về
+thời điểm bản `.bak` gần nhất). Backup tay khi sắp làm việc gì rủi ro:
+
+```sql
+BACKUP DATABASE IACC_CHULONG
+TO DISK = N'E:\Backup\IACC_CHULONG_20260815.bak'
+WITH COMPRESSION, INIT, STATS = 5;
 ```
 
-### Bước 4: Kiểm tra File Output & Release
-- Verify thời gian tạo (mtime) của file `dist/iPOS_Ledger_Studio.exe`.
-- Khi cần phát hành bản nâng cấp cho người dùng, sử dụng script Release tự động để cập nhật trên **GitHub Releases** ([https://github.com/trungkhanhduong93/ledgerreport/releases](https://github.com/trungkhanhduong93/ledgerreport/releases)).
+Luật: **chép file `.bak` sang ổ vật lý khác hoặc cloud** — để cùng ổ với DB thì ổ hỏng là mất cả hai.
 
 ---
 
-> 🔴 **CẤM:** Không được đẩy file `.exe` trực tiếp vào mã nguồn Git. Tất cả bản build nhị phân phải được upload qua **GitHub Releases**.
+## 3. 🧭 NGUYÊN TẮC LÀM VIỆC
+
+1. **Khoá ngữ cảnh trước** (mục 0).
+2. **Sửa targeted** — đọc file trước khi sửa, không rewrite cả file. Rewrite xoá mất comment và code người khác vừa thêm.
+3. **Verify 4 mức, nói rõ đạt mức nào:**
+   - **M1 Compile** — `ast.parse(server.py)` + `node check_babel.js` (JSX).
+   - **M2 Test repo** — Flask `test_client` in-process (**không** qua cổng 5050, xem Bẫy 6).
+   - **M3 Chạy thật** — build EXE, chạy, gọi API thật.
+   - **M4 Khớp nguồn sự thật** — **số liệu khớp form sổ sách**. Báo cáo kế toán chỉ được bàn giao ở M4.
+4. **Test fail thì tìm nguyên nhân gốc**, không sửa test cho pass.
+5. **Trước khi commit/push** thay đổi có logic → chạy skill `pre-push-qa`.
+6. **Chỉ push GitHub, cấm push GitLab.** Sự cố sau push thì `git revert`, cấm force-reset.
+7. **Báo cáo trung thực:** 🎯 Mục tiêu → ✅ Đã sửa → 🧪 Verify (ghi rõ M1–M4) → 📦 Git → 🔍 Điểm mù.
+8. **Cấm đẩy `.exe` vào git.** Bản build phát hành qua GitHub Releases.
+
+---
+
+## 4. 🐛 BẪY ĐÃ TRẢ GIÁ
+
+### Bẫy 1 — `session['logged_in']` KHÔNG TỒN TẠI *(15/08/2026)*
+`/api/login` chỉ gán `session['db_config']`. Endpoint nào kiểm `session.get("logged_in")` sẽ **luôn trả 401**,
+frontend gặp 401 là `setIsLoggedIn(false)` → **user bị đá về màn hình đăng nhập ngay khi bấm Xem báo cáo**.
+Đã giết BC001–BC004 + BC011. Triệu chứng người dùng: *"bấm là văng ra khỏi phần mềm"*.
+➡️ Kiểm đúng: `session.get('db_config')`. Nghe báo triệu chứng đó thì `grep -n "logged_in" server.py` đầu tiên.
+
+### Bẫy 2 — Nối code vào cuối `server.py` sinh hàm trùng tên *(15/08/2026)*
+Python lấy định nghĩa **sau cùng**. Một bản `_calc_results` nối thêm ở cuối che mất bản ở trên →
+`KeyError: 'expense_class'` ở BC009/BC010. Trước khi thêm hàm, luôn quét trùng tên:
+```bash
+python -c "import ast,collections;t=ast.parse(open('server.py',encoding='utf-8').read());c=collections.Counter(n.name for n in t.body if isinstance(n,ast.FunctionDef));print({k:v for k,v in c.items() if v>1} or 'khong trung')"
+```
+
+### Bẫy 3 — SELECT cột không tồn tại → crash 500 + ngắt pool
+`L.EXPENSE_NAME` không có trên bảng `LEDGER` (phải JOIN `DM_EXPENSE` lấy `E.EXPENSE_NAME`).
+Tương tự `ORGANIZATION_NAME`. **Đừng đoán tên cột** — introspect `INFORMATION_SCHEMA.COLUMNS`
+hoặc tra trong code đã chạy.
+
+### Bẫy 4 — `TRAN_DATE` kiểu `smalldatetime`
+Cấm `SUBSTRING(TRAN_DATE, …)` (lỗi 8116). Dùng `CONVERT(VARCHAR(8), TRAN_DATE, 112)` hoặc `MONTH()/YEAR()`.
+Tham số ngày từ Python luôn `.strftime('%Y%m%d')`.
+
+### Bẫy 5 — Lệch thứ tự tham số bind
+Mảng `params` truyền vào pyodbc phải **đúng thứ tự dấu `?` xuất hiện trong chuỗi SQL**.
+`_org_filter_sql` hay được chèn giữa mệnh đề WHERE nhưng params lại `append()` ở cuối → **trả 0 dòng, không báo lỗi**.
+
+### Bẫy 6 — "Ghost server" cổng 5050
+Sửa code mà test vẫn ra kết quả cũ vì còn tiến trình `python.exe` / `.exe` cũ giữ cổng.
+➡️ **Luôn test bằng `test_client` in-process**, không qua cổng.
+
+### Bẫy 7 — Lọc đa tài khoản
+`ACCOUNT_ID LIKE '111,112%'` trả 0 dòng. Dùng `_acc_like_sql("111,112", "ACCOUNT_ID")`.
+
+### Bẫy 8 — `<colgroup>` làm vỡ layout file `.xls`
+`exportReportXls()` phải `clone.querySelectorAll('colgroup').forEach(cg => cg.remove())` trước khi ghi file.
+
+### Bẫy 9 — Xuất Excel báo cáo phân trang bị thiếu dòng
+DOM chỉ có trang hiện tại. Dùng helper `exportFullXls` (backend nhận `page_size=0` trả toàn bộ).
+Backend phải chặn `ZeroDivisionError` khi `page_size=0`.
+
+### Bẫy 10 — EXE đang chạy thì PyInstaller không ghi đè được
+Build báo SUCCESS nhưng file `dist\*.exe` không đổi. `taskkill /F /IM iPOS_Accounting_Report.exe /T` trước khi build.
+**Luôn so mtime của EXE với `server.py` / `index.html` sau khi build.**
+
+### Bẫy 11 — Middleware gzip nuốt response stream *(15/08/2026)*
+`after_request` gọi `response.get_data()` trên response `stream_with_context` sẽ **nuốt trọn generator
+vào RAM**, xoá sạch tác dụng streaming của các endpoint xuất CSV. Phải `if response.is_streamed: return response`.
+Ngược lại, `send_from_directory` bật `direct_passthrough` khiến `get_data()` ném lỗi bị `except` nuốt →
+`index.html` 575 KB **chưa từng được nén**. Phải xử nhánh `direct_passthrough` **trước** nhánh `is_streamed`.
+
+### Bẫy 12 — PowerShell 5.1 đọc `.ps1` không BOM là ANSI
+File `.ps1` có tiếng Việt mà lưu UTF-8 không BOM → PowerShell parse hỏng, báo `Unexpected token`.
+Luôn lưu `.ps1` bằng **UTF-8 CÓ BOM**. Tương tự: `Set-Content` mặc định ANSI → luôn `-Encoding utf8`.
+
+---
+
+## 5. 🛠️ QUY TRÌNH DEV → RELEASE
+
+```bash
+# B1 — Cú pháp (M1)
+python -c "import ast; ast.parse(open('server.py',encoding='utf-8').read()); print('PYTHON_OK')"
+node check_babel.js
+
+# B2 — Test in-process (M2). KHÔNG chạy qua cổng 5050.
+python -c "
+import server; c = server.app.test_client()
+c.post('/api/login', json={'server':'<SERVER>','database':'IACC_CHULONG','user':'<USER>','password':'<PASS>','driver':'ODBC Driver 17 for SQL Server'})
+print(c.get('/api/report?from_date=01/01/2026&to_date=31/01/2026&org_ids=&job_ids=').status_code)
+"
+
+# B3 — QA trước khi push (thay đổi có logic)
+#      chạy skill pre-push-qa
+
+# B4 — Build EXE (M3)
+taskkill /F /IM iPOS_Accounting_Report.exe /T
+python build_exe.py            # tự tăng version.txt, sinh version_info.txt
+
+# B5 — Đồng bộ + push (Actions tự tạo Release)
+powershell -File Sync-And-Backup.ps1 -Commit -Message "fix: ..."
+```
+
+`build_exe.py` chọn tên EXE **theo thư mục đang đứng**: đường dẫn chứa `ledgerreport` →
+`iPOS_Accounting_Report`, ngược lại → `iPOS_Ledger_Studio`. **Chạy sai thư mục là ra sai tên EXE.**
+
+CI: [.github/workflows/release.yml](.github/workflows/release.yml) — push `main` là build EXE trên
+`windows-latest` rồi tạo Release theo `version.txt`.
+
+---
+
+## 6. 📎 GHI CHÚ HIỆU NĂNG
+
+Nút thắt gốc **không nằm ở code**: DB 10,6 GB / buffer pool 1.410 MB (trần cứng của SQL Express) ≈ **7,7 : 1**
+→ phần lớn truy vấn phải đọc đĩa. Index không nâng được trần RAM.
+
+Đã đo và **đừng làm lại**: `IX_LEDGER_ACC_DATE` là có lợi (giảm 95% số trang đọc) — **không drop**;
+thêm INCLUDE dài cho `SALE_DETAIL` là lỗ; nâng cấu hình IIS không cứu được nghẽn SQL.
+Chi tiết đầy đủ ở skill `chulong-db-perf`.
+
+**Việc rẻ nhất và hiệu quả nhất hiện còn treo ở phía máy chủ:** tắt `AUTO_SHRINK` + `AUTO_CLOSE`
+(script `Tat_AutoShrink_AutoClose.sql` trong skill đó). `AUTO_CLOSE` khiến DB đóng lại khi hết kết nối,
+người vào sau phải chờ mở lại cả DB — đúng triệu chứng "lúc nhanh lúc chậm".

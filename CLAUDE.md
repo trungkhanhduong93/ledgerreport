@@ -2,7 +2,7 @@
 
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
-> Cập nhật gần nhất: **15/08/2026** · Bản EXE hiện hành: **iPOS_Accounting_Report v1.8.x**
+> Cập nhật gần nhất: **16/08/2026** · Bản EXE hiện hành: **iPOS_Accounting_Report v1.8.5**
 
 ---
 
@@ -85,8 +85,9 @@ Chú Long vào ~40 chỉ tiêu. Bê sang DB khác thì mọi chỉ tiêu về 0 
 > không tồn tại — đã gỡ 15/08/2026.
 > Nếu thấy tài liệu nào mâu thuẫn với file này, **file này thắng**, và sửa file kia ngay.
 
-📄 **Sự cố 15/08/2026 và 8 lỗi đã trả giá: xem [SU_CO_15082026.md](SU_CO_15082026.md)** — đọc trước
-khi được giao bất kỳ việc "khôi phục / dọn dẹp / viết lại" nào.
+📄 **Nhật ký công việc đầy đủ: [NHAT_KY_CONG_VIEC.md](NHAT_KY_CONG_VIEC.md)** — mọi thứ đã làm và vì sao.
+📄 **Sự cố 15/08/2026 và 8 lỗi đã trả giá: [SU_CO_15082026.md](SU_CO_15082026.md)** — đọc trước khi
+được giao bất kỳ việc "khôi phục / dọn dẹp / viết lại" nào.
 
 ---
 
@@ -94,7 +95,7 @@ khi được giao bất kỳ việc "khôi phục / dọn dẹp / viết lại" 
 
 ```
 Trình duyệt (Chrome --app)  ──HTTP──>  Flask (server.py, cổng 5050)  ──pyodbc──>  SQL Server
-        index.html                          51 route                          IACC_CHULONG
+        index.html                          48 route                          IACC_CHULONG
    React + Babel standalone            connection pool 1/DB                (2025 Express)
    (biên dịch JSX ngay trong                gzip response
       trình duyệt, 1 file)
@@ -110,9 +111,12 @@ Trình duyệt (Chrome --app)  ──HTTP──>  Flask (server.py, cổng 5050)
 
 ### 1.1 Màn hình
 
-**8 tab dữ liệu thô** (đều virtual-scroll, lọc theo cột, xuất CSV stream):
+**7 tab dữ liệu thô** (đều virtual-scroll, lọc theo cột, xuất CSV stream):
 `ledger` (chứng từ tổng hợp) · `sale` · `purchase` · `warehouse` · `warehouse_balance` (tồn kho thực tế) ·
-`voucher` (chứng từ tiền) · `income_alloc` (doanh thu chờ phân bổ) · `report`.
+`voucher` (chứng từ tiền) · `report`.
+
+> Tab `income_alloc` (doanh thu chờ phân bổ) đã **gỡ hẳn 16/08/2026** — nó vốn của LedgerStudio,
+> bị copy nhầm sang đây và chết hoàn toàn trên `IACC_CHULONG` vì cột `RECEIVE_DATE` không tồn tại.
 
 ### 1.2 Ma trận báo cáo — **BC001 → BC014**
 

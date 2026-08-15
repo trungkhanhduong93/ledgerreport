@@ -56,6 +56,7 @@ $Files = @(
     'AGENTS.md',
     'START_HERE.md',
     'SU_CO_15082026.md',
+    'NHAT_KY_CONG_VIEC.md',
     'Sync-And-Backup.ps1'
 )
 

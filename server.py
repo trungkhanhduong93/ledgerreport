@@ -3329,6 +3329,78 @@ def _calc_cdkt_balances(rows):
     return result
 
 
+def _compute_cdkt(from_dt, to_dt, org_ids):
+    """Số dư CĐKT (mã chỉ tiêu TT200) đầu kỳ / cuối kỳ — dùng cho BC011.
+
+    Đi đúng 3 bước của BC005 (`get_balance_sheet`): số dư đầu NĂM từ BALANCE_VIEW
+    + phát sinh luỹ kế từ LEDGER tới mốc, rồi gộp về (ACCOUNT_ID, PR_DETAIL_ID) và
+    đưa qua `_calc_cdkt_balances`. Bỏ phần tách 1311/1312 và 421A/421B của BC005 vì
+    BC011 không dùng các mã đó.
+
+    ⚠️ Lọc đơn vị dùng `ORGANIZATION_ID IN (...)` GIỐNG BC005 (không chọn ⇒ lấy hết),
+    KHÔNG dùng `_org_filter_sql` — để cột biến động CĐKT của BC011 khớp đúng BC005.
+    Sửa BC005 thì sửa cả đây.
+    """
+    cur = get_connection().cursor()
+    first_day_of_year = date(from_dt.year, 1, 1).strftime("%Y%m%d")
+    org_where = f" AND ORGANIZATION_ID IN ({','.join(['?'] * len(org_ids))})" if org_ids else ""
+
+    try:
+        cur.execute("SELECT TOP 1 ORGANIZATION_ID FROM dbo.BALANCE_VIEW WITH (NOLOCK)")
+        has_org_in_balance = True
+    except Exception:
+        has_org_in_balance = False
+
+    if has_org_in_balance:
+        q_open = f"""
+            SELECT ACCOUNT_ID, ISNULL(PR_DETAIL_ID, ''),
+                   SUM(CASE WHEN DEBIT_CREDIT='DEB' THEN AMOUNT WHEN DEBIT_CREDIT='CRD' THEN -AMOUNT ELSE 0 END) AS BAL
+            FROM dbo.BALANCE_VIEW WITH (NOLOCK)
+            WHERE TRAN_DATE = ? {org_where}
+            GROUP BY ACCOUNT_ID, ISNULL(PR_DETAIL_ID, '')
+        """
+        params_open = [first_day_of_year] + list(org_ids)
+    else:
+        q_open = """
+            SELECT ACCOUNT_ID, ISNULL(PR_DETAIL_ID, ''),
+                   SUM(CASE WHEN DEBIT_CREDIT='DEB' THEN AMOUNT WHEN DEBIT_CREDIT='CRD' THEN -AMOUNT ELSE 0 END) AS BAL
+            FROM dbo.BALANCE_VIEW WITH (NOLOCK)
+            WHERE TRAN_DATE = ?
+            GROUP BY ACCOUNT_ID, ISNULL(PR_DETAIL_ID, '')
+        """
+        params_open = [first_day_of_year]
+
+    cur.execute(q_open, params_open)
+    opening_year = {((r[0] or '').strip(), (r[1] or '').strip()): float(r[2] or 0) for r in cur.fetchall()}
+
+    def run_ledger(end_inclusive=None, end_exclusive=None):
+        where = ["L.TRAN_DATE >= ?"]
+        params = [first_day_of_year]
+        if end_inclusive is not None:
+            where.append("L.TRAN_DATE <= ?"); params.append(end_inclusive.strftime("%Y%m%d"))
+        if end_exclusive is not None:
+            where.append("L.TRAN_DATE < ?");  params.append(end_exclusive.strftime("%Y%m%d"))
+        if org_ids:
+            where.append(f"L.ORGANIZATION_ID IN ({','.join(['?'] * len(org_ids))})")
+            params.extend(org_ids)
+        cur.execute(f"""
+            SELECT L.ACCOUNT_ID, ISNULL(L.PR_DETAIL_ID, ''),
+                   SUM(CASE WHEN L.DEBIT_CREDIT='DEB' THEN L.AMOUNT WHEN L.DEBIT_CREDIT='CRD' THEN -L.AMOUNT ELSE 0 END) AS BAL
+            FROM dbo.LEDGER L WITH (NOLOCK)
+            WHERE {' AND '.join(where)}
+            GROUP BY L.ACCOUNT_ID, ISNULL(L.PR_DETAIL_ID, '')
+        """, params)
+        return {((r[0] or '').strip(), (r[1] or '').strip()): float(r[2] or 0) for r in cur.fetchall()}
+
+    ledger_to_end   = run_ledger(end_inclusive=to_dt)
+    ledger_to_start = run_ledger(end_exclusive=from_dt)
+
+    all_keys = set(opening_year) | set(ledger_to_end) | set(ledger_to_start)
+    closing_rows = [(k[0], opening_year.get(k, 0.0) + ledger_to_end.get(k, 0.0)) for k in all_keys]
+    opening_rows = [(k[0], opening_year.get(k, 0.0) + ledger_to_start.get(k, 0.0)) for k in all_keys]
+    return _calc_cdkt_balances(opening_rows), _calc_cdkt_balances(closing_rows)
+
+
 @app.route("/api/balance_sheet")
 @with_db_lock
 def get_balance_sheet():
@@ -4172,8 +4244,10 @@ def report_export_csv():
             params = acc_params + [d_from, d_to] + org_params
             fname = (f"BC008_So_Chi_Tiet_{account_id.replace(',', '-')}"
                      f"_{from_dt.strftime('%d%m%Y')}-{to_dt.strftime('%d%m%Y')}.csv")
-        elif report_type == "BC013":
+        elif report_type in ("BC014", "BC013"):
             # BẢNG KÊ HÓA ĐƠN BÁN RA (6.2) — cột y hệt bảng trên web, xuất TOÀN BỘ (không phân trang).
+            # Nhận cả "BC013" (mã cũ trước 15/08/2026) lẫn "BC014" (mã hiện tại) để index.html
+            # còn nằm trong cache trình duyệt vẫn xuất được, không báo "Report type không hỗ trợ".
             # Bộ lọc phải khớp /api/vat_sales_report: đơn vị dùng _org_filter_sql (không chọn ⇒ loại đơn vị
             # ngoài cây '00'), tài khoản LIKE prefix đa chọn — nếu dùng org_where thường sẽ lệch số so màn hình.
             acc_ids_13 = [v.strip() for v in request.args.get("acc_ids", "").split(",") if v.strip()]
@@ -4206,7 +4280,7 @@ def report_export_csv():
                             AND VAT_TRAN_DATE >= ? AND VAT_TRAN_DATE <= ?{vat_org_where}{vat_acc_where}
                           ORDER BY VAT_TAX_RATE, VAT_TRAN_DATE, VAT_TRAN_NO"""
             params = [d_from, d_to] + list(_op) + vat_acc_params
-            fname = (f"BC013_Bang_Ke_Ban_Ra_{'TongHop' if mode == 'summary' else 'ChiTiet'}"
+            fname = (f"BC014_Bang_Ke_Ban_Ra_{'TongHop' if mode == 'summary' else 'ChiTiet'}"
                      f"_{from_dt.strftime('%d%m%Y')}-{to_dt.strftime('%d%m%Y')}.csv")
         else:
             return jsonify({"status": "error", "message": "Report type không hỗ trợ xuất CSV."}), 400
@@ -4253,7 +4327,7 @@ def report_export_csv():
                                 _amt(amt if is_deb else 0), _amt(amt if not is_deb else 0),
                                 _amt(run if run > 0 else 0), _amt(-run if run < 0 else 0)]))
                         yield '\r\n'.join(lines) + '\r\n'
-                elif report_type == "BC013":  # BẢNG KÊ BÁN RA — TT tự đánh, mã giữ dạng text, chốt Tổng cộng
+                elif report_type in ("BC014", "BC013"):  # BẢNG KÊ BÁN RA — TT tự đánh, mã giữ dạng text, chốt Tổng cộng
                     cur.execute(sql, params)
                     stt = 0
                     sum_amt = sum_vat = 0.0
@@ -4416,78 +4490,6 @@ def _cf_classify_direct(contra, dc):
         return "07"                                                    # chi khác HĐKD
 
 
-def _calc_results(data, thtt_expense_list, expense_classes):
-    """Engine KQKD (BC001). Với LCTT gián tiếp chỉ cần r['13'] (LN trước thuế)
-    và r['07'] (chi phí lãi vay) — 2 chỉ tiêu này chỉ phụ thuộc tổng TK 5/6/7/8
-    nên item_class/expense có thể rỗng."""
-    sum_map = {}
-    excl_map = {}
-    for d in data:
-        acc = d['acc']; contra = d['contra']; dc = d['dc']
-        ic = d['item_class']; val = d['val']
-        k1 = (acc, dc, ic);             sum_map[k1]  = sum_map.get(k1, 0) + val
-        k2 = (acc, contra[:3], dc, ic); excl_map[k2] = excl_map.get(k2, 0) + val
-
-    def s(acc_prefix, dc, item_classes=None):
-        if isinstance(item_classes, str): item_classes = [item_classes]
-        total = 0
-        for (acc, d_c, ic), val in sum_map.items():
-            if d_c == dc and acc.startswith(acc_prefix):
-                if item_classes is None or ic in item_classes:
-                    total += val
-        return total
-
-    def s_excl(acc_prefix, dc, excl_contras, item_classes=None):
-        if isinstance(item_classes, str): item_classes = [item_classes]
-        total = 0
-        for (acc, contra, d_c, ic), val in excl_map.items():
-            if d_c == dc and acc.startswith(acc_prefix):
-                if item_classes is None or ic in item_classes:
-                    if not any(contra.startswith(c) for c in excl_contras):
-                        total += val
-        return total
-
-    def s_multi(acc_prefixes, dc, item_classes=None):
-        if isinstance(item_classes, str): item_classes = [item_classes]
-        if isinstance(acc_prefixes, str): acc_prefixes = [acc_prefixes]
-        total = 0
-        for (acc, d_c, ic), val in sum_map.items():
-            if d_c == dc and any(acc.startswith(p) for p in acc_prefixes):
-                if item_classes is None or ic in item_classes:
-                    total += val
-        return total
-
-    def s_multi_excl(acc_prefixes, dc, excl_contras, item_classes=None):
-        if isinstance(item_classes, str): item_classes = [item_classes]
-        if isinstance(acc_prefixes, str): acc_prefixes = [acc_prefixes]
-        total = 0
-        for (acc, contra, d_c, ic), val in excl_map.items():
-            if d_c == dc and any(acc.startswith(p) for p in acc_prefixes):
-                if item_classes is None or ic in item_classes:
-                    if not any(contra.startswith(c) for c in excl_contras):
-                        total += val
-        return total
-
-    r = {}
-    r['01'] = s('511', 'CRD') - s_excl('511', 'DEB', ['911', '521'])
-    r['02'] = s('521', 'DEB') - s_excl('521', 'CRD', ['511'])
-    r['03'] = r['01'] - r['02']
-    r['04'] = s('632', 'DEB') - s_excl('632', 'CRD', ['911'])
-    r['05'] = r['03'] - r['04']
-    r['06'] = s('515', 'CRD') - s_excl('515', 'DEB', ['911'])
-    r['07'] = s('635', 'DEB') - s_excl('635', 'CRD', ['911'])
-    r['08'] = s_multi(['641', '642'], 'DEB') - s_multi_excl(['641', '642'], 'CRD', ['911'])
-    r['09'] = r['05'] + r['06'] - r['07'] - r['08']
-    r['10'] = s('711', 'CRD') - s_excl('711', 'DEB', ['911'])
-    r['11'] = s('811', 'DEB') - s_excl('811', 'CRD', ['911'])
-    r['12'] = r['10'] - r['11']
-    r['13'] = r['09'] + r['12']
-    r['14'] = s('8211', 'DEB') - s_excl('8211', 'CRD', ['911'])
-    r['15'] = s('8212', 'DEB') - s_excl('8212', 'CRD', ['911'])
-    r['16'] = r['13'] - r['14'] - r['15']
-    return r
-
-
 @app.route("/api/cash_flow")
 @with_db_lock
 def get_cash_flow():
@@ -4584,8 +4586,14 @@ def get_cash_flow():
         def net(pfx):  # biến động số dư trong kỳ (DEB-CRD), loại bút toán kết chuyển 911
             return s(pfx, "DEB", ["911"]) - s(pfx, "CRD", ["911"])
 
+        # LN trước thuế & chi phí lãi vay: dùng CHÍNH engine KQKD (_calc_results) để khớp
+        # tuyệt đối với báo cáo BC001 (r['13'] = LN trước thuế, r['07'] = chi phí tài chính).
+        # r['13'] chỉ phụ thuộc tổng số TK 5/6/7/8 (không cần item_class) nên truyền field rỗng
+        # — nhưng PHẢI có đủ key expense_class/expense_id, _calc_results đọc trực tiếp d['...'].
         cf_data = [{"acc": (r[0] or "").strip(), "contra": (r[1] or "").strip(),
-                    "dc": r[2], "val": float(r[3] or 0), "item_class": ""} for r in pl]
+                    "dc": r[2], "val": float(r[3] or 0),
+                    "item_class": "", "expense_class": "", "expense_id": "",
+                    "month": from_dt.month, "year": from_dt.year} for r in pl]
         kq = _calc_results(cf_data, {}, {})
 
         i = {}
@@ -5232,8 +5240,11 @@ def get_cash_flow_cl():
     + biến động chi tiết các khoản mục trên Bảng cân đối kế toán (CĐKT) + biến động
     TK 411 cho hoạt động tài chính. Liệt kê 12 dòng vốn lưu động, KHÔNG dùng dòng plug.
     Chênh lệch nhỏ (nếu có, do bút toán P&L chưa kết chuyển hết) gom vào Mã 16/17."""
-    if not session.get("logged_in"):
-        return jsonify({"status": "error", "message": "Chưa đăng nhập"}), 401
+    # Phiên đăng nhập chỉ lưu session['db_config'] (xem /api/login) — KHÔNG có khóa "logged_in".
+    # Kiểm nhầm khóa đó thì endpoint LUÔN trả 401, mà frontend gặp 401 là setIsLoggedIn(false)
+    # → người dùng bị đá văng về màn hình đăng nhập ngay khi bấm Xem báo cáo.
+    if not session.get('db_config'):
+        return jsonify({"status": "error", "message": "Chưa đăng nhập SQL Server"}), 401
     try:
         f_date  = request.args.get("from_date")
         t_date  = request.args.get("to_date")
@@ -5513,8 +5524,11 @@ def _calc_results(data, thtt_expense_list, expense_classes):
 @app.route('/api/report')
 @with_db_lock
 def get_report():
-    if not session.get("logged_in"):
-        return jsonify({"status": "error", "message": "Chưa đăng nhập"}), 401
+    # Phiên đăng nhập chỉ lưu session['db_config'] (xem /api/login) — KHÔNG có khóa "logged_in".
+    # Kiểm nhầm khóa đó thì endpoint LUÔN trả 401, mà frontend gặp 401 là setIsLoggedIn(false)
+    # → người dùng bị đá văng về màn hình đăng nhập ngay khi bấm Xem báo cáo.
+    if not session.get('db_config'):
+        return jsonify({"status": "error", "message": "Chưa đăng nhập SQL Server"}), 401
     try:
         from_date = request.args.get('from_date')
         to_date = request.args.get('to_date')
@@ -5617,8 +5631,11 @@ def get_report():
 @app.route('/api/report_by_job')
 @with_db_lock
 def get_report_by_job():
-    if not session.get("logged_in"):
-        return jsonify({"status": "error", "message": "Chưa đăng nhập"}), 401
+    # Phiên đăng nhập chỉ lưu session['db_config'] (xem /api/login) — KHÔNG có khóa "logged_in".
+    # Kiểm nhầm khóa đó thì endpoint LUÔN trả 401, mà frontend gặp 401 là setIsLoggedIn(false)
+    # → người dùng bị đá văng về màn hình đăng nhập ngay khi bấm Xem báo cáo.
+    if not session.get('db_config'):
+        return jsonify({"status": "error", "message": "Chưa đăng nhập SQL Server"}), 401
     try:
         from_date = request.args.get('from_date')
         to_date = request.args.get('to_date')
@@ -5643,16 +5660,16 @@ def get_report_by_job():
 
         query = f"""
             SELECT L.ACCOUNT_ID, L.ACCOUNT_ID_CONTRA, L.DEBIT_CREDIT,
-                   I.ITEM_CLASS1_ID, E.EXPENSE_CLASS_ID, L.EXPENSE_ID,
-                   L.EXPENSE_NAME, L.JOB_ID,
+                   I.ITEM_CLASS1_ID, E.EXPENSE_CLASS_ID, L.EXPENSE_ID, E.EXPENSE_NAME,
+                   ISNULL(L.JOB_ID, '') AS JOB_ID,
                    SUM(L.AMOUNT) as TOTAL
             FROM dbo.LEDGER L WITH (NOLOCK)
             LEFT JOIN dbo.DM_ITEM I WITH (NOLOCK) ON L.ITEM_ID = I.ITEM_ID
             LEFT JOIN dbo.DM_EXPENSE E WITH (NOLOCK) ON L.EXPENSE_ID = E.EXPENSE_ID
             WHERE {where_sql}
             GROUP BY L.ACCOUNT_ID, L.ACCOUNT_ID_CONTRA, L.DEBIT_CREDIT,
-                     I.ITEM_CLASS1_ID, E.EXPENSE_CLASS_ID, L.EXPENSE_ID,
-                     L.EXPENSE_NAME, L.JOB_ID
+                     I.ITEM_CLASS1_ID, E.EXPENSE_CLASS_ID, L.EXPENSE_ID, E.EXPENSE_NAME,
+                     ISNULL(L.JOB_ID, '')
         """
         conn = get_connection()
         cursor = conn.cursor()

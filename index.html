@@ -2273,7 +2273,7 @@ const exportJournalCsv = (mode) => {
                                                         if (Number(mData[row.id] || 0) !== 0) { isRowAllZero = false; break; }
                                                     }
                                                 }
-                                                if (isRowAllZero) return null;
+                                                if (isRowAllZero && !['09','10','11','12','13','14','15','16','17','18'].includes(row.id)) return null;
                                                 
                                                 const isBold = (row.id === '011') ? false : (row.type === 'group' || (row.name && row.name.trim().startsWith('*')));
                                                 const mainRow = (

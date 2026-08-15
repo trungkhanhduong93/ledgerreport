@@ -1,0 +1,84 @@
+name: Build and Release EXE
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build EXE and Create GitHub Release
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller pillow
+
+      - name: Extract App Version & Tag
+        id: version
+        shell: pwsh
+        run: |
+          $ver = "1.0.0"
+          if (Test-Path "version.txt") {
+            $ver = (Get-Content "version.txt" -Raw).Trim()
+          }
+          $tagName = "v$ver"
+          Write-Host "Detected Version: $ver -> Tag: $tagName"
+          "APP_VERSION=$ver" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "RELEASE_TAG=$tagName" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Build Executable with PyInstaller
+        shell: pwsh
+        run: |
+          python -m PyInstaller --noconsole --onefile --clean --noconfirm `
+            --name iPOS_Accounting_Report `
+            --icon icon.ico `
+            --version-file version_info.txt `
+            --collect-submodules pyodbc `
+            --add-data "index.html;." `
+            --add-data "install_driver.ps1;." `
+            --add-data "manifest.json;." `
+            --add-data "icon.svg;." `
+            --add-data "version.txt;." `
+            server.py
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: iPOS Accounting Report ${{ env.RELEASE_TAG }}
+          body: |
+            ## 🚀 iPOS Accounting Report ${{ env.RELEASE_TAG }}
+            
+            Bản phát hành tự động được build và đóng gói qua **GitHub Actions CI/CD**.
+            
+            ### 📦 Tệp đính kèm:
+            - **`iPOS_Accounting_Report.exe`**: Ứng dụng Desktop chạy độc lập.
+            
+            ### ⚙️ Yêu cầu hệ thống:
+            - Hệ điều hành: Windows 10/11 64-bit.
+            - Driver: `ODBC Driver 17 for SQL Server` (App có sẵn script hướng dẫn cài đặt nếu máy chưa có).
+          files: |
+            dist/iPOS_Accounting_Report.exe
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

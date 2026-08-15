@@ -28,13 +28,14 @@
    - **M3 (Chạy thật):** Khởi chạy server / build EXE thật.
    - **M4 (Khớp nguồn sự thật):** Số liệu báo cáo khớp 100% với form gốc sổ sách kế toán.
 4. **Rà 14 điểm mù:** Kiểm tra checklist điểm mù theo stack (Flask, React/Babel, SQL Server, EXE build) trước khi bàn giao.
-5. **Đồng bộ & Push GitHub:**
+5. **Đồng bộ, Push GitHub & Auto Release:**
    - Mỗi khi sửa xong và build EXE ở `LedgerReport` (`D:\IACC HCM\iPOS ACC\ACC PMKT\LedgerReport`), **bắt buộc đồng bộ** toàn bộ sang thư mục `ledgerreport` (`D:\IACC HCM\iPOS ACC\ACC PMKT\LedgerReport\ledgerreport`).
    - Tự động `git commit` và `git push` lên nhánh `main` của repo GitHub [trungkhanhduong93/ledgerreport](https://github.com/trungkhanhduong93/ledgerreport).
+   - **Tự động Release:** Khi code được push lên nhánh `main`, GitHub Actions CI/CD (`.github/workflows/release.yml`) sẽ tự động đóng gói EXE và tạo bản phát hành mới nhất trên [GitHub Releases](https://github.com/trungkhanhduong93/ledgerreport/releases).
    - **CHỈ PUSH GITHUB, CẤM PUSH GITLAB**. Nếu có sự cố sau push, dùng `git revert` (CẤM force-reset).
 6. **Cập nhật tài liệu LIVE:** Chỉ cập nhật file `.md` bản LIVE (`GEMINI.md` / `CLAUDE.md` / `KIEN_TRUC_TOAN_TAP.md`).
 7. **Báo cáo trung thực:** Trình bày rõ ràng: `🎯 Mục tiêu` ➔ `✅ Đã sửa` ➔ `🧪 Verify` ➔ `📦 Git` ➔ `🔍 Điểm mù` ➔ `📝 Docs`.
-8. **An toàn Release:** File `.exe` đóng gói nằm ở `dist/` được phát hành qua **GitHub Releases** ([Release Link](https://github.com/trungkhanhduong93/ledgerreport/releases)), giữ mã nguồn Git luôn gọn nhẹ và sạch sẽ.
+8. **An toàn Release:** File `.exe` đóng gói nằm ở `dist/` được tự động phát hành qua **GitHub Releases** ([Release Link](https://github.com/trungkhanhduong93/ledgerreport/releases)), giữ mã nguồn Git luôn gọn nhẹ và sạch sẽ.
 
 ---
 

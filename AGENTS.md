@@ -85,7 +85,7 @@ Chi tiết: `KIEN_TRUC_TOAN_TAP.md` mục 9.5.
 ## 7. Sau khi sửa BẤT KỲ thứ gì
 
 1. `syntax-check` → `test_client` (mục 4) → `python build_exe.py` + verify mtime EXE trong `dist/`.
-2. **⚡ BẮT BUỘC ĐỒNG BỘ & GIT PUSH:** Mỗi khi sửa xong và build EXE ở `LedgerReport` (`D:\IACC HCM\iPOS ACC\ACC PMKT\LedgerReport`), **bắt buộc đồng bộ toàn bộ** sang thư mục con `ledgerreport` (`D:\IACC HCM\iPOS ACC\ACC PMKT\LedgerReport\ledgerreport`), sau đó tự động commit và push git vào nhánh `main` của repo [trungkhanhduong93/ledgerreport](https://github.com/trungkhanhduong93/ledgerreport).
+2. **⚡ BẮT BUỘC ĐỒNG BỘ & GIT PUSH:** Mỗi khi sửa xong và build EXE ở `LedgerReport` (`D:\IACC HCM\iPOS ACC\ACC PMKT\LedgerReport`), **bắt buộc đồng bộ toàn bộ** sang thư mục con `ledgerreport` (`D:\IACC HCM\iPOS ACC\ACC PMKT\LedgerReport\ledgerreport`), sau đó tự động commit và push git vào nhánh `main` của repo [trungkhanhduong93/ledgerreport](https://github.com/trungkhanhduong93/ledgerreport). Khi push lên `main`, GitHub Actions (`.github/workflows/release.yml`) sẽ **tự động đóng gói EXE và tạo bản phát hành mới nhất** trên [GitHub Releases](https://github.com/trungkhanhduong93/ledgerreport/releases).
 3. Cập nhật tài liệu LIVE: `KIEN_TRUC_TOAN_TAP.md` / `GEMINI.md` / `CLAUDE.md`.
 4. Nếu thay đổi áp dụng cả 2 app → làm cho **cả LedgerReport và LedgerStudio**.
 

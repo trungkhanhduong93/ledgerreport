@@ -27,7 +27,10 @@
    - **M3 (Chạy thật):** Khởi chạy server / build EXE thật.
    - **M4 (Khớp nguồn sự thật):** Số liệu báo cáo khớp 100% với form gốc sổ sách kế toán.
 4. **Rà 14 điểm mù:** Kiểm tra checklist điểm mù theo stack (Flask, React/Babel, SQL Server, EXE build) trước khi bàn giao.
-5. **Commit & Push GitHub:** Đẩy code xanh lên repo GitHub (`trungkhanhduong93/ledgerreport`). **CHỈ PUSH GITHUB, CẤM PUSH GITLAB**. Nếu có sự cố sau push, dùng `git revert` (CẤM force-reset).
+5. **Đồng bộ & Push GitHub:**
+   - Mỗi khi sửa xong và build EXE ở `LedgerReport` (`D:\IACC HCM\iPOS ACC\ACC PMKT\LedgerReport`), **bắt buộc đồng bộ** toàn bộ sang thư mục `ledgerreport` (`D:\IACC HCM\iPOS ACC\ACC PMKT\LedgerReport\ledgerreport`).
+   - Tự động `git commit` và `git push` lên nhánh `main` của repo GitHub [trungkhanhduong93/ledgerreport](https://github.com/trungkhanhduong93/ledgerreport).
+   - **CHỈ PUSH GITHUB, CẤM PUSH GITLAB**. Nếu có sự cố sau push, dùng `git revert` (CẤM force-reset).
 6. **Cập nhật tài liệu LIVE:** Chỉ cập nhật file `.md` bản LIVE (`GEMINI.md` / `KIEN_TRUC_TOAN_TAP.md`).
 7. **Báo cáo trung thực:** Trình bày rõ ràng: `🎯 Mục tiêu` ➔ `✅ Đã sửa` ➔ `🧪 Verify` ➔ `📦 Git` ➔ `🔍 Điểm mù` ➔ `📝 Docs`.
 8. **An toàn Release:** File `.exe` đóng gói nằm ở `dist/` được phát hành qua **GitHub Releases** ([Release Link](https://github.com/trungkhanhduong93/ledgerreport/releases)), giữ mã nguồn Git luôn gọn nhẹ và sạch sẽ.

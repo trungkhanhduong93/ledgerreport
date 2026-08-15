@@ -2,11 +2,31 @@ import os
 import sys
 import subprocess
 
-# Config
-if 'ledgerreport' in os.getcwd().lower():
-    APP_NAME = 'iPOS_Accounting_Report'
+# ---------------------------------------------------------------------------
+# TÊN EXE — ưu tiên tham số dòng lệnh, KHÔNG đoán theo thư mục.
+#
+# ⚠️ Bản cũ chỉ đoán bằng `'ledgerreport' in os.getcwd()`. Chạy sai thư mục là ra
+# sai tên EXE mà không có gì cảnh báo — LedgerStudio build ra iPOS_Accounting_Report
+# hoặc ngược lại. Nay mỗi project có file .bat riêng, tên khác hẳn nhau, và .bat
+# truyền thẳng tên EXE vào đây:
+#     BuildEXE-LedgerReport.bat  -> python build_exe.py iPOS_Accounting_Report
+#     BuildEXE-LedgerStudio.bat  -> python build_exe.py iPOS_Ledger_Studio
+# Không truyền gì thì vẫn đoán như cũ nhưng IN CẢNH BÁO to.
+# ---------------------------------------------------------------------------
+VALID_APP_NAMES = ('iPOS_Accounting_Report', 'iPOS_Ledger_Studio')
+
+if len(sys.argv) > 1 and sys.argv[1].strip():
+    APP_NAME = sys.argv[1].strip()
+    if APP_NAME not in VALID_APP_NAMES:
+        print(f"[LOI] Ten EXE '{APP_NAME}' khong hop le. Chi chap nhan: {', '.join(VALID_APP_NAMES)}")
+        sys.exit(1)
 else:
-    APP_NAME = 'iPOS_Ledger_Studio'
+    APP_NAME = 'iPOS_Accounting_Report' if 'ledgerreport' in os.getcwd().lower() else 'iPOS_Ledger_Studio'
+    print("=" * 70)
+    print(f"[CANH BAO] Khong truyen ten EXE — dang DOAN theo thu muc: {APP_NAME}")
+    print(f"           Thu muc hien tai: {os.getcwd()}")
+    print(f"           Nen chay qua BuildEXE-LedgerReport.bat / BuildEXE-LedgerStudio.bat")
+    print("=" * 70)
 
 ICON_NAME = 'icon.ico'
 ADD_DATA = [

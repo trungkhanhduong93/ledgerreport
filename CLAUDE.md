@@ -19,9 +19,29 @@ mục đích khác nhau**:
 | **Git** | **Có** — repo con `ledgerreport\` → [trungkhanhduong93/ledgerreport](https://github.com/trungkhanhduong93/ledgerreport) | **KHÔNG có git, KHÔNG push đi đâu** — chỉ nằm local |
 | **Phát hành** | `Sync-And-Backup.ps1 -Commit` → Actions tự tạo Release | **Build EXE thẳng vào thư mục của chính nó.** Hết. |
 
-⛔ **Làm ở LedgerStudio thì TUYỆT ĐỐI không `git add/commit/push`.** Sửa xong chỉ cần chạy
-`python build_exe.py` **đứng trong thư mục LedgerStudio** — script tự đặt tên `iPOS_Ledger_Studio`
-theo đường dẫn hiện hành, chạy sai thư mục là ra sai tên EXE.
+⛔ **Làm ở LedgerStudio thì TUYỆT ĐỐI không `git add/commit/push`.**
+
+### 0.0 Build EXE — MỖI PROJECT MỘT FILE `.bat` RIÊNG, TÊN KHÁC HẲN NHAU
+
+| Project | File build | Ra EXE |
+|---|---|---|
+| LedgerReport | **`BuildEXE-LedgerReport.bat`** | `dist\iPOS_Accounting_Report.exe` |
+| LedgerStudio | **`BuildEXE-LedgerStudio.bat`** | `dist\iPOS_Ledger_Studio.exe` |
+
+**Không còn `BuildEXE.bat` chung — đã xoá ở cả hai bên.** Bản cũ tự gọi PyInstaller và *đoán*
+tên EXE theo thư mục đang đứng; chính bản nằm trong thư mục **LedgerReport** lại build ra
+`iPOS_Ledger_Studio` (di sản copy nhầm), và còn thiếu `--add-data version.txt`.
+
+Cơ chế chống nhầm hiện nay — **ba lớp**:
+1. **Tên file khác hẳn nhau** — nhìn là biết đang chạy cái nào.
+2. **Ghim cứng tên EXE trong `.bat`** (`set "APP_NAME=..."`), truyền thẳng vào
+   `python build_exe.py %APP_NAME%`. `build_exe.py` chỉ chấp nhận đúng 2 tên hợp lệ,
+   sai là thoát ngay.
+3. **Chặn theo đường dẫn** — `.bat` của Studio nằm trong thư mục có chữ `LedgerReport`
+   (hoặc ngược lại) thì **dừng, exit 1**, không build. Đã test thật.
+
+`build_exe.py` chạy trần không tham số vẫn đoán theo thư mục như cũ nhưng **in cảnh báo to** —
+chỉ dùng khi biết rõ mình đang làm gì.
 
 ### 0.1 Khác biệt bản chất: báo cáo đặc thù Chú Long
 

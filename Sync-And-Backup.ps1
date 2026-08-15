@@ -41,15 +41,28 @@ $Files = @(
     'icon.svg',
     'manifest.json',
     'iPOS_Accounting_Report.spec',
+    'BuildEXE-LedgerReport.bat',
+    'RunReport.bat',
+    'check_babel.js',
+    'check_schema.py',
+    'install_driver.ps1',
+    'CREATE_INDEXES.sql',
+    'CREATE_INDEXES_SALE.sql',
+    'test.py',
+    'test_sql.py',
+    # --- Tài liệu LIVE (chỉ 5 file này, xem docs-cu/ cho bản cũ) ---
     'CLAUDE.md',
     'GEMINI.md',
     'AGENTS.md',
-    'README.md',
     'START_HERE.md',
-    'KIEN_TRUC_TOAN_TAP.md',
     'SU_CO_15082026.md',
     'Sync-And-Backup.ps1'
 )
+
+# 16/08/2026 — repo đã dọn 29 file rác (di sản LedgerStudio + script one-off) và chuyển
+# README.md / skill.md / KIEN_TRUC_TOAN_TAP.md / HANDOFF_*.md / HUONG_DAN_* / FIX_OFFLINE_*
+# vào docs-cu/. ĐỪNG thêm lại chúng vào $Files — thêm là script copy đè ngược từ thư mục cha
+# và làm sống lại đúng mớ tài liệu mâu thuẫn đã gây ra sự cố 15/08.
 
 Write-Output "=== DONG BO: $Src  ->  $Dst ==="
 $changed = @()

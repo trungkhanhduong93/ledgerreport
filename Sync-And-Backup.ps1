@@ -144,11 +144,26 @@ if ($Commit) {
         git add -A
         if ($Message) { $msg = $Message }
         else { $msg = "chore: dong bo tu thu muc lam viec $(Get-Date -Format 'yyyy-MM-dd HH:mm')" }
-        git commit -m $msg
-        if ($?) {
-            git push origin main
-            if ($?) { Write-Output "`n=== DA PUSH. GitHub Actions se tu dong goi EXE va tao Release. ===" }
+
+        # PHẢI commit qua FILE, không phải `git commit -m $msg`.
+        # PowerShell 5.1 truyền chuỗi NHIỀU DÒNG cho native exe bằng cách tách theo dòng
+        # → git nhận mỗi dòng thành một tham số riêng và báo "pathspec ... did not match",
+        # commit KHÔNG chạy trong khi phần đồng bộ file phía trên vẫn báo thành công.
+        # (Đã cắn thật ngày 16/08/2026 — tưởng đã push mà chưa push.)
+        # Ghi UTF-8 KHÔNG BOM: BOM lọt vào git là dính ngay dòng đầu commit message.
+        $msgFile = Join-Path ([System.IO.Path]::GetTempPath()) "ledgerreport_commit_msg.txt"
+        [System.IO.File]::WriteAllText($msgFile, $msg, (New-Object System.Text.UTF8Encoding($false)))
+        try {
+            git -c i18n.commitEncoding=UTF-8 commit -F $msgFile
+            # Native exe: bám $LASTEXITCODE, KHÔNG bám $? (xem chú thích ở trên)
+            if ($LASTEXITCODE -eq 0) {
+                git push origin main
+                if ($LASTEXITCODE -eq 0) { Write-Output "`n=== DA PUSH. GitHub Actions se tu dong goi EXE va tao Release. ===" }
+                else { Write-Output "`n!!! PUSH THAT BAI (exit $LASTEXITCODE) — commit da co local, chua len GitHub." }
+            }
+            else { Write-Output "`n!!! COMMIT THAT BAI (exit $LASTEXITCODE) — CHUA push gi ca." }
         }
+        finally { Remove-Item $msgFile -ErrorAction SilentlyContinue }
     } finally { Pop-Location }
 }
 

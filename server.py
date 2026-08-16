@@ -46,7 +46,7 @@ def with_db_lock(f):
 
 from flask import Flask, jsonify, request, session, send_from_directory
 from flask_cors import CORS
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import os
 import sys
 import threading
@@ -2738,11 +2738,38 @@ def get_voucher():
                 summary = {"amount": float(row[1] or 0)}
 
             offset = (page - 1) * page_size
-            cursor.execute(
-                f"SELECT {VOUCHER_SELECT} {VOUCHER_FROM} WHERE {where_sql} ORDER BY {order_by_sql} "
-                f"OFFSET ? ROWS FETCH NEXT ? ROWS ONLY", params + [offset, page_size])
-            columns  = [c[0] for c in cursor.description]
-            raw_rows = cursor.fetchall()
+            # Lọc/sắp chỉ đụng cột của VOUCHER (H) ⇒ chọn ĐÚNG các chứng từ của trang TRƯỚC,
+            # rồi mới join VOUCHER_DETAIL. Bản cũ join trọn 148k dòng của tháng rồi mới sort
+            # (VOUCHER_DETAIL không có index trên FR_KEY, VOUCHER không có index trên TRAN_DATE)
+            # → đo tháng 7/2026: 22,4 giây cho 100 dòng. Lọc header trước còn 0,36 giây.
+            columns = raw_rows = None
+            if "D." not in where_sql and order_by_sql.startswith("H."):
+                cursor.execute(f"""
+                    WITH HP AS (
+                        SELECT TOP (?) H.PR_KEY, ROW_NUMBER() OVER (ORDER BY {order_by_sql}) AS HRN
+                        FROM dbo.VOUCHER H WITH (NOLOCK)
+                        WHERE {where_sql}
+                        ORDER BY {order_by_sql}
+                    )
+                    SELECT * FROM (
+                        SELECT {VOUCHER_SELECT}, ROW_NUMBER() OVER (ORDER BY HP.HRN, D.PR_KEY) AS RN
+                        FROM HP
+                        JOIN dbo.VOUCHER        H WITH (NOLOCK) ON H.PR_KEY = HP.PR_KEY
+                        JOIN dbo.VOUCHER_DETAIL D WITH (NOLOCK) ON D.FR_KEY = HP.PR_KEY
+                    ) X WHERE RN > ? AND RN <= ?
+                """, [offset + page_size] + params + [offset, offset + page_size])
+                cand_cols = [c[0] for c in cursor.description][:-1]   # bỏ cột RN kỹ thuật
+                cand_rows = cursor.fetchall()
+                # Mỗi chứng từ có ít nhất 1 dòng chi tiết ⇒ N chứng từ đầu nuôi đủ N dòng đầu.
+                # DB có chứng từ rỗng (INNER JOIN loại đi) thì lấy hụt → quay về query đầy đủ.
+                if len(cand_rows) >= max(0, min(total_rows, offset + page_size) - offset):
+                    columns, raw_rows = cand_cols, cand_rows
+            if raw_rows is None:
+                cursor.execute(
+                    f"SELECT {VOUCHER_SELECT} {VOUCHER_FROM} WHERE {where_sql} ORDER BY {order_by_sql} "
+                    f"OFFSET ? ROWS FETCH NEXT ? ROWS ONLY", params + [offset, page_size])
+                columns  = [c[0] for c in cursor.description]
+                raw_rows = cursor.fetchall()
 
         rows = _voucher_enrich([dict(zip(columns, raw)) for raw in raw_rows], cursor)
 
@@ -3097,6 +3124,78 @@ def _calc_cdkt_balances(rows):
     return result
 
 
+# Mốc luỹ kế = (toán tử, ngày 'YYYYMMDD'). Toán tử giữ NGUYÊN như bản cũ ('<=' / '<') —
+# TRAN_DATE là smalldatetime nên đổi '<= 31/07' thành '< 01/08' là ĐỔI SỐ LIỆU, không được làm.
+_CUT_INVERSE = {'<': '>=', '<=': '>'}
+
+# BC005 và BC011 hỏi CÙNG bộ mốc cho cùng kỳ, mà mỗi lượt quét tốn ~45 giây — xem lần lượt
+# hai báo cáo là ngồi chờ hai lần y hệt nhau. Giữ lại kết quả mới nhất, TTL ngắn để kế toán
+# vừa sửa bút toán xong, mở lại báo cáo trong vài phút vẫn thấy số mới.
+_ledger_cum_cache = {}          # {key: (thời điểm, kết quả)} — chỉ giữ 1 entry
+_LEDGER_CUM_TTL_SEC = 180
+
+
+def _ledger_cum_by_cutoffs(cur, first_day_of_year, cutoffs, org_ids):
+    """Số dư luỹ kế {(acc, pr, org): BAL} tại NHIỀU mốc thời gian, chỉ quét LEDGER MỘT lượt.
+
+    Bản cũ gọi một run_ledger() riêng cho từng mốc, mỗi lần GROUP BY toàn bộ LEDGER từ 01/01
+    tới mốc đó ⇒ 4 mốc là quét ~4 lần số dòng của kỳ. Đo trên IACC_CHULONG tháng 7/2026
+    (17,3 triệu dòng trong kỳ): BC005 mất 206 giây, BC011 mất 208 giây — và nút thắt là CPU
+    của GROUP BY chứ không phải đọc đĩa, nên thêm index KHÔNG cứu được, phải bớt lượt quét.
+
+    Các mốc đều là "từ đầu năm tới X" nên lồng nhau ⇒ chỉ cần quét mỗi LÁT CẮT RỜI đúng một
+    lần rồi cộng dồn (prefix sum). Tổng số dòng quét bằng đúng một lượt kỳ; số từng mốc
+    giống hệt bản cũ.
+    """
+    _lc, _lp = _org_filter_sql(org_ids, "L.ORGANIZATION_ID")
+    # '< d' chặt hơn '<= d' nên phải đứng trước khi trùng ngày, để các lát luôn lồng nhau
+    uniq = sorted(set(cutoffs), key=lambda c: (c[1], 0 if c[0] == '<' else 1))
+
+    ck = ((session.get('db_config') or {}).get('database', ''),
+          first_day_of_year, tuple(uniq), tuple(org_ids or ()))
+    hit = _ledger_cum_cache.get(ck)
+    if hit is not None and (time.time() - hit[0]) < _LEDGER_CUM_TTL_SEC:
+        return hit[1]
+
+    result, running, prev = {}, {}, None
+    for cut in uniq:
+        where  = ["L.TRAN_DATE >= ?", f"L.TRAN_DATE {cut[0]} ?"]
+        params = [first_day_of_year, cut[1]]
+        if prev is not None:
+            # Lát cắt RỜI: cắt bỏ phần đã cộng ở mốc trước
+            where.append(f"L.TRAN_DATE {_CUT_INVERSE[prev[0]]} ?")
+            params.append(prev[1])
+        if _lc:
+            where.append(_lc)
+            params.extend(_lp)
+        cur.execute(f"""
+            SELECT L.ACCOUNT_ID, ISNULL(L.PR_DETAIL_ID, ''), ISNULL(L.ORGANIZATION_ID, ''),
+                   SUM(CASE WHEN L.DEBIT_CREDIT='DEB' THEN L.AMOUNT WHEN L.DEBIT_CREDIT='CRD' THEN -L.AMOUNT ELSE 0 END) AS BAL
+            FROM dbo.LEDGER L WITH (NOLOCK)
+            WHERE {' AND '.join(where)}
+            GROUP BY L.ACCOUNT_ID, ISNULL(L.PR_DETAIL_ID, ''), ISNULL(L.ORGANIZATION_ID, '')
+        """, params)
+        for r in cur.fetchall():
+            k = ((r[0] or '').strip(), (r[1] or '').strip(), (r[2] or '').strip())
+            running[k] = running.get(k, 0.0) + float(r[3] or 0)
+        result[cut] = dict(running)   # snapshot luỹ kế tới mốc này
+        prev = cut
+
+    _ledger_cum_cache.clear()         # chỉ giữ kết quả mới nhất, tránh phình RAM
+    _ledger_cum_cache[ck] = (time.time(), result)
+    return result
+
+
+def _cdkt_cutoffs(from_dt, to_dt):
+    """4 mốc mà BC005/BC011 cần: cuối kỳ, trước đầu kỳ, cuối tháng trước, trước đầu tháng trước."""
+    prev_m_end   = from_dt.replace(day=1) - timedelta(days=1)
+    prev_m_start = prev_m_end.replace(day=1)
+    return (('<=', to_dt.strftime("%Y%m%d")),
+            ('<',  from_dt.strftime("%Y%m%d")),
+            ('<=', prev_m_end.strftime("%Y%m%d")),
+            ('<',  prev_m_start.strftime("%Y%m%d")))
+
+
 def _compute_cdkt(from_dt, to_dt, org_ids):
     """Tính số dư các chỉ tiêu CĐKT (mã CDKT) cho kỳ — dùng chung cho BC005 & BC011.
     Trả (opening, closing): dict mã CDKT -> số dư. opening = đầu kỳ (trước from_dt),
@@ -3140,32 +3239,12 @@ def _compute_cdkt(from_dt, to_dt, org_ids):
         cur.execute(q_open, org_params_open)
         opening_year = { ((r[0] or '').strip(), (r[1] or '').strip(), (r[2] or '').strip()): float(r[3] or 0) for r in cur.fetchall() }
 
-        # 2) Phát sinh lũy kế đến từng mốc (cuối kỳ này / trước đầu kỳ này) từ LEDGER_VIEW
-        def run_ledger(end_date_inclusive=None, end_date_exclusive=None):
-            where = ["L.TRAN_DATE >= ?"]
-            params = [first_day_of_year]
-            if end_date_inclusive is not None:
-                where.append("L.TRAN_DATE <= ?")
-                params.append(end_date_inclusive.strftime("%Y%m%d"))
-            if end_date_exclusive is not None:
-                where.append("L.TRAN_DATE < ?")
-                params.append(end_date_exclusive.strftime("%Y%m%d"))
-            _rc, _rp = _org_filter_sql(org_ids, "L.ORGANIZATION_ID")
-            if _rc:
-                where.append(_rc)
-                params.extend(_rp)
-            q = f"""
-                SELECT L.ACCOUNT_ID, ISNULL(L.PR_DETAIL_ID, ''), ISNULL(L.ORGANIZATION_ID, ''),
-                       SUM(CASE WHEN L.DEBIT_CREDIT='DEB' THEN L.AMOUNT WHEN L.DEBIT_CREDIT='CRD' THEN -L.AMOUNT ELSE 0 END) AS BAL
-                FROM dbo.LEDGER L WITH (NOLOCK)
-                WHERE {' AND '.join(where)}
-                GROUP BY L.ACCOUNT_ID, ISNULL(L.PR_DETAIL_ID, ''), ISNULL(L.ORGANIZATION_ID, '')
-            """
-            cur.execute(q, params)
-            return { ((r[0] or '').strip(), (r[1] or '').strip(), (r[2] or '').strip()): float(r[3] or 0) for r in cur.fetchall() }
-
-        ledger_to_end   = run_ledger(end_date_inclusive=to_dt)
-        ledger_to_start = run_ledger(end_date_exclusive=from_dt)
+        # 2) Phát sinh lũy kế đến từng mốc — MỘT lượt quét cho cả 4 mốc (xem _ledger_cum_by_cutoffs)
+        cut_end, cut_start, cut_pm_end, cut_pm_start = _cdkt_cutoffs(from_dt, to_dt)
+        _cum = _ledger_cum_by_cutoffs(cur, first_day_of_year,
+                                      (cut_end, cut_start, cut_pm_end, cut_pm_start), org_ids)
+        ledger_to_end   = _cum[cut_end]
+        ledger_to_start = _cum[cut_start]
 
         # 3) Cộng dồn: số dư = đầu năm + phát sinh lũy kế
         all_keys = set(opening_year) | set(ledger_to_end) | set(ledger_to_start)
@@ -3209,7 +3288,6 @@ def _compute_cdkt(from_dt, to_dt, org_ids):
         opening['1312'] = opening.get('131', 0.0) - opening['1311']
 
         # --- XỬ LÝ ĐẶC BIỆT DÒNG 421A, 421B ---
-        from datetime import timedelta
         closing['421A'] = opening.get('421A', 0.0)
 
         def get_movement_421(d_end, d_start):
@@ -3220,11 +3298,7 @@ def _compute_cdkt(from_dt, to_dt, org_ids):
         closing['421B'] = get_movement_421(ledger_to_end, ledger_to_start)
 
         try:
-            prev_m_end = from_dt.replace(day=1) - timedelta(days=1)
-            prev_m_start = prev_m_end.replace(day=1)
-            l_prev_m_end = run_ledger(end_date_inclusive=prev_m_end)
-            l_prev_m_start = run_ledger(end_date_exclusive=prev_m_start)
-            opening['421B'] = get_movement_421(l_prev_m_end, l_prev_m_start)
+            opening['421B'] = get_movement_421(_cum[cut_pm_end], _cum[cut_pm_start])
         except Exception:
             opening['421B'] = 0.0
 
@@ -3293,35 +3367,15 @@ def get_balance_sheet():
         cur.execute(q_open, org_params_open)
         opening_year = { ((r[0] or '').strip(), (r[1] or '').strip(), (r[2] or '').strip()): float(r[3] or 0) for r in cur.fetchall() }
 
-        # 2) Phát sinh lũy kế đến từng mốc (cuối kỳ này / trước đầu kỳ này) từ LEDGER_VIEW
-        def run_ledger(end_date_inclusive=None, end_date_exclusive=None):
-            where = ["L.TRAN_DATE >= ?"]
-            params = [first_day_of_year]
-            if end_date_inclusive is not None:
-                where.append("L.TRAN_DATE <= ?")
-                params.append(end_date_inclusive.strftime("%Y%m%d"))
-            if end_date_exclusive is not None:
-                where.append("L.TRAN_DATE < ?")
-                params.append(end_date_exclusive.strftime("%Y%m%d"))
-            # Đây là truy vấn sinh ra số dư thật của BC005 — phải LOẠI đơn vị ngoài cây '00'
-            # y như org_where ở trên, nếu không thì bảng cân đối KHÔNG CÂN (đơn vị 66 mang theo
-            # số dư TK 6xx chưa kết chuyển, không có chỗ trên CĐKT).
-            _lc, _lp = _org_filter_sql(org_ids, "L.ORGANIZATION_ID")
-            if _lc:
-                where.append(_lc)
-                params.extend(_lp)
-            q = f"""
-                SELECT L.ACCOUNT_ID, ISNULL(L.PR_DETAIL_ID, ''), ISNULL(L.ORGANIZATION_ID, ''),
-                       SUM(CASE WHEN L.DEBIT_CREDIT='DEB' THEN L.AMOUNT WHEN L.DEBIT_CREDIT='CRD' THEN -L.AMOUNT ELSE 0 END) AS BAL
-                FROM dbo.LEDGER L WITH (NOLOCK)
-                WHERE {' AND '.join(where)}
-                GROUP BY L.ACCOUNT_ID, ISNULL(L.PR_DETAIL_ID, ''), ISNULL(L.ORGANIZATION_ID, '')
-            """
-            cur.execute(q, params)
-            return { ((r[0] or '').strip(), (r[1] or '').strip(), (r[2] or '').strip()): float(r[3] or 0) for r in cur.fetchall() }
-
-        ledger_to_end   = run_ledger(end_date_inclusive=to_dt)
-        ledger_to_start = run_ledger(end_date_exclusive=from_dt)
+        # 2) Phát sinh lũy kế đến từng mốc — MỘT lượt quét cho cả 4 mốc (xem _ledger_cum_by_cutoffs).
+        # Truy vấn này sinh ra số dư thật của BC005 — _ledger_cum_by_cutoffs LOẠI đơn vị ngoài cây
+        # '00' y như org_where ở trên, nếu không thì bảng cân đối KHÔNG CÂN (đơn vị 66 mang theo
+        # số dư TK 6xx chưa kết chuyển, không có chỗ trên CĐKT).
+        cut_end, cut_start, cut_pm_end, cut_pm_start = _cdkt_cutoffs(from_dt, to_dt)
+        _cum = _ledger_cum_by_cutoffs(cur, first_day_of_year,
+                                      (cut_end, cut_start, cut_pm_end, cut_pm_start), org_ids)
+        ledger_to_end   = _cum[cut_end]
+        ledger_to_start = _cum[cut_start]
 
         # 3) Cộng dồn: số dư = đầu năm + phát sinh lũy kế
         all_keys = set(opening_year) | set(ledger_to_end) | set(ledger_to_start)
@@ -3365,7 +3419,6 @@ def get_balance_sheet():
         opening['1312'] = opening.get('131', 0.0) - opening['1311']
 
         # --- XỬ LÝ ĐẶC BIỆT DÒNG 421A, 421B ---
-        from datetime import timedelta
         closing['421A'] = opening.get('421A', 0.0)
 
         def get_movement_421(d_end, d_start):
@@ -3376,11 +3429,7 @@ def get_balance_sheet():
         closing['421B'] = get_movement_421(ledger_to_end, ledger_to_start)
 
         try:
-            prev_m_end = from_dt.replace(day=1) - timedelta(days=1)
-            prev_m_start = prev_m_end.replace(day=1)
-            l_prev_m_end = run_ledger(end_date_inclusive=prev_m_end)
-            l_prev_m_start = run_ledger(end_date_exclusive=prev_m_start)
-            opening['421B'] = get_movement_421(l_prev_m_end, l_prev_m_start)
+            opening['421B'] = get_movement_421(_cum[cut_pm_end], _cum[cut_pm_start])
         except Exception:
             opening['421B'] = 0.0
 

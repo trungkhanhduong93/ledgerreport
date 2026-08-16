@@ -48,6 +48,7 @@ $Files = @(
     'install_driver.ps1',
     'CREATE_INDEXES.sql',
     'CREATE_INDEXES_SALE.sql',
+    'TOI_UU_DB_16082026.sql',
     'test.py',
     'test_sql.py',
     # --- Tài liệu LIVE (chỉ 5 file này, xem docs-cu/ cho bản cũ) ---

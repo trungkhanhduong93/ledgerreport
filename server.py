@@ -5656,13 +5656,13 @@ _update_state = {
 }
 
 def _cleanup_old_executables():
-    """Dọn dẹp các tệp tạm .old hoặc .new do các lần cập nhật trước để lại."""
+    """Dọn dẹp các tệp tạm .old, .new hoặc .tmp_dl do các lần cập nhật trước để lại."""
     try:
         if getattr(sys, 'frozen', False):
             exe_path = os.path.abspath(sys.executable)
             exe_dir = os.path.dirname(exe_path)
             for fname in os.listdir(exe_dir):
-                if fname.endswith(".old") or fname.endswith(".tmp_dl"):
+                if fname.endswith(".old") or fname.endswith(".new") or fname.endswith(".tmp_dl"):
                     try:
                         os.remove(os.path.join(exe_dir, fname))
                     except Exception:
@@ -5852,10 +5852,30 @@ def apply_update_api():
             with _update_lock:
                 _update_state["status"] = "ready"
 
-            # 4. Khởi chạy bản mới và đóng bản cũ
-            time.sleep(1.0)
-            subprocess.Popen([exe_path], close_fds=True)
-            _shutdown_everything("Auto-Update thanh cong -> Khoi dong lai vao ban moi")
+            # 4. Khởi chạy bản mới độc lập (tách khỏi process tree để không bị kill chéo)
+            time.sleep(0.8)
+            if platform.system() == "Windows":
+                DETACHED_PROCESS = 0x00000008
+                CREATE_NEW_PROCESS_GROUP = 0x00000200
+                subprocess.Popen(
+                    [exe_path],
+                    creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP,
+                    close_fds=True
+                )
+            else:
+                subprocess.Popen([exe_path], close_fds=True)
+
+            # Đóng pool SQL và thoát tiến trình cũ trực tiếp
+            try:
+                with _pool_lock:
+                    for c in list(_conn_pool.values()):
+                        try: c.close()
+                        except: pass
+                    _conn_pool.clear()
+            except Exception:
+                pass
+            time.sleep(0.5)
+            os._exit(0)
 
         except Exception as err:
             with _update_lock:

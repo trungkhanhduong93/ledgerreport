@@ -786,6 +786,196 @@ window.showConnectionLost = function() {
             }, []);
             return v;
         };
+
+        // ==============================================================================
+        // AUTO-UPDATE HOOK & COMPONENTS (iOS Glassmorphism Notification & Progress)
+        // ==============================================================================
+        const useAutoUpdate = () => {
+            const [updateInfo, setUpdateInfo] = React.useState(null);
+            const [dismissed, setDismissed] = React.useState(false);
+            const [isUpdating, setIsUpdating] = React.useState(false);
+            const [progress, setProgress] = React.useState({ progress: 0, status: 'idle', downloaded_bytes: 0, total_bytes: 0, error_message: '' });
+
+            React.useEffect(() => {
+                let alive = true;
+                // Kiểm tra update ngầm sau khi app mở 1 giây
+                const timer = setTimeout(() => {
+                    fetch('/api/check_update')
+                        .then(r => r.json())
+                        .then(data => {
+                            if (alive && data && data.has_update) {
+                                setUpdateInfo(data);
+                            }
+                        })
+                        .catch(() => {});
+                }, 1000);
+
+                return () => { alive = false; clearTimeout(timer); };
+            }, []);
+
+            const startUpdate = async () => {
+                setIsUpdating(true);
+                setProgress({ progress: 0, status: 'downloading', downloaded_bytes: 0, total_bytes: 0, error_message: '' });
+                try {
+                    const r = await fetch('/api/apply_update', { method: 'POST' });
+                    const res = await r.json();
+                    if (res.status !== 'ok') {
+                        setProgress(p => ({ ...p, status: 'error', error_message: res.message || 'Lỗi khởi động tải bản mới' }));
+                        return;
+                    }
+
+                    // Bắt đầu poll tiến độ mỗi 400ms
+                    const pollInterval = setInterval(async () => {
+                        try {
+                            const pr = await fetch('/api/update_progress');
+                            const pd = await pr.json();
+                            setProgress(pd);
+
+                            if (pd.status === 'ready') {
+                                clearInterval(pollInterval);
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 3000);
+                            } else if (pd.status === 'error') {
+                                clearInterval(pollInterval);
+                            }
+                        } catch (e) {
+                            clearInterval(pollInterval);
+                            setProgress(p => ({ ...p, status: 'ready', progress: 100 }));
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 3500);
+                        }
+                    }, 400);
+
+                } catch (err) {
+                    setProgress(p => ({ ...p, status: 'error', error_message: 'Không thể kết nối máy chủ để cập nhật.' }));
+                }
+            };
+
+            return {
+                updateInfo,
+                dismissed,
+                setDismissed,
+                isUpdating,
+                setIsUpdating,
+                progress,
+                startUpdate
+            };
+        };
+
+        const AutoUpdateBanner = ({ updateInfo, onStartUpdate, onDismiss }) => {
+            if (!updateInfo || !updateInfo.has_update) return null;
+            const sizeMb = updateInfo.file_size ? (updateInfo.file_size / (1024 * 1024)).toFixed(1) + ' MB' : '';
+
+            return (
+                <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-indigo-600 text-white px-5 py-2 flex items-center justify-between shadow-lg z-[2000] shrink-0 animate-in slide-in-from-top duration-300 border-b border-white/20">
+                    <div className="flex items-center gap-3">
+                        <span className="flex h-2.5 w-2.5 relative">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
+                        </span>
+                        <div className="flex items-center gap-2 text-[11px] font-bold">
+                            <span className="bg-white/25 px-2 py-0.5 rounded-full uppercase tracking-wider text-[9px] font-black shadow-sm">Bản mới</span>
+                            <span>Đã có phiên bản <strong>{updateInfo.latest_version}</strong></span>
+                            {sizeMb && <span className="text-white/80 font-normal">({sizeMb})</span>}
+                            {updateInfo.release_name && <span className="hidden md:inline text-white/90 font-medium">— {updateInfo.release_name}</span>}
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={onStartUpdate}
+                            className="bg-white text-orange-600 hover:bg-orange-50 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-md transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                        >
+                            <Icon name="download" size={12} /> Cập nhật ngay
+                        </button>
+                        <button
+                            onClick={onDismiss}
+                            title="Bỏ qua lần này"
+                            className="text-white/80 hover:text-white hover:bg-white/20 p-1.5 rounded-lg transition-colors cursor-pointer"
+                        >
+                            <Icon name="x" size={13} />
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        const AutoUpdateModal = ({ isUpdating, progress, onClose }) => {
+            if (!isUpdating) return null;
+
+            const isDone = progress.status === 'ready';
+            const isErr = progress.status === 'error';
+            const pct = progress.progress || 0;
+            const downloadedMb = (progress.downloaded_bytes / (1024 * 1024)).toFixed(1);
+            const totalMb = (progress.total_bytes / (1024 * 1024)).toFixed(1);
+
+            return (
+                <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md flex items-center justify-center z-[99999] px-4 animate-backdrop">
+                    <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-slate-100 animate-modal">
+                        <div className="flex items-center gap-4 mb-6">
+                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${isDone ? 'bg-emerald-50 text-emerald-600' : isErr ? 'bg-red-50 text-red-600' : 'bg-orange-50 text-orange-600'}`}>
+                                {isDone ? <Icon name="check" size={24} /> : isErr ? <Icon name="alert-triangle" size={24} /> : <Icon name="download" size={24} className="animate-bounce" />}
+                            </div>
+                            <div>
+                                <h3 className="font-black text-slate-900 text-base leading-tight">
+                                    {isDone ? 'Cập nhật hoàn tất!' : isErr ? 'Lỗi khi cập nhật' : 'Đang tự động cập nhật...'}
+                                </h3>
+                                <p className="text-[11px] font-bold text-slate-400 mt-0.5">
+                                    {isDone ? 'Đang khởi động lại ứng dụng vào phiên bản mới' : isErr ? progress.error_message : 'Đang tải bản EXE mới và tự động ghi đè'}
+                                </p>
+                            </div>
+                        </div>
+
+                        {!isErr && (
+                            <div className="space-y-2 mb-6">
+                                <div className="flex justify-between items-center text-xs font-black">
+                                    <span className="text-slate-500 uppercase tracking-widest text-[10px]">
+                                        {progress.status === 'applying' ? 'Đang ghi đè tệp mới...' : isDone ? 'Hoàn thành' : 'Tiến trình tải'}
+                                    </span>
+                                    <span className="text-orange-600 text-sm tabular-nums font-mono font-black">{pct}%</span>
+                                </div>
+                                <div className="w-full h-3.5 bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200">
+                                    <div
+                                        className={`h-full rounded-full transition-all duration-300 ${isDone ? 'bg-emerald-600' : 'bg-gradient-to-r from-orange-500 to-indigo-600'}`}
+                                        style={{ width: `${Math.min(100, Math.max(5, pct))}%` }}
+                                    ></div>
+                                </div>
+                                {progress.total_bytes > 0 && (
+                                    <div className="text-[10px] font-bold text-slate-400 text-right font-mono">
+                                        {downloadedMb} MB / {totalMb} MB
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {isDone && (
+                            <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-3.5 text-center text-emerald-800 text-[11px] font-bold mb-4 animate-pulse">
+                                🚀 Ứng dụng đang khởi chạy phiên bản mới...
+                            </div>
+                        )}
+
+                        {isErr && (
+                            <div className="bg-red-50 border border-red-100 rounded-2xl p-3.5 text-red-700 text-[11px] font-medium mb-6">
+                                <strong>Chi tiết:</strong> {progress.error_message}
+                            </div>
+                        )}
+
+                        <div className="flex justify-end gap-2">
+                            {isErr && (
+                                <button
+                                    onClick={onClose}
+                                    className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-black text-[11px] hover:bg-slate-50 uppercase tracking-wider cursor-pointer"
+                                >
+                                    Đóng
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         const APP_NAME = 'iPOS Accounting Report';
         const REPORT_TYPES = [
             { id: 'BC001', name: 'BÁO CÁO KQKD THEO THÁNG' },
@@ -3156,6 +3346,7 @@ const exportJournalCsv = (mode) => {
 
         const App = () => {
             const appVersion = useAppVersion();   // lấy từ /api/version — hiện ở màn hình login + header
+            const autoUpdate = useAutoUpdate();   // Quản lý kiểm tra và tự động cập nhật bản mới từ GitHub
             const [groupByPurchase, setGroupByPurchase] = useState([]);
             const [toggleGroupRenderPurchase, setToggleGroupRenderPurchase] = useState(0);
             const purchaseScrollRef = useRef();
@@ -4722,9 +4913,17 @@ const exportJournalCsv = (mode) => {
 
             if (!isLoggedIn) {
                 return (
-                    <div className="h-screen bg-slate-900 flex items-center justify-center relative overflow-hidden p-6">
-                        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-600/20 blur-[120px] rounded-full"></div>
-                        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-600/20 blur-[120px] rounded-full"></div>
+                    <div className="h-screen bg-slate-900 flex flex-col relative overflow-hidden">
+                        {!autoUpdate.dismissed && (
+                            <AutoUpdateBanner
+                                updateInfo={autoUpdate.updateInfo}
+                                onStartUpdate={autoUpdate.startUpdate}
+                                onDismiss={() => autoUpdate.setDismissed(true)}
+                            />
+                        )}
+                        <div className="flex-1 flex items-center justify-center relative p-6">
+                            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-600/20 blur-[120px] rounded-full"></div>
+                            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-600/20 blur-[120px] rounded-full"></div>
 
                         {showDriverDialog && (
                             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]">
@@ -4844,7 +5043,13 @@ const exportJournalCsv = (mode) => {
                             </div>
                         </div>
                     )}
-                </div>
+                        </div>
+                        <AutoUpdateModal
+                            isUpdating={autoUpdate.isUpdating}
+                            progress={autoUpdate.progress}
+                            onClose={() => autoUpdate.setIsUpdating(false)}
+                        />
+                    </div>
                 );
             }
 
@@ -4853,6 +5058,13 @@ const exportJournalCsv = (mode) => {
             const isWarehouseGroupedOrSearched = groupByWarehouse.length > 0 || Object.values(warehouseColSearch).some(val => (val || '').trim() !== '');
             return (
                 <div className="h-screen flex flex-col">
+                    {!autoUpdate.dismissed && (
+                        <AutoUpdateBanner
+                            updateInfo={autoUpdate.updateInfo}
+                            onStartUpdate={autoUpdate.startUpdate}
+                            onDismiss={() => autoUpdate.setDismissed(true)}
+                        />
+                    )}
                     <div className="bg-slate-900 text-[10px] text-slate-400 px-6 py-1.5 flex justify-between items-center shrink-0 z-[1000]">
                         <div className="flex items-center gap-6"><div className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div><span className="font-black text-slate-200 uppercase tracking-widest">Connected</span></div><div className="font-black text-indigo-400 uppercase tracking-widest">{meta.db_info?.database}</div><div className="text-slate-500 font-bold">{appVersion}</div></div>
                         <div className="flex bg-white/5 rounded-lg border border-white/10">
@@ -6185,6 +6397,11 @@ const exportJournalCsv = (mode) => {
                             </div>
                         </div>
                     )}
+                    <AutoUpdateModal
+                        isUpdating={autoUpdate.isUpdating}
+                        progress={autoUpdate.progress}
+                        onClose={() => autoUpdate.setIsUpdating(false)}
+                    />
                 </div>
             );
         };

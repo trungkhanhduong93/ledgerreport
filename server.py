@@ -5638,8 +5638,246 @@ def get_report_by_job():
         return jsonify({"status": "error", "message": msg}), (401 if 'đăng nhập' in msg else 500)
 
 
+# ==============================================================================
+# MODULE TỰ ĐỘNG CẬP NHẬT (AUTO-UPDATE VIA GITHUB RELEASES & NTFS RENAME)
+# ==============================================================================
+import urllib.request
+import json
+import re
+
+_update_lock = threading.Lock()
+_update_state = {
+    "status": "idle",       # "idle", "downloading", "applying", "ready", "error"
+    "progress": 0,          # 0 - 100
+    "downloaded_bytes": 0,
+    "total_bytes": 0,
+    "error_message": "",
+    "target_version": ""
+}
+
+def _cleanup_old_executables():
+    """Dọn dẹp các tệp tạm .old hoặc .new do các lần cập nhật trước để lại."""
+    try:
+        if getattr(sys, 'frozen', False):
+            exe_path = os.path.abspath(sys.executable)
+            exe_dir = os.path.dirname(exe_path)
+            for fname in os.listdir(exe_dir):
+                if fname.endswith(".old") or fname.endswith(".tmp_dl"):
+                    try:
+                        os.remove(os.path.join(exe_dir, fname))
+                    except Exception:
+                        pass
+    except Exception:
+        pass
+
+def _parse_semver(v_str):
+    """Trích xuất tuple (major, minor, patch) từ chuỗi version ví dụ v1.8.6 -> (1, 8, 6)"""
+    if not v_str:
+        return (0, 0, 0)
+    nums = re.findall(r'\d+', str(v_str))
+    if not nums:
+        return (0, 0, 0)
+    return tuple(int(n) for n in nums[:3])
+
+@app.route('/api/version', methods=['GET'])
+def get_app_version_api():
+    """Trả về phiên bản hiện tại của ứng dụng và trạng thái đóng gói EXE."""
+    return jsonify({
+        "status": "ok",
+        "version": APP_VERSION,
+        "is_frozen": getattr(sys, 'frozen', False)
+    })
+
+@app.route('/api/check_update', methods=['GET'])
+def check_github_update():
+    """Kiểm tra bản release mới nhất từ GitHub Releases API (timeout 3.0s)."""
+    try:
+        url = "https://api.github.com/repos/trungkhanhduong93/ledgerreport/releases/latest"
+        req = urllib.request.Request(
+            url,
+            headers={
+                "User-Agent": f"iPOS-Accounting-Report/{APP_VERSION}",
+                "Accept": "application/vnd.github.v3+json"
+            }
+        )
+        with urllib.request.urlopen(req, timeout=3.0) as resp:
+            if resp.status != 200:
+                return jsonify({"status": "error", "message": f"GitHub trả mã {resp.status}"}), 502
+            data = json.loads(resp.read().decode('utf-8'))
+
+        latest_tag = data.get('tag_name', '')
+        release_name = data.get('name', '')
+        release_body = data.get('body', '')
+        published_at = data.get('published_at', '')
+        assets = data.get('assets', [])
+
+        # Tìm tệp thực thi .exe
+        exe_asset = None
+        for a in assets:
+            if a.get('name', '').lower().endswith('.exe'):
+                exe_asset = a
+                break
+
+        curr_ver_tuple = _parse_semver(APP_VERSION)
+        latest_ver_tuple = _parse_semver(latest_tag)
+        has_update = latest_ver_tuple > curr_ver_tuple
+
+        download_url = exe_asset.get('browser_download_url', '') if exe_asset else ''
+        file_size = exe_asset.get('size', 0) if exe_asset else 0
+
+        sha256 = ''
+        if exe_asset and exe_asset.get('digest', '').startswith('sha256:'):
+            sha256 = exe_asset['digest'].replace('sha256:', '')
+
+        return jsonify({
+            "status": "ok",
+            "has_update": has_update,
+            "current_version": APP_VERSION,
+            "latest_version": latest_tag,
+            "release_name": release_name,
+            "release_notes": release_body,
+            "published_at": published_at,
+            "download_url": download_url,
+            "file_size": file_size,
+            "sha256": sha256,
+            "is_frozen": getattr(sys, 'frozen', False)
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "has_update": False,
+            "message": str(e),
+            "current_version": APP_VERSION,
+            "is_frozen": getattr(sys, 'frozen', False)
+        })
+
+@app.route('/api/update_progress', methods=['GET'])
+def get_update_progress_api():
+    """Truy vấn tiến trình tải tệp cập nhật."""
+    with _update_lock:
+        return jsonify(_update_state)
+
+@app.route('/api/apply_update', methods=['POST'])
+def apply_update_api():
+    """Tải tệp mới và thực hiện cơ chế NTFS Rename-then-Replace in-place."""
+    if not getattr(sys, 'frozen', False):
+        return jsonify({
+            "status": "error",
+            "message": "Tính năng tự động cập nhật chỉ khả dụng khi chạy từ file EXE đóng gói."
+        }), 400
+
+    with _update_lock:
+        if _update_state["status"] in ("downloading", "applying"):
+            return jsonify({"status": "busy", "message": "Đang có tiến trình cập nhật đang chạy."})
+        _update_state["status"] = "downloading"
+        _update_state["progress"] = 0
+        _update_state["downloaded_bytes"] = 0
+        _update_state["total_bytes"] = 0
+        _update_state["error_message"] = ""
+
+    def _async_download_and_swap():
+        global _update_state
+        exe_path = os.path.abspath(sys.executable)
+        exe_dir = os.path.dirname(exe_path)
+        temp_new_path = os.path.join(exe_dir, f"{os.path.basename(exe_path)}.new")
+        old_backup_path = os.path.join(exe_dir, f"{os.path.basename(exe_path)}.old")
+
+        try:
+            # 1. Truy vấn release info lấy download url
+            url = "https://api.github.com/repos/trungkhanhduong93/ledgerreport/releases/latest"
+            req = urllib.request.Request(
+                url,
+                headers={"User-Agent": f"iPOS-Accounting-Report/{APP_VERSION}"}
+            )
+            with urllib.request.urlopen(req, timeout=5.0) as resp:
+                data = json.loads(resp.read().decode('utf-8'))
+
+            download_url = None
+            target_ver = data.get('tag_name', '')
+            for a in data.get('assets', []):
+                if a.get('name', '').lower().endswith('.exe'):
+                    download_url = a.get('browser_download_url')
+                    break
+
+            if not download_url:
+                raise ValueError("Không tìm thấy tệp EXE phát hành trong bản mới nhất trên GitHub.")
+
+            with _update_lock:
+                _update_state["target_version"] = target_ver
+
+            # 2. Tải tệp chunked vào file .new
+            req_dl = urllib.request.Request(
+                download_url,
+                headers={"User-Agent": f"iPOS-Accounting-Report/{APP_VERSION}"}
+            )
+            with urllib.request.urlopen(req_dl, timeout=30.0) as dl_resp:
+                total_size = int(dl_resp.headers.get('Content-Length', 0))
+                downloaded = 0
+                chunk_size = 64 * 1024  # 64 KB
+
+                with open(temp_new_path, 'wb') as out_f:
+                    while True:
+                        chunk = dl_resp.read(chunk_size)
+                        if not chunk:
+                            break
+                        out_f.write(chunk)
+                        downloaded += len(chunk)
+                        pct = int((downloaded / total_size) * 100) if total_size > 0 else 50
+                        with _update_lock:
+                            _update_state["progress"] = pct
+                            _update_state["downloaded_bytes"] = downloaded
+                            _update_state["total_bytes"] = total_size
+
+            # Kiểm tra an toàn tính toàn vẹn
+            actual_size = os.path.getsize(temp_new_path)
+            if actual_size < 5 * 1024 * 1024:  # Ít nhất 5MB
+                if os.path.exists(temp_new_path):
+                    os.remove(temp_new_path)
+                raise ValueError(f"Dung lượng tệp tải về không hợp lệ ({actual_size} bytes).")
+
+            with _update_lock:
+                _update_state["status"] = "applying"
+                _update_state["progress"] = 100
+
+            # 3. Thực hiện chuỗi lệnh NTFS Rename-then-Replace
+            if os.path.exists(old_backup_path):
+                try:
+                    os.remove(old_backup_path)
+                except Exception:
+                    pass
+
+            os.rename(exe_path, old_backup_path)
+            os.rename(temp_new_path, exe_path)
+
+            with _update_lock:
+                _update_state["status"] = "ready"
+
+            # 4. Khởi chạy bản mới và đóng bản cũ
+            time.sleep(1.0)
+            subprocess.Popen([exe_path], close_fds=True)
+            _shutdown_everything("Auto-Update thanh cong -> Khoi dong lai vao ban moi")
+
+        except Exception as err:
+            with _update_lock:
+                _update_state["status"] = "error"
+                _update_state["error_message"] = str(err)
+            if os.path.exists(temp_new_path):
+                try:
+                    os.remove(temp_new_path)
+                except Exception:
+                    pass
+
+    t = threading.Thread(target=_async_download_and_swap, daemon=True)
+    t.start()
+
+    return jsonify({
+        "status": "ok",
+        "message": "Đang bắt đầu tải bản cập nhật trong nền."
+    })
+
 
 if __name__ == "__main__":
+    _cleanup_old_executables()
     import threading
 
     import webbrowser

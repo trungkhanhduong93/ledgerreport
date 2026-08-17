@@ -1,4 +1,4 @@
-﻿<#
+<#
     Sync-And-Backup.ps1 — đồng bộ thư mục làm việc sang repo git rồi sao lưu.
 
     VÌ SAO CÓ FILE NÀY
@@ -58,7 +58,8 @@ $Files = @(
     'START_HERE.md',
     'SU_CO_15082026.md',
     'NHAT_KY_CONG_VIEC.md',
-    'Sync-And-Backup.ps1'
+    'Sync-And-Backup.ps1',
+    '.github/workflows/release.yml'
 )
 
 # 16/08/2026 — repo đã dọn 29 file rác (di sản LedgerStudio + script one-off) và chuyển
@@ -72,6 +73,8 @@ foreach ($f in $Files) {
     $s = Join-Path $Src $f
     if (-not (Test-Path $s)) { Write-Output ("  BO QUA (khong co): {0}" -f $f); continue }
     $d = Join-Path $Dst $f
+    $dDir = Split-Path -Parent $d
+    if (-not (Test-Path $dDir)) { New-Item -ItemType Directory -Path $dDir -Force | Out-Null }
     $hashS = (Get-FileHash $s).Hash
     $hashD = if (Test-Path $d) { (Get-FileHash $d).Hash } else { '' }
     if ($hashS -ne $hashD) {
@@ -94,7 +97,7 @@ foreach ($f in $Files) {
         Write-Output ("  LECH: {0}" -f $f); $bad++
     }
 }
-if ($bad -gt 0) { throw "$bad file chua dong bo dung — DUNG LAI, dung push." }
+if ($bad -gt 0) { throw "$bad file chua dong bo dung - DUNG LAI, dung push." }
 Write-Output "  Tat ca khop."
 
 # ── Cảnh báo file .py/.html mới chưa nằm trong danh sách ───────────────────────
@@ -135,7 +138,7 @@ if ($Commit) {
     try {
         $remote = (git remote get-url origin)
         Write-Output "`n=== REMOTE: $remote ==="
-        if ($remote -match 'gitlab') { throw "Remote la GitLab — CAM push. Chi push GitHub." }
+        if ($remote -match 'gitlab') { throw "Remote la GitLab - CAM push. Chi push GitHub." }
 
         $st = git status --short
         if (-not $st) { Write-Output "Khong co gi de commit."; return }
@@ -145,23 +148,16 @@ if ($Commit) {
         if ($Message) { $msg = $Message }
         else { $msg = "chore: dong bo tu thu muc lam viec $(Get-Date -Format 'yyyy-MM-dd HH:mm')" }
 
-        # PHẢI commit qua FILE, không phải `git commit -m $msg`.
-        # PowerShell 5.1 truyền chuỗi NHIỀU DÒNG cho native exe bằng cách tách theo dòng
-        # → git nhận mỗi dòng thành một tham số riêng và báo "pathspec ... did not match",
-        # commit KHÔNG chạy trong khi phần đồng bộ file phía trên vẫn báo thành công.
-        # (Đã cắn thật ngày 16/08/2026 — tưởng đã push mà chưa push.)
-        # Ghi UTF-8 KHÔNG BOM: BOM lọt vào git là dính ngay dòng đầu commit message.
         $msgFile = Join-Path ([System.IO.Path]::GetTempPath()) "ledgerreport_commit_msg.txt"
         [System.IO.File]::WriteAllText($msgFile, $msg, (New-Object System.Text.UTF8Encoding($false)))
         try {
             git -c i18n.commitEncoding=UTF-8 commit -F $msgFile
-            # Native exe: bám $LASTEXITCODE, KHÔNG bám $? (xem chú thích ở trên)
             if ($LASTEXITCODE -eq 0) {
                 git push origin main
                 if ($LASTEXITCODE -eq 0) { Write-Output "`n=== DA PUSH. GitHub Actions se tu dong goi EXE va tao Release. ===" }
-                else { Write-Output "`n!!! PUSH THAT BAI (exit $LASTEXITCODE) — commit da co local, chua len GitHub." }
+                else { Write-Output "`n!!! PUSH THAT BAI (exit $LASTEXITCODE) - commit da co local, chua len GitHub." }
             }
-            else { Write-Output "`n!!! COMMIT THAT BAI (exit $LASTEXITCODE) — CHUA push gi ca." }
+            else { Write-Output "`n!!! COMMIT THAT BAI (exit $LASTEXITCODE) - CHUA push gi ca." }
         }
         finally { Remove-Item $msgFile -ErrorAction SilentlyContinue }
     } finally { Pop-Location }

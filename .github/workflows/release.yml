@@ -60,23 +60,33 @@ jobs:
             --add-data "version.txt;." `
             server.py
 
+      - name: Create ZIP Package
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "dist/iPOS_Accounting_Report.exe" -DestinationPath "dist/iPOS_Accounting_Report.zip" -Force
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           name: iPOS Accounting Report ${{ env.RELEASE_TAG }}
           body: |
-            ## 🚀 iPOS Accounting Report ${{ env.RELEASE_TAG }}
+            ### 🚀 Tính Năng Mới & Nâng Cấp (${{ env.RELEASE_TAG }})
+
+            - ⚡ **Tự động cập nhật (Auto-Update In-Place):** Khi mở app, ứng dụng tự động kiểm tra phiên bản mới từ GitHub, tự tải về và ghi đè an toàn vào chính file `.exe` hiện tại trên máy.
+            - 📦 **Bổ sung bản nén ZIP:** Tải về mở dùng ngay mà không bị trình duyệt Chrome/Edge cảnh báo tệp lạ.
+            - 🔄 **Khởi động lại siêu tốc:** Sau khi cập nhật xong, app tự mở lại phiên bản mới nhất và tự động dọn dẹp sạch các tệp rác.
+            - 🛠️ **Tối ưu hóa & Vá lỗi:** Tách rời tiến trình độc lập chống lỗi tắt app, đồng bộ hiển thị số phiên bản realtime trên toàn bộ giao diện.
+
+            ---
+
+            **📦 Tệp đính kèm:**
+            - `iPOS_Accounting_Report.zip`: Bản nén ZIP tải về mở dùng ngay (Khuyên dùng - Không bị trình duyệt chặn).
+            - `iPOS_Accounting_Report.exe`: Tệp thực thi độc lập cho Windows (Dành cho tính năng tự cập nhật).
             
-            Bản phát hành tự động được build và đóng gói qua **GitHub Actions CI/CD**.
-            
-            ### 📦 Tệp đính kèm:
-            - **`iPOS_Accounting_Report.exe`**: Ứng dụng Desktop chạy độc lập.
-            
-            ### ⚙️ Yêu cầu hệ thống:
-            - Hệ điều hành: Windows 10/11 64-bit.
-            - Driver: `ODBC Driver 17 for SQL Server` (App có sẵn script hướng dẫn cài đặt nếu máy chưa có).
+            **⚙️ Yêu cầu:** Windows 10/11 (64-bit), `ODBC Driver 17 for SQL Server`.
           files: |
+            dist/iPOS_Accounting_Report.zip
             dist/iPOS_Accounting_Report.exe
           draft: false
           prerelease: false

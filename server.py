@@ -5412,13 +5412,69 @@ def _calc_results(data, thtt_expense_list, expense_classes):
     r['14'] = s('8211', 'DEB') - s_excl('8211', 'CRD', ['911'])
     r['15'] = s('8212', 'DEB') - s_excl('8212', 'CRD', ['911'])
     r['16'] = r['13'] - r['14'] - r['15']
-    # 16.1/16.2 — mẫu riêng Chú Long: trừ tiếp thuế GTGT phải nộp phát sinh trong kỳ.
-    # Phát sinh thuần TK 3331 = PS Có − PS Nợ (bắt cả 33311/33312 vì so khớp theo tiền tố).
-    r['161'] = s('3331', 'CRD') - s('3331', 'DEB')
-    r['162'] = r['16'] - r['161']
+    # 16.1/16.2 — mẫu riêng Chú Long. 16.1 là SỐ DƯ CÓ CUỐI KỲ của TK 33311 (khớp Bảng cân đối
+    # số phát sinh), KHÔNG phải phát sinh trong kỳ ⇒ cần dữ liệu NGOÀI khoảng đang xem, mà hàm này
+    # chỉ thấy đúng khoảng đó. Route gọi _vat_payable_closing() rồi GHI ĐÈ hai khoá này;
+    # ở đây chỉ đặt mặc định để báo cáo không vỡ nếu có nơi gọi thẳng _calc_results.
+    r['161'] = 0.0
+    r['162'] = r['16']
     r['17'] = 0
     r['18'] = 0
     return r
+
+
+def _vat_payable_closing(from_dt, to_dt, org_ids, job_ids=None):
+    """Chỉ tiêu 16.1 (BC001–BC004) — Thuế GTGT phải nộp = **SỐ DƯ CÓ CUỐI KỲ của TK 33311**,
+    đúng như cột "Dư cuối kỳ" trên Bảng cân đối số phát sinh, KHÔNG phải phát sinh trong kỳ:
+
+        dư cuối kỳ = dư đầu kỳ + PS Có − PS Nợ
+
+    Dư đầu kỳ dồn thẳng từ LEDGER kể từ 01/01 của năm — `BALANCE_VIEW` của IACC_CHULONG trống
+    0 dòng (xem CLAUDE.md), và TK 33311 không có phát sinh nào trước 01/01/2026 (đã kiểm).
+    Chỉ lấy đúng TK `33311`, không lấy `3331` nói chung.
+
+    Trả về (dư cuối tại to_dt, {'<tháng>_<năm>': dư cuối tháng đó}, {job_id: dư cuối tại to_dt}).
+    """
+    first_day = date(from_dt.year, 1, 1)
+    # Thứ tự append vào where PHẢI khớp thứ tự append vào params (Bẫy 5).
+    where = ["L.ACCOUNT_ID = '33311'", "L.TRAN_DATE >= ?", "L.TRAN_DATE <= ?"]
+    params = [first_day.strftime('%Y%m%d'), to_dt.strftime('%Y%m%d')]
+    _oc, _op = _org_filter_sql(org_ids, "L.ORGANIZATION_ID")
+    if _oc:
+        where.append(_oc)
+        params.extend(_op)
+    if job_ids:
+        where.append(f"L.JOB_ID IN ({','.join(['?'] * len(job_ids))})")
+        params.extend(job_ids)
+
+    cursor = get_connection().cursor()
+    cursor.execute(f"""
+        SELECT YEAR(L.TRAN_DATE) AS Y, MONTH(L.TRAN_DATE) AS M, ISNULL(L.JOB_ID, '') AS JOB_ID,
+               SUM(CASE WHEN L.DEBIT_CREDIT = 'CRD' THEN L.AMOUNT ELSE -L.AMOUNT END) AS NET
+        FROM dbo.LEDGER L WITH (NOLOCK)
+        WHERE {' AND '.join(where)}
+        GROUP BY YEAR(L.TRAN_DATE), MONTH(L.TRAN_DATE), ISNULL(L.JOB_ID, '')
+    """, params)
+
+    net_by_month = {}
+    net_by_job = {}
+    for r_ in cursor.fetchall():
+        y_, m_, jid_, net_ = r_[0], r_[1], (r_[2] or '').strip(), float(r_[3] or 0)
+        net_by_month[(y_, m_)] = net_by_month.get((y_, m_), 0.0) + net_
+        net_by_job[jid_] = net_by_job.get(jid_, 0.0) + net_
+
+    # Cộng dồn từ đầu năm: dư cuối THÁNG NÀO cũng là luỹ kế tới hết tháng đó.
+    running = 0.0
+    monthly_closing = {}
+    y, m = first_day.year, first_day.month
+    while (y, m) <= (to_dt.year, to_dt.month):
+        running += net_by_month.get((y, m), 0.0)
+        monthly_closing[f"{m}_{y}"] = running
+        m += 1
+        if m > 12:
+            m = 1
+            y += 1
+    return running, monthly_closing, net_by_job
 
 
 @app.route('/api/report')
@@ -5514,6 +5570,14 @@ def get_report():
             m_data = [d for d in all_data if d['month'] == mp['month'] and d['year'] == mp['year']]
             m_key = f"{mp['month']}_{mp['year']}"
             monthly[m_key] = _calc_results(m_data, thtt_expense_list, expense_classes)
+
+        # 16.1 = số dư Có CUỐI KỲ của TK 33311 → phải dồn từ đầu năm, không suy ra được từ all_data.
+        vat_close, vat_monthly, _ = _vat_payable_closing(from_dt, to_dt, org_ids, job_ids)
+        total_results['161'] = vat_close
+        total_results['162'] = total_results['16'] - vat_close
+        for _mk, _mres in monthly.items():
+            _mres['161'] = vat_monthly.get(_mk, 0.0)
+            _mres['162'] = _mres['16'] - _mres['161']
 
         return jsonify({
             "status": "ok",
@@ -5629,6 +5693,15 @@ def get_report_by_job():
             j_data = [d for d in all_data if d['job_id'] == jid]
             jobs_result[jid] = _calc_results(j_data, thtt_expense_list, expense_classes)
 
+        # 16.1 = số dư Có CUỐI KỲ của TK 33311 (dồn từ đầu năm). Bút toán thuế thường KHÔNG gắn
+        # JOB_ID nên phần lớn số này rơi vào cột công việc rỗng — cột tổng mới là con số cần đọc.
+        vat_close, _, vat_by_job = _vat_payable_closing(from_dt, to_dt, org_ids, job_ids)
+        total_results['161'] = vat_close
+        total_results['162'] = total_results['16'] - vat_close
+        for _jid, _jres in jobs_result.items():
+            _jres['161'] = vat_by_job.get(_jid, 0.0)
+            _jres['162'] = _jres['16'] - _jres['161']
+
         return jsonify({
             "status": "ok",
             "data": total_results,
@@ -5659,20 +5732,42 @@ _update_state = {
     "target_version": ""
 }
 
-def _cleanup_old_executables():
-    """Dọn dẹp các tệp tạm .old, .new hoặc .tmp_dl do các lần cập nhật trước để lại."""
+# Handle tiến trình Chrome --app đang mở (launch_app_window đặt). Updater phải ĐÓNG cửa sổ này
+# trước khi chạy bản mới — xem chú thích trong _async_download_and_swap.
+_app_window_proc = None
+# Bật trong lúc thay EXE: chặn launch_app_window tự tắt server khi cửa sổ bị đóng CÓ CHỦ ĐÍCH.
+_update_in_progress = False
+
+def _cleanup_old_executables(retry_seconds=0):
+    """Dọn các tệp tạm .old / .new / .tmp_dl do lần cập nhật trước để lại.
+
+    ⚠️ Bản VỪA được cập nhật phải gọi với `retry_seconds > 0`: file `.old` chính là image của
+    tiến trình cũ vừa khởi chạy mình, Windows còn KHOÁ nó cho tới khi tiến trình đó thoát hẳn.
+    Thử xoá đúng một lần rồi thôi (cách cũ) luôn thất bại im lặng ⇒ file `.old` nằm lại tới tận
+    lần chạy sau — đúng triệu chứng "cập nhật xong vẫn còn file exe cũ đổi tên".
+    """
+    if not getattr(sys, 'frozen', False):
+        return
     try:
-        if getattr(sys, 'frozen', False):
-            exe_path = os.path.abspath(sys.executable)
-            exe_dir = os.path.dirname(exe_path)
-            for fname in os.listdir(exe_dir):
-                if fname.endswith(".old") or fname.endswith(".new") or fname.endswith(".tmp_dl"):
-                    try:
-                        os.remove(os.path.join(exe_dir, fname))
-                    except Exception:
-                        pass
+        exe_dir = os.path.dirname(os.path.abspath(sys.executable))
     except Exception:
-        pass
+        return
+    deadline = time.time() + max(0, retry_seconds)
+    while True:
+        con_lai = []
+        try:
+            for fname in os.listdir(exe_dir):
+                if not (fname.endswith(".old") or fname.endswith(".new") or fname.endswith(".tmp_dl")):
+                    continue
+                try:
+                    os.remove(os.path.join(exe_dir, fname))
+                except Exception:
+                    con_lai.append(fname)
+        except Exception:
+            return
+        if not con_lai or time.time() >= deadline:
+            return
+        time.sleep(1.0)
 
 def _parse_semver(v_str):
     """Trích xuất tuple (major, minor, patch) từ chuỗi version ví dụ v1.8.6 -> (1, 8, 6)"""
@@ -5780,7 +5875,7 @@ def apply_update_api():
         _update_state["error_message"] = ""
 
     def _async_download_and_swap():
-        global _update_state
+        global _update_state, _update_in_progress
         exe_path = os.path.abspath(sys.executable)
         exe_dir = os.path.dirname(exe_path)
         temp_new_path = os.path.join(exe_dir, f"{os.path.basename(exe_path)}.new")
@@ -5856,7 +5951,24 @@ def apply_update_api():
             with _update_lock:
                 _update_state["status"] = "ready"
 
-            # 4. Khởi chạy bản mới độc lập (tách khỏi process tree để không bị kill chéo)
+            # 4. ĐÓNG CỬA SỔ APP CŨ trước khi chạy bản mới.
+            # Chrome dùng chung --user-data-dir: nếu instance cũ còn sống thì cửa sổ mà bản mới
+            # spawn sẽ bị "bàn giao" cho instance cũ rồi tự thoát <5s → bản mới chạy ngầm KHÔNG
+            # có cửa sổ nào, user tưởng cập nhật xong là mất app (xem bẫy 12/08/2026 ở
+            # launch_app_window). Bật cờ trước để launch_app_window không hiểu nhầm là user đóng
+            # cửa sổ rồi taskkill chính tiến trình này — làm vậy thì bản mới không kịp khởi chạy.
+            _update_in_progress = True
+            try:
+                if _app_window_proc is not None and _app_window_proc.poll() is None:
+                    _app_window_proc.terminate()
+                    try:
+                        _app_window_proc.wait(timeout=5)
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+            # 5. Khởi chạy bản mới độc lập (tách khỏi process tree để không bị kill chéo)
             time.sleep(0.8)
             if platform.system() == "Windows":
                 DETACHED_PROCESS = 0x00000008
@@ -5882,6 +5994,7 @@ def apply_update_api():
             os._exit(0)
 
         except Exception as err:
+            _update_in_progress = False
             with _update_lock:
                 _update_state["status"] = "error"
                 _update_state["error_message"] = str(err)
@@ -5901,7 +6014,9 @@ def apply_update_api():
 
 
 if __name__ == "__main__":
-    _cleanup_old_executables()
+    # Dọn nền có retry: file .old là image của bản cũ vừa khởi chạy mình, phải đợi nó thoát hẳn.
+    threading.Thread(target=_cleanup_old_executables, kwargs={"retry_seconds": 60},
+                     daemon=True).start()
     import threading
 
     import webbrowser
@@ -5977,6 +6092,7 @@ if __name__ == "__main__":
 
     def launch_app_window():
         """Mở app dưới dạng cửa sổ standalone. Khi user đóng cửa sổ → tắt server."""
+        global _app_window_proc
         if not _wait_port_ready("127.0.0.1", APP_PORT):
             webbrowser.open(APP_URL)
             return  # Không track được → server chạy ngầm như cũ
@@ -6014,6 +6130,7 @@ if __name__ == "__main__":
             # close_fds + KHÔNG dùng shell → có handle process thật để wait()
             _t_spawn = time.time()
             proc = subprocess.Popen(args, close_fds=True)
+            _app_window_proc = proc   # updater cần handle này để đóng cửa sổ khi thay EXE
         except Exception:
             webbrowser.open(APP_URL)
             return
@@ -6023,6 +6140,12 @@ if __name__ == "__main__":
             proc.wait()
         except Exception:
             pass
+
+        # Đang thay EXE: cửa sổ do CHÍNH updater đóng, không phải user. Shutdown ở đây sẽ giết
+        # tiến trình trước khi nó kịp Popen bản mới → cập nhật xong không có gì chạy lên.
+        if _update_in_progress:
+            print("[launcher] Cua so dong do dang cap nhat -> khong shutdown, de updater lo")
+            return
 
         # ⚠️ BẪY ĐÃ TỪNG LÀM SERVER "CHẾT NGAY KHI VỪA LÊN" (phát hiện 12/08/2026):
         # Nếu ĐÃ có sẵn 1 Chrome đang dùng chung --user-data-dir này (cửa sổ app cũ chưa đóng

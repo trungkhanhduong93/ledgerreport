@@ -5423,6 +5423,21 @@ def _calc_results(data, thtt_expense_list, expense_classes):
     return r
 
 
+# Bộ tài khoản DUY NHẤT mà _calc_results() đọc tới (511/515/521/632/635/641/642/711/811/821).
+# LEDGER có 18,9 triệu dòng; query KQKD trước đây GROUP BY TOÀN BỘ tài khoản rồi vứt đi ~56% số
+# nhóm. Lọc ngay tại SQL: 16,2s → 7,7s cho kỳ 1 tháng (đo 19/08/2026, kết quả _calc_results
+# giống hệt từng nhóm), và đọc ít trang hơn nên đỡ tranh buffer pool 1410 MB với việc lưu phiếu.
+# ⚠️ Thêm/bớt tiền tố tài khoản trong _calc_results thì PHẢI cập nhật danh sách này — thiếu một
+# tiền tố là chỉ tiêu tương ứng lặng lẽ về 0, không báo lỗi.
+_KQKD_ACCOUNTS = ('511', '515', '521', '632', '635', '641', '642', '711', '811', '821')
+
+
+def _kqkd_acc_filter_sql(col="L.ACCOUNT_ID"):
+    """(clause, params) lọc đúng bộ tài khoản KQKD — xem _KQKD_ACCOUNTS."""
+    clause = "(" + " OR ".join(f"{col} LIKE ?" for _ in _KQKD_ACCOUNTS) + ")"
+    return clause, [a + '%' for a in _KQKD_ACCOUNTS]
+
+
 def _vat_payable_closing(from_dt, to_dt, org_ids, job_ids=None):
     """Chỉ tiêu 16.1 (BC001–BC004) — Thuế GTGT phải nộp = **SỐ DƯ CÓ CUỐI KỲ của TK 33311**,
     đúng như cột "Dư cuối kỳ" trên Bảng cân đối số phát sinh, KHÔNG phải phát sinh trong kỳ:
@@ -5508,6 +5523,9 @@ def get_report():
 
         where_clauses = ["L.TRAN_DATE >= ?", "L.TRAN_DATE <= ?"]
         params = [from_dt.strftime('%Y%m%d'), to_dt.strftime('%Y%m%d')]
+        _ac, _ap = _kqkd_acc_filter_sql("L.ACCOUNT_ID")
+        where_clauses.append(_ac)
+        params.extend(_ap)
         _oc, _op = _org_filter_sql(org_ids, "L.ORGANIZATION_ID")
         if _oc:
             where_clauses.append(_oc)
@@ -5613,6 +5631,9 @@ def get_report_by_job():
 
         where_clauses = ["L.TRAN_DATE >= ?", "L.TRAN_DATE <= ?"]
         params = [from_dt.strftime('%Y%m%d'), to_dt.strftime('%Y%m%d')]
+        _ac, _ap = _kqkd_acc_filter_sql("L.ACCOUNT_ID")
+        where_clauses.append(_ac)
+        params.extend(_ap)
         _oc, _op = _org_filter_sql(org_ids, "L.ORGANIZATION_ID")
         if _oc:
             where_clauses.append(_oc)
@@ -5624,7 +5645,7 @@ def get_report_by_job():
 
         query = f"""
             SELECT L.ACCOUNT_ID, L.ACCOUNT_ID_CONTRA, L.DEBIT_CREDIT,
-                   I.ITEM_CLASS1_ID, E.EXPENSE_CLASS_ID, L.EXPENSE_ID, E.EXPENSE_NAME,
+                   I.ITEM_CLASS1_ID, E.EXPENSE_CLASS_ID, L.EXPENSE_ID,
                    ISNULL(L.JOB_ID, '') AS JOB_ID,
                    SUM(L.AMOUNT) as TOTAL
             FROM dbo.LEDGER L WITH (NOLOCK)
@@ -5632,7 +5653,7 @@ def get_report_by_job():
             LEFT JOIN dbo.DM_EXPENSE E WITH (NOLOCK) ON L.EXPENSE_ID = E.EXPENSE_ID
             WHERE {where_sql}
             GROUP BY L.ACCOUNT_ID, L.ACCOUNT_ID_CONTRA, L.DEBIT_CREDIT,
-                     I.ITEM_CLASS1_ID, E.EXPENSE_CLASS_ID, L.EXPENSE_ID, E.EXPENSE_NAME,
+                     I.ITEM_CLASS1_ID, E.EXPENSE_CLASS_ID, L.EXPENSE_ID,
                      ISNULL(L.JOB_ID, '')
         """
         conn = get_connection()
@@ -5663,9 +5684,8 @@ def get_report_by_job():
             'item_class': (r[3] or '').strip().upper(),
             'expense_class': (r[4] or '').strip().upper(),
             'expense_id': (r[5] or '').strip().upper(),
-            'expense_name': (r[6] or '').strip(),
-            'job_id': (r[7] or '').strip(),
-            'val': float(r[8] or 0),
+            'job_id': (r[6] or '').strip(),
+            'val': float(r[7] or 0),
         } for r in raw]
 
         if job_ids:

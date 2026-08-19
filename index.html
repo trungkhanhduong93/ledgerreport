@@ -1606,11 +1606,22 @@ window.showConnectionLost = function() {
                             // Giữ đúng số chữ số thập phân đang hiển thị trên web (xpct0..xpct4).
                             // Dịch dấu thập phân bằng toFixed thay vì chia 100 trần — 15.54/100 trong
                             // JS ra 0.15539999999999998, ghi vào Excel là lệch.
+                            // ⚠️ BẪY (19/08/2026): mso-number-format PHẢI nằm trong INLINE STYLE của ô.
+                            // Excel khi nhập HTML chỉ đọc CLASS ĐẦU TIÊN trong danh sách class. Ô ở đây
+                            // luôn là class="col-value xnum" → Excel lấy 'col-value' (không có định dạng)
+                            // rồi bỏ qua 'xnum' → mọi ô về General: cột tiền hiện 103293720 thay vì
+                            // 103,293,720, cột % hiện 0.0029 thay vì 0.29%.
+                            // Đã dựng lại đúng ca này trong Excel thật: class="xnum" một mình thì CHẠY,
+                            // class="col-value xnum" thì HỎNG — nên đừng test bằng ô chỉ có một class.
+                            // Vẫn giữ class .xnum/.xpct trong <style> cho tương thích ngược, nhưng thứ
+                            // thực sự có tác dụng là inline dưới đây.
+                            const fmt = (f) => cc.setAttribute('style', st + 'mso-number-format:' + f + ';');
                             if (/^[\d,]+(\.\d+)?\s*%$/.test(txt)) {
                                 const numTxt = txt.slice(0, -1).trim().replace(/,/g, '');
                                 const dec = Math.min((numTxt.split('.')[1] || '').length, 4);
                                 cc.classList.add('xpct' + dec);
                                 cc.textContent = (isNeg ? '-' : '') + (parseFloat(numTxt) / 100).toFixed(dec + 2);
+                                fmt(dec > 0 ? ('0\\.' + '0'.repeat(dec) + '\\%') : '0\\%');
                             }
                             // ── Ô TIỀN ─────────────────────────────────────────────────────────────
                             // Bỏ dấu phẩy ngăn nghìn để value là 1000000, format #,##0 lo phần hiển thị.
@@ -1619,11 +1630,13 @@ window.showConnectionLost = function() {
                                 cc.classList.add('xnum');
                                 if (txt && /^[\d,]+(\.\d+)?$/.test(txt)) {
                                     cc.textContent = (isNeg ? '-' : '') + txt.replace(/,/g, '');
+                                    fmt('\\#\\,\\#\\#0');
                                 }
                             }
                             // Mã TK / số chứng từ: ép text để Excel không ăn mất số 0 đứng đầu.
                             else if (oc.classList.contains('col-code') || oc.classList.contains('text-center')) {
                                 cc.classList.add('xtext');
+                                fmt('\\@');
                             }
                         }
                     }

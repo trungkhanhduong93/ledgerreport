@@ -1408,6 +1408,8 @@ window.showConnectionLost = function() {
                 { id: '14', note: '', type: 'group', name: '14. Chi phí thuế TNDN hiện hành' },
                 { id: '15', note: '', type: 'group', name: '15. Chi phí thuế TNDN hoãn lại' },
                 { id: '16', note: '', type: 'group', name: '16. Lợi nhuận sau thuế TNDN' },
+                { id: '161', note: '', type: 'group', name: '16.1 - Thuế GTGT phải nộp' },
+                { id: '162', note: '', type: 'group', name: '16.2 - Lợi nhuận sau khi nộp thuế GTGT' },
                 { id: '17', note: '', type: 'group', name: '17. Lãi cơ bản trên cổ phiếu (*)' },
                 { id: '18', note: '', type: 'group', name: '18. Lãi suy giảm trên cổ phiếu (*)' }
             ];
@@ -2456,7 +2458,7 @@ const exportJournalCsv = (mode) => {
                                                         if (Number(mData[row.id] || 0) !== 0) { isRowAllZero = false; break; }
                                                     }
                                                 }
-                                                if (isRowAllZero && !['09','10','11','12','13','14','15','16','17','18'].includes(row.id)) return null;
+                                                if (isRowAllZero && !['09','10','11','12','13','14','15','16','161','162','17','18'].includes(row.id)) return null;
                                                 
                                                 const isBold = (row.id === '011') ? false : (row.type === 'group' || (row.name && row.name.trim().startsWith('*')));
                                                 const mainRow = (
@@ -2558,7 +2560,7 @@ const exportJournalCsv = (mode) => {
                                                         if (Number(jData[row.id] || 0) !== 0) { isRowAllZero = false; break; }
                                                     }
                                                 }
-                                                if (isRowAllZero && !['09','10','11','12','13','14','15','16','17','18'].includes(row.id)) return null;
+                                                if (isRowAllZero && !['09','10','11','12','13','14','15','16','161','162','17','18'].includes(row.id)) return null;
 
                                                 const isBold = (row.id === '011') ? false : (row.type === 'group' || (row.name && row.name.trim().startsWith('*')));
                                                 const mainRow = (

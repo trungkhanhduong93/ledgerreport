@@ -5412,6 +5412,10 @@ def _calc_results(data, thtt_expense_list, expense_classes):
     r['14'] = s('8211', 'DEB') - s_excl('8211', 'CRD', ['911'])
     r['15'] = s('8212', 'DEB') - s_excl('8212', 'CRD', ['911'])
     r['16'] = r['13'] - r['14'] - r['15']
+    # 16.1/16.2 — mẫu riêng Chú Long: trừ tiếp thuế GTGT phải nộp phát sinh trong kỳ.
+    # Phát sinh thuần TK 3331 = PS Có − PS Nợ (bắt cả 33311/33312 vì so khớp theo tiền tố).
+    r['161'] = s('3331', 'CRD') - s('3331', 'DEB')
+    r['162'] = r['16'] - r['161']
     r['17'] = 0
     r['18'] = 0
     return r

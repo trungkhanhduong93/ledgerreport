@@ -28,3 +28,6 @@ search_out.txt
 .vscode/
 Thumbs.db
 .DS_Store
+
+# Credential DB - TUYET DOI KHONG COMMIT
+config.json

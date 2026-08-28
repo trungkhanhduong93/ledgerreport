@@ -3250,6 +3250,7 @@ const exportJournalCsv = (mode) => {
             { id: 'purchase',  name: 'Danh sách chứng từ nhập kho' },
             { id: 'warehouse', name: 'Danh sách chứng từ kho' },
             { id: 'warehouse_balance', name: 'Danh sách tồn kho thực tế' },
+            { id: 'btp_reconcile', name: 'Danh sách đối chiếu xuất SX BTP – nhập thành phẩm' },
         ];
 
         const DocumentTabDropdown = ({ activeTab, setActiveTab }) => {
@@ -4240,6 +4241,120 @@ const exportJournalCsv = (mode) => {
                 (filters.acc_ids?.length || 0) + (filters.item_ids?.length || 0) + (warehouseBalanceFilters.wh_ids?.length || 0)
             ), [filters.acc_ids, filters.item_ids, warehouseBalanceFilters.wh_ids]);
 
+            // ===== Danh sách đối chiếu xuất kho SX BTP → nhập kho thành phẩm =====
+            // Mỗi dòng = 1 nguyên liệu trên phiếu xuất, kèm phiếu nhập NSP của đúng BTP đó.
+            // Nối phiếu CHỈ bằng SALE_PR_KEY (xem chú thích ở server.py). Nhóm hiển thị theo
+            // PR_KEY_XUAT: cùng phiếu thì nền cùng màu, dòng đầu phiếu mới in mã ĐV/ngày/số phiếu/kho.
+            const btpScrollRef = useRef();
+            const [btpSort, setBtpSort] = useState({ field: null, dir: 'desc' });
+            const [btpData, setBtpData] = useState([]);
+            const [btpSummary, setBtpSummary] = useState(null);
+            const [btpPagination, setBtpPagination] = useState({ total_rows: 0, total_pages: 1, page: 1 });
+            const [btpColSearch, setBtpColSearch] = useState({});
+            const [btpLoading, setBtpLoading] = useState(false);
+            const [btpFilters, setBtpFilters] = useState({ wh_ids: [], btp_ids: [], status: '' });
+
+            const toggleBtpFilter = (key, id) => {
+                setBtpFilters(p => ({ ...p, [key]: p[key].includes(id) ? p[key].filter(x => x !== id) : [...p[key], id] }));
+            };
+
+            const btpFlatData = useMemo(() => {
+                const searchKeys = Object.keys(btpColSearch).filter(k => (btpColSearch[k] || '').trim() !== '');
+                const base = searchKeys.length === 0 ? btpData : btpData.filter(row => searchKeys.every(k => {
+                    const val = String(row[k] || '').toLowerCase();
+                    return val.includes(btpColSearch[k].trim().toLowerCase());
+                }));
+                // Đánh dấu ranh giới phiếu: _grp = nền xen kẽ, _first = dòng đầu của phiếu
+                let grp = 0, prevKey = null;
+                return base.map(row => {
+                    const key = row.PR_KEY_XUAT;
+                    const first = key !== prevKey;
+                    if (first) { grp = 1 - grp; prevKey = key; }
+                    return { ...row, _grp: grp, _first: first };
+                });
+            }, [btpData, btpColSearch]);
+
+            const btpVS = useVirtualScroll(btpFlatData, 28, btpScrollRef);
+
+            const btpRow2Count = useMemo(() => (
+                (filters.item_ids?.length || 0) + (btpFilters.wh_ids?.length || 0)
+                + (btpFilters.btp_ids?.length || 0) + (btpFilters.status ? 1 : 0)
+            ), [filters.item_ids, btpFilters.wh_ids, btpFilters.btp_ids, btpFilters.status]);
+
+            const buildBtpQuery = (targetPage = 1, targetPageSize = filters.page_size, searchOverride = null, extra = {}) => {
+                const cs = searchOverride !== null ? searchOverride : btpColSearch;
+                const query = new URLSearchParams();
+                query.set('from_date', filters.from_date);
+                query.set('to_date', filters.to_date);
+                query.set('page', targetPage);
+                query.set('page_size', targetPageSize);
+                query.set('org_ids', (filters.org_ids || []).join(','));
+                query.set('item_ids', (filters.item_ids || []).join(','));
+                query.set('wh_ids', (btpFilters.wh_ids || []).join(','));
+                query.set('btp_ids', (btpFilters.btp_ids || []).join(','));
+                if (btpFilters.status) query.set('status', btpFilters.status);
+
+                const take = (v) => { const x = (v || '').trim(); return x || null; };
+                const sp = {
+                    s_org_id:   take(cs.DON_VI),
+                    s_org_name: take(cs.TEN_DON_VI),
+                    s_tran_no:  take(cs.SO_PHIEU_XUAT),
+                    s_wh_id:    take(cs.KHO_XUAT),
+                    s_btp:      take(cs.BTP),
+                    s_btp_name: take(cs.TEN_BTP),
+                    s_nvl:      take(cs.NVL),
+                    s_nvl_name: take(cs.TEN_NVL),
+                    s_nsp_no:   take(cs.SO_PHIEU_NHAP),
+                };
+                Object.keys(sp).forEach(k => { if (sp[k]) query.set(k, sp[k]); });
+                if (btpSort.field) { query.set('order_by', btpSort.field); query.set('order_dir', btpSort.dir); }
+                Object.keys(extra).forEach(k => query.set(k, extra[k]));
+                return query;
+            };
+
+            const loadBtpData = async (targetPage = 1, targetPageSize = filters.page_size, searchOverride = null) => {
+                if (abortRef.current) abortRef.current.abort();
+                const _ctrl = new AbortController(); abortRef.current = _ctrl;
+                setBtpLoading(true);
+                try {
+                    const extras = {};
+                    if (targetPage > 1 && targetPageSize === filters.page_size && btpPagination.total_rows > 0) {
+                        extras.known_total = btpPagination.total_rows;
+                    }
+                    const query = buildBtpQuery(targetPage, targetPageSize, searchOverride, extras);
+                    const r = await fetch(`/api/btp_reconcile?${query.toString()}`, { signal: _ctrl.signal });
+                    if (r.status === 401) { setIsLoggedIn(false); return; }
+                    const res = await r.json();
+                    if (res.status === 'ok') {
+                        setBtpData(res.data);
+                        setBtpPagination(res.pagination);
+                        if (res.summary) setBtpSummary(res.summary);
+                        setFilters(p => ({ ...p, page_size: targetPageSize }));
+                    } else {
+                        alert('Lỗi truy vấn đối chiếu xuất SX BTP:\n\n' + (res.message || JSON.stringify(res)));
+                    }
+                } catch (err) {
+                    if (err.name === 'AbortError' || _ctrl.signal.aborted) return;
+                    alert('Lỗi mạng / parse: ' + err.message);
+                } finally { setBtpLoading(false); }
+            };
+
+            useEffect(() => {
+                if (isLoggedIn && activeTab === 'btp_reconcile') loadBtpData(1, filters.page_size);
+            }, [btpSort, btpFilters.status]);
+
+            const BTP_EXPORT_COLS = [
+                ['DON_VI','Mã ĐV'],['TEN_DON_VI','Tên đơn vị'],
+                ['NGAY_XUAT','Ngày xuất'],['SO_PHIEU_XUAT','Phiếu xuất'],
+                ['KHO_XUAT','Mã kho xuất'],['TEN_KHO_XUAT','Tên kho xuất'],
+                ['BTP','Mã BTP'],['TEN_BTP','Tên BTP'],['SL_SX','SL sản xuất'],['DVT_BTP','ĐVT BTP'],
+                ['NVL','Mã NVL'],['TEN_NVL','Tên nguyên liệu'],['DVT_NVL','ĐVT NVL'],
+                ['SL_NVL_XUAT','SL NVL xuất'],['TIEN_NVL','Tiền NVL'],
+                ['SO_PHIEU_NHAP','Phiếu nhập'],['NGAY_NHAP','Ngày nhập'],['KHO_NHAP','Kho nhập'],
+                ['SL_NHAP','SL nhập'],['CHENH_SL','Chênh SL'],['TIEN_NHAP','Tiền nhập'],
+                ['TRANG_THAI','Trạng thái'],['GHI_CHU','Ghi chú'],
+            ];
+
             const buildWarehouseBalanceQuery = (targetPage = 1, targetPageSize = filters.page_size, searchOverride = null, extra = {}) => {
                 const cs = searchOverride !== null ? searchOverride : warehouseBalanceColSearch;
                 const query = new URLSearchParams();
@@ -4501,6 +4616,7 @@ const exportJournalCsv = (mode) => {
                 if (kind === 'sale') return buildSaleQuery(1, 1, null, {});
                 if (kind === 'voucher') return buildVoucherQuery(1, 1, null, {});
                 if (kind === 'warehouse_balance') return buildWarehouseBalanceQuery(1, 1, null, {});
+                if (kind === 'btp_reconcile') return buildBtpQuery(1, 1, null, {});
                 return buildWarehouseQuery(1, 1, null, {});
             };
 
@@ -4617,6 +4733,8 @@ const exportJournalCsv = (mode) => {
                         url = `/api/voucher?${buildVoucherQuery(1, 1, null, { export_all: '1' }).toString()}`;
                     } else if (kind === 'warehouse_balance') {
                         url = `/api/warehouse_balance?${buildWarehouseBalanceQuery(1, 1, null, { export_all: '1' }).toString()}`;
+                    } else if (kind === 'btp_reconcile') {
+                        url = `/api/btp_reconcile?${buildBtpQuery(1, 1, null, { export_all: '1' }).toString()}`;
                     } else {
                         url = `/api/warehouse?${buildWarehouseQuery(1, 1, null, { export_all: '1' }).toString()}`;
                     }
@@ -4634,10 +4752,11 @@ const exportJournalCsv = (mode) => {
                                : kind === 'sale' ? SALE_EXPORT_COLS
                                : kind === 'voucher' ? VOUCHER_EXPORT_COLS
                                : kind === 'warehouse_balance' ? WAREHOUSE_BALANCE_EXPORT_COLS
+                               : kind === 'btp_reconcile' ? BTP_EXPORT_COLS
                                : WAREHOUSE_EXPORT_COLS;
                     const extractor = kind === 'ledger' ? extractLedgerRow : (r) => extractRowGeneric(cols, r);
 
-                    const prefix = kind === 'ledger' ? 'ChungTuTongHop_' : (kind === 'purchase' ? 'PhieuNhapKho_' : (kind === 'sale' ? 'ChungTuBanHang_' : (kind === 'voucher' ? 'ChungTuTien_' : (kind === 'warehouse_balance' ? 'TonKhoThucTe_' : 'ChungTuKho_'))));
+                    const prefix = kind === 'ledger' ? 'ChungTuTongHop_' : (kind === 'purchase' ? 'PhieuNhapKho_' : (kind === 'sale' ? 'ChungTuBanHang_' : (kind === 'voucher' ? 'ChungTuTien_' : (kind === 'warehouse_balance' ? 'TonKhoThucTe_' : (kind === 'btp_reconcile' ? 'DoiChieuXuatSX_NhapTP_' : 'ChungTuKho_')))));
                     const fname = prefix + filters.from_date.replace(/\//g,'') + '-' + filters.to_date.replace(/\//g,'') + '.xlsx';
 
                     setExportProgress({ phase: 'build', current: 0, total: rows.length });
@@ -6239,6 +6358,175 @@ const exportJournalCsv = (mode) => {
                                             <span className="text-[9px] font-black text-slate-300 uppercase tracking-tighter">Warehouse Balance View</span>
                                             <span className="text-[11px] font-black text-indigo-400 uppercase tracking-widest">
                                                 Trang {warehouseBalancePagination.page} / {warehouseBalancePagination.total_pages}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    {activeTab === 'btp_reconcile' && (
+                        <>
+                            <div className="bg-white border-b border-slate-200 p-4 px-6 shrink-0 shadow-sm z-[900]">
+                                <div className="space-y-4">
+                                    <div className="flex items-end gap-4">
+                                        <div className="w-64"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
+                                        <div className="w-32"><IOSDatePicker label="Từ ngày" value={filters.from_date} onChange={val => toggleFilter('from_date', val)} disabled={period.type !== 'custom'} /></div>
+                                        <div className="w-32"><IOSDatePicker label="Đến ngày" value={filters.to_date} onChange={val => toggleFilter('to_date', val)} disabled={period.type !== 'custom'} /></div>
+                                        <div className="w-40"><PremiumDropdown label="Đơn vị" items={meta.orgs} selectedItems={filters.org_ids} onSelect={id => toggleFilter('org_ids', id)} isActive={activeDropdown === 'Đơn vị'} onToggle={setActiveDropdown} /></div>
+                                        <div className="ml-auto flex items-center gap-2">
+                                            <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/60 rounded-xl px-3 py-1 shrink-0 h-[40px]">
+                                                <div className="flex flex-col items-start shrink-0">
+                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.1em] mb-0.5">Hiển thị</span>
+                                                    <PageSizeDropdown value={filters.page_size} onChange={newSize => { setFilters(p => ({ ...p, page_size: newSize, page: 1 })); }} />
+                                                </div>
+                                                <div className="h-6 w-px bg-slate-200"></div>
+                                                <div className="flex flex-col items-end shrink-0">
+                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em] mb-0.5">Results</span>
+                                                    <div className="text-[12px] font-black text-indigo-600 tabular-nums leading-none tracking-tighter">{btpPagination.total_rows?.toLocaleString()}</div>
+                                                </div>
+                                            </div>
+                                            <button onClick={() => loadBtpData()} disabled={btpLoading} className="group relative overflow-hidden bg-slate-900 text-white px-4 h-[40px] rounded-xl font-black text-[10px] uppercase tracking-wider transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-indigo-500/30 shrink-0">
+                                                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-violet-600 opacity-90 group-hover:opacity-100 transition-opacity"></div>
+                                                <div className="relative flex items-center gap-2">
+                                                    {btpLoading ? <Icon name="loader" className="animate-spin" /> : <Icon name="search" size={12} className="group-hover:rotate-12 transition-transform"/>}
+                                                    <span>{btpLoading ? 'ĐANG TẢI...' : 'TRUY VẤN'}</span>
+                                                </div>
+                                            </button>
+                                            <FilterToggleButton expanded={filtersExpanded} onToggle={() => setFiltersExpanded(v => !v)} count={btpRow2Count} />
+                                            <ExportButton kind="btp_reconcile" />
+                                        </div>
+                                    </div>
+                                    {filtersExpanded && <div className="grid grid-cols-8 gap-1.5">
+                                        <PremiumDropdown label="Kho xuất" items={meta.warehouses} selectedItems={btpFilters.wh_ids} onSelect={id => toggleBtpFilter('wh_ids', id)} isActive={activeDropdown === 'Kho xuất'} onToggle={setActiveDropdown} />
+                                        <PremiumDropdown label="Nguyên liệu" items={meta.items} selectedItems={filters.item_ids} onSelect={id => toggleFilter('item_ids', id)} isActive={activeDropdown === 'Nguyên liệu'} onToggle={setActiveDropdown} />
+                                        {/* Danh sách lấy từ dbo.DM_PRODUCT (meta.products) — đúng bộ mã đứng ở
+                                            cột PRODUCT_ID của phiếu xuất SX. Đã kiểm: cả 22 mã BTP phát sinh
+                                            trong 2026 đều có trong DM_PRODUCT với ACTIVE=1. */}
+                                        <PremiumDropdown label="Bán thành phẩm" items={meta.products} selectedItems={btpFilters.btp_ids} onSelect={id => toggleBtpFilter('btp_ids', id)} isActive={activeDropdown === 'Bán thành phẩm'} onToggle={setActiveDropdown} />
+                                    </div>}
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        {[['', 'Tất cả', null],
+                                          ['chua', 'Chưa nhập kho BTP', 'Chưa nhập kho BTP'],
+                                          ['lech', 'Lệch số lượng', 'Lệch số lượng'],
+                                          ['khonggoc', 'Không thấy phiếu xuất', 'Không tìm thấy phiếu xuất liên quan'],
+                                          ['du', 'Đã nhập đủ', 'Đã nhập đủ']].map(([val, label, sumKey]) => {
+                                            const on = btpFilters.status === val;
+                                            const cnt = sumKey && btpSummary ? (btpSummary.so_cap?.[sumKey] || 0) : null;
+                                            const tone = val === 'chua' ? 'text-rose-600 border-rose-200 bg-rose-50'
+                                                       : val === 'lech' ? 'text-amber-600 border-amber-200 bg-amber-50'
+                                                       : val === 'khonggoc' ? 'text-violet-600 border-violet-200 bg-violet-50'
+                                                       : val === 'du'   ? 'text-emerald-600 border-emerald-200 bg-emerald-50'
+                                                                        : 'text-slate-600 border-slate-200 bg-slate-50';
+                                            return (
+                                                <button key={val || 'all'} onClick={() => setBtpFilters(p => ({ ...p, status: val }))}
+                                                    className={`px-3 h-[30px] rounded-lg border text-[10px] font-black uppercase tracking-wider transition-all ${on ? 'ring-2 ring-indigo-400 ' + tone : tone + ' opacity-70 hover:opacity-100'}`}>
+                                                    {label}{cnt !== null ? ` · ${cnt.toLocaleString()}` : ''}
+                                                </button>
+                                            );
+                                        })}
+                                        {btpSummary && <span className="text-[10px] font-bold text-slate-400 ml-2">
+                                            Số đếm là <b>cặp phiếu × bán thành phẩm</b> · phiếu chưa nhập: {(btpSummary.so_phieu?.['Chưa nhập kho BTP'] || 0).toLocaleString()} · nhóm <b>Không thấy phiếu xuất</b> là chiều ngược: phiếu nhập không truy được về phiếu xuất (làm tay, hoặc phiếu xuất đã bị xoá / lập lại)
+                                        </span>}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex-1 min-h-0 p-3 overflow-hidden bg-slate-50 flex flex-col relative">
+                                {btpLoading && <div className="absolute inset-0 bg-white/40 z-50 flex flex-col items-center justify-center backdrop-blur-[2px] transition-all"><div className="bg-white p-6 rounded-3xl shadow-2xl flex flex-col items-center gap-4 border border-indigo-50"><Icon name="loader" size={48} className="animate-spin text-indigo-600"/><div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest animate-pulse">Đang đối chiếu...</div></div></div>}
+                                <div className="flex-1 min-h-0 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden flex flex-col mx-0">
+                                    <div className="flex-1 min-h-0 overflow-auto custom-scrollbar" ref={btpScrollRef}>
+                                        <table className="w-max border-collapse" style={{ width: 'max-content', minWidth: '100%' }}>
+                                            <thead className="sticky top-0 bg-slate-50/95 backdrop-blur-md z-30 shadow-sm">
+                                                <tr className="text-slate-400 uppercase text-[9px] font-black tracking-widest text-center">
+                                                    <th className="border-r w-12">#</th>
+                                                    <SortableHeader field="DON_VI"        sort={btpSort} onSort={f => setBtpSort(s => cycleSort(s, f))} className="border-r w-16">ĐV</SortableHeader>
+                                                    <SortableHeader field="NGAY_XUAT"     sort={btpSort} onSort={f => setBtpSort(s => cycleSort(s, f))} className="border-r w-24">Ngày xuất</SortableHeader>
+                                                    <SortableHeader field="SO_PHIEU_XUAT" sort={btpSort} onSort={f => setBtpSort(s => cycleSort(s, f))} className="border-r w-28">Phiếu xuất</SortableHeader>
+                                                    <SortableHeader field="KHO_XUAT"      sort={btpSort} onSort={f => setBtpSort(s => cycleSort(s, f))} className="border-r w-24">Kho xuất</SortableHeader>
+                                                    <SortableHeader field="BTP"           sort={btpSort} onSort={f => setBtpSort(s => cycleSort(s, f))} className="border-r w-24 bg-indigo-50/40">Mã BTP</SortableHeader>
+                                                    <SortableHeader field="TEN_BTP"       sort={btpSort} onSort={f => setBtpSort(s => cycleSort(s, f))} className="border-r w-40 px-3 bg-indigo-50/40" align="left">Tên BTP</SortableHeader>
+                                                    <SortableHeader field="SL_SX"         sort={btpSort} onSort={f => setBtpSort(s => cycleSort(s, f))} className="border-r w-24 px-2 bg-indigo-50/40" align="right">SL sản xuất</SortableHeader>
+                                                    <SortableHeader field="DVT_BTP"       sort={btpSort} onSort={f => setBtpSort(s => cycleSort(s, f))} className="border-r w-16 bg-indigo-50/40">ĐVT</SortableHeader>
+                                                    <SortableHeader field="NVL"           sort={btpSort} onSort={f => setBtpSort(s => cycleSort(s, f))} className="border-r w-28">Mã NVL</SortableHeader>
+                                                    <SortableHeader field="TEN_NVL"       sort={btpSort} onSort={f => setBtpSort(s => cycleSort(s, f))} className="border-r w-44 px-3" align="left">Tên nguyên liệu</SortableHeader>
+                                                    <SortableHeader field="DVT_NVL"       sort={btpSort} onSort={f => setBtpSort(s => cycleSort(s, f))} className="border-r w-16">ĐVT</SortableHeader>
+                                                    <SortableHeader field="SL_NVL_XUAT"   sort={btpSort} onSort={f => setBtpSort(s => cycleSort(s, f))} className="border-r w-28 px-2" align="right">SL NVL xuất</SortableHeader>
+                                                    <SortableHeader field="TIEN_NVL"      sort={btpSort} onSort={f => setBtpSort(s => cycleSort(s, f))} className="border-r w-28 px-2" align="right">Tiền NVL</SortableHeader>
+                                                    <SortableHeader field="SO_PHIEU_NHAP" sort={btpSort} onSort={f => setBtpSort(s => cycleSort(s, f))} className="border-r w-32 bg-emerald-50/40">Phiếu nhập</SortableHeader>
+                                                    <SortableHeader field="NGAY_NHAP"     sort={btpSort} onSort={f => setBtpSort(s => cycleSort(s, f))} className="border-r w-24 bg-emerald-50/40">Ngày nhập</SortableHeader>
+                                                    <SortableHeader field="KHO_NHAP"      sort={btpSort} onSort={f => setBtpSort(s => cycleSort(s, f))} className="border-r w-24 bg-emerald-50/40">Kho nhập</SortableHeader>
+                                                    <SortableHeader field="SL_NHAP"       sort={btpSort} onSort={f => setBtpSort(s => cycleSort(s, f))} className="border-r w-24 px-2 bg-emerald-50/40" align="right">SL nhập</SortableHeader>
+                                                    <SortableHeader field="CHENH_SL"      sort={btpSort} onSort={f => setBtpSort(s => cycleSort(s, f))} className="border-r w-24 px-2 bg-emerald-50/40" align="right">Chênh SL</SortableHeader>
+                                                    <SortableHeader field="TRANG_THAI"    sort={btpSort} onSort={f => setBtpSort(s => cycleSort(s, f))} className="border-r w-44 px-2" align="left">Trạng thái</SortableHeader>
+                                                    <SortableHeader field="GHI_CHU"       sort={btpSort} onSort={f => setBtpSort(s => cycleSort(s, f))} className="w-96 px-3" align="left">Ghi chú</SortableHeader>
+                                                </tr>
+                                                <tr className="bg-indigo-50/60 border-b-2 border-indigo-200">
+                                                    {['','DON_VI','','SO_PHIEU_XUAT','KHO_XUAT','BTP','TEN_BTP','','','NVL','TEN_NVL','','','','SO_PHIEU_NHAP','','','','','',''].map((key, idx) => (
+                                                        <th key={idx} className="border-r px-1 py-1">
+                                                            {key ? <input
+                                                                type="text"
+                                                                value={btpColSearch[key] || ''}
+                                                                onChange={e => setBtpColSearch(p => ({...p, [key]: e.target.value}))}
+                                                                className="w-full bg-white border border-slate-200 rounded-md px-1.5 py-1 text-[10px] font-semibold text-slate-700 outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-200 focus:bg-indigo-50/30 transition-all placeholder:text-slate-300 placeholder:text-center"
+                                                            /> : null}
+                                                        </th>
+                                                    ))}
+                                                </tr>
+                                            </thead>
+                                            <tbody className="text-[11px] font-medium text-slate-700">
+                                                {btpVS.topPadding > 0 && <tr><td colSpan={100} style={{ height: btpVS.topPadding, padding: 0, border: 0 }}></td></tr>}
+                                                {btpFlatData.slice(btpVS.startIndex, btpVS.endIndex + 1).map((row, i) => {
+                                                    const bad  = row.TRANG_THAI === 'Chưa nhập kho BTP';
+                                                    const warn = row.TRANG_THAI === 'Lệch số lượng';
+                                                    const nogoc = row.TRANG_THAI === 'Không tìm thấy phiếu xuất liên quan';
+                                                    const rowBg = bad ? 'bg-rose-50/70' : warn ? 'bg-amber-50/70'
+                                                                : nogoc ? 'bg-violet-50/70' : (row._grp ? 'bg-slate-50/60' : '');
+                                                    const num = (v, d = 2) => v == null ? '—' : Number(v).toLocaleString('en-US', { maximumFractionDigits: d });
+                                                    const topLine = row._first ? 'border-t-2 border-t-indigo-300' : '';
+                                                    return (
+                                                        <tr key={btpVS.startIndex + i} className={`border-b hover:bg-indigo-50/40 text-center ${rowBg} ${topLine}`}>
+                                                            <td className="border-r text-slate-300 font-mono">{btpVS.startIndex + i + 1}</td>
+                                                            <td className="border-r font-black text-slate-600">{row._first ? row.DON_VI : ''}</td>
+                                                            <td className="border-r">{row._first ? (row.NGAY_XUAT || '—') : ''}</td>
+                                                            <td className="border-r font-mono font-bold text-indigo-700">{row._first ? (row.SO_PHIEU_XUAT || '—') : ''}</td>
+                                                            <td className="border-r">{row._first ? (row.KHO_XUAT || '—') : ''}</td>
+                                                            <td className="border-r font-mono">{row.BTP}</td>
+                                                            <td className="border-r px-3 text-left">{row.TEN_BTP}</td>
+                                                            <td className="border-r px-2 text-right font-mono">{num(row.SL_SX)}</td>
+                                                            <td className="border-r text-slate-400">{row.DVT_BTP}</td>
+                                                            <td className="border-r font-mono">{row.NVL || '—'}</td>
+                                                            <td className="border-r px-3 text-left">{row.TEN_NVL || '—'}</td>
+                                                            <td className="border-r text-slate-400">{row.DVT_NVL}</td>
+                                                            <td className="border-r px-2 text-right font-mono">{num(row.SL_NVL_XUAT)}</td>
+                                                            <td className="border-r px-2 text-right font-mono">{num(row.TIEN_NVL, 0)}</td>
+                                                            <td className="border-r font-mono text-emerald-700">{row.SO_PHIEU_NHAP || '—'}</td>
+                                                            <td className="border-r">{row.NGAY_NHAP || '—'}</td>
+                                                            <td className="border-r">{row.KHO_NHAP || '—'}</td>
+                                                            <td className="border-r px-2 text-right font-mono">{num(row.SL_NHAP)}</td>
+                                                            <td className={`border-r px-2 text-right font-mono ${row.CHENH_SL != null && Number(row.CHENH_SL) !== 0 ? 'font-black text-rose-600' : 'text-slate-300'}`}>{num(row.CHENH_SL)}</td>
+                                                            <td className={`px-2 text-left font-black ${bad ? 'text-rose-600' : warn ? 'text-amber-600' : nogoc ? 'text-violet-600' : 'text-emerald-600'}`}>{row.TRANG_THAI}</td>
+                                                            <td className="px-3 text-left text-slate-500">{row.GHI_CHU || ''}</td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                                {btpVS.bottomPadding > 0 && <tr><td colSpan={100} style={{ height: btpVS.bottomPadding, padding: 0, border: 0 }}></td></tr>}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div className="p-4 bg-white border-t flex justify-between items-center px-10 shrink-0 z-40 shadow-inner">
+                                        <div className="flex items-center gap-8">
+                                            <div className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic underline">iPOS Accounting Report</div>
+                                        </div>
+                                        <div className="flex items-center gap-6">
+                                            <div className="flex items-center gap-2">
+                                                <PageJumper page={btpPagination.page} totalPages={btpPagination.total_pages} onGoto={p => loadBtpData(p)} />
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-col items-end">
+                                            <span className="text-[9px] font-black text-slate-300 uppercase tracking-tighter">XKHOSXBTP → NSP</span>
+                                            <span className="text-[11px] font-black text-indigo-400 uppercase tracking-widest">
+                                                Trang {btpPagination.page} / {btpPagination.total_pages}
                                             </span>
                                         </div>
                                     </div>

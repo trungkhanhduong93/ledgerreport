@@ -2164,6 +2164,437 @@ def get_warehouse_balance_stream_csv():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
+# =============== ĐỐI CHIẾU XUẤT KHO SX BTP → NHẬP KHO THÀNH PHẨM ===============
+# Danh sách RIÊNG BIỆT. Mỗi dòng = 1 nguyên liệu trên phiếu xuất XKHOSXBTP, kèm phiếu nhập
+# NSP tương ứng của đúng bán thành phẩm đó.
+#
+# LUẬT NGHIỆP VỤ (Chú Long xác nhận): nhập kho thành phẩm BẮT BUỘC bấm ngay trên phiếu xuất
+# kho SX BTP. Chỉ khi bấm từ đó, phiếu NSP mới được ghi PURCHASE.SALE_PR_KEY trỏ ngược về
+# phiếu xuất. Tạo 2 phiếu độc lập ⇒ KHÔNG có cách nào đối chiếu.
+#   ⇒ Nối phiếu CHỈ bằng PURCHASE.SALE_PR_KEY = SALE.PR_KEY.
+#   ⇒ CẤM nối theo số phiếu: số phiếu trùng nhau giữa các đơn vị, và cặp (đơn vị + số phiếu)
+#      cũng không duy nhất (35 ca trùng trong 2026).
+#
+# SỐ LƯỢNG — 3 trường khác nhau, đừng lẫn:
+#   JOB_QTY        = SL bán thành phẩm SẢN XUẤT (duy nhất theo cặp phiếu × BTP)
+#   QUANTITY (X)   = SL NGUYÊN LIỆU xuất dùng, từng dòng
+#   QUANTITY (N)   = SL thành phẩm nhập kho, theo ĐVT cơ bản
+#   QUANTITY_EXTRA = cùng số đó nhưng theo ĐVT nhập liệu (202 BỊCH = 202.000 G)
+# JOB_QTY có thể ghi theo MỘT TRONG HAI đơn vị tuỳ người nhập ⇒ lấy mốc gần hơn để so.
+# So thẳng JOB_QTY với QUANTITY sẽ đẻ ra 1.091 ca "sai" hoàn toàn giả (đã đo trên DB thật).
+BTP_TT_DU   = "Đã nhập đủ"
+BTP_TT_CHUA = "Chưa nhập kho BTP"
+BTP_TT_LECH = "Lệch số lượng"
+# Chiều ngược: phiếu NHẬP không truy được về phiếu xuất. Hai gốc rễ, cùng một hậu quả —
+#   (1) làm tay: tạo phiếu nhập độc lập, không bấm từ phiếu xuất  ⇒ SALE_PR_KEY = 0
+#   (2) phiếu xuất bị xoá (hoặc xoá rồi lập lại ⇒ cấp khoá mới)   ⇒ khoá trỏ về chỗ trống
+BTP_TT_KHONGGOC = "Không tìm thấy phiếu xuất liên quan"
+
+BTP_STATUS_MAP = {"du": BTP_TT_DU, "chua": BTP_TT_CHUA,
+                  "lech": BTP_TT_LECH, "khonggoc": BTP_TT_KHONGGOC}
+
+BTPDC_SORT_WHITELIST = {c: c for c in [
+    "DON_VI", "TEN_DON_VI", "NGAY_XUAT", "SO_PHIEU_XUAT", "KHO_XUAT", "TEN_KHO_XUAT",
+    "BTP", "TEN_BTP", "SL_SX", "DVT_BTP", "NVL", "TEN_NVL", "DVT_NVL",
+    "SL_NVL_XUAT", "TIEN_NVL", "SO_PHIEU_NHAP", "NGAY_NHAP", "KHO_NHAP",
+    "SL_NHAP", "CHENH_SL", "TIEN_NHAP", "TRANG_THAI", "GHI_CHU",
+]}
+
+BTPDC_CSV_COLS = [
+    ("DON_VI", "Mã ĐV"), ("TEN_DON_VI", "Tên đơn vị"),
+    ("NGAY_XUAT", "Ngày xuất"), ("SO_PHIEU_XUAT", "Phiếu xuất"),
+    ("KHO_XUAT", "Mã kho xuất"), ("TEN_KHO_XUAT", "Tên kho xuất"),
+    ("BTP", "Mã BTP"), ("TEN_BTP", "Tên BTP"),
+    ("SL_SX", "SL sản xuất"), ("DVT_BTP", "ĐVT BTP"),
+    ("NVL", "Mã NVL"), ("TEN_NVL", "Tên nguyên liệu"), ("DVT_NVL", "ĐVT NVL"),
+    ("SL_NVL_XUAT", "SL NVL xuất"), ("TIEN_NVL", "Tiền NVL"),
+    ("SO_PHIEU_NHAP", "Phiếu nhập"), ("NGAY_NHAP", "Ngày nhập"), ("KHO_NHAP", "Kho nhập"),
+    ("SL_NHAP", "SL nhập"), ("CHENH_SL", "Chênh SL"), ("TIEN_NHAP", "Tiền nhập"),
+    ("TRANG_THAI", "Trạng thái"), ("GHI_CHU", "Ghi chú"),
+]
+
+# CTE dựng sẵn bảng đối chiếu DC. {inner} = điều kiện lọc sớm trên dòng xuất (ngày/đơn vị/kho/NVL)
+_BTPDC_CTE = """
+WITH X AS (
+    SELECT W.PR_KEY, W.TRAN_NO, W.TRAN_DATE, W.ORGANIZATION_ID, W.WAREHOUSE_ID,
+           W.ITEM_ID, W.PRODUCT_ID, W.QUANTITY, W.AMOUNT, W.JOB_QTY
+    FROM dbo.WAREHOUSE W WITH (NOLOCK)
+    WHERE W.TRAN_ID = 'XKHOSXBTP' AND W.ISSUE_RECEIVE = 'X' AND {inner}
+),
+P AS (
+    SELECT PR_KEY, TRAN_NO, TRAN_DATE, SALE_PR_KEY
+    FROM dbo.PURCHASE WITH (NOLOCK)
+    WHERE TRAN_ID = 'NSP' AND SALE_PR_KEY IS NOT NULL AND SALE_PR_KEY <> 0
+),
+N0 AS (
+    SELECT P.SALE_PR_KEY, WN.ITEM_ID AS BTP_ID, P.TRAN_NO, P.TRAN_DATE, WN.WAREHOUSE_ID,
+           SL = SUM(WN.QUANTITY), SL_NG = SUM(ISNULL(WN.QUANTITY_EXTRA, 0)), TIEN = SUM(WN.AMOUNT)
+    FROM P
+    JOIN dbo.WAREHOUSE WN WITH (NOLOCK) ON WN.PR_KEY = P.PR_KEY AND WN.ISSUE_RECEIVE = 'N'
+    GROUP BY P.SALE_PR_KEY, WN.ITEM_ID, P.TRAN_NO, P.TRAN_DATE, WN.WAREHOUSE_ID
+),
+N AS (
+    SELECT SALE_PR_KEY, BTP_ID,
+           SO_PHIEU_NHAP = STRING_AGG(TRAN_NO, ' + '),
+           NGAY_NHAP     = MIN(TRAN_DATE),
+           KHO_NHAP      = STRING_AGG(WAREHOUSE_ID, ' + '),
+           SL_NHAP       = SUM(SL),
+           SL_NHAP_NG    = SUM(SL_NG),
+           TIEN_NHAP     = SUM(TIEN)
+    FROM N0 GROUP BY SALE_PR_KEY, BTP_ID
+),
+ORPH_H AS (
+    -- Đầu phiếu NHẬP không truy được về phiếu xuất (lọc mức phiếu: ngày nhập + đơn vị)
+    SELECT P2.PR_KEY, P2.ORGANIZATION_ID, P2.ORIG_TRAN_NO, P2.TRAN_NO, P2.TRAN_DATE
+    FROM dbo.PURCHASE P2 WITH (NOLOCK)
+    LEFT JOIN dbo.SALE S2 WITH (NOLOCK) ON S2.PR_KEY = P2.SALE_PR_KEY
+    WHERE P2.TRAN_ID = 'NSP'
+      AND (P2.SALE_PR_KEY IS NULL OR P2.SALE_PR_KEY = 0 OR S2.PR_KEY IS NULL)
+      AND {inner_orph}
+),
+ORPH_X AS (
+    -- Số chứng từ xuất ghi trên phiếu nhập giờ còn dẫn tới phiếu nào không?
+    -- JOIN một lượt thay vì OUTER APPLY từng dòng (SALE không có index trên TRAN_NO).
+    SELECT H.PR_KEY, PK_MOI = MAX(S3.PR_KEY)
+    FROM ORPH_H H
+    JOIN dbo.SALE S3 WITH (NOLOCK)
+      ON S3.TRAN_NO = H.ORIG_TRAN_NO
+     AND S3.ORGANIZATION_ID = H.ORGANIZATION_ID
+     AND S3.TRAN_ID = 'XKHOSXBTP'
+    GROUP BY H.PR_KEY
+),
+ORPH_N AS (
+    -- Phiếu xuất đó đã có phiếu nhập KHÁC nối vào chưa ⇒ nghi nhập trùng
+    SELECT X.PR_KEY, NSP_KHAC = MAX(P3.TRAN_NO)
+    FROM ORPH_X X
+    JOIN dbo.PURCHASE P3 WITH (NOLOCK)
+      ON P3.TRAN_ID = 'NSP' AND P3.SALE_PR_KEY = X.PK_MOI AND P3.PR_KEY <> X.PR_KEY
+    GROUP BY X.PR_KEY
+),
+ORPH AS (
+    -- Mỗi dòng = 1 mã BTP đã nhập. Phần xuất để trống vì không có phiếu xuất để lấy.
+    SELECT
+        PR_KEY_XUAT   = 'N' + CAST(CAST(H.PR_KEY AS bigint) AS varchar(30)),
+        DON_VI        = H.ORGANIZATION_ID,
+        TEN_DON_VI    = MAX(O2.ORGANIZATION_NAME),
+        NGAY_XUAT     = CAST(NULL AS smalldatetime),
+        SO_PHIEU_XUAT = NULLIF(LTRIM(RTRIM(H.ORIG_TRAN_NO)), ''),
+        KHO_XUAT      = CAST(NULL AS nvarchar(20)),
+        TEN_KHO_XUAT  = CAST(NULL AS nvarchar(150)),
+        BTP           = WN2.ITEM_ID,
+        TEN_BTP       = MAX(BI2.ITEM_NAME),
+        SL_SX         = CAST(NULL AS decimal(18, 6)),
+        DVT_BTP       = MAX(BI2.UNIT_ID),
+        NVL           = CAST(NULL AS nvarchar(20)),
+        TEN_NVL       = CAST(NULL AS nvarchar(150)),
+        DVT_NVL       = CAST(NULL AS nvarchar(20)),
+        SL_NVL_XUAT   = CAST(NULL AS decimal(18, 6)),
+        TIEN_NVL      = CAST(NULL AS decimal(18, 6)),
+        SO_PHIEU_NHAP = H.TRAN_NO,
+        NGAY_NHAP     = H.TRAN_DATE,
+        KHO_NHAP      = WN2.WAREHOUSE_ID,
+        SL_NHAP       = SUM(WN2.QUANTITY),
+        TIEN_NHAP     = SUM(WN2.AMOUNT),
+        CHENH_SL      = CAST(NULL AS decimal(18, 6)),
+        TRANG_THAI    = N'{tt_khonggoc}',
+        GHI_CHU       = CASE
+            WHEN NULLIF(LTRIM(RTRIM(H.ORIG_TRAN_NO)), '') IS NULL
+                 THEN N'Làm tay — không bấm từ phiếu xuất nào, không dựng lại được'
+            WHEN MAX(XM.PK_MOI) IS NULL
+                 THEN N'Phiếu xuất đã bị xoá — không còn phiếu nào cùng số, phải lập lại phiếu xuất'
+            WHEN MAX(NK.NSP_KHAC) IS NOT NULL
+                 THEN N'NGHI NHẬP TRÙNG — phiếu xuất đã có phiếu nhập khác: ' + MAX(NK.NSP_KHAC)
+            ELSE N'Liên kết đứt — phiếu xuất đã lập lại (khoá mới), chưa có phiếu nhập nào nối vào'
+        END
+    FROM ORPH_H H
+    JOIN dbo.WAREHOUSE WN2 WITH (NOLOCK) ON WN2.PR_KEY = H.PR_KEY AND WN2.ISSUE_RECEIVE = 'N'
+    LEFT JOIN ORPH_X XM ON XM.PR_KEY = H.PR_KEY
+    LEFT JOIN ORPH_N NK ON NK.PR_KEY = H.PR_KEY
+    LEFT JOIN dbo.DM_ITEM         BI2 WITH (NOLOCK) ON BI2.ITEM_ID = WN2.ITEM_ID
+    LEFT JOIN dbo.DM_ORGANIZATION O2  WITH (NOLOCK) ON O2.ORGANIZATION_ID = H.ORGANIZATION_ID
+    WHERE {inner_orph_wh}
+    GROUP BY H.PR_KEY, H.ORGANIZATION_ID, H.ORIG_TRAN_NO, H.TRAN_NO, H.TRAN_DATE,
+             WN2.WAREHOUSE_ID, WN2.ITEM_ID
+),
+DC AS (
+    SELECT
+        PR_KEY_XUAT   = CAST(CAST(X.PR_KEY AS bigint) AS varchar(30)),
+        DON_VI        = X.ORGANIZATION_ID,
+        TEN_DON_VI    = O.ORGANIZATION_NAME,
+        NGAY_XUAT     = X.TRAN_DATE,
+        SO_PHIEU_XUAT = X.TRAN_NO,
+        KHO_XUAT      = X.WAREHOUSE_ID,
+        TEN_KHO_XUAT  = WH.WAREHOUSE_NAME,
+        BTP           = X.PRODUCT_ID,
+        TEN_BTP       = BI.ITEM_NAME,
+        SL_SX         = X.JOB_QTY,
+        DVT_BTP       = BI.UNIT_ID,
+        NVL           = X.ITEM_ID,
+        TEN_NVL       = DI.ITEM_NAME,
+        DVT_NVL       = DI.UNIT_ID,
+        SL_NVL_XUAT   = X.QUANTITY,
+        TIEN_NVL      = X.AMOUNT,
+        SO_PHIEU_NHAP = N.SO_PHIEU_NHAP,
+        NGAY_NHAP     = N.NGAY_NHAP,
+        KHO_NHAP      = N.KHO_NHAP,
+        SL_NHAP       = MOC.SL_MOC,
+        TIEN_NHAP     = N.TIEN_NHAP,
+        CHENH_SL      = CASE WHEN N.SL_NHAP IS NULL THEN X.JOB_QTY
+                             ELSE X.JOB_QTY - MOC.SL_MOC END,
+        TRANG_THAI    = CASE WHEN N.SL_NHAP IS NULL       THEN N'{tt_chua}'
+                             WHEN X.JOB_QTY = MOC.SL_MOC  THEN N'{tt_du}'
+                             ELSE                              N'{tt_lech}' END,
+        GHI_CHU       = CAST(NULL AS nvarchar(200))
+    FROM X
+    LEFT JOIN N ON N.SALE_PR_KEY = X.PR_KEY AND N.BTP_ID = X.PRODUCT_ID
+    OUTER APPLY (SELECT SL_MOC = CASE
+            WHEN N.SL_NHAP IS NULL THEN NULL
+            WHEN ABS(X.JOB_QTY - N.SL_NHAP) <= ABS(X.JOB_QTY - N.SL_NHAP_NG) THEN N.SL_NHAP
+            ELSE N.SL_NHAP_NG END) MOC
+    LEFT JOIN dbo.DM_ITEM         DI WITH (NOLOCK) ON DI.ITEM_ID = X.ITEM_ID
+    LEFT JOIN dbo.DM_ITEM         BI WITH (NOLOCK) ON BI.ITEM_ID = X.PRODUCT_ID
+    LEFT JOIN dbo.DM_WAREHOUSE    WH WITH (NOLOCK) ON WH.WAREHOUSE_ID = X.WAREHOUSE_ID
+    LEFT JOIN dbo.DM_ORGANIZATION O  WITH (NOLOCK) ON O.ORGANIZATION_ID = X.ORGANIZATION_ID
+
+    UNION ALL SELECT * FROM ORPH
+)
+"""
+
+_BTPDC_SELECT = ", ".join([
+    "PR_KEY_XUAT", "DON_VI", "TEN_DON_VI", "NGAY_XUAT", "SO_PHIEU_XUAT",
+    "KHO_XUAT", "TEN_KHO_XUAT", "BTP", "TEN_BTP", "SL_SX", "DVT_BTP",
+    "NVL", "TEN_NVL", "DVT_NVL", "SL_NVL_XUAT", "TIEN_NVL",
+    "SO_PHIEU_NHAP", "NGAY_NHAP", "KHO_NHAP", "SL_NHAP", "CHENH_SL", "TIEN_NHAP",
+    "TRANG_THAI", "GHI_CHU",
+])
+
+
+def _btp_cte(inner_sql, inner_orph_sql, inner_orph_wh_sql):
+    return _BTPDC_CTE.replace("{inner_orph_wh}", inner_orph_wh_sql) \
+                     .replace("{inner_orph}", inner_orph_sql) \
+                     .replace("{inner}", inner_sql) \
+                     .replace("{tt_chua}", BTP_TT_CHUA) \
+                     .replace("{tt_du}", BTP_TT_DU) \
+                     .replace("{tt_lech}", BTP_TT_LECH) \
+                     .replace("{tt_khonggoc}", BTP_TT_KHONGGOC)
+
+
+def _build_btp_where(request_args):
+    """Trả (cte_sql, outer_where, params) — params đúng thứ tự dấu ? (Bẫy 5: inner trước outer)."""
+    f_date = request_args.get("from_date", "01/01/2026")
+    t_date = request_args.get("to_date",  "31/12/2026")
+    from_dt = datetime.strptime(f_date, "%d/%m/%Y").date()
+    to_dt   = datetime.strptime(t_date, "%d/%m/%Y").date()
+
+    d1, d2 = from_dt.strftime("%Y%m%d"), to_dt.strftime("%Y%m%d")
+
+    # Nhánh phiếu xuất: lọc theo ngày phiếu XUẤT
+    inner   = ["W.TRAN_DATE >= ?", "W.TRAN_DATE <= ?"]
+    iparams = [d1, d2]
+    # Nhánh phiếu nhập mồ côi: không có phiếu xuất nên lọc theo ngày phiếu NHẬP
+    orph    = ["P2.TRAN_DATE >= ?", "P2.TRAN_DATE <= ?"]   # mức phiếu
+    oiparams = [d1, d2]
+    orph_wh, owparams = [], []                                # mức dòng (kho nhập)
+
+    for field, ofield, arg in [("W.ORGANIZATION_ID", "P2.ORGANIZATION_ID",  "org_ids"),
+                               ("W.WAREHOUSE_ID",    "WN2.WAREHOUSE_ID",    "wh_ids"),
+                               ("W.ITEM_ID",         None,                  "item_ids"),
+                               ("W.PRODUCT_ID",      "WN2.ITEM_ID",         "btp_ids")]:
+        vals = [v for v in request_args.get(arg, "").split(",") if v]
+        if vals:
+            inner.append(f"{field} IN ({','.join(['?'] * len(vals))})")
+            iparams.extend(vals)
+            if ofield and ofield.startswith("WN2."):      # lọc ở mức dòng
+                orph_wh.append(f"{ofield} IN ({','.join(['?'] * len(vals))})")
+                owparams.extend(vals)
+            elif ofield:                                   # lọc ở mức phiếu
+                orph.append(f"{ofield} IN ({','.join(['?'] * len(vals))})")
+                oiparams.extend(vals)
+            else:
+                # Lọc theo nguyên liệu ⇒ dòng phiếu nhập mồ côi không có NVL nên bị loại hẳn
+                orph.append("1 = 0")
+        elif arg == "org_ids":
+            # Không chọn đơn vị ⇒ loại đơn vị ngoài cây '00', giống mọi báo cáo khác.
+            _oc, _op = _org_filter_sql([], field)
+            if _oc:
+                inner.append(_oc)
+                iparams.extend(_op)
+            _oc2, _op2 = _org_filter_sql([], ofield)
+            if _oc2:
+                orph.append(_oc2)
+                oiparams.extend(_op2)
+
+    outer, oparams = [], []
+    st = BTP_STATUS_MAP.get(request_args.get("status", "").strip())
+    if st:
+        outer.append("TRANG_THAI = ?")
+        oparams.append(st)
+
+    for field, arg, like in [("DON_VI", "s_org_id", "{}%"), ("TEN_DON_VI", "s_org_name", "%{}%"),
+                             ("SO_PHIEU_XUAT", "s_tran_no", "{}%"), ("KHO_XUAT", "s_wh_id", "{}%"),
+                             ("BTP", "s_btp", "{}%"), ("TEN_BTP", "s_btp_name", "%{}%"),
+                             ("NVL", "s_nvl", "{}%"), ("TEN_NVL", "s_nvl_name", "%{}%"),
+                             ("SO_PHIEU_NHAP", "s_nsp_no", "{}%")]:
+        val = request_args.get(arg, "").strip()
+        if val:
+            outer.append(f"{field} LIKE ?")
+            oparams.append(like.format(val))
+
+    # Thứ tự params PHẢI đúng thứ tự dấu ? trong SQL (Bẫy 5):
+    # CTE X (iparams) → CTE ORPH (oiparams) → WHERE ngoài (oparams)
+    return (_btp_cte(" AND ".join(inner), " AND ".join(orph),
+                     " AND ".join(orph_wh) if orph_wh else "1 = 1"),
+            (" AND ".join(outer) if outer else "1=1"),
+            iparams + oiparams + owparams + oparams)
+
+
+def _btp_fmt_rows(columns, raw_rows):
+    rows = []
+    for raw in raw_rows:
+        r = dict(zip(columns, raw))
+        for dk in ("NGAY_XUAT", "NGAY_NHAP"):
+            v = r.get(dk)
+            if isinstance(v, (date, datetime)):
+                r[dk] = v.strftime("%d/%m/%Y")
+        for nk in ("SL_SX", "SL_NVL_XUAT", "TIEN_NVL", "SL_NHAP", "CHENH_SL", "TIEN_NHAP"):
+            v = r.get(nk)
+            if v is not None:
+                try: r[nk] = float(v)
+                except: pass
+        pk = r.pop("PR_KEY_XUAT", None)
+        r["PR_KEY_XUAT"] = str(pk) if pk is not None else ""
+        rows.append(r)
+    return rows
+
+
+def _btp_summary(cursor, cte, where_sql, params):
+    """Thống kê theo trạng thái — dùng luôn làm COUNT, khỏi quét bảng thêm lần nữa."""
+    cursor.execute(f"""
+        {cte}
+        SELECT TRANG_THAI, SO_DONG = COUNT(*),
+               SO_PHIEU = COUNT(DISTINCT CAST(PR_KEY_XUAT AS varchar(30))),
+               SO_CAP   = COUNT(DISTINCT CONCAT(CAST(PR_KEY_XUAT AS varchar(30)), '|', BTP)),
+               TIEN_NVL = SUM(TIEN_NVL)
+        FROM DC WHERE {where_sql}
+        GROUP BY TRANG_THAI
+    """, params)
+    out = {"tong_dong": 0, "so_cap": {}, "so_phieu": {}, "tien": {}}
+    for tt, so_dong, so_phieu, so_cap, tien in cursor.fetchall():
+        tt = (tt or "").strip()
+        out["tong_dong"] += int(so_dong or 0)
+        out["so_cap"][tt] = int(so_cap or 0)
+        out["so_phieu"][tt] = int(so_phieu or 0)
+        out["tien"][tt] = float(tien or 0)
+    return out
+
+
+@app.route("/api/btp_reconcile")
+@with_db_lock
+def get_btp_reconcile():
+    try:
+        page      = int(request.args.get("page", 1))
+        page_size = int(request.args.get("page_size", 100))
+        export_all  = request.args.get("export_all") == "1"
+        known_total = request.args.get("known_total")
+        skip_count  = page > 1 and known_total is not None and not export_all
+
+        cte, where_sql, params = _build_btp_where(request.args)
+        order_by_sql = _resolve_order_by(
+            request.args, BTPDC_SORT_WHITELIST,
+            "DON_VI, NGAY_XUAT, SO_PHIEU_XUAT, BTP, NVL"
+        )
+
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        summary = None
+        if export_all:
+            cursor.execute(f"{cte} SELECT {_BTPDC_SELECT} FROM DC WHERE {where_sql} ORDER BY {order_by_sql}", params)
+            columns  = [c[0] for c in cursor.description]
+            raw_rows = cursor.fetchall()
+            total_rows = len(raw_rows)
+        else:
+            if skip_count:
+                total_rows = int(known_total)
+            else:
+                summary = _btp_summary(cursor, cte, where_sql, params)
+                total_rows = summary["tong_dong"]
+
+            offset = (page - 1) * page_size
+            cursor.execute(f"""
+                {cte}
+                SELECT * FROM (
+                    SELECT {_BTPDC_SELECT},
+                           ROW_NUMBER() OVER (ORDER BY {order_by_sql}) AS RowNum
+                    FROM DC WHERE {where_sql}
+                ) AS T WHERE RowNum > ? AND RowNum <= ?
+            """, params + [offset, offset + page_size])
+            columns  = [c[0] for c in cursor.description]
+            raw_rows = cursor.fetchall()
+
+        return jsonify({
+            "status": "ok",
+            "data": _btp_fmt_rows(columns, raw_rows),
+            "summary": summary,
+            "pagination": {
+                "total_rows": total_rows,
+                "total_pages": max(1, (total_rows + page_size - 1) // page_size),
+                "page": page if not export_all else 1
+            }
+        })
+    except Exception as e:
+        msg = str(e)
+        if "đăng nhập" not in msg:
+            invalidate_pool()
+        return jsonify({"status": "error", "message": msg}), 401 if "đăng nhập" in msg else 500
+
+
+@app.route("/api/btp_reconcile/count")
+@with_db_lock
+def get_btp_reconcile_count():
+    try:
+        cte, where_sql, params = _build_btp_where(request.args)
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute(f"{cte} SELECT COUNT(*) FROM DC WHERE {where_sql}", params)
+        total = cursor.fetchone()[0] or 0
+        return jsonify({"status": "ok", "total": int(total)})
+    except Exception as e:
+        msg = str(e)
+        if "đăng nhập" not in msg:
+            invalidate_pool()
+        return jsonify({"status": "error", "message": msg}), 401 if "đăng nhập" in msg else 500
+
+
+@app.route("/api/btp_reconcile/stream_csv", methods=["POST", "GET"])
+def get_btp_reconcile_stream_csv():
+    try:
+        args = request.args
+        total_estimate = int(args.get("total", 0) or 0)
+        cte, where_sql, params = _build_btp_where(args)
+        order_by_sql = _resolve_order_by(
+            args, BTPDC_SORT_WHITELIST, "DON_VI, NGAY_XUAT, SO_PHIEU_XUAT, BTP, NVL"
+        )
+        sql = f"{cte} SELECT {_BTPDC_SELECT} FROM DC WHERE {where_sql} ORDER BY {order_by_sql}"
+
+        def transform(raw, sql_cols):
+            d = dict(zip(sql_cols, raw))
+            out = []
+            for key, _ in BTPDC_CSV_COLS:
+                v = d.get(key)
+                if isinstance(v, (date, datetime)):
+                    v = v.strftime("%d/%m/%Y")
+                out.append(v)
+            return out
+
+        headers = [label for _, label in BTPDC_CSV_COLS]
+        fname   = f"DoiChieuXuatSX_NhapTP_{args.get('from_date','').replace('/','')}-{args.get('to_date','').replace('/','')}.{args.get('format', 'csv')}"
+        job_id  = _start_export_job(fname, headers, sql, params, transform, total_estimate)
+        return jsonify({"status": "ok", "job_id": job_id, "filename": fname})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
 # =============== SALE_VIEW (Danh sách chứng từ bán hàng) ===============
 # Nguồn dbo.SALE_VIEW (152 cột, mức dòng hàng). ITEM_NAME/JOB_NAME/PR_DETAIL_NAME
 # đã có sẵn trong view; ORGANIZATION_NAME/EXPENSE_NAME lấy qua JOIN như Purchase.

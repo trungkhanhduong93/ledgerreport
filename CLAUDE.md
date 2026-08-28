@@ -111,12 +111,40 @@ Trình duyệt (Chrome --app)  ──HTTP──>  Flask (server.py, cổng 5050)
 
 ### 1.1 Màn hình
 
-**7 tab dữ liệu thô** (đều virtual-scroll, lọc theo cột, xuất CSV stream):
+**8 tab dữ liệu thô** (đều virtual-scroll, lọc theo cột, xuất CSV stream):
 `ledger` (chứng từ tổng hợp) · `sale` · `purchase` · `warehouse` · `warehouse_balance` (tồn kho thực tế) ·
-`voucher` (chứng từ tiền) · `report`.
+`voucher` (chứng từ tiền) · `btp_reconcile` (đối chiếu xuất SX BTP – nhập TP) · `report`.
 
 > Tab `income_alloc` (doanh thu chờ phân bổ) đã **gỡ hẳn 16/08/2026** — nó vốn của LedgerStudio,
 > bị copy nhầm sang đây và chết hoàn toàn trên `IACC_CHULONG` vì cột `RECEIVE_DATE` không tồn tại.
+
+#### `btp_reconcile` — đối chiếu xuất kho SX BTP → nhập kho thành phẩm *(thêm 28/08/2026)*
+
+Nằm trong nhóm "Danh sách" nhưng **không phải danh sách thô**: mỗi dòng là kết quả ghép
+`SALE` (phiếu xuất `XKHOSXBTP`) + `WAREHOUSE` (dòng nguyên liệu) + `PURCHASE` (phiếu nhập `NSP`).
+Endpoint `/api/btp_reconcile` (+ `/count`, `/stream_csv`).
+
+**Luật nghiệp vụ Chú Long xác nhận:** nhập kho thành phẩm **bắt buộc bấm ngay trên phiếu xuất SX**.
+Chỉ khi đó `PURCHASE.SALE_PR_KEY` mới được ghi trỏ về phiếu xuất. Tạo hai phiếu độc lập ⇒
+**không có cách nào đối chiếu**.
+- Nối phiếu **CHỈ** bằng `PURCHASE.SALE_PR_KEY = SALE.PR_KEY`, thêm tầng hai theo mã BTP.
+- ⛔ **Cấm nối theo số phiếu**: số phiếu trùng giữa các đơn vị, và cặp (đơn vị + số phiếu) cũng
+  không duy nhất (35 ca trùng trong 2026).
+- 1 phiếu = cùng (đơn vị + ngày + số phiếu + kho xuất) — đã kiểm: duy nhất trên cả 19.423 phiếu.
+
+**Ba trường số lượng, đừng lẫn:** `JOB_QTY` = SL bán thành phẩm sản xuất (duy nhất theo cặp
+phiếu × BTP) · `QUANTITY` dòng xuất = SL nguyên liệu dùng · `QUANTITY` dòng nhập = SL thành phẩm
+nhập kho. ⚠️ `JOB_QTY` ghi theo **ĐVT cơ bản HOẶC ĐVT nhập liệu** tuỳ người gõ (202 BỊCH =
+202.000 G) ⇒ phải so với mốc gần hơn giữa `QUANTITY` và `QUANTITY_EXTRA`. So thẳng `JOB_QTY`
+với `QUANTITY` cho ra **1.091 ca "sai" hoàn toàn giả** (đã đo trên DB thật).
+
+4 trạng thái: `Đã nhập đủ` · `Chưa nhập kho BTP` · `Lệch số lượng` · `Không tìm thấy phiếu xuất
+liên quan` (chiều ngược — phiếu nhập không truy được về phiếu xuất; cột **Ghi chú** nói rõ là
+*làm tay* / *phiếu xuất đã xoá* / *liên kết đứt do lập lại* / *nghi nhập trùng*).
+
+⚠️ Hiệu năng: truy vấn dựng lại toàn bộ CTE mỗi lần gọi (~6–8s cho kỳ 1 tháng). Nhánh phiếu nhập
+mồ côi **phải join một lượt**, đừng dùng `OUTER APPLY` tương quan — `SALE` 1 triệu dòng không có
+index trên `TRAN_NO`, bản đầu viết kiểu đó làm tab tụt xuống 22–34 giây.
 
 ### 1.2 Ma trận báo cáo — **BC001 → BC014**
 

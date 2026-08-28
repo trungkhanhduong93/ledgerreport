@@ -6207,8 +6207,13 @@ def _cleanup_old_executables(retry_seconds=0):
     while True:
         con_lai = []
         try:
+            dang_tai = _update_state.get("status") in ("downloading", "applying")
             for fname in os.listdir(exe_dir):
                 if not (fname.endswith(".old") or fname.endswith(".new") or fname.endswith(".tmp_dl")):
+                    continue
+                # Vòng retry chạy tới 60s; nếu user bấm cập nhật trong lúc đó thì file .new
+                # đang được ghi dở — xoá là giết luôn bản đang tải.
+                if dang_tai and not fname.endswith(".old"):
                     continue
                 try:
                     os.remove(os.path.join(exe_dir, fname))
@@ -6219,6 +6224,30 @@ def _cleanup_old_executables(retry_seconds=0):
         if not con_lai or time.time() >= deadline:
             return
         time.sleep(1.0)
+
+def _child_env_without_pyi():
+    """Env sạch để spawn EXE mới — PHẢI gỡ các biến bootloader PyInstaller onefile.
+
+    ⚠️ BẪY ĐÃ LÀM CHẾT TÍNH NĂNG TỰ CẬP NHẬT (28/08/2026): `subprocess.Popen([exe_path])`
+    kế thừa nguyên env của tiến trình đang chạy, trong đó bootloader onefile đã đặt
+    `_PYI_APPLICATION_HOME_DIR` / `_PYI_ARCHIVE_FILE` / `_PYI_PARENT_PROCESS_LEVEL`
+    (bản PyInstaller <=5 tên là `_MEIPASS2`). Bootloader của EXE MỚI thấy các biến này thì
+    hiểu nhầm mình là tiến trình con giai đoạn 2 của cha, nên đối chiếu executable của tiến
+    trình cha với chính mình — cha là `...exe.old` (vừa bị đổi tên), con là `...exe` ⇒ KHÁC ⇒
+    dừng ngay ở tầng bootloader với hộp thoại:
+        Security validation failure: parent process has different executable!
+    Python chưa chạy được dòng nào, nên `.old` cũng không ai dọn.
+    Triệu chứng người dùng: *"tải về xong chỉ thấy đổi EXE cũ thành .old, mở bản mới thì báo lỗi"*.
+
+    Đo thế nào cho đúng: tiến trình bản mới VẪN nằm trong `tasklist` nhưng chỉ ~10 MB RAM
+    (bootloader đang giữ hộp thoại) và KHÔNG LISTENING cổng 5050. Đã tái hiện + verify fix
+    ngày 28/08/2026 bằng chính EXE tải từ GitHub Release.
+    """
+    env = os.environ.copy()
+    for k in ("_PYI_APPLICATION_HOME_DIR", "_PYI_ARCHIVE_FILE", "_PYI_PARENT_PROCESS_LEVEL",
+              "_PYI_SPLASH_IPC", "_MEIPASS2"):
+        env.pop(k, None)
+    return env
 
 def _parse_semver(v_str):
     """Trích xuất tuple (major, minor, patch) từ chuỗi version ví dụ v1.8.6 -> (1, 8, 6)"""
@@ -6421,16 +6450,19 @@ def apply_update_api():
 
             # 5. Khởi chạy bản mới độc lập (tách khỏi process tree để không bị kill chéo)
             time.sleep(0.8)
+            child_env = _child_env_without_pyi()   # xem _child_env_without_pyi: thiếu là bản mới chết
             if platform.system() == "Windows":
                 DETACHED_PROCESS = 0x00000008
                 CREATE_NEW_PROCESS_GROUP = 0x00000200
                 subprocess.Popen(
                     [exe_path],
                     creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP,
-                    close_fds=True
+                    close_fds=True,
+                    cwd=exe_dir,
+                    env=child_env
                 )
             else:
-                subprocess.Popen([exe_path], close_fds=True)
+                subprocess.Popen([exe_path], close_fds=True, cwd=exe_dir, env=child_env)
 
             # Đóng pool SQL và thoát tiến trình cũ trực tiếp
             try:
@@ -6613,6 +6645,30 @@ if __name__ == "__main__":
 
         # User đã đóng cửa sổ → shutdown toàn bộ
         _shutdown_everything("Cua so app da bi dong")
+
+    def _wait_port_free(port, timeout=6):
+        """Đợi cổng được nhả. Sau khi tự cập nhật, bản mới khởi chạy trong lúc bản cũ còn
+        vài trăm ms nữa mới thoát — bind ngay là OSError 10048 rồi rơi vào `finally` tự tắt,
+        người dùng thấy "cập nhật xong mở lên là tắt ngay".
+
+        Timeout để ngắn có chủ đích: Werkzeug bind kèm SO_REUSEADDR nên trên Windows nó CƯỚP
+        được cổng kể cả khi một tiến trình ma còn đang LISTEN (đã đo), còn phép thử ở đây thì
+        không — gặp ghost server là đợi cho hết timeout rồi mới chạy tiếp. Hết giờ vẫn chạy,
+        chỉ chậm, không chặn."""
+        end = time.time() + timeout
+        while time.time() < end:
+            s_test = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            try:
+                s_test.bind(("0.0.0.0", port))
+                return True
+            except OSError:
+                time.sleep(0.3)
+            finally:
+                try: s_test.close()
+                except Exception: pass
+        return False
+
+    _wait_port_free(APP_PORT)
 
     # Chạy launcher ở thread riêng (không daemon vì cần block để kill khi đóng)
     launcher = threading.Thread(target=launch_app_window, daemon=True)

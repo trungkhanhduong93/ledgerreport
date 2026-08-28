@@ -2,7 +2,7 @@
 
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
-> Cập nhật gần nhất: **16/08/2026** · Bản EXE hiện hành: **iPOS_Accounting_Report v1.8.5**
+> Cập nhật gần nhất: **28/08/2026** · Bản EXE hiện hành: **iPOS_Accounting_Report v1.9.8**
 
 ---
 
@@ -328,6 +328,24 @@ Ngược lại, `send_from_directory` bật `direct_passthrough` khiến `get_da
 ### Bẫy 12 — PowerShell 5.1 đọc `.ps1` không BOM là ANSI
 File `.ps1` có tiếng Việt mà lưu UTF-8 không BOM → PowerShell parse hỏng, báo `Unexpected token`.
 Luôn lưu `.ps1` bằng **UTF-8 CÓ BOM**. Tương tự: `Set-Content` mặc định ANSI → luôn `-Encoding utf8`.
+
+### Bẫy 13 — Tự cập nhật xong, bản mới chết vì kế thừa biến môi trường bootloader *(28/08/2026)*
+Triệu chứng: bấm cập nhật → tải xong → EXE cũ đổi thành `.old` → **bản mới không lên**, hiện hộp thoại
+`Security validation failure: parent process has different executable!` rồi thoát. Server không bind
+cổng 5050 nữa, file `.old` nằm lại vì không ai dọn.
+
+Nguyên nhân: `subprocess.Popen([exe_path])` kế thừa nguyên `os.environ` của tiến trình đang chạy, trong đó
+bootloader PyInstaller onefile đã đặt `_PYI_APPLICATION_HOME_DIR`, `_PYI_ARCHIVE_FILE`,
+`_PYI_PARENT_PROCESS_LEVEL` (PyInstaller ≤5 là `_MEIPASS2`). Bootloader của EXE **mới** thấy các biến này
+thì hiểu mình là tiến trình con giai đoạn 2 của một lần khởi chạy đã giải nén xong, nên **đối chiếu
+executable của tiến trình cha với chính mình** — cha là `...exe.old`, con là `...exe` ⇒ khác ⇒ chặn ngay
+ở tầng bootloader, Python chưa kịp chạy dòng nào.
+
+➡️ Spawn EXE mới thì phải truyền `env` đã gỡ 4 biến đó: `_child_env_without_pyi()` trong `server.py`.
+Đây là luật cho **mọi** chỗ EXE onefile tự spawn lại chính nó, không riêng updater.
+
+⚠️ Đo thế nào cho đúng: process bản mới bị chặn vẫn **nằm trong `tasklist`** nhưng chỉ ~10 MB RAM (bootloader
+đang giữ hộp thoại lỗi) và **không LISTENING cổng 5050**. Nhìn mỗi `tasklist` sẽ tưởng nó đang chạy.
 
 ---
 

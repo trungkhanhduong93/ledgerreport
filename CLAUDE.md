@@ -2,7 +2,7 @@
 
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
-> Cập nhật gần nhất: **28/08/2026** · Bản EXE hiện hành: **iPOS_Accounting_Report v1.9.8**
+> Cập nhật gần nhất: **28/08/2026** · Bản EXE hiện hành: **iPOS_Accounting_Report v1.9.9**
 
 ---
 

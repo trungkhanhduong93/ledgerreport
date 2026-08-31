@@ -992,6 +992,7 @@ window.showConnectionLost = function() {
             { id: 'BC012', name: 'SỔ TIỀN MẶT VÀ TIỀN NGÂN HÀNG' },
             { id: 'BC013', name: 'BẢNG TỔNG HỢP PHÁT SINH CÔNG NỢ' },
             { id: 'BC014', name: '6.2 - BẢNG KÊ HÓA ĐƠN, CHỨNG TỪ HÀNG HÓA, DỊCH VỤ BÁN RA' },
+            { id: 'BC015', name: 'BÁO CÁO BÁN HÀNG THEO NGUỒN ĐƠN' },
         ];
 
         // Chỉ tiêu LCTT trực tiếp (BC009) — Mẫu B03-DN. id rỗng = dòng tiêu đề (không in giá trị).
@@ -1280,7 +1281,7 @@ window.showConnectionLost = function() {
             );
         };
 
-        const ReportTab = ({ filters, setFilters, period, setPeriod, meta, onToggleFilter, activeDropdown, setActiveDropdown, reportData: initialReportData, loadReportData, loading, monthList, monthlyData: initialMonthlyData, jobList, jobData: initialJobData, reportType, setReportType, setPendingReportType, setShowClearModal, trialBalanceData, trialBalanceTotal, cashBookData, vatSalesTotals, vatSalesMode, setVatSalesMode, journalViewMode, setJournalViewMode, onExportSuccess }) => {
+        const ReportTab = ({ filters, setFilters, period, setPeriod, meta, onToggleFilter, activeDropdown, setActiveDropdown, reportData: initialReportData, loadReportData, loading, monthList, monthlyData: initialMonthlyData, jobList, jobData: initialJobData, reportType, setReportType, setPendingReportType, setShowClearModal, trialBalanceData, trialBalanceTotal, cashBookData, vatSalesTotals, vatSalesMode, setVatSalesMode, saleSourceTotals, saleSourceMode, setSaleSourceMode, journalViewMode, setJournalViewMode, onExportSuccess }) => {
             const paperScrollRef = React.useRef(null);
             const [showJournalExport, setShowJournalExport] = React.useState(false);
             const [exportModal, setExportModal] = React.useState(null); // { open: true, progress: 0-100, status: 'exporting'|'done', path: '', filename: '' }
@@ -1518,7 +1519,8 @@ window.showConnectionLost = function() {
                 BC010: 'BC010_LCTT_GianTiep', BC011: 'BC011_LCTT_GianTiep_ChuLong',
                 BC012: 'BC012_So_Tien_Mat_Va_Tien_Ngan_Hang',
                 BC013: 'BC013_Bang_Tong_Hop_Phat_Sinh_Cong_No',
-                BC014: '6.2_Bang_Ke_Hoa_Don_Hang_Hoa_Dich_Vu_Ban_Ra'
+                BC014: '6.2_Bang_Ke_Hoa_Don_Hang_Hoa_Dich_Vu_Ban_Ra',
+                BC015: 'BC015_Ban_Hang_Theo_Nguon_Don'
             };
 
             // Xuất CSV chung: đọc bảng .report-table đang hiển thị -> CSV (UTF-8 BOM). Số âm "(x)" -> "-x".
@@ -1681,7 +1683,8 @@ window.showConnectionLost = function() {
                     BC005: 'Mẫu B01 - DN', BC006: 'Mẫu B09 - DN',
                     BC007: 'Mẫu S03a - DN', BC008: 'Mẫu S38 - DN',
                     BC009: 'Mẫu B03 - DN', BC010: 'Mẫu B03 - DN', BC011: 'Mẫu B03 - DN',
-                    BC012: 'Mẫu S07 - DN', BC013: 'Mẫu S05 - DN', BC014: 'Mẫu 01-1/GTGT'
+                    BC012: 'Mẫu S07 - DN', BC013: 'Mẫu S05 - DN', BC014: 'Mẫu 01-1/GTGT',
+                    BC015: ''
                 };
                 const reportPattern = REPORT_PATTERNS[reportType] !== undefined ? REPORT_PATTERNS[reportType] : 'Mẫu B02 - DN';
 
@@ -1696,6 +1699,7 @@ window.showConnectionLost = function() {
                 else if (reportType === 'BC012') reportTitle = 'SỔ TIỀN MẶT VÀ TIỀN NGÂN HÀNG';
                 else if (reportType === 'BC013') reportTitle = 'BẢNG TỔNG HỢP PHÁT SINH CÔNG NỢ';
                 else if (reportType === 'BC014') reportTitle = '6.2 - BẢNG KÊ HÓA ĐƠN, CHỨNG TỪ HÀNG HÓA, DỊCH VỤ BÁN RA';
+                else if (reportType === 'BC015') reportTitle = 'BÁO CÁO BÁN HÀNG THEO NGUỒN ĐƠN';
                 else if (['BC002', 'BC004'].includes(reportType)) reportTitle = 'BÁO CÁO KẾT QUẢ KINH DOANH THEO CÔNG VIỆC';
                 else reportTitle = 'BÁO CÁO KẾT QUẢ KINH DOANH THEO THÁNG';
 
@@ -1726,6 +1730,9 @@ window.showConnectionLost = function() {
                         return j ? `${id} - ${j.name}` : id;
                     }).join(', ');
                     subInfoHtml += `<tr><td colspan="${maxCols}" style="text-align:center; font-weight:bold; font-size:10px; color:#475569; border:none;">Công việc: ${jobText}</td></tr>`;
+                }
+                if (reportType === 'BC015') {
+                    subInfoHtml += `<tr><td colspan="${maxCols}" style="text-align:center; font-weight:bold; font-size:10px; color:#475569; border:none;">Nguồn đơn: Tất cả</td></tr>`;
                 }
                 const orgText = filters.org_ids && filters.org_ids.length > 0 ? filters.org_ids.map(id => {
                     const org = meta.orgs.find(o => o.id === id);
@@ -1816,7 +1823,9 @@ window.showConnectionLost = function() {
                     '.xnum{mso-number-format:"\\#\\,\\#\\#0"}.xtext{mso-number-format:"\\@"}' +
                     '.xpct0{mso-number-format:"0\\%"}.xpct1{mso-number-format:"0\\.0\\%"}' +
                     '.xpct2{mso-number-format:"0\\.00\\%"}.xpct3{mso-number-format:"0\\.000\\%"}' +
-                    '.xpct4{mso-number-format:"0\\.0000\\%"}</style>' +
+                    '.xpct4{mso-number-format:"0\\.0000\\%"}' +
+                    (reportType === 'BC015' ? '@page{mso-page-orientation:landscape;}' : '') +
+                    '</style>' +
                     '</head><body>' + bodyHtml + '</body></html>';
 
                 const dateSuffix = period.type === 'custom' 
@@ -1963,6 +1972,10 @@ const exportJournalCsv = (mode) => {
                         contra_acc_ids: filters.contra_acc_ids.join(','), tran_no: filters.tran_no || '', page: 1, page_size: 0 });
                     return [`/api/cash_book?${q.toString()}`, res => res.rows];
                 }
+                if (rptType === 'BC015') {
+                    const q = new URLSearchParams({ ...base, mode: modeArg || saleSourceMode || 'summary', page: 1, page_size: 0 });
+                    return [`/api/sale_by_source?${q.toString()}`, res => res.rows];
+                }
                 const q = new URLSearchParams({ ...base, acc_ids: filters.acc_ids.join(','),
                     mode: modeArg || vatSalesMode || 'detail', page: 1, page_size: 0 });
                 return [`/api/vat_sales_report?${q.toString()}`, res => res.data];
@@ -1997,12 +2010,18 @@ const exportJournalCsv = (mode) => {
                     setShowVatSalesExport(true);
                     return;
                 }
+                if (reportType === 'BC015') {
+                    const [url, pick] = buildFullExportReq('BC015', saleSourceMode);
+                    exportFullXls(url, pick);
+                    return;
+                }
                 exportReportXls();
             };
             const exportToPDF = () => { window.print(); };
 
             const pagedDataRows = fullExportRows || (reportData.data || (Array.isArray(reportData) ? reportData : []));
             const cbRowsView = fullExportRows || cbRows;
+            const ssRows = fullExportRows || (reportData && reportData.rows) || [];   // BC015
 
             return (
                 <div className="flex-1 overflow-hidden flex flex-col">
@@ -2034,6 +2053,12 @@ const exportJournalCsv = (mode) => {
                                     <button disabled={loading} onClick={() => { if (vatSalesMode === 'summary' || loading) return; setVatSalesMode('summary'); loadReportData(1, 'summary'); }} className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${vatSalesMode === 'summary' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'} disabled:opacity-50`}>Tổng hợp</button>
                                 </div>
                             )}
+                            {reportType === 'BC015' && (
+                                <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200 shrink-0 h-[32px] items-center">
+                                    <button disabled={loading} onClick={() => { if (saleSourceMode === 'summary' || loading) return; setSaleSourceMode('summary'); loadReportData(1, 'summary'); }} className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${saleSourceMode === 'summary' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'} disabled:opacity-50`}>Tổng hợp</button>
+                                    <button disabled={loading} onClick={() => { if (saleSourceMode === 'detail' || loading) return; setSaleSourceMode('detail'); loadReportData(1, 'detail'); }} className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${saleSourceMode === 'detail' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'} disabled:opacity-50`}>Chi tiết</button>
+                                </div>
+                            )}
                             {reportType === 'BC013' ? (
                                 <div className="w-40"><PremiumDropdown label="Đối tượng" items={meta.pr_details} selectedItems={filters.pr_detail_ids} onSelect={id => onToggleFilter('pr_detail_ids', id)} isActive={activeDropdown === 'Đối tượng'} onToggle={setActiveDropdown} /></div>
                             ) : null}
@@ -2059,7 +2084,7 @@ const exportJournalCsv = (mode) => {
                     </div>
 
                     <div className="flex-1 overflow-auto custom-scrollbar bg-slate-200 p-4 relative" ref={paperScrollRef}>
-                        <div className={`report-paper ${['BC001', 'BC002', 'BC003', 'BC004', 'BC006', 'BC007', 'BC011', 'BC012', 'BC013', 'BC014'].includes(reportType) ? 'paper-landscape' : 'paper-portrait'}`}>
+                        <div className={`report-paper ${['BC001', 'BC002', 'BC003', 'BC004', 'BC006', 'BC007', 'BC011', 'BC012', 'BC013', 'BC014', 'BC015'].includes(reportType) ? 'paper-landscape' : 'paper-portrait'}`}>
                             <div className="flex justify-between items-start mb-6">
                                 <div>
                                     <div className="font-black text-[11px] uppercase">{(meta.company && meta.company.name) || ''}</div>
@@ -2072,13 +2097,16 @@ const exportJournalCsv = (mode) => {
                                         ) : 'Tất cả'}
                                     </div>
                                 </div>
-                                <div className="text-right font-black text-[10px] text-slate-400 uppercase tracking-widest italic underline">{reportType === 'BC005' ? 'Mẫu B01 - DN' : reportType === 'BC006' ? 'Mẫu B09 - DN' : reportType === 'BC007' ? 'Mẫu S03a - DN' : reportType === 'BC008' ? 'Mẫu S38 - DN' : (reportType === 'BC009' || reportType === 'BC010' || reportType === 'BC011') ? 'Mẫu B03 - DN' : reportType === 'BC012' ? 'Mẫu S07 - DN' : reportType === 'BC013' ? 'Mẫu S05 - DN' : reportType === 'BC014' ? 'Mẫu 01-1/GTGT' : 'Mẫu B02 - DN'}</div>
+                                <div className="text-right font-black text-[10px] text-slate-400 uppercase tracking-widest italic underline">{reportType === 'BC005' ? 'Mẫu B01 - DN' : reportType === 'BC006' ? 'Mẫu B09 - DN' : reportType === 'BC007' ? 'Mẫu S03a - DN' : reportType === 'BC008' ? 'Mẫu S38 - DN' : (reportType === 'BC009' || reportType === 'BC010' || reportType === 'BC011') ? 'Mẫu B03 - DN' : reportType === 'BC012' ? 'Mẫu S07 - DN' : reportType === 'BC013' ? 'Mẫu S05 - DN' : reportType === 'BC014' ? 'Mẫu 01-1/GTGT' : reportType === 'BC015' ? '' : 'Mẫu B02 - DN'}</div>
                             </div>
 
                             <div className="text-center space-y-1 mb-8">
-                                <h1 className="text-xl font-black text-slate-900 uppercase tracking-tight">{reportType === 'BC006' ? 'BẢNG CÂN ĐỐI PHÁT SINH' : reportType === 'BC005' ? 'BẢNG CÂN ĐỐI KẾ TOÁN' : (reportType === 'BC009' || reportType === 'BC010' || reportType === 'BC011') ? `BÁO CÁO LƯU CHUYỂN TIỀN TỆ (${reportType === 'BC009' ? 'Trực tiếp' : reportType === 'BC011' ? 'Gián tiếp - Chú Long' : 'Gián tiếp'})` : reportType === 'BC007' ? 'SỔ NHẬT KÝ CHUNG' : reportType === 'BC008' ? 'SỔ CHI TIẾT TÀI KHOẢN' : reportType === 'BC012' ? 'SỔ TIỀN MẶT VÀ TIỀN NGÂN HÀNG' : reportType === 'BC013' ? 'BẢNG TỔNG HỢP PHÁT SINH CÔNG NỢ' : reportType === 'BC014' ? '6.2 - BẢNG KÊ HÓA ĐƠN, CHỨNG TỪ HÀNG HÓA, DỊCH VỤ BÁN RA' : ['BC002', 'BC004'].includes(reportType) ? 'BÁO CÁO KẾT QUẢ KINH DOANH THEO CÔNG VIỆC' : 'BÁO CÁO KẾT QUẢ KINH DOANH THEO THÁNG'}</h1>
+                                <h1 className="text-xl font-black text-slate-900 uppercase tracking-tight">{reportType === 'BC006' ? 'BẢNG CÂN ĐỐI PHÁT SINH' : reportType === 'BC005' ? 'BẢNG CÂN ĐỐI KẾ TOÁN' : (reportType === 'BC009' || reportType === 'BC010' || reportType === 'BC011') ? `BÁO CÁO LƯU CHUYỂN TIỀN TỆ (${reportType === 'BC009' ? 'Trực tiếp' : reportType === 'BC011' ? 'Gián tiếp - Chú Long' : 'Gián tiếp'})` : reportType === 'BC007' ? 'SỔ NHẬT KÝ CHUNG' : reportType === 'BC008' ? 'SỔ CHI TIẾT TÀI KHOẢN' : reportType === 'BC012' ? 'SỔ TIỀN MẶT VÀ TIỀN NGÂN HÀNG' : reportType === 'BC013' ? 'BẢNG TỔNG HỢP PHÁT SINH CÔNG NỢ' : reportType === 'BC014' ? '6.2 - BẢNG KÊ HÓA ĐƠN, CHỨNG TỪ HÀNG HÓA, DỊCH VỤ BÁN RA' : reportType === 'BC015' ? 'BÁO CÁO BÁN HÀNG THEO NGUỒN ĐƠN' : ['BC002', 'BC004'].includes(reportType) ? 'BÁO CÁO KẾT QUẢ KINH DOANH THEO CÔNG VIỆC' : 'BÁO CÁO KẾT QUẢ KINH DOANH THEO THÁNG'}</h1>
                                 {reportType === 'BC014' && (
                                     <div className="text-[10px] font-bold text-slate-600 uppercase">Tài khoản: {filters.acc_ids.length > 0 ? filters.acc_ids.join(', ') : '33311'}-</div>
+                                )}
+                                {reportType === 'BC015' && (
+                                    <div className="text-[10px] font-bold text-slate-600 uppercase">Nguồn đơn: Tất cả</div>
                                 )}
                                 {reportType === 'BC012' && (
                                     <div className="text-[10px] font-bold text-slate-600 uppercase">Tài khoản: {filters.acc_ids.length > 0 ? filters.acc_ids.map(id => {
@@ -2117,7 +2145,19 @@ const exportJournalCsv = (mode) => {
                                 <div className="text-[9px] text-slate-500 italic">Đơn vị tính: VND</div>
                             </div>
 
-                            <div className={reportType === 'BC014' ? 'overflow-hidden' : 'overflow-x-auto'}>
+                            <div className={(reportType === 'BC014' || reportType === 'BC015') ? 'overflow-hidden' : 'overflow-x-auto'}>
+                                {reportType === 'BC015' && (
+                                    <style>{`
+                                        .bc015-table { width: 100% !important; min-width: 100% !important; max-width: 100% !important; table-layout: fixed !important; border-collapse: collapse !important; }
+                                        .bc015-table th, .bc015-table td { border: 1px solid #cbd5e1 !important; font-size: 10.5px !important; padding: 4px 3px !important; box-sizing: border-box !important; }
+                                        .bc015-table th:first-child, .bc015-table td:first-child { width: 20% !important; white-space: normal !important; word-break: break-word !important; text-align: left !important; }
+                                        .bc015-table .col-value { width: 10% !important; white-space: nowrap !important; text-align: right !important; }
+                                        .bc015-table th.col-value { text-align: center !important; }
+                                        .bc015-table tbody tr { content-visibility: auto !important; contain-intrinsic-size: 0 24px !important; }
+                                        .bc015-table th:last-child, .bc015-table td:last-child { border-right: 1px solid #cbd5e1 !important; }
+                                        @media print { @page { size: A4 landscape; margin: 8mm; } }
+                                    `}</style>
+                                )}
                                 {(reportType === 'BC006' || reportType === 'BC013' || reportType === 'BC014') && (
                                     <style>{`
                                         .bc006-table { width: 100% !important; min-width: 100% !important; table-layout: fixed; }
@@ -2181,7 +2221,7 @@ const exportJournalCsv = (mode) => {
                                         .kqkd-table { border-left: 1px solid #000 !important; border-top: 1px solid #000 !important; }
                                     `}</style>
                                 )}
-                                <table className={`report-table min-w-full ${(reportType === 'BC006' || reportType === 'BC013') ? 'bc006-table' : ''} ${(reportType === 'BC007' || reportType === 'BC008') ? 'nklist-table' : ''} ${reportType === 'BC012' ? 'cashbook-table' : ''} ${['BC001', 'BC002', 'BC003', 'BC004'].includes(reportType) ? 'kqkd-table' : ''} ${reportType === 'BC014' ? 'bc013-table' : ''}`}>
+                                <table className={`report-table min-w-full ${(reportType === 'BC006' || reportType === 'BC013') ? 'bc006-table' : ''} ${(reportType === 'BC007' || reportType === 'BC008') ? 'nklist-table' : ''} ${reportType === 'BC012' ? 'cashbook-table' : ''} ${['BC001', 'BC002', 'BC003', 'BC004'].includes(reportType) ? 'kqkd-table' : ''} ${reportType === 'BC014' ? 'bc013-table' : ''} ${reportType === 'BC015' ? 'bc015-table' : ''}`}>
                                     {(reportType === 'BC006' || reportType === 'BC013') ? (
                                         <>
                                         <thead>
@@ -2376,6 +2416,63 @@ const exportJournalCsv = (mode) => {
                                                     </tr>
                                                 );
                                             })()}
+                                        </tbody>
+                                        </>
+                                    ) : reportType === 'BC015' ? (
+                                    <>
+                                        <thead>
+                                            <tr>
+                                                <th className="px-2 py-2 text-center w-[22%] text-xs font-bold">Ngày</th>
+                                                <th className="px-1 py-2 text-center text-xs font-bold col-value">Tiền hàng</th>
+                                                <th className="px-1 py-2 text-center text-xs font-bold col-value">Chiết khấu</th>
+                                                <th className="px-1 py-2 text-center text-xs font-bold col-value">Giảm giá</th>
+                                                <th className="px-1 py-2 text-center text-xs font-bold col-value">Tiền thuế</th>
+                                                <th className="px-1 py-2 text-center text-xs font-bold col-value">Voucher</th>
+                                                <th className="px-1 py-2 text-center text-xs font-bold col-value">Hoa hồng</th>
+                                                <th className="px-1 py-2 text-center text-xs font-bold col-value">Doanh thu</th>
+                                                <th className="px-1 py-2 text-center text-xs font-bold col-value">Tổng tiền</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {ssRows.map((row, idx) => {
+                                                // 3 kiểu dòng: source = nhóm nguồn đơn, org = đơn vị, day = chi tiết theo ngày.
+                                                // Form gốc để trống ô có giá trị 0 (hiện dấu "-" của Excel), không in số 0.
+                                                const money = k => (row[k] ? formatNum(row[k]) : '');
+                                                const cells = ['amount','discount2','discount','tax','voucher','commission','income','total'];
+                                                if (row.t === 'source') {
+                                                    return (
+                                                        <tr key={`s${idx}`} className="bg-indigo-50/70 font-black text-indigo-800">
+                                                            <td className="px-2 text-xs">{row.source_name}</td>
+                                                            {cells.map(k => <td key={k} className="text-right px-2 text-xs col-value">{money(k)}</td>)}
+                                                        </tr>
+                                                    );
+                                                }
+                                                if (row.t === 'org') {
+                                                    return (
+                                                        <tr key={`o${idx}`} className="hover:bg-slate-50 font-semibold">
+                                                            <td className="px-2 pl-5 text-xs">{row.org_name}</td>
+                                                            {cells.map(k => <td key={k} className="text-right px-2 text-xs col-value">{money(k)}</td>)}
+                                                        </tr>
+                                                    );
+                                                }
+                                                return (
+                                                    <tr key={`d${idx}`} className="hover:bg-slate-50 text-slate-600">
+                                                        <td className="px-2 pl-10 text-xs">{row.date}</td>
+                                                        {cells.map(k => <td key={k} className="text-right px-2 text-xs col-value">{money(k)}</td>)}
+                                                    </tr>
+                                                );
+                                            })}
+                                            {ssRows.length === 0 && (
+                                                <tr><td colSpan="9" className="text-center py-8 text-slate-400 text-xs italic">Không có dữ liệu trong kỳ báo cáo đã chọn</td></tr>
+                                            )}
+                                            {saleSourceTotals && ssRows.length > 0 && (
+                                                <tr className="bg-slate-200 font-black">
+                                                    <td className="px-2 py-2 text-xs uppercase tracking-widest">Tổng cộng</td>
+                                                    {['amount','discount2','discount','tax','voucher','commission','income','total'].map(k => (
+                                                        <td key={k} className="text-right px-2 text-xs col-value">{saleSourceTotals[k] ? formatNum(saleSourceTotals[k]) : ''}</td>
+                                                    ))}
+                                                </tr>
+                                            )}
                                         </tbody>
                                         </>
                                     ) : reportType === 'BC005' ? (
@@ -2791,7 +2888,7 @@ const exportJournalCsv = (mode) => {
                         </div>
 
                         {/* Thanh chuyển trang NGANG (gõ số trang + Enter để nhảy) — dùng chung cho BC007/BC008/BC014 */}
-                        {(reportType === 'BC007' || reportType === 'BC008' || reportType === 'BC014') && reportData.pagination && reportData.pagination.total_pages > 1 && (
+                        {(reportType === 'BC007' || reportType === 'BC008' || reportType === 'BC014' || reportType === 'BC015') && reportData.pagination && reportData.pagination.total_pages > 1 && (
                             <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-white/90 backdrop-blur-md rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.15)] border border-slate-100 px-4 py-1.5 flex items-center gap-3">
                                 <PageJumper page={reportData.pagination.page} totalPages={reportData.pagination.total_pages} onGoto={p => loadReportData(p)} compact />
                                 <span className="text-[10px] font-black text-slate-400 pr-1">{(reportData.pagination.total_rows || 0).toLocaleString('vi-VN')} dòng</span>
@@ -3386,6 +3483,8 @@ const exportJournalCsv = (mode) => {
             const [cashBookData, setCashBookData] = useState({ rows: [], pagination: { total_rows: 0, total_pages: 1, page: 1 } });
         const [vatSalesTotals, setVatSalesTotals] = useState({ total_amount_item: 0, taxable_amount_item: 0, total_vat_amount: 0 });
         const [vatSalesMode, setVatSalesMode] = useState('detail');
+        const [saleSourceTotals, setSaleSourceTotals] = useState(null);      // BC015: dòng tổng cộng
+        const [saleSourceMode, setSaleSourceMode] = useState('summary');     // BC015: 'summary' | 'detail'
         const [journalViewMode, setJournalViewMode] = useState('detail');
         const [exportNoticeModal, setExportNoticeModal] = useState(null);
             const [trialBalanceTotal, setTrialBalanceTotal] = useState(null);
@@ -4889,7 +4988,9 @@ const exportJournalCsv = (mode) => {
                 setLoading(true);
                 // BC007/BC008/BC014 render dạng bảng thường (không ảo hoá) → giới hạn 1000 dòng/trang
                 // cho mượt, dùng nút phân trang để xem tiếp (xuất Excel vẫn lấy toàn bộ).
-                const rptPageSize = (reportType === 'BC007' || reportType === 'BC008' || reportType === 'BC014') ? Math.min(filters.page_size, 1000) : filters.page_size;
+                const rptPageSize = reportType === 'BC015' ? Math.min(filters.page_size, 500)
+                    : (reportType === 'BC007' || reportType === 'BC008' || reportType === 'BC014') ? Math.min(filters.page_size, 1000)
+                    : filters.page_size;
                 const query = new URLSearchParams({ from_date: filters.from_date, to_date: filters.to_date, org_ids: filters.org_ids.join(','), job_ids: filters.job_ids.join(','), page: _page, page_size: rptPageSize });
                 try {
                     if (reportType === 'BC006') {
@@ -4962,6 +5063,20 @@ const exportJournalCsv = (mode) => {
                             setVatSalesTotals(res.totals || { total_amount_item: 0, taxable_amount_item: 0, total_vat_amount: 0 });
                         } else {
                             alert('Lỗi xem bảng kê bán ra: ' + (res.message || 'không có dữ liệu'));
+                        }
+                    } else if (reportType === 'BC015') {
+                        // modeArg phải truyền qua tham số: state vừa setSaleSourceMode chưa kịp cập nhật
+                        // trong closure này (bẫy stale closure đã trả giá ở BC014).
+                        const activeMode = modeArg || saleSourceMode || 'summary';
+                        const q2 = new URLSearchParams({ from_date: filters.from_date, to_date: filters.to_date, org_ids: filters.org_ids.join(','), mode: activeMode, page: _page, page_size: rptPageSize });
+                        const r = await fetch(`/api/sale_by_source?${q2.toString()}`, { signal: abortRef.current.signal });
+                        if (r.status === 401) { setIsLoggedIn(false); return; }
+                        const res = await r.json();
+                        if (res.status === 'ok') {
+                            setReportData(res);
+                            setSaleSourceTotals(res.totals || null);
+                        } else {
+                            alert('Lỗi xem báo cáo bán hàng theo nguồn đơn: ' + (res.message || 'không có dữ liệu'));
                         }
                     } else if (reportType === 'BC012') {
                         const q2 = new URLSearchParams({ from_date: filters.from_date, to_date: filters.to_date, org_ids: filters.org_ids.join(','), acc_ids: filters.acc_ids.join(','), contra_acc_ids: filters.contra_acc_ids.join(','), tran_no: filters.tran_no || '', page: filters.page, page_size: 1000 });
@@ -6566,6 +6681,9 @@ const exportJournalCsv = (mode) => {
                                 setJournalViewMode={setJournalViewMode}
                                 vatSalesMode={vatSalesMode}
                                 setVatSalesMode={setVatSalesMode}
+                                saleSourceTotals={saleSourceTotals}
+                                saleSourceMode={saleSourceMode}
+                                setSaleSourceMode={setSaleSourceMode}
                                 onExportSuccess={(path, filename) => setExportNoticeModal({ path, filename })}
                             />
                         </div>

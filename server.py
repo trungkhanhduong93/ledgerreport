@@ -5526,6 +5526,147 @@ def get_vat_sales_report():
         return jsonify({"status": "error", "message": msg}), 401 if "đăng nhập" in msg else 500
 
 
+# ---------------------------------------------------------------------
+# BC015 — BÁO CÁO BÁN HÀNG THEO NGUỒN ĐƠN
+# ---------------------------------------------------------------------
+# Ánh xạ cột: đã SUM đối chiếu form gốc T1/2026 (dòng ShopeeFood + 4 đơn vị, khớp 8/8).
+# ⚠️ ĐỪNG tin tên cột "nghe hợp lý": chiết khấu KHÔNG phải DISCOUNT2_AMOUNT và giảm giá
+#    KHÔNG phải DISCOUNT_AMOUNT — hai cột đó lệch so với form gốc. Cột đúng là bản REAL_*.
+SALE_SOURCE_MONEY_COLS = [
+    ("amount",     "AMOUNT"),                    # Tiền hàng
+    ("discount2",  "REAL_DISCOUNT2_AMOUNT"),     # Chiết khấu
+    ("discount",   "REAL_DISCOUNT_AMOUNT"),      # Giảm giá
+    ("tax",        "VAT_TAX_AMOUNT"),            # Tiền thuế
+    ("voucher",    "LUX_TAX_AMOUNT"),            # Voucher
+    ("commission", "EXPORT_TAX_AMOUNT"),         # Hoa hồng
+    ("income",     "INCOME_AMOUNT"),             # Doanh thu
+    ("total",      "TOTAL_AMOUNT"),              # Tổng tiền
+]
+
+
+@app.route("/api/sale_by_source")
+@with_db_lock
+def get_sale_by_source():
+    """BC015 — Bán hàng theo nguồn đơn. Group cấp 1 = nguồn đơn (EXTRA_ID_2), cấp 2 = đơn vị,
+    mode='detail' thêm dòng chi tiết theo ngày. Chỉ lấy chứng từ STATUS='POSTED'."""
+    try:
+        f_date = request.args.get("from_date")
+        t_date = request.args.get("to_date")
+        mode = request.args.get("mode", "summary")   # 'summary' | 'detail'
+        org_ids = [v for v in request.args.get("org_ids", "").split(",") if v]
+        source_ids = [v for v in request.args.get("source_ids", "").split(",") if v]
+        page = int(request.args.get("page", 1))
+        page_size = int(request.args.get("page_size", 500))
+        export_all = page_size <= 0        # page_size=0 ⇒ toàn bộ, phục vụ xuất .xls giữ form
+
+        if not f_date or not t_date:
+            return jsonify({"status": "error", "message": "Thiếu từ ngày / đến ngày"}), 400
+
+        f_dt = datetime.strptime(f_date, "%d/%m/%Y").strftime("%Y%m%d")
+        # TRAN_DATE là smalldatetime: dùng "< ngày kế tiếp", KHÔNG dùng <= mốc 00:00:00
+        # (bẫy cũ: lọc bằng BETWEEN làm mất trọn ngày cuối kỳ).
+        t_dt = (datetime.strptime(t_date, "%d/%m/%Y") + timedelta(days=1)).strftime("%Y%m%d")
+
+        _oc, _op = _org_filter_sql(org_ids, "S.ORGANIZATION_ID")
+        org_where = (" AND " + _oc) if _oc else ""
+
+        src_where, src_params = "", []
+        if source_ids:
+            src_where = " AND S.EXTRA_ID_2 IN (" + ",".join(["?"] * len(source_ids)) + ")"
+            src_params = list(source_ids)
+
+        # Thứ tự params phải ĐÚNG thứ tự dấu ? trong chuỗi SQL: status, from, to, org, source.
+        params = ["POSTED", f_dt, t_dt] + list(_op) + src_params
+
+        sums = ", ".join(f"ISNULL(SUM(S.{col}), 0)" for _, col in SALE_SOURCE_MONEY_COLS)
+        day_expr = "CONVERT(VARCHAR(8), S.TRAN_DATE, 112)"
+        day_col = f", {day_expr}" if mode == "detail" else ""
+
+        sql = f"""
+            SELECT S.EXTRA_ID_2, E.EXTRA_NAME_2, S.ORGANIZATION_ID, O.ORGANIZATION_NAME{day_col},
+                   {sums}
+            FROM dbo.SALE_VIEW S WITH (NOLOCK)
+            LEFT JOIN dbo.DM_EXTRA_2 E WITH (NOLOCK)
+                   ON CAST(E.EXTRA_ID_2 AS NVARCHAR(100)) = S.EXTRA_ID_2
+            LEFT JOIN dbo.DM_ORGANIZATION O WITH (NOLOCK)
+                   ON O.ORGANIZATION_ID = S.ORGANIZATION_ID
+            WHERE S.STATUS = ? AND S.TRAN_DATE >= ? AND S.TRAN_DATE < ?{org_where}{src_where}
+            GROUP BY S.EXTRA_ID_2, E.EXTRA_NAME_2, S.ORGANIZATION_ID, O.ORGANIZATION_NAME{day_col}
+            ORDER BY CASE WHEN ISNULL(S.EXTRA_ID_2, '') = '' THEN 1 ELSE 0 END,
+                     S.EXTRA_ID_2, S.ORGANIZATION_ID{day_col}
+        """
+        cur = get_connection().cursor()
+        cur.execute(sql, params)
+        db_rows = cur.fetchall()
+
+        keys = [k for k, _ in SALE_SOURCE_MONEY_COLS]
+        nfix = 4 + (1 if mode == "detail" else 0)   # số cột khoá đứng trước khối tiền
+
+        def zeros():
+            return {k: 0.0 for k in keys}
+
+        def add(dst, src):
+            for k in keys:
+                dst[k] += src[k]
+
+        # Dựng cây nguồn đơn → đơn vị → (ngày), giữ nguyên thứ tự SQL đã ORDER BY.
+        tree, order = {}, []
+        for r in db_rows:
+            sid = (r[0] or "").strip()
+            sname = (r[1] or "").strip() or ("(không có nguồn đơn)" if not sid else sid)
+            oid = (r[2] or "").strip()
+            oname = (r[3] or "").strip() or oid
+            money = {k: float(r[nfix + i] or 0) for i, k in enumerate(keys)}
+
+            if sid not in tree:
+                tree[sid] = {"name": sname, "sum": zeros(), "orgs": {}, "org_order": []}
+                order.append(sid)
+            node = tree[sid]
+            add(node["sum"], money)
+            if oid not in node["orgs"]:
+                node["orgs"][oid] = {"name": oname, "sum": zeros(), "days": []}
+                node["org_order"].append(oid)
+            onode = node["orgs"][oid]
+            add(onode["sum"], money)
+            if mode == "detail":
+                d = (r[4] or "").strip()          # 'YYYYMMDD' — đã CONVERT ở SQL, không phải đối tượng ngày
+                ngay = f"{d[6:8]}/{d[4:6]}/{d[0:4]}" if len(d) == 8 else d
+                onode["days"].append({"date": ngay, **money})
+
+        flat, grand = [], zeros()
+        for sid in order:
+            node = tree[sid]
+            add(grand, node["sum"])
+            flat.append({"t": "source", "source_id": sid, "source_name": node["name"], **node["sum"]})
+            for oid in node["org_order"]:
+                onode = node["orgs"][oid]
+                flat.append({"t": "org", "org_id": oid, "org_name": onode["name"], **onode["sum"]})
+                for d in onode["days"]:
+                    flat.append({"t": "day", **d})
+
+        total_rows = len(flat)
+        if export_all:
+            total_pages, page, rows = 1, 1, flat
+        else:
+            total_pages = max(1, (total_rows + page_size - 1) // page_size)
+            page = max(1, min(page, total_pages))
+            rows = flat[(page - 1) * page_size: page * page_size]
+
+        return jsonify({
+            "status": "ok",
+            "rows": rows,
+            "totals": grand,
+            "pagination": {"total_rows": total_rows, "total_pages": total_pages,
+                           "page": page, "page_size": page_size}
+        })
+    except Exception as e:
+        msg = str(e)
+        if "đăng nhập" not in msg:
+            invalidate_pool()
+        logger.error(f"Error in BC015 get_sale_by_source: {msg}")
+        return jsonify({"status": "error", "message": msg}), 401 if "đăng nhập" in msg else 500
+
+
 def _cashbook_csv_stream(flat):
     """Generator sinh từng dòng CSV từ danh sách flat (tiết kiệm RAM khi nhiều dòng)."""
     def esc(s):

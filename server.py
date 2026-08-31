@@ -5633,15 +5633,26 @@ def get_sale_by_source():
                 ngay = f"{d[6:8]}/{d[4:6]}/{d[0:4]}" if len(d) == 8 else d
                 onode["days"].append({"date": ngay, **money})
 
+        # Ẩn dòng có TOÀN BỘ khối tiền = 0 (đơn vị có chứng từ POSTED nhưng không phát sinh
+        # số nào). Tổng cộng không đổi vì các dòng bị bỏ đều bằng 0.
+        def all_zero(d):
+            return all(round(d[k], 2) == 0 for k in keys)
+
         flat, grand = [], zeros()
         for sid in order:
             node = tree[sid]
             add(grand, node["sum"])
+            if all_zero(node["sum"]):
+                continue
             flat.append({"t": "source", "source_id": sid, "source_name": node["name"], **node["sum"]})
             for oid in node["org_order"]:
                 onode = node["orgs"][oid]
+                if all_zero(onode["sum"]):
+                    continue
                 flat.append({"t": "org", "org_id": oid, "org_name": onode["name"], **onode["sum"]})
                 for d in onode["days"]:
+                    if all_zero(d):
+                        continue
                     flat.append({"t": "day", **d})
 
         total_rows = len(flat)

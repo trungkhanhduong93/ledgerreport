@@ -993,6 +993,7 @@ window.showConnectionLost = function() {
             { id: 'BC013', name: 'BẢNG TỔNG HỢP PHÁT SINH CÔNG NỢ' },
             { id: 'BC014', name: '6.2 - BẢNG KÊ HÓA ĐƠN, CHỨNG TỪ HÀNG HÓA, DỊCH VỤ BÁN RA' },
             { id: 'BC015', name: 'BÁO CÁO BÁN HÀNG THEO NGUỒN ĐƠN' },
+            { id: 'BC016', name: 'BÁO CÁO NHẬP XUẤT TỒN NHÀ HÀNG' },
         ];
 
         // Chỉ tiêu LCTT trực tiếp (BC009) — Mẫu B03-DN. id rỗng = dòng tiêu đề (không in giá trị).
@@ -1281,7 +1282,7 @@ window.showConnectionLost = function() {
             );
         };
 
-        const ReportTab = ({ filters, setFilters, period, setPeriod, meta, onToggleFilter, activeDropdown, setActiveDropdown, reportData: initialReportData, loadReportData, loading, monthList, monthlyData: initialMonthlyData, jobList, jobData: initialJobData, reportType, setReportType, setPendingReportType, setShowClearModal, trialBalanceData, trialBalanceTotal, cashBookData, vatSalesTotals, vatSalesMode, setVatSalesMode, saleSourceTotals, saleSourceMode, setSaleSourceMode, journalViewMode, setJournalViewMode, onExportSuccess }) => {
+        const ReportTab = ({ filters, setFilters, period, setPeriod, meta, onToggleFilter, activeDropdown, setActiveDropdown, reportData: initialReportData, loadReportData, loading, monthList, monthlyData: initialMonthlyData, jobList, jobData: initialJobData, reportType, setReportType, setPendingReportType, setShowClearModal, trialBalanceData, trialBalanceTotal, cashBookData, vatSalesTotals, vatSalesMode, setVatSalesMode, saleSourceTotals, saleSourceMode, setSaleSourceMode, nxtData, nxtGroupBy, setNxtGroupBy, journalViewMode, setJournalViewMode, onExportSuccess }) => {
             const paperScrollRef = React.useRef(null);
             const [showJournalExport, setShowJournalExport] = React.useState(false);
             const [exportModal, setExportModal] = React.useState(null); // { open: true, progress: 0-100, status: 'exporting'|'done', path: '', filename: '' }
@@ -1520,7 +1521,8 @@ window.showConnectionLost = function() {
                 BC012: 'BC012_So_Tien_Mat_Va_Tien_Ngan_Hang',
                 BC013: 'BC013_Bang_Tong_Hop_Phat_Sinh_Cong_No',
                 BC014: '6.2_Bang_Ke_Hoa_Don_Hang_Hoa_Dich_Vu_Ban_Ra',
-                BC015: 'BC015_Ban_Hang_Theo_Nguon_Don'
+                BC015: 'BC015_Ban_Hang_Theo_Nguon_Don',
+                BC016: 'BC016_Nhap_Xuat_Ton_Nha_Hang'
             };
 
             // Xuất CSV chung: đọc bảng .report-table đang hiển thị -> CSV (UTF-8 BOM). Số âm "(x)" -> "-x".
@@ -1684,7 +1686,7 @@ window.showConnectionLost = function() {
                     BC007: 'Mẫu S03a - DN', BC008: 'Mẫu S38 - DN',
                     BC009: 'Mẫu B03 - DN', BC010: 'Mẫu B03 - DN', BC011: 'Mẫu B03 - DN',
                     BC012: 'Mẫu S07 - DN', BC013: 'Mẫu S05 - DN', BC014: 'Mẫu 01-1/GTGT',
-                    BC015: ''
+                    BC015: '', BC016: ''
                 };
                 const reportPattern = REPORT_PATTERNS[reportType] !== undefined ? REPORT_PATTERNS[reportType] : 'Mẫu B02 - DN';
 
@@ -1700,6 +1702,7 @@ window.showConnectionLost = function() {
                 else if (reportType === 'BC013') reportTitle = 'BẢNG TỔNG HỢP PHÁT SINH CÔNG NỢ';
                 else if (reportType === 'BC014') reportTitle = '6.2 - BẢNG KÊ HÓA ĐƠN, CHỨNG TỪ HÀNG HÓA, DỊCH VỤ BÁN RA';
                 else if (reportType === 'BC015') reportTitle = 'BÁO CÁO BÁN HÀNG THEO NGUỒN ĐƠN';
+                else if (reportType === 'BC016') reportTitle = 'BÁO CÁO NHẬP XUẤT TỒN NHÀ HÀNG';
                 else if (['BC002', 'BC004'].includes(reportType)) reportTitle = 'BÁO CÁO KẾT QUẢ KINH DOANH THEO CÔNG VIỆC';
                 else reportTitle = 'BÁO CÁO KẾT QUẢ KINH DOANH THEO THÁNG';
 
@@ -1810,8 +1813,14 @@ window.showConnectionLost = function() {
                     }
                 }
                 
+                // BC016 rất nhiều cột: đặt luôn khổ ngang + co vừa 1 trang bề ngang ngay trong
+                // WorksheetOptions, để mở file ra là in được, không phải vào Page Setup chỉnh tay.
+                const wsPrint = reportType === 'BC016'
+                    ? '<x:Print><x:ValidPrinterInfo/><x:Orientation>Landscape</x:Orientation>'
+                      + '<x:FitWidth>1</x:FitWidth><x:FitHeight>0</x:FitHeight><x:Scale>0</x:Scale></x:Print>'
+                    : '';
                 const wsXml = sheets.map(s =>
-                    '<x:ExcelWorksheet><x:Name>' + s.name + '</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet>'
+                    '<x:ExcelWorksheet><x:Name>' + s.name + '</x:Name><x:WorksheetOptions><x:DisplayGridlines/>' + wsPrint + '</x:WorksheetOptions></x:ExcelWorksheet>'
                 ).join('');
                 const bodyHtml = sheets.map(s => s.html).join('<br clear="all"/>');
                 const html =
@@ -1824,7 +1833,10 @@ window.showConnectionLost = function() {
                     '.xpct0{mso-number-format:"0\\%"}.xpct1{mso-number-format:"0\\.0\\%"}' +
                     '.xpct2{mso-number-format:"0\\.00\\%"}.xpct3{mso-number-format:"0\\.000\\%"}' +
                     '.xpct4{mso-number-format:"0\\.0000\\%"}' +
-                    (reportType === 'BC015' ? '@page{mso-page-orientation:landscape;}' : '') +
+                    // BC016 có 51–59 cột ⇒ ngoài khổ ngang còn phải ép vừa 1 trang chiều rộng,
+                    // không thì Excel cắt bảng thành hàng chục trang dọc rời rạc.
+                    ((reportType === 'BC015' || reportType === 'BC016') ? '@page{mso-page-orientation:landscape;}' : '') +
+                    (reportType === 'BC016' ? 'td,th{font-size:8pt}' : '') +
                     '</style>' +
                     '</head><body>' + bodyHtml + '</body></html>';
 
@@ -1942,9 +1954,12 @@ const exportJournalCsv = (mode) => {
                     const res = await r.json();
                     if (res.status !== 'ok') { alert('Lỗi tải dữ liệu để xuất: ' + (res.message || '')); setFullExporting(false); return; }
                     const rows = pickRows(res) || [];
-                    if (!rows.length) { alert('Không có dữ liệu để xuất.'); setFullExporting(false); return; }
-                    if (rows.length > FULL_XLS_WARN_ROWS && !confirm(
-                        `Báo cáo có ${rows.length.toLocaleString('vi-VN')} dòng. Nạp hết vào bảng để giữ nguyên form Excel `
+                    // BC016 trả nguyên payload (có cột động + cây nhóm) chứ không phải mảng dòng phẳng
+                    // như các báo cáo khác ⇒ đếm dòng qua pagination.
+                    const nRows = Array.isArray(rows) ? rows.length : ((res.pagination && res.pagination.total_rows) || 0);
+                    if (!nRows) { alert('Không có dữ liệu để xuất.'); setFullExporting(false); return; }
+                    if (nRows > FULL_XLS_WARN_ROWS && !confirm(
+                        `Báo cáo có ${nRows.toLocaleString('vi-VN')} dòng. Nạp hết vào bảng để giữ nguyên form Excel `
                         + `có thể làm ứng dụng chậm hoặc treo.\n\nNên chọn "Xuất toàn bộ CSV" thay thế. Vẫn tiếp tục xuất Excel?`)) {
                         setFullExporting(false); return;
                     }
@@ -1975,6 +1990,11 @@ const exportJournalCsv = (mode) => {
                 if (rptType === 'BC015') {
                     const q = new URLSearchParams({ ...base, mode: modeArg || saleSourceMode || 'summary', page: 1, page_size: 0 });
                     return [`/api/sale_by_source?${q.toString()}`, res => res.rows];
+                }
+                if (rptType === 'BC016') {
+                    // page_size=0 ⇒ lấy MỌI nhóm, không chỉ trang đang xem (Bẫy 9: DOM chỉ có trang hiện tại).
+                    const q = new URLSearchParams({ ...base, group_by: modeArg || nxtGroupBy || 'class', page: 1, page_size: 0 });
+                    return [`/api/nxt?${q.toString()}`, res => res];
                 }
                 const q = new URLSearchParams({ ...base, acc_ids: filters.acc_ids.join(','),
                     mode: modeArg || vatSalesMode || 'detail', page: 1, page_size: 0 });
@@ -2015,6 +2035,11 @@ const exportJournalCsv = (mode) => {
                     exportFullXls(url, pick);
                     return;
                 }
+                if (reportType === 'BC016') {
+                    const [url, pick] = buildFullExportReq('BC016', nxtGroupBy);
+                    exportFullXls(url, pick);
+                    return;
+                }
                 exportReportXls();
             };
             const exportToPDF = () => { window.print(); };
@@ -2022,6 +2047,25 @@ const exportJournalCsv = (mode) => {
             const pagedDataRows = fullExportRows || (reportData.data || (Array.isArray(reportData) ? reportData : []));
             const cbRowsView = fullExportRows || cbRows;
             const ssRows = fullExportRows || (reportData && reportData.rows) || [];   // BC015
+
+            // ── BC016 — Nhập xuất tồn ─────────────────────────────────────────────
+            // fullExportRows mang nguyên payload /api/nxt của lần lấy-toàn-bộ (xuất Excel),
+            // nên phải nhận cả dạng object, không chỉ mảng như các báo cáo khác.
+            const nxt = (fullExportRows && fullExportRows.groups ? fullExportRows : nxtData) || null;
+            const nxtColsIn = (nxt && nxt.columns && nxt.columns.in) || [];
+            const nxtColsOut = (nxt && nxt.columns && nxt.columns.out) || [];
+            const nxtGroups = (nxt && nxt.groups) || [];
+            // 3 cột định danh + (đầu kỳ, cộng nhập, cộng xuất, cuối kỳ) × 2 ô + mỗi TRAN_ID 2 ô
+            const nxtColSpan = 3 + 8 + (nxtColsIn.length + nxtColsOut.length) * 2;
+            // Ô số của BC016: dùng chung formatNum nên 0 ra "-" và số âm nằm trong ngoặc ()
+            // — số lượng xuất âm là xuất điều chỉnh, form kế toán trình bày bằng ngoặc đơn.
+            const nxtCells = (o) => ([
+                o.open_qty, o.open_amt, o.in_qty, o.in_amt,
+                ...nxtColsIn.flatMap(c => (o.in && o.in[c.tran_id]) || [0, 0]),
+                o.out_qty, o.out_amt,
+                ...nxtColsOut.flatMap(c => (o.out && o.out[c.tran_id]) || [0, 0]),
+                o.close_qty, o.close_amt,
+            ]);
 
             return (
                 <div className="flex-1 overflow-hidden flex flex-col">
@@ -2059,6 +2103,13 @@ const exportJournalCsv = (mode) => {
                                     <button disabled={loading} onClick={() => { if (saleSourceMode === 'detail' || loading) return; setSaleSourceMode('detail'); loadReportData(1, 'detail'); }} className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${saleSourceMode === 'detail' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'} disabled:opacity-50`}>Chi tiết</button>
                                 </div>
                             )}
+                            {reportType === 'BC016' && (
+                                <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200 shrink-0 h-[32px] items-center">
+                                    <span className="px-2 text-[9px] font-bold text-slate-400 uppercase tracking-wider">Gom theo</span>
+                                    <button disabled={loading} onClick={() => { if (nxtGroupBy === 'class' || loading) return; setNxtGroupBy('class'); loadReportData(1, 'class'); }} className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${nxtGroupBy === 'class' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'} disabled:opacity-50`}>Nhóm hàng hoá</button>
+                                    <button disabled={loading} onClick={() => { if (nxtGroupBy === 'warehouse' || loading) return; setNxtGroupBy('warehouse'); loadReportData(1, 'warehouse'); }} className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${nxtGroupBy === 'warehouse' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'} disabled:opacity-50`}>Kho</button>
+                                </div>
+                            )}
                             {reportType === 'BC013' ? (
                                 <div className="w-40"><PremiumDropdown label="Đối tượng" items={meta.pr_details} selectedItems={filters.pr_detail_ids} onSelect={id => onToggleFilter('pr_detail_ids', id)} isActive={activeDropdown === 'Đối tượng'} onToggle={setActiveDropdown} /></div>
                             ) : null}
@@ -2077,14 +2128,14 @@ const exportJournalCsv = (mode) => {
                                     {loading && <Icon name="loader" className="animate-spin" />}
                                     Xem {reportType}
                                 </button>
-                                <button onClick={exportToExcel} disabled={reportType === 'BC012' ? cbRows.length === 0 : (reportType === 'BC006' || reportType === 'BC013') ? trialBalanceData.length === 0 : Object.keys(reportData).length === 0} className="bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 h-[32px] rounded-lg font-black text-[9px] shadow-lg hover:bg-emerald-700 hover:disabled:bg-emerald-600 transition-all flex items-center gap-2"><Icon name="file-spreadsheet" size={12}/> Excel</button>
-                                <button onClick={exportToPDF} disabled={reportType === 'BC012' ? cbRows.length === 0 : (reportType === 'BC006' || reportType === 'BC013') ? trialBalanceData.length === 0 : Object.keys(reportData).length === 0} className="bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 h-[32px] rounded-lg font-black text-[9px] shadow-lg hover:bg-red-700 hover:disabled:bg-red-600 transition-all flex items-center gap-2"><Icon name="download" size={12}/> PDF</button>
+                                <button onClick={exportToExcel} disabled={reportType === 'BC016' ? !(nxtData && nxtData.groups && nxtData.groups.length) : reportType === 'BC012' ? cbRows.length === 0 : (reportType === 'BC006' || reportType === 'BC013') ? trialBalanceData.length === 0 : Object.keys(reportData).length === 0} className="bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 h-[32px] rounded-lg font-black text-[9px] shadow-lg hover:bg-emerald-700 hover:disabled:bg-emerald-600 transition-all flex items-center gap-2"><Icon name="file-spreadsheet" size={12}/> Excel</button>
+                                <button onClick={exportToPDF} disabled={reportType === 'BC016' ? !(nxtData && nxtData.groups && nxtData.groups.length) : reportType === 'BC012' ? cbRows.length === 0 : (reportType === 'BC006' || reportType === 'BC013') ? trialBalanceData.length === 0 : Object.keys(reportData).length === 0} className="bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 h-[32px] rounded-lg font-black text-[9px] shadow-lg hover:bg-red-700 hover:disabled:bg-red-600 transition-all flex items-center gap-2"><Icon name="download" size={12}/> PDF</button>
                             </div>
                         </div>
                     </div>
 
                     <div className="flex-1 overflow-auto custom-scrollbar bg-slate-200 p-4 relative" ref={paperScrollRef}>
-                        <div className={`report-paper ${['BC001', 'BC002', 'BC003', 'BC004', 'BC006', 'BC007', 'BC011', 'BC012', 'BC013', 'BC014', 'BC015'].includes(reportType) ? 'paper-landscape' : 'paper-portrait'}`}>
+                        <div className={`report-paper ${['BC001', 'BC002', 'BC003', 'BC004', 'BC006', 'BC007', 'BC011', 'BC012', 'BC013', 'BC014', 'BC015', 'BC016'].includes(reportType) ? 'paper-landscape' : 'paper-portrait'}`}>
                             <div className="flex justify-between items-start mb-6">
                                 <div>
                                     <div className="font-black text-[11px] uppercase">{(meta.company && meta.company.name) || ''}</div>
@@ -2097,11 +2148,11 @@ const exportJournalCsv = (mode) => {
                                         ) : 'Tất cả'}
                                     </div>
                                 </div>
-                                <div className="text-right font-black text-[10px] text-slate-400 uppercase tracking-widest italic underline">{reportType === 'BC005' ? 'Mẫu B01 - DN' : reportType === 'BC006' ? 'Mẫu B09 - DN' : reportType === 'BC007' ? 'Mẫu S03a - DN' : reportType === 'BC008' ? 'Mẫu S38 - DN' : (reportType === 'BC009' || reportType === 'BC010' || reportType === 'BC011') ? 'Mẫu B03 - DN' : reportType === 'BC012' ? 'Mẫu S07 - DN' : reportType === 'BC013' ? 'Mẫu S05 - DN' : reportType === 'BC014' ? 'Mẫu 01-1/GTGT' : reportType === 'BC015' ? '' : 'Mẫu B02 - DN'}</div>
+                                <div className="text-right font-black text-[10px] text-slate-400 uppercase tracking-widest italic underline">{reportType === 'BC005' ? 'Mẫu B01 - DN' : reportType === 'BC006' ? 'Mẫu B09 - DN' : reportType === 'BC007' ? 'Mẫu S03a - DN' : reportType === 'BC008' ? 'Mẫu S38 - DN' : (reportType === 'BC009' || reportType === 'BC010' || reportType === 'BC011') ? 'Mẫu B03 - DN' : reportType === 'BC012' ? 'Mẫu S07 - DN' : reportType === 'BC013' ? 'Mẫu S05 - DN' : reportType === 'BC014' ? 'Mẫu 01-1/GTGT' : (reportType === 'BC015' || reportType === 'BC016') ? '' : 'Mẫu B02 - DN'}</div>
                             </div>
 
                             <div className="text-center space-y-1 mb-8">
-                                <h1 className="text-xl font-black text-slate-900 uppercase tracking-tight">{reportType === 'BC006' ? 'BẢNG CÂN ĐỐI PHÁT SINH' : reportType === 'BC005' ? 'BẢNG CÂN ĐỐI KẾ TOÁN' : (reportType === 'BC009' || reportType === 'BC010' || reportType === 'BC011') ? `BÁO CÁO LƯU CHUYỂN TIỀN TỆ (${reportType === 'BC009' ? 'Trực tiếp' : reportType === 'BC011' ? 'Gián tiếp - Chú Long' : 'Gián tiếp'})` : reportType === 'BC007' ? 'SỔ NHẬT KÝ CHUNG' : reportType === 'BC008' ? 'SỔ CHI TIẾT TÀI KHOẢN' : reportType === 'BC012' ? 'SỔ TIỀN MẶT VÀ TIỀN NGÂN HÀNG' : reportType === 'BC013' ? 'BẢNG TỔNG HỢP PHÁT SINH CÔNG NỢ' : reportType === 'BC014' ? '6.2 - BẢNG KÊ HÓA ĐƠN, CHỨNG TỪ HÀNG HÓA, DỊCH VỤ BÁN RA' : reportType === 'BC015' ? 'BÁO CÁO BÁN HÀNG THEO NGUỒN ĐƠN' : ['BC002', 'BC004'].includes(reportType) ? 'BÁO CÁO KẾT QUẢ KINH DOANH THEO CÔNG VIỆC' : 'BÁO CÁO KẾT QUẢ KINH DOANH THEO THÁNG'}</h1>
+                                <h1 className="text-xl font-black text-slate-900 uppercase tracking-tight">{reportType === 'BC006' ? 'BẢNG CÂN ĐỐI PHÁT SINH' : reportType === 'BC005' ? 'BẢNG CÂN ĐỐI KẾ TOÁN' : (reportType === 'BC009' || reportType === 'BC010' || reportType === 'BC011') ? `BÁO CÁO LƯU CHUYỂN TIỀN TỆ (${reportType === 'BC009' ? 'Trực tiếp' : reportType === 'BC011' ? 'Gián tiếp - Chú Long' : 'Gián tiếp'})` : reportType === 'BC007' ? 'SỔ NHẬT KÝ CHUNG' : reportType === 'BC008' ? 'SỔ CHI TIẾT TÀI KHOẢN' : reportType === 'BC012' ? 'SỔ TIỀN MẶT VÀ TIỀN NGÂN HÀNG' : reportType === 'BC013' ? 'BẢNG TỔNG HỢP PHÁT SINH CÔNG NỢ' : reportType === 'BC014' ? '6.2 - BẢNG KÊ HÓA ĐƠN, CHỨNG TỪ HÀNG HÓA, DỊCH VỤ BÁN RA' : reportType === 'BC015' ? 'BÁO CÁO BÁN HÀNG THEO NGUỒN ĐƠN' : reportType === 'BC016' ? 'BÁO CÁO NHẬP XUẤT TỒN NHÀ HÀNG' : ['BC002', 'BC004'].includes(reportType) ? 'BÁO CÁO KẾT QUẢ KINH DOANH THEO CÔNG VIỆC' : 'BÁO CÁO KẾT QUẢ KINH DOANH THEO THÁNG'}</h1>
                                 {reportType === 'BC014' && (
                                     <div className="text-[10px] font-bold text-slate-600 uppercase">Tài khoản: {filters.acc_ids.length > 0 ? filters.acc_ids.join(', ') : '33311'}-</div>
                                 )}
@@ -2156,6 +2207,29 @@ const exportJournalCsv = (mode) => {
                                         .bc015-table tbody tr { content-visibility: auto !important; contain-intrinsic-size: 0 24px !important; }
                                         .bc015-table th:last-child, .bc015-table td:last-child { border-right: 1px solid #cbd5e1 !important; }
                                         @media print { @page { size: A4 landscape; margin: 8mm; } }
+                                    `}</style>
+                                )}
+                                {reportType === 'BC016' && (
+                                    <style>{`
+                                        /* Khổ ngang A3 (420mm) chứ không phải A4 ngang 297mm — 51–59 cột
+                                           nhét vào 297mm thì cuộn ngang nhiều hơn là đọc được. Chỉ áp khi
+                                           đang xem BC016 vì khối style này gắn theo reportType. */
+                                        .paper-landscape { width: 420mm !important; min-width: 420mm !important; max-width: 420mm !important; }
+                                        .report-paper { padding: 10mm !important; }
+                                        /* 51-59 cột: KHÔNG ép width 100% (chữ sẽ nát), để bảng tự giãn rồi
+                                           cuộn ngang trong khung.
+                                           KHÔNG dùng position:sticky ở đây - đã thử và hỏng thật: thuộc tính
+                                           left phải là hằng số nhưng bề rộng 3 cột đầu do nội dung quyết định,
+                                           nên cột tên hàng bị đẩy lệch để hở một khoảng trắng; thêm nữa thead
+                                           sticky có z-index đè luôn lên dòng "không có dữ liệu" của tbody. */
+                                        .bc016-table { width: auto !important; min-width: 100% !important; table-layout: auto !important; border-collapse: collapse !important; }
+                                        .bc016-table th, .bc016-table td { border: 1px solid #cbd5e1 !important; font-size: 10px !important; padding: 3px 5px !important; white-space: nowrap !important; vertical-align: middle !important; }
+                                        .bc016-table th { background: #f1f5f9 !important; font-size: 9.5px !important; line-height: 1.15 !important; text-align: center !important; }
+                                        .bc016-table td:nth-child(2) { max-width: 260px !important; white-space: normal !important; word-break: break-word !important; }
+                                        @media print {
+                                            @page { size: A3 landscape; margin: 6mm; }
+                                            .bc016-table th, .bc016-table td { font-size: 7pt !important; padding: 1px 2px !important; }
+                                        }
                                     `}</style>
                                 )}
                                 {(reportType === 'BC006' || reportType === 'BC013' || reportType === 'BC014') && (
@@ -2221,7 +2295,7 @@ const exportJournalCsv = (mode) => {
                                         .kqkd-table { border-left: 1px solid #000 !important; border-top: 1px solid #000 !important; }
                                     `}</style>
                                 )}
-                                <table className={`report-table min-w-full ${(reportType === 'BC006' || reportType === 'BC013') ? 'bc006-table' : ''} ${(reportType === 'BC007' || reportType === 'BC008') ? 'nklist-table' : ''} ${reportType === 'BC012' ? 'cashbook-table' : ''} ${['BC001', 'BC002', 'BC003', 'BC004'].includes(reportType) ? 'kqkd-table' : ''} ${reportType === 'BC014' ? 'bc013-table' : ''} ${reportType === 'BC015' ? 'bc015-table' : ''}`}>
+                                <table className={`report-table min-w-full ${(reportType === 'BC006' || reportType === 'BC013') ? 'bc006-table' : ''} ${(reportType === 'BC007' || reportType === 'BC008') ? 'nklist-table' : ''} ${reportType === 'BC012' ? 'cashbook-table' : ''} ${['BC001', 'BC002', 'BC003', 'BC004'].includes(reportType) ? 'kqkd-table' : ''} ${reportType === 'BC014' ? 'bc013-table' : ''} ${reportType === 'BC015' ? 'bc015-table' : ''} ${reportType === 'BC016' ? 'bc016-table' : ''}`}>
                                     {(reportType === 'BC006' || reportType === 'BC013') ? (
                                         <>
                                         <thead>
@@ -2470,6 +2544,69 @@ const exportJournalCsv = (mode) => {
                                                     <td className="px-2 py-2 text-xs uppercase tracking-widest">Tổng cộng</td>
                                                     {['amount','discount2','discount','tax','voucher','commission','income','total'].map(k => (
                                                         <td key={k} className="text-right px-2 text-xs col-value">{saleSourceTotals[k] ? formatNum(saleSourceTotals[k]) : ''}</td>
+                                                    ))}
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                        </>
+                                    ) : reportType === 'BC016' ? (
+                                    <>
+                                        <thead>
+                                            <tr>
+                                                <th rowSpan="2" className="col-code border border-slate-300 text-center">Mã hàng</th>
+                                                <th rowSpan="2" className="col-name border border-slate-300 text-center">Tên hàng</th>
+                                                <th rowSpan="2" className="border border-slate-300 text-center">ĐVT</th>
+                                                <th colSpan="2" className="border border-slate-300 text-center">Đầu kỳ</th>
+                                                <th colSpan="2" className="border border-slate-300 text-center bg-emerald-50">Cộng nhập</th>
+                                                {nxtColsIn.map(c => (
+                                                    <th key={`hi${c.tran_id}`} colSpan="2" className="border border-slate-300 text-center" title={c.tran_id}>{c.name}</th>
+                                                ))}
+                                                <th colSpan="2" className="border border-slate-300 text-center bg-rose-50">Cộng xuất</th>
+                                                {nxtColsOut.map(c => (
+                                                    <th key={`ho${c.tran_id}`} colSpan="2" className="border border-slate-300 text-center" title={c.tran_id}>{c.name}</th>
+                                                ))}
+                                                <th colSpan="2" className="border border-slate-300 text-center">Cuối kỳ</th>
+                                            </tr>
+                                            <tr>
+                                                {Array.from({ length: 4 + nxtColsIn.length + nxtColsOut.length }).map((_, i) => (
+                                                    <React.Fragment key={`sg${i}`}>
+                                                        <th className="border border-slate-300 text-center col-value">SL</th>
+                                                        <th className="border border-slate-300 text-center col-value">GT</th>
+                                                    </React.Fragment>
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {nxtGroups.map(g => (
+                                                <React.Fragment key={`g${g.key}`}>
+                                                    {/* Dòng nhóm mang luôn số tổng của nhóm — bám form gốc iPOS,
+                                                        và là tổng ĐẦY ĐỦ của nhóm kể cả khi trang chỉ hiện một phần. */}
+                                                    <tr className="bg-indigo-50/70 font-black text-indigo-800">
+                                                        <td className="px-2 text-xs" colSpan="3">{g.key}{g.name && g.name !== g.key ? ` — ${g.name}` : ''}</td>
+                                                        {nxtCells(g.totals).map((v, i) => (
+                                                            <td key={`gt${i}`} className="text-right px-2 text-xs col-value">{formatNum(v)}</td>
+                                                        ))}
+                                                    </tr>
+                                                    {g.rows.map(row => (
+                                                        <tr key={`r${g.key}|${row.item_id}`} className="hover:bg-slate-50">
+                                                            <td className="px-2 pl-4 text-xs">{row.item_id}</td>
+                                                            <td className="px-2 text-xs">{row.item_name}</td>
+                                                            <td className="px-2 text-xs text-center">{row.unit}</td>
+                                                            {nxtCells(row).map((v, i) => (
+                                                                <td key={`c${i}`} className="text-right px-2 text-xs col-value">{formatNum(v)}</td>
+                                                            ))}
+                                                        </tr>
+                                                    ))}
+                                                </React.Fragment>
+                                            ))}
+                                            {nxtGroups.length === 0 && (
+                                                <tr><td colSpan={nxtColSpan || 11} className="text-center py-8 text-slate-400 text-xs italic">Không có dữ liệu trong kỳ báo cáo đã chọn</td></tr>
+                                            )}
+                                            {nxt && nxt.grand && nxtGroups.length > 0 && (
+                                                <tr className="bg-slate-200 font-black">
+                                                    <td className="px-2 py-2 text-xs uppercase tracking-widest" colSpan="3">Tổng cộng</td>
+                                                    {nxtCells(nxt.grand).map((v, i) => (
+                                                        <td key={`tt${i}`} className="text-right px-2 text-xs col-value">{formatNum(v)}</td>
                                                     ))}
                                                 </tr>
                                             )}
@@ -2888,7 +3025,7 @@ const exportJournalCsv = (mode) => {
                         </div>
 
                         {/* Thanh chuyển trang NGANG (gõ số trang + Enter để nhảy) — dùng chung cho BC007/BC008/BC014 */}
-                        {(reportType === 'BC007' || reportType === 'BC008' || reportType === 'BC014' || reportType === 'BC015') && reportData.pagination && reportData.pagination.total_pages > 1 && (
+                        {(reportType === 'BC007' || reportType === 'BC008' || reportType === 'BC014' || reportType === 'BC015' || reportType === 'BC016') && reportData.pagination && reportData.pagination.total_pages > 1 && (
                             <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-white/90 backdrop-blur-md rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.15)] border border-slate-100 px-4 py-1.5 flex items-center gap-3">
                                 <PageJumper page={reportData.pagination.page} totalPages={reportData.pagination.total_pages} onGoto={p => loadReportData(p)} compact />
                                 <span className="text-[10px] font-black text-slate-400 pr-1">{(reportData.pagination.total_rows || 0).toLocaleString('vi-VN')} dòng</span>
@@ -3485,6 +3622,8 @@ const exportJournalCsv = (mode) => {
         const [vatSalesMode, setVatSalesMode] = useState('detail');
         const [saleSourceTotals, setSaleSourceTotals] = useState(null);      // BC015: dòng tổng cộng
         const [saleSourceMode, setSaleSourceMode] = useState('summary');     // BC015: 'summary' | 'detail'
+        const [nxtData, setNxtData] = useState(null);                        // BC016: {columns, groups, grand, pagination}
+        const [nxtGroupBy, setNxtGroupBy] = useState('class');               // BC016: 'class' (nhóm hàng) | 'warehouse' (kho)
         const [journalViewMode, setJournalViewMode] = useState('detail');
         const [exportNoticeModal, setExportNoticeModal] = useState(null);
             const [trialBalanceTotal, setTrialBalanceTotal] = useState(null);
@@ -5077,6 +5216,24 @@ const exportJournalCsv = (mode) => {
                             setSaleSourceTotals(res.totals || null);
                         } else {
                             alert('Lỗi xem báo cáo bán hàng theo nguồn đơn: ' + (res.message || 'không có dữ liệu'));
+                        }
+                    } else if (reportType === 'BC016') {
+                        // modeArg mang giá trị group_by MỚI: state nxtGroupBy vừa set chưa vào closure này
+                        // (stale closure — đã trả giá ở BC014/BC015).
+                        const gb = modeArg || nxtGroupBy || 'class';
+                        // 1000 dòng chi tiết/trang. Gom theo kho ra 5.700–9.400 dòng × ~50 cột: trả hết
+                        // một lượt là ~6 MB JSON và vài trăm nghìn ô DOM → treo trình duyệt.
+                        // Nhóm bị cắt ngang trang vẫn đúng số vì tổng nhóm là tổng đầy đủ (xem /api/nxt).
+                        const q2 = new URLSearchParams({ from_date: filters.from_date, to_date: filters.to_date, org_ids: filters.org_ids.join(','), group_by: gb, page: _page, page_size: 1000 });
+                        const r = await fetch(`/api/nxt?${q2.toString()}`, { signal: abortRef.current.signal });
+                        if (r.status === 401) { setIsLoggedIn(false); return; }
+                        const res = await r.json();
+                        if (res.status === 'ok') {
+                            setNxtData(res);
+                            setReportData({ pagination: res.pagination });   // để thanh phân trang dùng chung
+                        } else {
+                            setNxtData(null);
+                            alert('Lỗi xem báo cáo nhập xuất tồn: ' + (res.message || 'không có dữ liệu'));
                         }
                     } else if (reportType === 'BC012') {
                         const q2 = new URLSearchParams({ from_date: filters.from_date, to_date: filters.to_date, org_ids: filters.org_ids.join(','), acc_ids: filters.acc_ids.join(','), contra_acc_ids: filters.contra_acc_ids.join(','), tran_no: filters.tran_no || '', page: filters.page, page_size: 1000 });
@@ -6684,6 +6841,9 @@ const exportJournalCsv = (mode) => {
                                 saleSourceTotals={saleSourceTotals}
                                 saleSourceMode={saleSourceMode}
                                 setSaleSourceMode={setSaleSourceMode}
+                                nxtData={nxtData}
+                                nxtGroupBy={nxtGroupBy}
+                                setNxtGroupBy={setNxtGroupBy}
                                 onExportSuccess={(path, filename) => setExportNoticeModal({ path, filename })}
                             />
                         </div>
@@ -6813,7 +6973,7 @@ const exportJournalCsv = (mode) => {
                                 <p className="text-slate-500 font-medium mb-8 text-[13px] leading-relaxed">Nội dung báo cáo hiện tại sẽ bị xóa. Bạn cần phải tải lại báo cáo nếu muốn quay lại mẫu cũ.</p>
                                 <div className="flex gap-4">
                                     <button onClick={() => setShowClearModal(false)} className="flex-1 px-6 py-3.5 rounded-2xl border border-slate-200 text-slate-600 font-black text-[11px] hover:bg-slate-50 transition-all uppercase tracking-widest">Hủy</button>
-                                    <button onClick={() => { setReportType(pendingReportType); setReportData({}); setMonthList([]); setMonthlyData({}); setJobList([]); setJobData({}); setShowClearModal(false); }} className="flex-1 px-6 py-3.5 rounded-2xl bg-indigo-600 text-white font-black text-[11px] hover:bg-indigo-700 shadow-xl shadow-indigo-200 transition-all uppercase tracking-widest">Xác nhận</button>
+                                    <button onClick={() => { setReportType(pendingReportType); setReportData({}); setMonthList([]); setMonthlyData({}); setJobList([]); setJobData({}); setNxtData(null); setShowClearModal(false); }} className="flex-1 px-6 py-3.5 rounded-2xl bg-indigo-600 text-white font-black text-[11px] hover:bg-indigo-700 shadow-xl shadow-indigo-200 transition-all uppercase tracking-widest">Xác nhận</button>
                                 </div>
                             </div>
                         </div>

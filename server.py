@@ -5678,6 +5678,268 @@ def get_sale_by_source():
         return jsonify({"status": "error", "message": msg}), 401 if "đăng nhập" in msg else 500
 
 
+# =====================================================================
+# BC016 — NHẬP XUẤT TỒN NHÀ HÀNG
+# =====================================================================
+# Nguồn: WAREHOUSE_VIEW (KHÔNG dùng bảng WAREHOUSE) — VIEW lọc sẵn
+# DM_ITEM.IS_WAREHOUSE_BALANCE = 1, tức chỉ hàng có quản lý tồn kho.
+# Đo 05/09/2026 trên IACC_CHULONG: base table 691.469 dòng / VIEW 494.819 dòng,
+# tồn lệch 1,98 triệu đơn vị. Lấy nhầm base table là sai toàn bộ báo cáo.
+
+# Thứ tự cột bám theo form gốc "5.7 - BÁO CÁO NHẬP XUẤT TỒN NHÀ HÀNG" của iPOS
+# để đối chiếu được từng khối. TRAN_ID lạ (DB khác, hoặc iPOS thêm mới) xếp sau, theo alphabet.
+NXT_TRAN_ORDER_IN = ["NM", "MNB", "NMND", "NMTU", "NKHO", "NSP", "NDCNB", "NDC"]
+NXT_TRAN_ORDER_OUT = ["BH", "BHVAT", "BHK", "XDCNB", "BNB", "XKHOSXBTP", "XKHO",
+                      "XKHODLK", "XKHOHN", "XHUY", "XSC", "XKHOKK", "XDC"]
+
+
+def _nxt_open_cutoff(from_dt):
+    """Mốc dồn tồn đầu kỳ = 01/01 của NĂM TÀI CHÍNH chứa from_date — KHÔNG dồn từ đầu dữ liệu.
+
+    Luật này không có trong tài liệu nào, đo ngày 05/09/2026 mới ra: IACC_CHULONG còn 53 dòng
+    phát sinh tháng 12/2025 (798.274,60 SL / 30.333.901 đ). Gộp chúng vào tồn đầu kỳ 2026 thì
+    lệch form gốc đúng bằng chừng đó; cắt từ 01/01 thì khớp form gốc 0 tuyệt đối trên cả 9 chỉ tiêu.
+    """
+    return date(from_dt.year, 1, 1)
+
+
+@app.route("/api/nxt")
+@with_db_lock
+def get_nxt():
+    """BC016 — Nhập xuất tồn nhà hàng.
+
+    Đầu kỳ / cuối kỳ là số tổng; nhập và xuất trong kỳ tách thành CỘT ĐỘNG theo từng
+    TRAN_ID, mỗi cột 2 ô (số lượng + giá trị). Cột nào cả kỳ không có số thì không trả về.
+    Dòng = mặt hàng; gom nhóm theo `group_by`:
+      'class'     -> nhóm hàng hoá (dòng = mặt hàng gộp toàn công ty)
+      'warehouse' -> kho           (dòng = mặt hàng trong từng kho, giống form gốc)
+    """
+    try:
+        f_date = request.args.get("from_date")
+        t_date = request.args.get("to_date")
+        if not f_date or not t_date:
+            return jsonify({"status": "error", "message": "Thiếu từ ngày / đến ngày"}), 400
+
+        group_by = request.args.get("group_by", "class")
+        if group_by not in ("class", "warehouse"):
+            group_by = "class"
+        page = int(request.args.get("page", 1))
+        page_size = int(request.args.get("page_size", 0))   # đếm theo DÒNG CHI TIẾT, 0 = lấy hết
+        export_all = page_size <= 0
+
+        try:
+            from_dt = datetime.strptime(f_date, "%d/%m/%Y").date()
+            to_dt = datetime.strptime(t_date, "%d/%m/%Y").date()
+        except ValueError:
+            return jsonify({"status": "error",
+                            "message": "Ngày phải theo định dạng dd/mm/yyyy"}), 400
+        # Kỳ ngược thì CHẶN, đừng trả số: mọi phát sinh sẽ rơi hết vào nhánh '_OPEN'
+        # ⇒ báo cáo ra một bảng chỉ có tồn đầu, trông vẫn "chạy được" mà vô nghĩa.
+        if to_dt < from_dt:
+            return jsonify({"status": "error",
+                            "message": "Đến ngày phải lớn hơn hoặc bằng Từ ngày"}), 400
+        y_start = _nxt_open_cutoff(from_dt).strftime("%Y%m%d")
+        f_dt = from_dt.strftime("%Y%m%d")
+        # TRAN_DATE là smalldatetime => chặn trên bằng "< ngày kế tiếp", KHÔNG dùng <= mốc 00:00:00
+        # (Bẫy 4: dùng <= sẽ mất trọn ngày cuối kỳ).
+        t_next = (to_dt + timedelta(days=1)).strftime("%Y%m%d")
+
+        # -- Bộ lọc ------------------------------------------------------------
+        # Thứ tự params phải ĐÚNG thứ tự dấu ? trong chuỗi SQL (Bẫy 5): CASE trong SELECT
+        # của subquery đứng TRƯỚC mệnh đề WHERE, nên f_dt đi đầu, rồi mới tới wparams.
+        where = ["W.TRAN_DATE >= ?", "W.TRAN_DATE < ?"]
+        wparams = [y_start, t_next]
+
+        org_ids = [v for v in request.args.get("org_ids", "").split(",") if v]
+        _oc, _op = _org_filter_sql(org_ids, "W.ORGANIZATION_ID")
+        if _oc:
+            where.append(_oc)
+            wparams.extend(_op)
+
+        for field, arg in [("W.WAREHOUSE_ID", "wh_ids"),
+                           ("W.ITEM_ID", "item_ids"),
+                           ("W.ITEM_CLASS_ID", "class_ids")]:
+            vals = [v for v in request.args.get(arg, "").split(",") if v]
+            if vals:
+                where.append(f"{field} IN ({','.join(['?'] * len(vals))})")
+                wparams.extend(vals)
+
+        gkey_sql = "W.WAREHOUSE_ID" if group_by == "warehouse" else "W.ITEM_CLASS_ID"
+
+        # ⚡ GROUP BY chỉ gồm 4 khoá NGẮN. Bản đầu còn kéo theo GNAME (tên kho/tên nhóm,
+        # nvarchar dài) + MAX(ITEM_NAME) + MAX(UNIT_ID) và join DM_ITEM_CLASS: kỳ cả năm
+        # mất 66–74 giây. Tên lấy riêng từ danh mục (đã đối chiếu: 0 lệch trên cả ba cột
+        # ITEM_NAME / UNIT_ID_WH / WAREHOUSE_NAME giữa VIEW và DM_*), nên bỏ ra khỏi
+        # phép gộp là đúng số mà nhanh hơn hẳn.
+        sql = f"""
+            SELECT GKEY, ITEM_ID, COLKEY, IR, SUM(QTY) AS QTY, SUM(AMT) AS AMT
+            FROM (
+                SELECT ISNULL({gkey_sql}, '') AS GKEY, W.ITEM_ID,
+                       CASE WHEN W.TRAN_DATE < ? THEN '_OPEN' ELSE W.TRAN_ID END AS COLKEY,
+                       W.ISSUE_RECEIVE AS IR,
+                       ISNULL(W.QUANTITY, 0) AS QTY, ISNULL(W.AMOUNT, 0) AS AMT
+                FROM dbo.WAREHOUSE_VIEW W WITH (NOLOCK)
+                WHERE {' AND '.join(where)}
+            ) T
+            GROUP BY GKEY, ITEM_ID, COLKEY, IR
+        """
+        cur = get_connection().cursor()
+        cur.execute(sql, [f_dt] + wparams)
+        db_rows = cur.fetchall()
+
+        # Danh mục tra tên — đều là bảng nhỏ (861 mặt hàng / 87 kho / 7 nhóm / vài chục loại CT).
+        cur.execute("SELECT ITEM_ID, ITEM_NAME, UNIT_ID FROM dbo.DM_ITEM WITH (NOLOCK)")
+        item_info = {(r[0] or '').strip(): ((r[1] or '').strip(), (r[2] or '').strip())
+                     for r in cur.fetchall()}
+        if group_by == "warehouse":
+            cur.execute("SELECT WAREHOUSE_ID, WAREHOUSE_NAME FROM dbo.DM_WAREHOUSE WITH (NOLOCK)")
+        else:
+            cur.execute("SELECT ITEM_CLASS_ID, ITEM_CLASS_NAME FROM dbo.DM_ITEM_CLASS WITH (NOLOCK)")
+        group_names = {(r[0] or '').strip(): (r[1] or '').strip() for r in cur.fetchall()}
+
+        cur.execute("SELECT CAST(TRAN_ID AS NVARCHAR(100)), TRAN_NAME FROM dbo.SYS_TRAN WITH (NOLOCK)")
+        tran_names = {(r[0] or '').strip(): (r[1] or '').strip() for r in cur.fetchall()}
+
+        # -- Gom cây: nhóm -> mặt hàng -----------------------------------------
+        groups, gorder = {}, []
+        used_in, used_out = {}, {}     # TRAN_ID -> True nếu có phát sinh khác 0
+
+        for r in db_rows:
+            gkey = (r[0] or '').strip()
+            item_id = (r[1] or '').strip()
+            colkey = (r[2] or '').strip()
+            ir = (r[3] or '').strip()
+            qty, amt = float(r[4] or 0), float(r[5] or 0)
+
+            if gkey not in groups:
+                groups[gkey] = {"key": gkey, "name": group_names.get(gkey) or gkey,
+                                "items": {}, "iorder": []}
+                gorder.append(gkey)
+            g = groups[gkey]
+            if item_id not in g["items"]:
+                iname, iunit = item_info.get(item_id, ('', ''))
+                g["items"][item_id] = {"item_name": iname or item_id, "unit": iunit,
+                                       "open_qty": 0.0, "open_amt": 0.0, "in": {}, "out": {}}
+                g["iorder"].append(item_id)
+            it = g["items"][item_id]
+
+            if colkey == "_OPEN":
+                # Tồn đầu kỳ: nhập cộng, xuất trừ.
+                sign = 1.0 if ir == "N" else -1.0
+                it["open_qty"] += sign * qty
+                it["open_amt"] += sign * amt
+            else:
+                bucket, used = ("in", used_in) if ir == "N" else ("out", used_out)
+                cell = it[bucket].setdefault(colkey, [0.0, 0.0])
+                cell[0] += qty
+                cell[1] += amt
+                if round(qty, 4) != 0 or round(amt, 2) != 0:
+                    used[colkey] = True
+
+        # -- Cột động: chỉ giữ TRAN_ID thực sự có số ---------------------------
+        def order_cols(used, preferred):
+            known = [t for t in preferred if t in used]
+            rest = sorted(t for t in used if t not in preferred)
+            return [{"tran_id": t, "name": tran_names.get(t, t)} for t in known + rest]
+
+        cols_in = order_cols(used_in, NXT_TRAN_ORDER_IN)
+        cols_out = order_cols(used_out, NXT_TRAN_ORDER_OUT)
+        keys_in = [c["tran_id"] for c in cols_in]
+        keys_out = [c["tran_id"] for c in cols_out]
+
+        # -- Dựng dòng + cộng tổng ---------------------------------------------
+        TOT_FIELDS = ("open_qty", "open_amt", "in_qty", "in_amt",
+                      "out_qty", "out_amt", "close_qty", "close_amt")
+
+        def blank_tot():
+            d = {f: 0.0 for f in TOT_FIELDS}
+            d["in"] = {k: [0.0, 0.0] for k in keys_in}
+            d["out"] = {k: [0.0, 0.0] for k in keys_out}
+            return d
+
+        def add_tot(dst, src):
+            for f in TOT_FIELDS:
+                dst[f] += src[f]
+            for b, ks in (("in", keys_in), ("out", keys_out)):
+                for k in ks:
+                    c = src[b].get(k)
+                    if c:
+                        dst[b][k][0] += c[0]
+                        dst[b][k][1] += c[1]
+
+        out_groups, grand = [], blank_tot()
+        for gk in gorder:
+            g = groups[gk]
+            gtot = blank_tot()
+            rows = []
+            for iid in g["iorder"]:
+                it = g["items"][iid]
+                in_qty = sum(it["in"].get(k, (0.0, 0.0))[0] for k in keys_in)
+                in_amt = sum(it["in"].get(k, (0.0, 0.0))[1] for k in keys_in)
+                out_qty = sum(it["out"].get(k, (0.0, 0.0))[0] for k in keys_out)
+                out_amt = sum(it["out"].get(k, (0.0, 0.0))[1] for k in keys_out)
+                row = {
+                    "item_id": iid, "item_name": it["item_name"], "unit": it["unit"],
+                    "open_qty": it["open_qty"], "open_amt": it["open_amt"],
+                    "in_qty": in_qty, "in_amt": in_amt,
+                    "out_qty": out_qty, "out_amt": out_amt,
+                    "close_qty": it["open_qty"] + in_qty - out_qty,
+                    "close_amt": it["open_amt"] + in_amt - out_amt,
+                    "in": {k: it["in"].get(k, [0.0, 0.0]) for k in keys_in},
+                    "out": {k: it["out"].get(k, [0.0, 0.0]) for k in keys_out},
+                }
+                add_tot(gtot, row)
+                # Ẩn dòng câm tuyệt đối (không tồn đầu, không phát sinh, không tồn cuối).
+                # Dòng chỉ có tồn đầu = tồn cuối VẪN hiện, bỏ đi là tổng tồn cuối hụt.
+                if all(round(row[f], 4) == 0 for f in TOT_FIELDS):
+                    continue
+                rows.append(row)
+            add_tot(grand, gtot)
+            if not rows:
+                continue
+            rows.sort(key=lambda x: x["item_id"])
+            out_groups.append({"key": g["key"], "name": g["name"],
+                               "rows": rows, "totals": gtot})
+
+        out_groups.sort(key=lambda x: x["key"])
+
+        # Phân trang theo DÒNG CHI TIẾT. Nhóm bị cắt ngang giữa hai trang vẫn an toàn:
+        # `totals` của mỗi nhóm là tổng ĐẦY ĐỦ (cộng xong trước khi cắt), nên trang sau
+        # lặp lại đầu nhóm với đúng con số đó — không phải tổng của riêng phần đang hiện.
+        # `grand` cũng cộng xong trước khi cắt ⇒ dòng tổng cuối bảng không đổi theo trang.
+        total_groups = len(out_groups)
+        total_rows = sum(len(g["rows"]) for g in out_groups)
+        if export_all:
+            total_pages, page = 1, 1
+        else:
+            total_pages = max(1, (total_rows + page_size - 1) // page_size)
+            page = max(1, min(page, total_pages))
+            lo, hi = (page - 1) * page_size, page * page_size
+            paged, seen = [], 0
+            for g in out_groups:
+                n = len(g["rows"])
+                if seen + n > lo and seen < hi:          # nhóm có phần nằm trong trang
+                    paged.append({**g, "rows": g["rows"][max(0, lo - seen): hi - seen]})
+                seen += n
+            out_groups = paged
+
+        return jsonify({
+            "status": "ok",
+            "group_by": group_by,
+            "columns": {"in": cols_in, "out": cols_out},
+            "groups": out_groups,
+            "grand": grand,
+            "pagination": {"total_rows": total_rows, "total_groups": total_groups,
+                           "total_pages": total_pages, "page": page, "page_size": page_size},
+        })
+    except Exception as e:
+        msg = str(e)
+        if "đăng nhập" not in msg:
+            invalidate_pool()
+        logger.error(f"Error in BC016 get_nxt: {msg}")
+        return jsonify({"status": "error", "message": msg}), 401 if "đăng nhập" in msg else 500
+
+
 def _cashbook_csv_stream(flat):
     """Generator sinh từng dòng CSV từ danh sách flat (tiết kiệm RAM khi nhiều dòng)."""
     def esc(s):

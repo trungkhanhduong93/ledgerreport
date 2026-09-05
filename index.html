@@ -2225,7 +2225,15 @@ const exportJournalCsv = (mode) => {
                                         .bc016-table { width: auto !important; min-width: 100% !important; table-layout: auto !important; border-collapse: collapse !important; }
                                         .bc016-table th, .bc016-table td { border: 1px solid #cbd5e1 !important; font-size: 10px !important; padding: 3px 5px !important; white-space: nowrap !important; vertical-align: middle !important; }
                                         .bc016-table th { background: #f1f5f9 !important; font-size: 9.5px !important; line-height: 1.15 !important; text-align: center !important; }
-                                        .bc016-table td:nth-child(2) { max-width: 260px !important; white-space: normal !important; word-break: break-word !important; }
+                                        /* Bề rộng 3 cột định danh ghim theo số đo thật của DM_ITEM (đo 06/09/2026):
+                                           mã hàng p95 = 12 ký tự (max 19), tên hàng p95 = 34 (max 46), ĐVT max 5.
+                                           Để mã hàng nowrap thì cột phải gánh cả mã 19 ký tự nên phình ra, trong khi
+                                           tên hàng bị table-layout:auto ép hẹp lại — đúng cái mất cân đối đã thấy.
+                                           :not([colspan]) để chừa ô gộp 3 cột của dòng nhóm và dòng tổng cộng, nếu
+                                           ép width lên ô colspan thì bóp luôn cả cụm 3 cột. */
+                                        .bc016-table th:nth-child(1):not([colspan]), .bc016-table td:nth-child(1):not([colspan]) { width: 92px !important; min-width: 92px !important; max-width: 92px !important; white-space: normal !important; word-break: break-word !important; }
+                                        .bc016-table th:nth-child(2):not([colspan]), .bc016-table td:nth-child(2):not([colspan]) { width: 250px !important; min-width: 250px !important; max-width: 250px !important; white-space: normal !important; word-break: break-word !important; }
+                                        .bc016-table th:nth-child(3):not([colspan]), .bc016-table td:nth-child(3):not([colspan]) { width: 48px !important; min-width: 48px !important; max-width: 48px !important; }
                                         @media print {
                                             @page { size: A3 landscape; margin: 6mm; }
                                             .bc016-table th, .bc016-table td { font-size: 7pt !important; padding: 1px 2px !important; }

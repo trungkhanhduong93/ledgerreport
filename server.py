@@ -1448,8 +1448,14 @@ def _write_csv_to_disk(job_id, headers, row_iter, filename, total_estimate):
                 job['error']  = str(e)
 
 
-def _write_xlsx_to_disk(job_id, headers, row_iter, filename, total_estimate):
-    """Ghi dữ liệu lớn ra XLSX, chia 500k dòng mỗi sheet."""
+def _write_xlsx_to_disk(job_id, headers, row_iter, filename, total_estimate, sheet_limit=1000000):
+    """Ghi dữ liệu lớn ra XLSX, tự sang sheet mới khi chạm `sheet_limit` dòng.
+
+    Trần cứng của Excel là 1.048.576 dòng/sheet (kể cả dòng tiêu đề) nên sheet_limit
+    KHÔNG được vượt 1.048.575 — có kẹp cứng bên dưới, truyền sai cỡ nào cũng không
+    sinh ra được file Excel mở không nổi. Mặc định 1 triệu dòng/sheet cho mọi nơi:
+    bám sát trần Excel nên số sheet ít nhất có thể (mốc 500k cũ cắt dày gấp đôi mức
+    cần thiết, file nhiều sheet hơn mà chẳng được lợi gì)."""
     import xlsxwriter
     out_path = os.path.join(_export_dir(), filename)
     try:
@@ -1461,7 +1467,7 @@ def _write_xlsx_to_disk(job_id, headers, row_iter, filename, total_estimate):
         cell_format = workbook.add_format({})
         text_format = workbook.add_format({'num_format': '@'})
 
-        sheet_limit = 500000
+        sheet_limit = min(int(sheet_limit or 1000000), 1048575)   # không bao giờ vượt trần Excel
         sheet_idx = 1
         worksheet = workbook.add_worksheet(f"Sheet {sheet_idx}")
         
@@ -1610,7 +1616,7 @@ def open_folder_route():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
-def _start_export_job(filename, headers, sql, params, transform_row, total_estimate=0):
+def _start_export_job(filename, headers, sql, params, transform_row, total_estimate=0, sheet_limit=1000000):
     """Mở connection mới (cùng db_config session) → chạy query → ghi disk ở thread riêng.
 
     transform_row(raw_row, sql_cols) → list giá trị theo thứ tự headers.
@@ -1644,7 +1650,7 @@ def _start_export_job(filename, headers, sql, params, transform_row, total_estim
                         yield transform_row(raw, sql_cols)
 
             if filename.lower().endswith('.xlsx'):
-                _write_xlsx_to_disk(job_id, headers, row_iter(), filename, total_estimate)
+                _write_xlsx_to_disk(job_id, headers, row_iter(), filename, total_estimate, sheet_limit)
             else:
                 _write_csv_to_disk(job_id, headers, row_iter(), filename, total_estimate)
         except Exception as e:
@@ -4603,6 +4609,40 @@ def report_export_csv():
                      f"_{from_dt.strftime('%d%m%Y')}-{to_dt.strftime('%d%m%Y')}.csv")
         else:
             return jsonify({"status": "error", "message": "Report type không hỗ trợ xuất CSV."}), 400
+
+        # ── XUẤT XLSX MỘT FILE NHIỀU SHEET — CHỈ BC007 ────────────────────────────
+        # Nhật ký chung một tháng đã đo được 2.851.224 dòng (T08/2026), vượt xa trần
+        # 1.048.576 dòng/sheet của Excel ⇒ mở file CSV bằng Excel bị cắt mất phần đuôi
+        # (đo thật: mất 63% dữ liệu, dừng ở 12/08) mà người dùng không hề nhận ra.
+        # Xuất .xlsx tự sang sheet mới mỗi 1.000.000 dòng: vẫn MỘT file mở thẳng bằng
+        # Excel, và còn NHẸ HƠN CSV ~2,7 lần (115 MB so với 317 MB) vì .xlsx vốn là gói
+        # ZIP nén sẵn. Dùng CHUNG sql/params/headers với nhánh CSV ở trên nên hai định
+        # dạng không thể lệch số. Ghi mất vài phút ⇒ đi qua _start_export_job (thread
+        # riêng + progress + huỷ), trả job_id để frontend poll /api/export/status.
+        if report_type == "BC007" and request.args.get("format", "").lower() == "xlsx":
+            _is_detail = (mode == "detail")
+            _jvm = request.args.get("journal_view_mode", "detail")
+
+            def _tf_xlsx(r, _cols):
+                # Trả kiểu Python thật (datetime/float) để xlsxwriter ghi đúng ô ngày và
+                # ô số — Excel cộng/lọc/sắp xếp được ngay, khác CSV vốn chỉ toàn chuỗi.
+                # Mã đơn vị ghi thẳng '05', KHÔNG bọc ="05" như CSV: mẹo đó chỉ để Excel
+                # khỏi ăn mất số 0 đầu lúc parse text, ô xlsx đã ép sẵn định dạng text.
+                if _is_detail:
+                    amt = float(r[13] or 0); is_deb = (r[12] == 'DEB')
+                    return [r[0] or '', r[1] or '', r[2] or '', r[3] or '', r[4] or '', r[5],
+                            r[6] or '', r[7] or '', r[8] or '', r[9] or '', r[10] or '', r[11] or '',
+                            amt if is_deb else 0, amt if not is_deb else 0, r[14] or '']
+                amt = float(r[9] or 0); is_deb = (r[8] == 'DEB')
+                if _jvm == "summary":
+                    return [r[3] or '', r[4] or '', r[5] or '', r[6] or '', r[7] or '',
+                            amt if is_deb else 0, amt if not is_deb else 0]
+                return [r[0] or '', r[1] or '', r[2], r[3] or '', r[4] or '', r[5] or '',
+                        r[6] or '', r[7] or '', amt if is_deb else 0, amt if not is_deb else 0]
+
+            job_id = _start_export_job(fname[:-4] + ".xlsx", headers, sql, params,
+                                       _tf_xlsx, sheet_limit=1000000)
+            return jsonify({"status": "ok", "job_id": job_id})
 
         def _amt(a):
             a = float(a or 0)

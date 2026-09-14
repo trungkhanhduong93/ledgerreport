@@ -414,6 +414,37 @@ Cần đổi đúng 3 dòng trong [.github/workflows/release.yml](.github/workfl
 trình duyệt — đây là cấp quyền cho tài khoản GitHub, agent không được tự làm thay), rồi sửa 3 dòng
 trên và push. Hoặc sửa thẳng trên giao diện web GitHub, khỏi cần đụng token.
 
+**Đã đo ngày 14/09/2026 — đừng mất công thử lại hai đường này:**
+
+| Kiểm tra | Kết quả |
+|---|---|
+| Quyền của `phuongquangtran18` trên repo | `push: true`, `admin: false` — **đủ quyền write để sửa workflow** |
+| Scope token (đọc từ header `X-OAuth-Scopes`) | `gist, read:org, repo` — **thiếu `workflow`** |
+| Đẩy bằng `git push` | ❌ `refusing to allow an OAuth App to update workflow without workflow scope` |
+| Đẩy bằng REST API `PUT /contents/...` | ❌ `404 Not Found` (GitHub trả 404 thay vì 403 khi thiếu scope) |
+
+⇒ GitHub chặn ở **tầng OAuth scope**, không phải tầng quyền repo. Có quyền write vẫn vô ích nếu token
+không mang scope `workflow`. Không có đường vòng nào — hoặc cấp scope, hoặc sửa trên web GitHub,
+hoặc nhờ chủ repo (`trungkhanhduong93`) làm.
+
+### 💡 Tiện tay khi sửa workflow: thêm `paths-ignore`
+
+Workflow hiện **không lọc theo đường dẫn**, nên push sửa mỗi `CLAUDE.md` cũng kích hoạt build EXE đầy
+đủ (~1 phút runner) rồi cập nhật lại Release bằng bản y hệt. Ai vào sửa 3 dòng ở trên thì thêm luôn:
+
+```yaml
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'docs-cu/**'
+    tags:
+      - 'v*'
+```
+
 ⚠️ Đẩy thay đổi này lên là Actions chạy lại với `version.txt` hiện tại. Tag đã tồn tại thì
 `action-gh-release` **cập nhật lại Release cũ** chứ không tạo bản trùng — vô hại, và chính lần build
 đó là phép thử cho 3 action mới. Build hỏng thì dừng trước bước publish, Release đang có vẫn nguyên.

@@ -113,6 +113,47 @@ trên `IACC_CHULONG` vì cột `RECEIVE_DATE` không tồn tại. Gỡ 325 dòng
 - **Hai file build tên khác hẳn nhau**, xoá `BuildEXE.bat` chung ở cả hai bên (mục 3)
 - **Dọn repo 68 → 40 file** (mục 4)
 
+### v1.10.5 — BC007 xuất Excel MỘT file nhiều sheet *(14/09/2026)*
+
+**Người dùng báo:** xuất sổ nhật ký chung ra CSV, mở bằng Excel thì *"vẫn bị giới hạn số dòng"*.
+
+**Truy ra — file CSV không thiếu dòng nào.** Đo trên bản xuất kỳ T08/2026: 317 MB, **2.851.224 dòng**,
+dòng cuối đúng 31/08. Chỗ cắt nằm ở **Excel**: trần cứng **1.048.576 dòng/sheet**, là giới hạn kiến
+trúc của định dạng bảng tính chứ không phải cấu hình nên không có cách nâng. Dòng thứ 1.048.576 rơi
+vào 12/08 ⇒ mở file bằng Excel chỉ thấy tới 12/08, **mất 63% dữ liệu mà không báo lỗi gì rõ ràng**.
+
+**Đã làm:**
+- Thêm nhánh `format=xlsx` cho BC007 trong `/api/report_export_csv`. Dùng **CHUNG** `sql`/`params`/
+  `headers` với nhánh CSV ngay phía trên ⇒ hai định dạng không thể lệch số.
+- `_write_xlsx_to_disk` / `_start_export_job` nhận thêm tham số `sheet_limit`, kèm kẹp cứng
+  `min(sheet_limit, 1048575)`: truyền sai cỡ nào cũng không sinh ra được file Excel mở không nổi.
+- Nâng mặc định `sheet_limit` **500.000 → 1.000.000**, áp dụng cả 7 tab Danh sách (mốc 500k cũ cắt
+  dày gấp đôi mức cần thiết, file nhiều sheet hơn mà không được lợi gì).
+- Ô ngày và ô tiền ghi bằng **kiểu thật** (`datetime` / `float`) thay vì chuỗi như CSV ⇒ Excel cộng,
+  lọc, sắp xếp được ngay.
+- Modal BC007 thêm mục chọn định dạng Excel/CSV; câu cảnh báo đổi theo lựa chọn đang chọn.
+
+**Đo trên dữ liệu thật T08/2026:**
+
+| | |
+|---|---|
+| Số sheet | 3 — 1.000.000 + 1.000.000 + 851.224 |
+| Tổng dòng | 2.851.224 — bằng đúng bản CSV |
+| Tổng PS Nợ = Tổng PS Có | 303.164.989.646 — khớp từng đồng |
+| Ranh giới giữa các sheet | liền mạch, không nuốt và không lặp dòng |
+| Dung lượng | 115 MB so với 317 MB của CSV — **nhẹ hơn 2,75 lần** |
+
+⚠️ **Đừng lặp lại lỗi đếm dòng này:** `wc -l` trên file CSV ra 2.851.240, lệch 16 dòng so với
+2.851.224. KHÔNG phải mất dòng — có **15 bút toán bị gõ Enter xuống dòng ngay trong ô Diễn giải**.
+Trình đọc CSV đúng chuẩn (Access, Excel, module `csv` của Python) nối lại thành một bản ghi; đếm thô
+theo ký tự xuống dòng thì thừa ra. Tổng tiền khớp tuyệt đối là bằng chứng.
+
+⚠️ **Cái tên "Bảng tổng hợp" trong modal KHÔNG gộp dòng** — cả hai lựa chọn dùng chung một câu SQL
+không có `GROUP BY`, "tổng hợp" chỉ nghĩa là bớt 3 cột. Bấm vào vẫn ra đủ 2,85 triệu dòng. Sổ nhật ký
+chung (S03a-DN) buộc phải liệt kê từng bút toán theo trình tự thời gian nên **không được gộp**.
+
+**Verify: đạt M4** — người dùng xuất thật trên `IACC_CHULONG` và xác nhận khớp (14/09/2026).
+
 ---
 
 ## 3. Tách file build — không thể build nhầm
@@ -267,3 +308,12 @@ powershell -File Sync-And-Backup.ps1 -Commit -Message "fix: ..."
 4. **Phân trang vẫn dùng `ROW_NUMBER()`** (chọn cố ý để tương thích SQL Server 2008). DB CHULONG là
    SQL 2025 `compatibility_level = 170` nên `OFFSET/FETCH` dùng được — nhưng chưa đo nên chưa đổi.
 5. **Đổi mật khẩu tài khoản DB** đã dùng để kiểm tra trong phiên 15–16/08.
+6. **Nâng 3 GitHub Action lên bản chạy Node 24** (`checkout@v7`, `setup-python@v7`,
+   `action-gh-release@v3`). GitHub đã báo Node 20 hết vòng đời, hiện đang **ép** chạy trên Node 24;
+   khi gỡ hẳn cơ chế ép đó thì workflow gãy mà không báo trước. Đã tra version và đối chiếu breaking
+   change (14/09/2026), không vướng cái nào — nhưng token đang dùng **thiếu scope `workflow`** nên cả
+   `git push` lẫn REST API đều bị chặn. Bảng 3 dòng cần đổi + toàn bộ kết quả đo ghi ở
+   [CLAUDE.md](CLAUDE.md) mục 5. **Để chủ repo xem và quyết.**
+7. **Route `/api/version` đăng ký 2 lần** (`get_version` dòng 210 và `get_app_version_api` dòng 6715).
+   Cái trên thắng nên hàm dưới là code chết, `is_frozen` không bao giờ tới frontend. Frontend không
+   dùng `is_frozen` nên hiện vô hại.

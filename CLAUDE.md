@@ -2,7 +2,7 @@
 
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
-> Cập nhật gần nhất: **28/08/2026** · Bản EXE hiện hành: **iPOS_Accounting_Report v1.9.9**
+> Cập nhật gần nhất: **14/09/2026** · Bản EXE hiện hành: **iPOS_Accounting_Report v1.10.5**
 
 ---
 
@@ -379,6 +379,44 @@ powershell -File Sync-And-Backup.ps1 -Commit -Message "fix: ..."
 
 CI: [.github/workflows/release.yml](.github/workflows/release.yml) — push `main` là build EXE trên
 `windows-latest` rồi tạo Release theo `version.txt`.
+
+### ⏳ VIỆC CÒN TREO — nâng 3 action lên bản chạy Node 24 *(ghi 14/09/2026)*
+
+GitHub đã báo **Node 20 hết vòng đời**; 3 action trong workflow đang bị **ép** chạy trên Node 24
+(xem phần ANNOTATIONS của mọi lần build gần đây). Build vẫn thành công, nhưng khi GitHub gỡ hẳn
+cơ chế ép đó thì workflow **gãy mà không báo trước** — và chỉ lộ ra đúng lúc đang cần phát hành.
+
+Cần đổi đúng 3 dòng trong [.github/workflows/release.yml](.github/workflows/release.yml):
+
+| Dòng | Hiện tại | Đổi thành |
+|---|---|---|
+| 20 | `actions/checkout@v4` | `actions/checkout@v7` |
+| 25 | `actions/setup-python@v5` | `actions/setup-python@v7` |
+| 69 | `softprops/action-gh-release@v2` | `softprops/action-gh-release@v3` |
+
+**Đã đối chiếu breaking change ngày 14/09/2026 — không vướng cái nào:**
+- `checkout@v7` chặn checkout fork PR cho `pull_request_target` / `workflow_run`. Workflow này chạy
+  bằng trigger `push` nên không dính.
+- `setup-python@v6` chuyển sang Node 24 (đòi runner ≥ v2.327.1 — runner GitHub-hosted luôn mới hơn);
+  `@v7` **bỏ input `pip-install`**, workflow không dùng input đó.
+- `action-gh-release@v3` chỉ chuyển runtime Node 20 → 24, giữ nguyên toàn bộ input.
+
+⛔ **Vì sao chưa làm được:** token `gh` trên máy đang dùng (14/09/2026) chỉ có scope
+`gist`, `read:org`, `repo` — **thiếu `workflow`**. GitHub từ chối MỌI commit đụng tới
+`.github/workflows/`:
+
+```
+! [remote rejected] main -> main (refusing to allow an OAuth App to create or
+  update workflow `.github/workflows/release.yml` without `workflow` scope)
+```
+
+➡️ **Ai có quyền thì làm:** `gh auth refresh -h github.com -s workflow` (phải bấm xác nhận trên
+trình duyệt — đây là cấp quyền cho tài khoản GitHub, agent không được tự làm thay), rồi sửa 3 dòng
+trên và push. Hoặc sửa thẳng trên giao diện web GitHub, khỏi cần đụng token.
+
+⚠️ Đẩy thay đổi này lên là Actions chạy lại với `version.txt` hiện tại. Tag đã tồn tại thì
+`action-gh-release` **cập nhật lại Release cũ** chứ không tạo bản trùng — vô hại, và chính lần build
+đó là phép thử cho 3 action mới. Build hỏng thì dừng trước bước publish, Release đang có vẫn nguyên.
 
 ---
 

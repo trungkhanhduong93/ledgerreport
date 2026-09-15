@@ -310,6 +310,7 @@ def login():
 
         session['db_config'] = data
         _meta_cache.pop(data.get('database'), None)
+        _tran_usage_cache.pop(data.get('database'), None)
         return jsonify({"status": "ok", "message": "Kết nối SQL Server thành công!"})
     except Exception as e:
         return jsonify({"status": "error", "message": f"Lỗi kết nối: {str(e)}"}), 401
@@ -322,7 +323,148 @@ def logout():
     session.pop('db_config', None)
     if db_name:
         _meta_cache.pop(db_name, None)
+        _tran_usage_cache.pop(db_name, None)
     return jsonify({"status": "ok"})
+
+# ---------------------------------------------------------------------------
+# DANH MỤC LOẠI CHỨNG TỪ ("Loại CT") — nguồn là dbo.SYS_TRAN, KHÔNG phải
+# DISTINCT trên dữ liệu phát sinh.
+#
+# Bản cũ dựng danh sách bằng `SELECT DISTINCT TRAN_ID FROM dbo.LEDGER` → chỉ ra
+# 39 mã (đo 14,9 giây trên IACC_CHULONG) trong khi SYS_TRAN có 90 mã (0,04 giây).
+# Hậu quả đã đo 15/09/2026: 35 mã ACTIVE=1 chưa từng có bút toán (SO, SOXU, TX,
+# TX1, TX2, HBTL, NKHAU, NMSC, XCK, XKHOK, ADJUST, TS, VAT_BR…) KHÔNG hiện trong
+# bộ lọc. Mã chứng từ mới lập luôn rơi vào nhóm này, và nhóm đơn đặt hàng
+# (SO/TX/PO) về bản chất không sinh bút toán nên sẽ thiếu vĩnh viễn.
+#
+# Phạm vi từng tab lấy theo SYS_TRAN.OUTPUT_FORM (form nhập liệu của iPOS) + cột
+# IS_SALE — đã đối chiếu dữ liệu thật 15/09/2026: mọi mã trong SALE_VIEW là
+# FRMSALE, trong PURCHASE_VIEW là FRMPURCHASE, trong VOUCHER là FRMVOUCHER.
+#
+# ⚠️ Phải đối chiếu với VIEW mà tab thực sự đọc, KHÔNG phải bảng gốc:
+# `SALE_VIEW` và `PURCHASE_VIEW` đều có `WHERE SYS_TRAN.IS_SALE = 1` trong định
+# nghĩa view, nên tab Bán hàng chỉ xem được 8/18 mã có trong bảng SALE, tab Mua
+# hàng chỉ 5/10 mã của bảng PURCHASE (NKHO, NSP, NSC, NDC, NDCNB có IS_SALE=0).
+# Đưa mã IS_SALE=0 vào bộ lọc 2 tab đó là chắc chắn 0 dòng.
+#
+# Vẫn HỢP thêm mã thực sự có trong từng view làm lưới an toàn — DB khác có thể
+# đặt OUTPUT_FORM kiểu khác, và luật ở đây là "thà thừa còn hơn thiếu".
+# ---------------------------------------------------------------------------
+_tran_usage_cache = {}   # db_name -> {tab: set(TRAN_ID)} — phần phải scan bảng, cache riêng
+
+# Form nhập liệu của iPOS → tab nào trong phần "Danh sách" đọc được chứng từ đó.
+# Tab kho nhận cả phiếu xuất (FRMSALE) lẫn phiếu nhập (FRMPURCHASE).
+_TRAN_FORM_TABS = {
+    'FRMSALE':     ('sale', 'warehouse'),
+    'FRMPURCHASE': ('purchase', 'warehouse'),
+    'FRMVOUCHER':  ('voucher',),
+}
+_TRAN_TABS = ('ledger', 'sale', 'purchase', 'warehouse', 'voucher')
+
+
+def _load_tran_usage(cursor, db_name):
+    """Mã chứng từ THỰC SỰ đang có trong từng bảng nghiệp vụ.
+
+    Quét ĐÚNG đối tượng mà từng tab thực sự đọc — SALE_VIEW / PURCHASE_VIEW /
+    WAREHOUSE_VIEW / VOUCHER — chứ KHÔNG phải bảng gốc SALE / PURCHASE / WAREHOUSE.
+    Quét nhầm bảng gốc là cho ra mã mà tab không bao giờ hiện được: SALE_VIEW và
+    PURCHASE_VIEW đều có `WHERE SYS_TRAN.IS_SALE = 1`, nên bảng SALE có 18 mã mà
+    view chỉ ra 8; bảng PURCHASE có 10 mã mà view chỉ ra 5 (NKHO/NSP/NSC/NDC/NDCNB
+    có IS_SALE=0 nên tab Mua hàng không xem được — hạn chế sẵn có của view).
+
+    Phải scan (không có index trên TRAN_ID) nên cache theo database: đo 15/09/2026 —
+    SALE_VIEW 2,93s · PURCHASE_VIEW 0,16s · WAREHOUSE_VIEW 2,97s · VOUCHER 0,23s.
+    Vẫn rẻ hơn hẳn DISTINCT trên LEDGER (14,9s) mà bản cũ chạy mỗi lần nạp.
+    """
+    cached = _tran_usage_cache.get(db_name)
+    if cached is not None:
+        return cached
+    usage = {t: set() for t in _TRAN_TABS}
+    try:
+        cursor.execute("""
+            SELECT 'sale'      AS tab, DISTINCT_ID FROM (SELECT DISTINCT LTRIM(RTRIM(TRAN_ID)) AS DISTINCT_ID FROM dbo.SALE_VIEW      WITH (NOLOCK) WHERE TRAN_ID IS NOT NULL) S
+            UNION ALL
+            SELECT 'purchase',        DISTINCT_ID FROM (SELECT DISTINCT LTRIM(RTRIM(TRAN_ID)) AS DISTINCT_ID FROM dbo.PURCHASE_VIEW  WITH (NOLOCK) WHERE TRAN_ID IS NOT NULL) P
+            UNION ALL
+            SELECT 'warehouse',       DISTINCT_ID FROM (SELECT DISTINCT LTRIM(RTRIM(TRAN_ID)) AS DISTINCT_ID FROM dbo.WAREHOUSE_VIEW WITH (NOLOCK) WHERE TRAN_ID IS NOT NULL) W
+            UNION ALL
+            SELECT 'voucher',         DISTINCT_ID FROM (SELECT DISTINCT LTRIM(RTRIM(TRAN_ID)) AS DISTINCT_ID FROM dbo.VOUCHER        WITH (NOLOCK) WHERE TRAN_ID IS NOT NULL) V
+        """)
+        for tab, tid in cursor.fetchall():
+            if tid:
+                usage[tab].add(tid.strip())
+    except Exception:
+        # Bảng thiếu / lỗi quyền → coi như không có lưới an toàn, vẫn chạy bằng SYS_TRAN.
+        usage = {t: set() for t in _TRAN_TABS}
+    _tran_usage_cache[db_name] = usage
+    return usage
+
+
+def _build_tran_catalog(cursor, db_name):
+    """→ (tran_ids, tran_ids_by_tab, ten_map). Đọc SYS_TRAN mỗi lần gọi (0,04s)
+    nên mã chứng từ mới khai báo là thấy ngay, không cần bấm "Danh mục" hay khởi
+    động lại EXE. Phần phải scan bảng thì lấy từ _load_tran_usage (có cache).
+
+    CHỈ đưa vào bộ lọc mã đang hoạt động (`ACTIVE = 1`) cho gọn — trên
+    `IACC_CHULONG` bỏ được 16 mã đã ngưng dùng (PO, SBO, SD, XKHO2, TSKH,
+    VAT_DCT…). NGOẠI LỆ: mã `ACTIVE = 0` mà **vẫn còn chứng từ lịch sử** thì
+    phải giữ lại, không thì có dữ liệu mà không lọc ra được.
+
+    Vẫn ĐỌC hết bảng (không `WHERE ACTIVE=1`) để lấy TÊN cho mọi mã: bản cũ lọc
+    `ACTIVE=1` ngay lúc lấy tên nên mã ngưng dùng hiện trơ mã, không có tên.
+    """
+    cursor.execute("""
+        SELECT CAST(TRAN_ID AS NVARCHAR(100)), TRAN_NAME, OUTPUT_FORM,
+               ISNULL(IS_SALE, 0), ISNULL(ACTIVE, 0)
+        FROM dbo.SYS_TRAN WITH (NOLOCK) ORDER BY TRAN_ID
+    """)
+    rows = [(r[0].strip(), (r[1] or '').strip(), (r[2] or '').strip().upper(),
+             int(r[3] or 0), int(r[4] or 0))
+            for r in cursor.fetchall() if r[0]]
+
+    usage   = _load_tran_usage(cursor, db_name)
+    by_tab  = {t: [] for t in _TRAN_TABS}
+    name_of = {tid: (nm or tid) for tid, nm, _f, _s, _a in rows}
+    seen    = set()
+
+    for tid, nm, form, is_sale, active in rows:
+        seen.add(tid)
+        item = {"id": tid, "name": nm or tid}
+        used_in = [t for t in _TRAN_TABS if tid in usage.get(t, ())]
+
+        if active:
+            by_tab['ledger'].append(item)      # sổ tổng hợp nhận mọi loại chứng từ
+            for tab in _TRAN_FORM_TABS.get(form, ()):
+                # SALE_VIEW và PURCHASE_VIEW lọc IS_SALE=1 ngay trong định nghĩa view ⇒
+                # mã IS_SALE=0 có đưa vào bộ lọc cũng không bao giờ ra dòng nào.
+                # WAREHOUSE_VIEW lọc theo hàng hoá (IS_WAREHOUSE_BALANCE) chứ không theo
+                # loại chứng từ, nên tab kho không áp điều kiện này.
+                if tab in ('sale', 'purchase') and not is_sale:
+                    continue
+                by_tab[tab].append(item)
+        elif used_in:
+            # Đã ngưng dùng NHƯNG còn chứng từ lịch sử → vẫn phải lọc ra được.
+            by_tab['ledger'].append(item)
+
+        for tab in used_in:                    # lưới an toàn: có thật thì phải hiện
+            if tab != 'ledger' and item not in by_tab[tab]:
+                by_tab[tab].append(item)
+
+    # Mã đang dùng thật nhưng KHÔNG khai trong SYS_TRAN (DB khác có thể gặp) —
+    # vẫn phải lọc được, tên hiển thị bằng chính mã.
+    for tab in _TRAN_TABS:
+        for tid in sorted(usage.get(tab, ())):
+            if tid not in seen:
+                item = {"id": tid, "name": tid}
+                by_tab[tab].append(item)
+                if item not in by_tab['ledger']:
+                    by_tab['ledger'].append(item)
+                name_of.setdefault(tid, tid)
+
+    for tab in _TRAN_TABS:
+        by_tab[tab].sort(key=lambda it: it['id'])
+    return by_tab['ledger'], by_tab, name_of
+
 
 @app.route("/api/metadata")
 @with_db_lock
@@ -331,7 +473,17 @@ def get_metadata():
         db_name = session.get('db_config', {}).get('database', 'N/A')
 
         if db_name in _meta_cache:
-            return jsonify(_meta_cache[db_name])
+            # Danh mục nặng (TK, hàng hoá, đối tượng…) giữ nguyên cache, nhưng danh
+            # sách LOẠI CHỨNG TỪ thì đọc lại SYS_TRAN mỗi lần (0,04s): mã mới khai
+            # báo phải thấy ngay, không bắt người dùng đi tìm nút "Danh mục".
+            cached = _meta_cache[db_name]
+            try:
+                t_all, t_by_tab, _ = _build_tran_catalog(get_connection().cursor(), db_name)
+                cached["tran_ids"]        = t_all
+                cached["tran_ids_by_tab"] = t_by_tab
+            except Exception:
+                pass          # đọc lại hỏng thì trả bản cache cũ, đừng làm chết màn hình
+            return jsonify(cached)
 
         conn = get_connection()
         cursor = conn.cursor()
@@ -370,8 +522,6 @@ def get_metadata():
             if extra_val: item["address"] = extra_val
             bucket[kind].append(item)
 
-        cursor.execute("SELECT CAST(TRAN_ID AS NVARCHAR(100)), TRAN_NAME FROM dbo.SYS_TRAN WITH (NOLOCK) WHERE ACTIVE=1")
-        sys_trans = {r[0].strip(): r[1].strip() if r[1] else '' for r in cursor.fetchall() if r[0]}
 
         # Thông tin công ty cho tiêu đề báo cáo — lấy từ dbo.SYS_SYSTEMVAR (key-value)
         company = {"name": "", "address": "", "tax_code": ""}
@@ -387,8 +537,7 @@ def get_metadata():
         except Exception:
             pass
 
-        cursor.execute("SELECT DISTINCT TRAN_ID FROM dbo.LEDGER WITH (NOLOCK) WHERE TRAN_ID IS NOT NULL ORDER BY TRAN_ID")
-        tran_ids = [{"id": r[0], "name": sys_trans.get(r[0].strip(), r[0])} for r in cursor.fetchall()]
+        tran_ids, tran_ids_by_tab, _ = _build_tran_catalog(cursor, db_name)
 
         # Lấy row count từ metadata SQL Server (tức thì, không scan bảng)
         # index_id 0=heap, 1=clustered → IN (0,1) đảm bảo lấy đúng 1 cái
@@ -405,7 +554,8 @@ def get_metadata():
             "company": company,
             "global_total": global_total,
             "accounts": accounts, "orgs": orgs, "pr_details": pr_details,
-            "tran_ids": tran_ids, "jobs": jobs, "items": items,
+            "tran_ids": tran_ids, "tran_ids_by_tab": tran_ids_by_tab,
+            "jobs": jobs, "items": items,
             "products": products, "expenses": expenses, "warehouses": warehouses,
             "units": units, "banks": banks
         }
@@ -422,6 +572,7 @@ def refresh_metadata():
     db_name = session.get('db_config', {}).get('database')
     if db_name:
         _meta_cache.pop(db_name, None)
+        _tran_usage_cache.pop(db_name, None)   # bấm "Danh mục" thì quét lại cả mã đang dùng thật
     return jsonify({"status": "ok"})
 
 # Whitelist cột được phép sort cho từng endpoint — tránh SQL injection
@@ -786,7 +937,7 @@ def get_ledger():
                     UNION ALL SELECT 'products', CAST(PRODUCT_ID AS NVARCHAR(100)), PRODUCT_NAME FROM dbo.DM_PRODUCT WITH (NOLOCK)  WHERE ACTIVE=1
                     UNION ALL SELECT 'expenses', CAST(EXPENSE_ID AS NVARCHAR(100)), EXPENSE_NAME FROM dbo.DM_EXPENSE WITH (NOLOCK)  WHERE ACTIVE=1
                     UNION ALL SELECT 'orgs',     CAST(ORGANIZATION_ID AS NVARCHAR(100)), ORGANIZATION_NAME FROM dbo.DM_ORGANIZATION WITH (NOLOCK) WHERE ACTIVE=1
-                    UNION ALL SELECT 'tran_ids', CAST(TRAN_ID AS NVARCHAR(100)), TRAN_NAME FROM dbo.SYS_TRAN WITH (NOLOCK) WHERE ACTIVE=1
+                    UNION ALL SELECT 'tran_ids', CAST(TRAN_ID AS NVARCHAR(100)), TRAN_NAME FROM dbo.SYS_TRAN WITH (NOLOCK)
                     UNION ALL SELECT 'banks',    CAST(BANK_ID AS NVARCHAR(100)), BANK_NAME FROM dbo.DM_BANK WITH (NOLOCK) WHERE ACTIVE=1
                     UNION ALL SELECT 'jobs',     CAST(JOB_ID AS NVARCHAR(100)), JOB_NAME  FROM dbo.DM_JOB WITH (NOLOCK)  WHERE ACTIVE=1
                 """)

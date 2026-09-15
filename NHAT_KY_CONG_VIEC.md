@@ -3,7 +3,7 @@
 > Toàn bộ những gì đã làm với **LedgerReport**, và **vì sao**. Đọc file này trước khi sửa tiếp.
 > Kiến trúc, ma trận báo cáo, phương án backup: [CLAUDE.md](CLAUDE.md).
 > Mổ xẻ sâu sự cố + 4 bài học: [SU_CO_15082026.md](SU_CO_15082026.md).
-> Phiên gần nhất: **15–16/08/2026** · EXE hiện hành: **iPOS_Accounting_Report v1.8.5**
+> Phiên gần nhất: **15/09/2026** · EXE hiện hành: **iPOS_Accounting_Report v1.10.5**
 
 ---
 
@@ -317,3 +317,73 @@ powershell -File Sync-And-Backup.ps1 -Commit -Message "fix: ..."
 7. **Route `/api/version` đăng ký 2 lần** (`get_version` dòng 210 và `get_app_version_api` dòng 6715).
    Cái trên thắng nên hàm dưới là code chết, `is_frozen` không bao giờ tới frontend. Frontend không
    dùng `is_frozen` nên hiện vô hại.
+
+---
+
+## 9. 15/09/2026 — Bộ lọc "Loại CT": đổi nguồn sang danh mục, tách theo từng tab
+
+**Triệu chứng Đại Ca nêu:** *"loại chứng từ nó đang lọc thiếu, nếu có 1 mã chứng từ mới phát sinh thì
+phải hiện ra"*.
+
+### Đo được gì
+
+| Việc | Số đo trên `IACC_CHULONG` |
+|---|---|
+| Nguồn cũ `SELECT DISTINCT TRAN_ID FROM dbo.LEDGER` | **39 mã / 14,9 giây** |
+| Danh mục gốc `dbo.SYS_TRAN` | **90 mã / 0,04 giây** (74 mã `ACTIVE=1`) |
+| Mã `ACTIVE=1` chưa từng có bút toán ⇒ **không có trong bộ lọc** | **35 mã** — `SO`, `SOXU`, `TX`, `TX1`, `TX2`, `HBTL`, `NKHAU`, `NMSC`, `XCK`, `XKHOK`, `ADJUST`, `TS`, `VAT_BR`… |
+| Nhánh dự phòng `/api/ledger` lại lấy `SYS_TRAN ACTIVE=1` | **74 mã** — cùng một `meta['tran_ids']` mà khác nội dung tuỳ đường vào |
+
+Một dropdown dùng chung cho cả 5 tab, trong khi mỗi tab đọc một nguồn khác nhau — và
+`SALE_VIEW`/`PURCHASE_VIEW` còn có sẵn `WHERE SYS_TRAN.IS_SALE = 1` trong định nghĩa view:
+
+| Tab | Nguồn tab thực sự đọc | Mã dùng được | Bản cũ hiện |
+|---|---|---|---|
+| Chứng từ tiền | `VOUCHER` | **9** | 39 |
+| Mua hàng | `PURCHASE_VIEW` | **5** | 39 |
+| Bán hàng | `SALE_VIEW` | **8** | 39 |
+| Kho | `WAREHOUSE_VIEW` | **24** | 39 |
+| Tổng hợp | `LEDGER` | 39 | 39 |
+
+### Đã sửa
+
+- Thêm `_build_tran_catalog()` + `_load_tran_usage()` trong [server.py](server.py): nguồn là
+  **`dbo.SYS_TRAN`**, **chỉ lấy mã `ACTIVE = 1`** cho gọn (bỏ 16 mã đã ngưng dùng: `PO`, `SBO`, `SD`,
+  `XKHO2`, `TSKH`, `VAT_DCT`…), hợp thêm mã thực sự có trong **view mà từng tab đọc** làm lưới an toàn.
+  Ngoại lệ: mã `ACTIVE = 0` mà **còn chứng từ lịch sử** vẫn được giữ — có dữ liệu thì phải lọc ra được.
+  Vẫn **đọc hết bảng** (không `WHERE ACTIVE=1`) để lấy TÊN cho mọi mã; bản cũ lọc `ACTIVE=1` ngay lúc
+  lấy tên nên mã ngưng dùng hiện trơ mã, không có tên chứng từ.
+- Phạm vi từng tab theo `OUTPUT_FORM` + `IS_SALE` (chính là mệnh đề của 2 view kia).
+- Bỏ hẳn `SELECT DISTINCT TRAN_ID FROM dbo.LEDGER`; nhánh dự phòng bỏ `ACTIVE=1` cho đồng nguồn.
+- `/api/metadata` khi trúng cache vẫn **đọc lại `SYS_TRAN` mỗi lần (0,04s)** → mã chứng từ mới khai
+  báo là thấy ngay, **không cần bấm nút "Danh mục" hay khởi động lại EXE**.
+- [index.html](index.html): thêm `tranItemsFor(tab)`, 5 dropdown "Loại CT" dùng danh sách riêng của
+  tab mình; mã đang được chọn ở tab khác vẫn hiện ra để còn bỏ chọn được.
+
+### Kết quả
+
+| | Bản cũ | Bản mới |
+|---|---|---|
+| Nạp danh mục lần đầu | ~15s (riêng DISTINCT LEDGER 14,9s) | **7,4s** |
+| Nạp lại (cache nóng) | 0s nhưng **danh sách đứng im cả phiên** | **0,04s, luôn tươi** |
+| Tab Chứng từ tiền | 39 lựa chọn / 9 dùng được | **11 / 9** |
+| Tab Mua hàng | 39 / 5 | **9 / 5** |
+| Tab Bán hàng | 39 / 8 | **10 / 8** |
+| Tab Kho | 39 / 24 | **46 / 24** |
+| Tab Tổng hợp | 39 / 39 | **74 / 39** |
+| Mã mới lập chưa có bút toán | **không hiện** | **hiện ngay** |
+
+**Đã cân nhắc và bỏ:** lấy **chỉ mã đang có chứng từ thật** (Tổng hợp còn 39, Kho 24, Bán 8, Mua 5)
+— gọn hơn nhưng mã mới phát sinh phải bấm nút "Danh mục" mới thấy, vì phần quét dữ liệu mất ~6 giây
+nên buộc phải cache. Chọn `ACTIVE=1` để giữ đúng yêu cầu gốc: **mã mới khai báo là hiện ngay**.
+
+**Verify — đạt M3** (Flask `test_client` in-process theo Bẫy 6, rồi build EXE chạy thật):
+- Nghiệm thu "không tab nào thiếu mã": đối chiếu dropdown với `DISTINCT TRAN_ID` của đúng nguồn từng
+  tab ⇒ **thiếu 0 mã ở cả 5 tab**.
+- Lọc thật `/api/voucher?tran_ids=KT_PC` → 212 dòng, `TRAN_NAME` = "Phiếu chi".
+- Smoke 12 endpoint (8 tab danh sách + BC001/BC005/BC011) → **200 hết, không cái nào 500/401**.
+- M3: build `iPOS_Accounting_Report.exe` **v1.10.6**, chạy thật, bind cổng 5050, `/api/version` trả
+  đúng phiên bản. M4 không áp dụng — đây là bộ lọc, không phải số liệu sổ sách.
+
+Ba bẫy ghi vào [CLAUDE.md](CLAUDE.md): **Bẫy 14** (dựng bộ lọc từ dữ liệu phát sinh), **Bẫy 15**
+(`SALE_VIEW`/`PURCHASE_VIEW` lọc `IS_SALE=1`), **Bẫy 16** (dropdown lọc `ACTIVE=1` — đã quyết để nguyên).

@@ -5383,6 +5383,22 @@ const exportJournalCsv = (mode) => {
                 }
             };
 
+            // Danh sach "Loai CT" RIENG cho tung tab — backend tra ve meta.tran_ids_by_tab
+            // (nguon dbo.SYS_TRAN, phan theo OUTPUT_FORM + IS_SALE, hop them ma thuc su co
+            // trong VIEW ma tab do doc: SALE_VIEW / PURCHASE_VIEW / WAREHOUSE_VIEW / VOUCHER).
+            // Do 15/09/2026 tren IACC_CHULONG: tab Chung tu tien chi co 9 ma that, tab Ban hang 8,
+            // tab Mua hang 5 — nhung ban cu hien ca 39 ma cua LEDGER cho ca 5 tab.
+            // Fallback ve meta.tran_ids de van chay duoc voi ban server cu.
+            const tranItemsFor = (tab) => {
+                const scoped = (meta.tran_ids_by_tab && meta.tran_ids_by_tab[tab]) || meta.tran_ids || [];
+                // Ma dang duoc chon o tab khac phai van hien ra, khong thi nguoi dung
+                // thay "1 muc" ma khong biet la muc nao, cung khong bo chon duoc.
+                const missing = (filters.tran_ids || []).filter(id => !scoped.some(i => i.id === id));
+                if (!missing.length) return scoped;
+                const all = meta.tran_ids || [];
+                return scoped.concat(missing.map(id => all.find(i => i.id === id) || { id, name: id }));
+            };
+
             if (!isLoggedIn) {
                 return (
                     <div className="h-screen bg-slate-900 flex flex-col relative overflow-hidden">
@@ -5565,7 +5581,7 @@ const exportJournalCsv = (mode) => {
                                         <div className="w-32">
                                             <IOSDatePicker label="Đến ngày" value={filters.to_date} onChange={val => toggleFilter('to_date', val)} disabled={period.type !== 'custom'} />
                                         </div>
-                                        <div className="w-40"><PremiumDropdown label="Loại CT" items={meta.tran_ids} selectedItems={filters.tran_ids} onSelect={id => toggleFilter('tran_ids', id)} isActive={activeDropdown === 'Loại CT'} onToggle={setActiveDropdown} /></div>
+                                        <div className="w-40"><PremiumDropdown label="Loại CT" items={tranItemsFor('ledger')} selectedItems={filters.tran_ids} onSelect={id => toggleFilter('tran_ids', id)} isActive={activeDropdown === 'Loại CT'} onToggle={setActiveDropdown} /></div>
                                         <div className="w-40"><PremiumDropdown label="Đơn vị" items={meta.orgs} selectedItems={filters.org_ids} onSelect={id => toggleFilter('org_ids', id)} isActive={activeDropdown === 'Đơn vị'} onToggle={setActiveDropdown} align="right" /></div>
                                         
                                         {/* Khối hành động ĐẨY SÁT PHẢI TUYỆT ĐỐI */}
@@ -5814,7 +5830,7 @@ const exportJournalCsv = (mode) => {
                                         <PremiumDropdown label="Mục chi phí" items={meta.expenses} selectedItems={filters.expense_ids} onSelect={id => toggleFilter('expense_ids', id)} isActive={activeDropdown === 'Mục chi phí'} onToggle={setActiveDropdown} />
                                         <PremiumDropdown label="Công việc" items={meta.jobs} selectedItems={filters.job_ids} onSelect={id => toggleFilter('job_ids', id)} isActive={activeDropdown === 'Công việc'} onToggle={setActiveDropdown} />
                                         <PremiumDropdown label="Đối tượng" items={meta.pr_details} selectedItems={filters.pr_detail_ids} onSelect={id => toggleFilter('pr_detail_ids', id)} isActive={activeDropdown === 'Đối tượng'} onToggle={setActiveDropdown} />
-                                        <PremiumDropdown label="Loại CT" items={meta.tran_ids} selectedItems={filters.tran_ids} onSelect={id => toggleFilter('tran_ids', id)} isActive={activeDropdown === 'Loại CT'} onToggle={setActiveDropdown} align="right" />
+                                        <PremiumDropdown label="Loại CT" items={tranItemsFor('sale')} selectedItems={filters.tran_ids} onSelect={id => toggleFilter('tran_ids', id)} isActive={activeDropdown === 'Loại CT'} onToggle={setActiveDropdown} align="right" />
                                         <PremiumDropdown label="Kho" items={meta.warehouses} selectedItems={saleFilters.wh_ids} onSelect={id => toggleSaleFilter('wh_ids', id)} isActive={activeDropdown === 'Kho'} onToggle={setActiveDropdown} align="right" />
                                     </div>}
                                 </div>
@@ -6027,7 +6043,7 @@ const exportJournalCsv = (mode) => {
                                         </div>
                                     </div>
                                     {filtersExpanded && <div className="grid grid-cols-5 gap-1.5">
-                                        <PremiumDropdown label="Loại CT" items={meta.tran_ids} selectedItems={filters.tran_ids} onSelect={id => toggleFilter('tran_ids', id)} isActive={activeDropdown === 'Loại CT'} onToggle={setActiveDropdown} />
+                                        <PremiumDropdown label="Loại CT" items={tranItemsFor('voucher')} selectedItems={filters.tran_ids} onSelect={id => toggleFilter('tran_ids', id)} isActive={activeDropdown === 'Loại CT'} onToggle={setActiveDropdown} />
                                         <PremiumDropdown label="Tài khoản" items={meta.accounts} selectedItems={filters.acc_ids} onSelect={id => toggleFilter('acc_ids', id)} isActive={activeDropdown === 'Tài khoản'} onToggle={setActiveDropdown} />
                                         <PremiumDropdown label="Đối tượng" items={meta.pr_details} selectedItems={filters.pr_detail_ids} onSelect={id => toggleFilter('pr_detail_ids', id)} isActive={activeDropdown === 'Đối tượng'} onToggle={setActiveDropdown} />
                                         <PremiumDropdown label="Mục chi phí" items={meta.expenses} selectedItems={filters.expense_ids} onSelect={id => toggleFilter('expense_ids', id)} isActive={activeDropdown === 'Mục chi phí'} onToggle={setActiveDropdown} />
@@ -6176,7 +6192,7 @@ const exportJournalCsv = (mode) => {
                                         <div className="w-64"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
                                         <div className="w-32"><IOSDatePicker label="Từ ngày" value={filters.from_date} onChange={val => toggleFilter('from_date', val)} disabled={period.type !== 'custom'} /></div>
                                         <div className="w-32"><IOSDatePicker label="Đến ngày" value={filters.to_date} onChange={val => toggleFilter('to_date', val)} disabled={period.type !== 'custom'} /></div>
-                                        <div className="w-40"><PremiumDropdown label="Loại CT" items={meta.tran_ids} selectedItems={filters.tran_ids} onSelect={id => toggleFilter('tran_ids', id)} isActive={activeDropdown === 'Loại CT'} onToggle={setActiveDropdown} /></div>
+                                        <div className="w-40"><PremiumDropdown label="Loại CT" items={tranItemsFor('purchase')} selectedItems={filters.tran_ids} onSelect={id => toggleFilter('tran_ids', id)} isActive={activeDropdown === 'Loại CT'} onToggle={setActiveDropdown} /></div>
                                         <div className="w-40"><PremiumDropdown label="Đơn vị" items={meta.orgs} selectedItems={filters.org_ids} onSelect={id => toggleFilter('org_ids', id)} isActive={activeDropdown === 'Đơn vị'} onToggle={setActiveDropdown} align="right" /></div>
                                         <div className="ml-auto flex items-center gap-2">
                                             <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/60 rounded-xl px-3 py-1 shrink-0 h-[40px]">
@@ -6383,7 +6399,7 @@ const exportJournalCsv = (mode) => {
                                         <div className="w-64"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
                                         <div className="w-32"><IOSDatePicker label="Từ ngày" value={filters.from_date} onChange={val => toggleFilter('from_date', val)} disabled={period.type !== 'custom'} /></div>
                                         <div className="w-32"><IOSDatePicker label="Đến ngày" value={filters.to_date} onChange={val => toggleFilter('to_date', val)} disabled={period.type !== 'custom'} /></div>
-                                        <div className="w-40"><PremiumDropdown label="Loại CT" items={meta.tran_ids} selectedItems={filters.tran_ids} onSelect={id => toggleFilter('tran_ids', id)} isActive={activeDropdown === 'Loại CT'} onToggle={setActiveDropdown} /></div>
+                                        <div className="w-40"><PremiumDropdown label="Loại CT" items={tranItemsFor('warehouse')} selectedItems={filters.tran_ids} onSelect={id => toggleFilter('tran_ids', id)} isActive={activeDropdown === 'Loại CT'} onToggle={setActiveDropdown} /></div>
                                         <div className="w-40"><PremiumDropdown label="Đơn vị" items={meta.orgs} selectedItems={filters.org_ids} onSelect={id => toggleFilter('org_ids', id)} isActive={activeDropdown === 'Đơn vị'} onToggle={setActiveDropdown} align="right" /></div>
                                         <div className="ml-auto flex items-center gap-2">
                                             <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/60 rounded-xl px-3 py-1 shrink-0 h-[40px]">

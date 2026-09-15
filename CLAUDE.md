@@ -2,7 +2,7 @@
 
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
-> Cập nhật gần nhất: **14/09/2026** · Bản EXE hiện hành: **iPOS_Accounting_Report v1.10.5**
+> Cập nhật gần nhất: **15/09/2026** · Bản EXE hiện hành: **iPOS_Accounting_Report v1.10.5**
 
 ---
 
@@ -346,6 +346,40 @@ executable của tiến trình cha với chính mình** — cha là `...exe.old`
 
 ⚠️ Đo thế nào cho đúng: process bản mới bị chặn vẫn **nằm trong `tasklist`** nhưng chỉ ~10 MB RAM (bootloader
 đang giữ hộp thoại lỗi) và **không LISTENING cổng 5050**. Nhìn mỗi `tasklist` sẽ tưởng nó đang chạy.
+
+### Bẫy 14 — Dựng bộ lọc từ DỮ LIỆU PHÁT SINH thay vì DANH MỤC *(15/09/2026)*
+Bộ lọc **"Loại CT"** từng dựng bằng `SELECT DISTINCT TRAN_ID FROM dbo.LEDGER` → chỉ ra 39 mã
+(**14,9 giây**), trong khi danh mục gốc `dbo.SYS_TRAN` có 90 mã (**0,04 giây**).
+Hậu quả: **35 mã `ACTIVE=1` chưa có bút toán không hề xuất hiện** — mà **mã chứng từ mới lập luôn rơi
+đúng vào nhóm này**. Nhóm đơn đặt hàng (`SO`, `SOXU`, `TX`, `TX1`, `TX2`) bản chất không sinh bút toán
+nên **thiếu vĩnh viễn**. Tệ hơn, nhánh dự phòng trong `/api/ledger` lại lấy `SYS_TRAN ACTIVE=1` (74 mã)
+→ **cùng một `meta['tran_ids']` mà nội dung khác nhau tuỳ đường vào**.
+➡️ Luật: **bộ lọc danh mục phải lấy từ bảng danh mục**, dữ liệu phát sinh chỉ dùng làm lưới an toàn
+(hợp thêm mã lạ không khai trong danh mục). Xem `_build_tran_catalog()` / `_load_tran_usage()`.
+
+Danh sách **chỉ lấy `ACTIVE = 1`** cho gọn (bỏ 16 mã đã ngưng dùng trên `IACC_CHULONG`), **trừ** mã
+`ACTIVE = 0` mà còn chứng từ lịch sử thì vẫn giữ — xem Bẫy 16. Nhưng vẫn phải **đọc hết bảng** để lấy
+TÊN: lọc `ACTIVE=1` ngay lúc lấy tên là mã ngưng dùng hiện trơ mã, không có tên chứng từ.
+
+### Bẫy 15 — `SALE_VIEW` và `PURCHASE_VIEW` lọc `IS_SALE = 1` ngay trong view *(15/09/2026)*
+Tab đọc **VIEW**, không phải bảng gốc — và định nghĩa view có sẵn mệnh đề lọc:
+
+| View | Mệnh đề trong view | Hệ quả |
+|---|---|---|
+| `SALE_VIEW` | `WHERE SYS_TRAN.IS_SALE = 1` | bảng `SALE` có 18 mã, tab Bán hàng **chỉ xem được 8** |
+| `PURCHASE_VIEW` | `WHERE SYS_TRAN.IS_SALE = 1` | bảng `PURCHASE` có 10 mã, tab Mua hàng **chỉ 5** — `NKHO`, `NSP`, `NSC`, `NDC`, `NDCNB` (`IS_SALE=0`) **không bao giờ hiện** |
+| `WAREHOUSE_VIEW` | `WHERE DM_ITEM.IS_WAREHOUSE_BALANCE = 1` | lọc theo **hàng hoá**, không theo loại chứng từ |
+
+Đo thật: `dbo.SALE` có 2.475 dòng `XKHOSXBTP` tháng 1/2026, `dbo.SALE_VIEW` có **0**. Ai đối chiếu số
+liệu tab Bán hàng với bảng `SALE` sẽ tưởng mất dữ liệu.
+➡️ Mọi phép đo phục vụ một tab phải chạy trên **đúng đối tượng tab đó đọc**.
+
+### Bẫy 16 — Dropdown danh mục lọc `ACTIVE=1` → chứng từ cũ không lọc được *(ghi nhận 15/09/2026)*
+Mọi dropdown `DM_*` đều lọc `WHERE ACTIVE=1`. Mã bị ngưng dùng mà **vẫn còn chứng từ lịch sử** sẽ biến
+mất khỏi bộ lọc. Đã đo trên `IACC_CHULONG`: năm 2026 an toàn (0 ca), nhưng **`DM_JOB` có 139 dòng
+`ACTIVE=0`**, trong đó công việc **`CH.162BT` có 48 dòng LEDGER ngày 02/12/2025** → xem kỳ 2025 là
+không chọn được. **Đã bàn và quyết định để nguyên** (sửa sẽ làm dropdown Công việc phình 98 → 237 mục).
+Chỉ ghi nhận — gặp triệu chứng "có chứng từ mà không lọc được" thì kiểm `ACTIVE` của danh mục trước.
 
 ---
 

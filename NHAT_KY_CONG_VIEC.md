@@ -1380,3 +1380,87 @@ tick cho chức vụ thật là ăn.
 ⏱️ Ghi nhận hiệu năng: đọc danh sách **10–14 giây**, lưu **6,6s**, xoá **8,3s**. Chậm vì mỗi lệnh
 đi vòng qua Apps Script — đúng lý do phải có trạng thái chờ cho nút Lưu.
 
+---
+
+## 21/09/2026 (tiếp) — Hai tab đối chiếu: thêm trạng thái "chưa ghi sổ", và phát hiện tab đang đổ oan cho cửa hàng
+
+Đại Ca giao: *"lấy trạng thái như Phiếu xuất kho chưa duyệt — các phiếu có status không phải
+trạng thái đã ghi sổ"*, kèm bổ sung điều kiện kho xuất / kho nhập / thời gian xuất / SL + ĐVT.
+
+### Khảo sát trước, code sau — 8 vòng đo, và vòng nào cũng đổi phương án
+
+Không viết dòng code nào cho tới khi đo xong trên DB thật. Kết quả lật ngược cả hai phía:
+
+| Đo được | Hệ quả |
+|---|---|
+| `STATUS` chỉ có 2 giá trị: `POSTED` / `DRAFT`. `REVIEW_STATUS` là thứ khác (29/19.887) | Đúng hướng Đại Ca chỉ |
+| Phiếu `DRAFT` **không sinh dòng nào trong `WAREHOUSE`** (13 phiếu `XDCNB` → 0 dòng) | Tab **chưa từng nhìn thấy** phiếu nháp ⇒ thêm nhóm này là **thêm mới**, không bóc ra từ 219 |
+| **211/218 phiếu "Chưa nhận hàng" T09 thực ra bên nhận ĐÃ lập phiếu, chỉ chưa ghi sổ** | 🔴 Phát hiện lớn hơn hẳn việc được giao |
+| `SALE.WAREHOUSE_ID_RECEIVE` ghi đủ 19.887/19.887, khớp kho nhận thật 19.225/19.226 | Điền được **Kho nhập cho mọi dòng**, kể cả dòng đang hiện "—" |
+| 4 cột ngày trên `SALE`/`PURCHASE`/`WAREHOUSE`: **0 dòng nào có giờ ≠ 00:00** | ❌ Không có "thời gian xuất kho". Đại Ca chốt bỏ cột giờ |
+
+🔴 **Tab đang đổ oan cho cửa hàng.** Nhóm "Chưa nhận hàng" T09 có 218 phiếu thì **211 (96,8%)**
+bên nhận đã lập phiếu nhập rồi, chỉ chưa bấm ghi sổ; cả năm 2026 là **605/631 (95,9%)**. Chỉ **7
+phiếu** T09 là thật sự chưa ai lập phiếu. Báo Đại Ca, Đại Ca chốt **tách hẳn thành nhóm riêng**.
+
+### 🔴 Lỗi của chính tôi — và Đại Ca bắt được
+
+Tôi đo `SALE_DETAIL` bằng cách nối `SD.PR_KEY = S.PR_KEY`, ra **0 dòng cho CẢ phiếu đã ghi sổ**,
+rồi kết luận *"phiếu nháp không có dòng hàng ở bất kỳ đâu"* và báo Đại Ca rằng cột mã hàng / SL /
+ĐVT sẽ phải để trống. Đại Ca bác: *"thực tế nó có bảng đó… trong màn hình XDCNB có nút mở để hiển
+thị toàn bộ chứng từ, xem có kiểm tra được bảng nào liên quan không"*.
+
+Đúng. Trên mọi bảng `*_DETAIL` của iPOS thì **`PR_KEY` là khoá của chính dòng đó, `FR_KEY` mới
+trỏ về phiếu cha** — điều mà [Bẫy 20](CLAUDE.md) đã ghi sẵn từ hôm trước (`PO_DETAIL.FR_KEY →
+PURCHASE.PR_KEY`) mà tôi không đối chiếu. Nối lại bằng `FR_KEY`: **độ phủ 100%**, phiếu nháp có
+đủ mã hàng, SL, ĐVT, kho.
+
+**Bài học ghi vào Bẫy 24:** con số **0 ở chỗ chắc chắn phải có dữ liệu** (nhóm *đã ghi sổ*) là dấu
+hiệu câu SQL sai, không phải dấu hiệu dữ liệu không tồn tại. Tôi đã đọc con số đó mà không dừng lại.
+
+### Bẫy thứ hai suýt vấp: lấy nhầm cột số lượng
+
+So `SALE_DETAIL` với `WAREHOUSE` trên phiếu đã ghi sổ: `QUANTITY` chỉ khớp **28%**,
+`QUANTITY_EXTRA` **26%**, **`QUANTITY_WH` khớp 100%** (12.706/12.706). `QUANTITY` ghi theo ĐVT
+nhập liệu, kho theo ĐVT cơ bản — `KEPC-PMR` ghi `10 BỊCH` còn kho là `7.000 G`, **sai gấp 700 lần**.
+Cùng họ với bẫy `JOB_QTY` của tab BTP. 39 cặp lệch còn lại đều là **dòng SL = 0**, lọc đi là khít.
+
+### Đã làm
+
+**Tab điều chuyển nội bộ** — 2 trạng thái mới (`Phiếu nhập chưa ghi sổ`, `Phiếu xuất chưa ghi sổ`),
+Kho nhập điền theo 3 mức ưu tiên nên **không còn để trống**, thêm cột Tên kho nhập vào file xuất,
+thêm dropdown **Kho nhập** và ô tìm cho Kho nhập / ĐVT / SL xuất. Cột **Ghi chú** nói thẳng
+*"Bên nhận ĐÃ lập phiếu nhập NNB0001/T09 nhưng chưa bấm ghi sổ"* — đọc là biết phải bảo ai làm gì.
+
+**Tab BTP** — cùng khuôn. ⚠️ Nhưng `XKHOSXBTP`/`NSP` **chưa từng có một phiếu nháp nào trong cả
+lịch sử DB** (100% `POSTED`) nên hai nhóm này **hiện luôn bằng 0**; giữ để mai kia quy trình đổi
+thì bắt được ngay.
+
+**Bỏ cột giờ xuất kho** — iPOS không ghi. Giờ thật chỉ có trong `dbo.LOGGING` nhưng
+`LOGGING.PR_KEY` không phải khoá phiếu (0 dòng trùng với `SALE`), phải dò chuỗi tự do, quét 1
+tháng mất **8,95s**, và LOGGING chỉ còn từ **17/05/2026**. Ghi vào Bẫy 24 để người sau khỏi đo lại.
+
+### Verify — M2, có thêm một lớp đối chứng trước/sau
+
+| Mức | Nội dung |
+|---|---|
+| M1 | `ast.parse` OK · `node check_babel.js` SUCCESSFUL · **không có hàm trùng tên** (Bẫy 2) · số cột **ĐCNB 19-19-19**, **BTP 21-21-21** |
+| **M2** | **ĐCNB 35/35** và **BTP 14/14** qua `test_client` in-process (Bẫy 6): dựng CTE · **số dấu `?` khớp số params** (Bẫy 5) · lọc từng trạng thái · 3 bộ lọc mới · sắp xếp · phân trang · `/count` · job xuất CSV chạy tới file thật |
+| **Đối chứng trước/sau** | Chạy **bản git HEAD** và bản mới cạnh nhau trên cùng kỳ T09/2026. **Tab BTP: mọi con số y hệt.** Tab ĐCNB: `Đã nhận đủ` 1.502 và `Lệch` 3 **không đổi**, tiền 83.387 **không đổi**, và **7 + 211 = 218** đúng bằng nhóm "Chưa nhận hàng" cũ — không mất phiếu nào, chỉ tách ra |
+| **Kiểm nhánh chưa có dữ liệu** | Nhánh nháp của BTP không có phiếu thật để thử ⇒ chạy đúng công thức đó lên phiếu **đã ghi sổ**: `SALE_DETAIL` khớp `WAREHOUSE` **10.094/10.094** (cả SL lẫn `JOB_QTY`), `PURCHASE_DETAIL` **4.149/4.149**, lệch 0 |
+| Hiệu năng | ĐCNB **5,6s** · BTP **6,5s** cho kỳ 1 tháng — không xấu đi (nhánh nháp đo riêng: 0,42s và 0,18s) |
+
+⚠️ **Chưa đạt M3** — **chưa build lại EXE** vì Đại Ca đang dùng app trên cổng 5050, và luật cấm
+tắt/build lại khi Đại Ca đang dùng (đã gây "Failed to fetch" thật ngày 12/08/2026).
+
+### Điểm mù — phải biết trước khi dùng
+
+- **Nhóm "Chưa nhận hàng" tụt từ 218 xuống 7.** Ai đang theo dõi con số cũ sẽ thấy hụt — tổng
+  không mất, chỉ chuyển sang nhóm "Phiếu nhập chưa ghi sổ".
+- Bộ lọc **Kho nhập** dùng `IN`, an toàn vì đo được **0/133.607 nhóm** đi tới nhiều kho. Nếu về sau
+  có phiếu đi nhiều kho thì `KHO_NHAP` thành chuỗi gộp `"A + B"` và lọc sẽ trượt dòng đó.
+- Ô tìm **SL xuất** là so khớp đầu chuỗi trên số (gõ `1000` ra mọi dòng bắt đầu bằng 1000) — thô.
+  Cần lọc khoảng từ–đến thì phải làm riêng.
+- `SALE.WAREHOUSE_ID_RECEIVE` có **1 ca lệch** với kho nhận thật trong cả năm 2026. Dòng đã nhận
+  vẫn lấy kho thật nên ca đó không bị ảnh hưởng; chỉ dòng **chưa** nhận mới dùng kho dự kiến.
+- **Bộ lọc Đơn vị vẫn áp cho phía XUẤT** — việc còn treo số 7 ở mục VIỆC CẦN LÀM, chưa động tới.

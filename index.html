@@ -5279,7 +5279,7 @@ const exportJournalCsv = (mode) => {
             const [dcnbPagination, setDcnbPagination] = useState({ total_rows: 0, total_pages: 1, page: 1 });
             const [dcnbColSearch, setDcnbColSearch] = useState({});
             const [dcnbLoading, setDcnbLoading] = useState(false);
-            const [dcnbFilters, setDcnbFilters] = useState({ wh_ids: [], status: '' });
+            const [dcnbFilters, setDcnbFilters] = useState({ wh_ids: [], wh_nhap_ids: [], status: '' });
 
             const toggleDcnbFilter = (key, id) => {
                 setDcnbFilters(p => ({ ...p, [key]: p[key].includes(id) ? p[key].filter(x => x !== id) : [...p[key], id] }));
@@ -5304,8 +5304,8 @@ const exportJournalCsv = (mode) => {
 
             const dcnbRow2Count = useMemo(() => (
                 (filters.item_ids?.length || 0) + (dcnbFilters.wh_ids?.length || 0)
-                + (dcnbFilters.status ? 1 : 0)
-            ), [filters.item_ids, dcnbFilters.wh_ids, dcnbFilters.status]);
+                + (dcnbFilters.wh_nhap_ids?.length || 0) + (dcnbFilters.status ? 1 : 0)
+            ), [filters.item_ids, dcnbFilters.wh_ids, dcnbFilters.wh_nhap_ids, dcnbFilters.status]);
 
             const buildDcnbQuery = (targetPage = 1, targetPageSize = filters.page_size, searchOverride = null, extra = {}) => {
                 const cs = searchOverride !== null ? searchOverride : dcnbColSearch;
@@ -5317,6 +5317,7 @@ const exportJournalCsv = (mode) => {
                 query.set('org_ids', (filters.org_ids || []).join(','));
                 query.set('item_ids', (filters.item_ids || []).join(','));
                 query.set('wh_ids', (dcnbFilters.wh_ids || []).join(','));
+                query.set('wh_nhap_ids', (dcnbFilters.wh_nhap_ids || []).join(','));
                 if (dcnbFilters.status) query.set('status', dcnbFilters.status);
 
                 const take = (v) => { const x = (v || '').trim(); return x || null; };
@@ -5327,9 +5328,12 @@ const exportJournalCsv = (mode) => {
                     s_wh_id:        take(cs.KHO_XUAT),
                     s_item:         take(cs.MA_HANG),
                     s_item_name:    take(cs.TEN_HANG),
+                    s_dvt:          take(cs.DVT),
+                    s_sl_xuat:      take(cs.SL_XUAT),
                     s_dv_nhap:      take(cs.DON_VI_NHAP),
                     s_dv_nhap_name: take(cs.TEN_DV_NHAP),
                     s_nhap_no:      take(cs.SO_PHIEU_NHAP),
+                    s_kho_nhap:     take(cs.KHO_NHAP),
                 };
                 Object.keys(sp).forEach(k => { if (sp[k]) query.set(k, sp[k]); });
                 if (dcnbSort.field) { query.set('order_by', dcnbSort.field); query.set('order_dir', dcnbSort.dir); }
@@ -5375,7 +5379,8 @@ const exportJournalCsv = (mode) => {
                 ['MA_HANG','Mã hàng'],['TEN_HANG','Tên hàng'],['DVT','ĐVT'],
                 ['SL_XUAT','SL xuất'],['TIEN_XUAT','Tiền xuất'],
                 ['DON_VI_NHAP','Mã ĐV nhận'],['TEN_DV_NHAP','Tên đơn vị nhận'],
-                ['SO_PHIEU_NHAP','Phiếu nhập'],['NGAY_NHAP','Ngày nhập'],['KHO_NHAP','Kho nhập'],
+                ['SO_PHIEU_NHAP','Phiếu nhập'],['NGAY_NHAP','Ngày nhập'],
+                ['KHO_NHAP','Mã kho nhập'],['TEN_KHO_NHAP','Tên kho nhập'],
                 ['SL_NHAN','SL nhận'],['CHENH_SL','Chênh SL'],
                 ['TRANG_THAI','Trạng thái'],['GHI_CHU','Ghi chú'],
             ];
@@ -7649,12 +7654,16 @@ const exportJournalCsv = (mode) => {
                                     <div className="flex items-center gap-2 flex-wrap">
                                         {[['', 'Tất cả', null],
                                           ['chua', 'Chưa nhập kho BTP', 'Chưa nhập kho BTP'],
+                                          ['nhap_chua_gs', 'Phiếu nhập chưa ghi sổ', 'Phiếu nhập chưa ghi sổ'],
+                                          ['xuat_chua_gs', 'Phiếu xuất chưa ghi sổ', 'Phiếu xuất chưa ghi sổ'],
                                           ['lech', 'Lệch số lượng', 'Lệch số lượng'],
                                           ['khonggoc', 'Không thấy phiếu xuất', 'Không tìm thấy phiếu xuất liên quan'],
                                           ['du', 'Đã nhập đủ', 'Đã nhập đủ']].map(([val, label, sumKey]) => {
                                             const on = btpFilters.status === val;
                                             const cnt = sumKey && btpSummary ? (btpSummary.so_cap?.[sumKey] || 0) : null;
                                             const tone = val === 'chua' ? 'text-rose-600 border-rose-200 bg-rose-50'
+                                                       : val === 'nhap_chua_gs' ? 'text-sky-600 border-sky-200 bg-sky-50'
+                                                       : val === 'xuat_chua_gs' ? 'text-orange-600 border-orange-200 bg-orange-50'
                                                        : val === 'lech' ? 'text-amber-600 border-amber-200 bg-amber-50'
                                                        : val === 'khonggoc' ? 'text-violet-600 border-violet-200 bg-violet-50'
                                                        : val === 'du'   ? 'text-emerald-600 border-emerald-200 bg-emerald-50'
@@ -7720,8 +7729,11 @@ const exportJournalCsv = (mode) => {
                                                     const bad  = row.TRANG_THAI === 'Chưa nhập kho BTP';
                                                     const warn = row.TRANG_THAI === 'Lệch số lượng';
                                                     const nogoc = row.TRANG_THAI === 'Không tìm thấy phiếu xuất liên quan';
+                                                    const nnhap = row.TRANG_THAI === 'Phiếu nhập chưa ghi sổ';
+                                                    const xnhap = row.TRANG_THAI === 'Phiếu xuất chưa ghi sổ';
                                                     const rowBg = bad ? 'bg-rose-50/70' : warn ? 'bg-amber-50/70'
-                                                                : nogoc ? 'bg-violet-50/70' : (row._grp ? 'bg-slate-50/60' : '');
+                                                                : nogoc ? 'bg-violet-50/70' : nnhap ? 'bg-sky-50/70'
+                                                                : xnhap ? 'bg-orange-50/70' : (row._grp ? 'bg-slate-50/60' : '');
                                                     const num = (v, d = 2) => v == null ? '—' : Number(v).toLocaleString('en-US', { maximumFractionDigits: d });
                                                     const topLine = row._first ? 'border-t-2 border-t-indigo-300' : '';
                                                     return (
@@ -7745,7 +7757,7 @@ const exportJournalCsv = (mode) => {
                                                             <td className="border-r">{row.KHO_NHAP || '—'}</td>
                                                             <td className="border-r px-2 text-right font-mono">{num(row.SL_NHAP)}</td>
                                                             <td className={`border-r px-2 text-right font-mono ${row.CHENH_SL != null && Number(row.CHENH_SL) !== 0 ? 'font-black text-rose-600' : 'text-slate-300'}`}>{num(row.CHENH_SL)}</td>
-                                                            <td className={`px-2 text-left font-black ${bad ? 'text-rose-600' : warn ? 'text-amber-600' : nogoc ? 'text-violet-600' : 'text-emerald-600'}`}>{row.TRANG_THAI}</td>
+                                                            <td className={`px-2 text-left font-black ${bad ? 'text-rose-600' : warn ? 'text-amber-600' : nogoc ? 'text-violet-600' : nnhap ? 'text-sky-600' : xnhap ? 'text-orange-600' : 'text-emerald-600'}`}>{row.TRANG_THAI}</td>
                                                             <td className="px-3 text-left text-slate-500">{row.GHI_CHU || ''}</td>
                                                         </tr>
                                                     );
@@ -7809,17 +7821,22 @@ const exportJournalCsv = (mode) => {
                                     </div>
                                     {filtersExpanded && <div className="grid grid-cols-8 gap-1.5">
                                         <PremiumDropdown label="Kho xuất" items={meta.warehouses} selectedItems={dcnbFilters.wh_ids} onSelect={id => toggleDcnbFilter('wh_ids', id)} isActive={activeDropdown === 'Kho xuất'} onToggle={setActiveDropdown} />
+                                        <PremiumDropdown label="Kho nhập" items={meta.warehouses} selectedItems={dcnbFilters.wh_nhap_ids} onSelect={id => toggleDcnbFilter('wh_nhap_ids', id)} isActive={activeDropdown === 'Kho nhập'} onToggle={setActiveDropdown} />
                                         <PremiumDropdown label="Hàng hoá" items={meta.items} selectedItems={filters.item_ids} onSelect={id => toggleFilter('item_ids', id)} isActive={activeDropdown === 'Hàng hoá'} onToggle={setActiveDropdown} />
                                     </div>}
                                     <div className="flex items-center gap-2 flex-wrap">
                                         {[['', 'Tất cả', null],
                                           ['chua', 'Chưa nhận hàng', 'Chưa nhận hàng'],
+                                          ['nhap_chua_gs', 'Phiếu nhập chưa ghi sổ', 'Phiếu nhập chưa ghi sổ'],
+                                          ['xuat_chua_gs', 'Phiếu xuất chưa ghi sổ', 'Phiếu xuất chưa ghi sổ'],
                                           ['lech', 'Lệch số lượng', 'Lệch số lượng'],
                                           ['khonggoc', 'Không thấy phiếu xuất', 'Không tìm thấy phiếu xuất liên quan'],
                                           ['du', 'Đã nhận đủ', 'Đã nhận đủ']].map(([val, label, sumKey]) => {
                                             const on = dcnbFilters.status === val;
                                             const cnt = sumKey && dcnbSummary ? (dcnbSummary.so_phieu?.[sumKey] || 0) : null;
                                             const tone = val === 'chua' ? 'text-rose-600 border-rose-200 bg-rose-50'
+                                                       : val === 'nhap_chua_gs' ? 'text-sky-600 border-sky-200 bg-sky-50'
+                                                       : val === 'xuat_chua_gs' ? 'text-orange-600 border-orange-200 bg-orange-50'
                                                        : val === 'lech' ? 'text-amber-600 border-amber-200 bg-amber-50'
                                                        : val === 'khonggoc' ? 'text-violet-600 border-violet-200 bg-violet-50'
                                                        : val === 'du'   ? 'text-emerald-600 border-emerald-200 bg-emerald-50'
@@ -7832,7 +7849,7 @@ const exportJournalCsv = (mode) => {
                                             );
                                         })}
                                         {dcnbSummary && <span className="text-[10px] font-bold text-slate-400 ml-2">
-                                            Số đếm là <b>số phiếu xuất</b> · <b>Chưa nhận hàng</b> = hàng đã xuất khỏi kho nhưng bên nhận chưa bấm nhập · nhóm <b>Không thấy phiếu xuất</b> là chiều ngược: phiếu nhập không truy được về phiếu xuất
+                                            Số đếm là <b>số phiếu xuất</b> · <b className="text-rose-500">Chưa nhận hàng</b> = bên nhận chưa hề lập phiếu — đây mới là việc phải đi đòi · <b className="text-sky-500">Phiếu nhập chưa ghi sổ</b> = bên nhận đã lập phiếu rồi, chỉ cần bấm ghi sổ · <b className="text-orange-500">Phiếu xuất chưa ghi sổ</b> = hàng chưa trừ kho, chưa có gì để nhận · nhóm <b>Không thấy phiếu xuất</b> là chiều ngược: phiếu nhập không truy được về phiếu xuất
                                         </span>}
                                     </div>
                                 </div>
@@ -7865,7 +7882,7 @@ const exportJournalCsv = (mode) => {
                                                     <SortableHeader field="GHI_CHU"       sort={dcnbSort} onSort={f => setDcnbSort(s => cycleSort(s, f))} className="w-96 px-3" align="left">Ghi chú</SortableHeader>
                                                 </tr>
                                                 <tr className="bg-indigo-50/60 border-b-2 border-indigo-200">
-                                                    {['','DON_VI_XUAT','','SO_PHIEU_XUAT','KHO_XUAT','MA_HANG','TEN_HANG','','','','DON_VI_NHAP','TEN_DV_NHAP','SO_PHIEU_NHAP','','','','','',''].map((key, idx) => (
+                                                    {['','DON_VI_XUAT','','SO_PHIEU_XUAT','KHO_XUAT','MA_HANG','TEN_HANG','DVT','SL_XUAT','','DON_VI_NHAP','TEN_DV_NHAP','SO_PHIEU_NHAP','','KHO_NHAP','','','',''].map((key, idx) => (
                                                         <th key={idx} className="border-r px-1 py-1">
                                                             {key ? <input
                                                                 type="text"
@@ -7883,8 +7900,11 @@ const exportJournalCsv = (mode) => {
                                                     const bad  = row.TRANG_THAI === 'Chưa nhận hàng';
                                                     const warn = row.TRANG_THAI === 'Lệch số lượng';
                                                     const nogoc = row.TRANG_THAI === 'Không tìm thấy phiếu xuất liên quan';
+                                                    const nnhap = row.TRANG_THAI === 'Phiếu nhập chưa ghi sổ';
+                                                    const xnhap = row.TRANG_THAI === 'Phiếu xuất chưa ghi sổ';
                                                     const rowBg = bad ? 'bg-rose-50/70' : warn ? 'bg-amber-50/70'
-                                                                : nogoc ? 'bg-violet-50/70' : (row._grp ? 'bg-slate-50/60' : '');
+                                                                : nogoc ? 'bg-violet-50/70' : nnhap ? 'bg-sky-50/70'
+                                                                : xnhap ? 'bg-orange-50/70' : (row._grp ? 'bg-slate-50/60' : '');
                                                     const num = (v, d = 2) => v == null ? '—' : Number(v).toLocaleString('en-US', { maximumFractionDigits: d });
                                                     const topLine = row._first ? 'border-t-2 border-t-indigo-300' : '';
                                                     return (
@@ -7903,10 +7923,10 @@ const exportJournalCsv = (mode) => {
                                                             <td className="border-r px-3 text-left">{row.TEN_DV_NHAP || ''}</td>
                                                             <td className="border-r font-mono text-emerald-700">{row.SO_PHIEU_NHAP || '—'}</td>
                                                             <td className="border-r">{row.NGAY_NHAP || '—'}</td>
-                                                            <td className="border-r">{row.KHO_NHAP || '—'}</td>
+                                                            <td className="border-r" title={row.TEN_KHO_NHAP || ''}>{row.KHO_NHAP || '—'}</td>
                                                             <td className="border-r px-2 text-right font-mono">{num(row.SL_NHAN)}</td>
                                                             <td className={`border-r px-2 text-right font-mono ${row.CHENH_SL != null && Number(row.CHENH_SL) !== 0 ? 'font-black text-rose-600' : 'text-slate-300'}`}>{num(row.CHENH_SL)}</td>
-                                                            <td className={`px-2 text-left font-black ${bad ? 'text-rose-600' : warn ? 'text-amber-600' : nogoc ? 'text-violet-600' : 'text-emerald-600'}`}>{row.TRANG_THAI}</td>
+                                                            <td className={`px-2 text-left font-black ${bad ? 'text-rose-600' : warn ? 'text-amber-600' : nogoc ? 'text-violet-600' : nnhap ? 'text-sky-600' : xnhap ? 'text-orange-600' : 'text-emerald-600'}`}>{row.TRANG_THAI}</td>
                                                             <td className="px-3 text-left text-slate-500">{row.GHI_CHU || ''}</td>
                                                         </tr>
                                                     );

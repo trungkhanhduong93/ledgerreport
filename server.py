@@ -3159,8 +3159,20 @@ BTP_TT_LECH = "Lệch số lượng"
 #   (2) phiếu xuất bị xoá (hoặc xoá rồi lập lại ⇒ cấp khoá mới)   ⇒ khoá trỏ về chỗ trống
 BTP_TT_KHONGGOC = "Không tìm thấy phiếu xuất liên quan"
 
+# ⚠️ HAI TRẠNG THÁI "CHƯA GHI SỔ" — cùng khuôn với tab điều chuyển nội bộ (Bẫy 24).
+# Phiếu DRAFT không sinh dòng nào trong WAREHOUSE nên vô hình với nhánh X/N ⇒ phải đọc
+# thêm SALE_DETAIL / PURCHASE_DETAIL, nối bằng FR_KEY (KHÔNG phải PR_KEY), SL lấy QUANTITY_WH.
+# ⚠️ ĐO 21/09/2026: XKHOSXBTP và NSP **chưa từng có một phiếu DRAFT nào** trong cả lịch sử DB
+#    (21.588 và 21.298 phiếu, 100% POSTED, dữ liệu từ 01/01/2026) ⇒ hai nhóm này hiện LUÔN
+#    bằng 0. Giữ lại để mai kia iPOS/quy trình đổi thì tab bắt được ngay, không phải sửa gấp.
+#    Công thức vẫn được kiểm thật bằng cách chạy lên phiếu ĐÃ ghi sổ: SALE_DETAIL khớp
+#    WAREHOUSE 10.094/10.094 (cả SL lẫn JOB_QTY), PURCHASE_DETAIL khớp 4.149/4.149, 0 lệch.
+BTP_TT_XUAT_NHAP = "Phiếu xuất chưa ghi sổ"
+BTP_TT_NHAP_NHAP = "Phiếu nhập chưa ghi sổ"
+
 BTP_STATUS_MAP = {"du": BTP_TT_DU, "chua": BTP_TT_CHUA,
-                  "lech": BTP_TT_LECH, "khonggoc": BTP_TT_KHONGGOC}
+                  "lech": BTP_TT_LECH, "khonggoc": BTP_TT_KHONGGOC,
+                  "xuat_chua_gs": BTP_TT_XUAT_NHAP, "nhap_chua_gs": BTP_TT_NHAP_NHAP}
 
 BTPDC_SORT_WHITELIST = {c: c for c in [
     "DON_VI", "TEN_DON_VI", "NGAY_XUAT", "SO_PHIEU_XUAT", "KHO_XUAT", "TEN_KHO_XUAT",
@@ -3190,6 +3202,18 @@ WITH X AS (
     FROM dbo.WAREHOUSE W WITH (NOLOCK)
     WHERE W.TRAN_ID = 'XKHOSXBTP' AND W.ISSUE_RECEIVE = 'X' AND {inner}
 ),
+XB AS (
+    -- Phiếu xuất SX BTP chưa ghi sổ (xem khối ghi chú ở BTP_TT_XUAT_NHAP).
+    SELECT S.PR_KEY, S.TRAN_NO, S.TRAN_DATE, S.ORGANIZATION_ID, S.WAREHOUSE_ID,
+           SD.ITEM_ID, SD.PRODUCT_ID,
+           QUANTITY = SUM(SD.QUANTITY_WH), JOB_QTY = SUM(ISNULL(SD.JOB_QTY, 0))
+    FROM dbo.SALE S WITH (NOLOCK)
+    JOIN dbo.SALE_DETAIL SD WITH (NOLOCK) ON SD.FR_KEY = S.PR_KEY
+    WHERE S.TRAN_ID = 'XKHOSXBTP' AND S.STATUS <> 'POSTED'
+      AND ISNULL(SD.QUANTITY_WH, 0) <> 0 AND {inner_draft}
+    GROUP BY S.PR_KEY, S.TRAN_NO, S.TRAN_DATE, S.ORGANIZATION_ID, S.WAREHOUSE_ID,
+             SD.ITEM_ID, SD.PRODUCT_ID
+),
 P AS (
     SELECT PR_KEY, TRAN_NO, TRAN_DATE, SALE_PR_KEY
     FROM dbo.PURCHASE WITH (NOLOCK)
@@ -3211,6 +3235,23 @@ N AS (
            SL_NHAP_NG    = SUM(SL_NG),
            TIEN_NHAP     = SUM(TIEN)
     FROM N0 GROUP BY SALE_PR_KEY, BTP_ID
+),
+NB AS (
+    -- Phiếu nhập kho thành phẩm chưa ghi sổ. Giữ nguyên mẹo "mốc gần hơn" của tab này:
+    -- vẫn trả cả SL theo ĐVT cơ bản lẫn ĐVT nhập liệu để DC chọn mốc gần JOB_QTY hơn.
+    SELECT P4.SALE_PR_KEY, BTP_ID = PD.ITEM_ID,
+           SO_PHIEU_NHAP = MAX(P4.TRAN_NO),
+           NGAY_NHAP     = MIN(P4.TRAN_DATE),
+           KHO_NHAP      = MAX(PD.WAREHOUSE_ID),
+           SL_NHAP       = SUM(PD.QUANTITY_WH),
+           SL_NHAP_NG    = SUM(ISNULL(PD.QUANTITY_EXTRA, 0)),
+           TIEN_NHAP     = CAST(NULL AS decimal(18, 6))
+    FROM dbo.PURCHASE P4 WITH (NOLOCK)
+    JOIN dbo.PURCHASE_DETAIL PD WITH (NOLOCK) ON PD.FR_KEY = P4.PR_KEY
+    WHERE P4.TRAN_ID = 'NSP' AND P4.STATUS <> 'POSTED'
+      AND P4.SALE_PR_KEY IS NOT NULL AND P4.SALE_PR_KEY <> 0
+      AND ISNULL(PD.QUANTITY_WH, 0) <> 0
+    GROUP BY P4.SALE_PR_KEY, PD.ITEM_ID
 ),
 ORPH_H AS (
     -- Đầu phiếu NHẬP không truy được về phiếu xuất (lọc mức phiếu: ngày nhập + đơn vị)
@@ -3303,27 +3344,74 @@ DC AS (
         DVT_NVL       = DI.UNIT_ID,
         SL_NVL_XUAT   = X.QUANTITY,
         TIEN_NVL      = X.AMOUNT,
-        SO_PHIEU_NHAP = N.SO_PHIEU_NHAP,
-        NGAY_NHAP     = N.NGAY_NHAP,
-        KHO_NHAP      = N.KHO_NHAP,
+        SO_PHIEU_NHAP = COALESCE(N.SO_PHIEU_NHAP, NB.SO_PHIEU_NHAP),
+        NGAY_NHAP     = COALESCE(N.NGAY_NHAP, NB.NGAY_NHAP),
+        KHO_NHAP      = COALESCE(N.KHO_NHAP, NB.KHO_NHAP),
         SL_NHAP       = MOC.SL_MOC,
         TIEN_NHAP     = N.TIEN_NHAP,
-        CHENH_SL      = CASE WHEN N.SL_NHAP IS NULL THEN X.JOB_QTY
+        CHENH_SL      = CASE WHEN MOC.SL_MOC IS NULL THEN X.JOB_QTY
                              ELSE X.JOB_QTY - MOC.SL_MOC END,
-        TRANG_THAI    = CASE WHEN N.SL_NHAP IS NULL       THEN N'{tt_chua}'
-                             WHEN X.JOB_QTY = MOC.SL_MOC  THEN N'{tt_du}'
-                             ELSE                              N'{tt_lech}' END,
-        GHI_CHU       = CAST(NULL AS nvarchar(200))
+        -- Đã ghi sổ xét trước, rồi mới tới bản nháp — giống hệt tab điều chuyển nội bộ.
+        TRANG_THAI    = CASE WHEN N.SL_NHAP IS NOT NULL AND X.JOB_QTY = MOC.SL_MOC
+                                                              THEN N'{tt_du}'
+                             WHEN N.SL_NHAP IS NOT NULL       THEN N'{tt_lech}'
+                             WHEN NB.SL_NHAP IS NOT NULL      THEN N'{tt_nhap_nhap}'
+                             ELSE                                  N'{tt_chua}' END,
+        GHI_CHU       = CASE WHEN N.SL_NHAP IS NULL AND NB.SL_NHAP IS NOT NULL
+                             THEN N'ĐÃ lập phiếu nhập kho thành phẩm ' + NB.SO_PHIEU_NHAP
+                                  + N' nhưng chưa bấm ghi sổ — thành phẩm chưa vào kho'
+                             ELSE CAST(NULL AS nvarchar(200)) END
     FROM X
-    LEFT JOIN N ON N.SALE_PR_KEY = X.PR_KEY AND N.BTP_ID = X.PRODUCT_ID
+    LEFT JOIN N  ON N.SALE_PR_KEY  = X.PR_KEY AND N.BTP_ID  = X.PRODUCT_ID
+    LEFT JOIN NB ON NB.SALE_PR_KEY = X.PR_KEY AND NB.BTP_ID = X.PRODUCT_ID
+    -- Mốc gần hơn: JOB_QTY có thể ghi theo ĐVT cơ bản HOẶC ĐVT nhập liệu tuỳ người gõ.
+    -- Áp cho cả phiếu đã ghi sổ (N) lẫn bản nháp (NB) — cùng một bệnh.
     OUTER APPLY (SELECT SL_MOC = CASE
-            WHEN N.SL_NHAP IS NULL THEN NULL
-            WHEN ABS(X.JOB_QTY - N.SL_NHAP) <= ABS(X.JOB_QTY - N.SL_NHAP_NG) THEN N.SL_NHAP
-            ELSE N.SL_NHAP_NG END) MOC
+            WHEN N.SL_NHAP IS NOT NULL THEN
+                 CASE WHEN ABS(X.JOB_QTY - N.SL_NHAP) <= ABS(X.JOB_QTY - N.SL_NHAP_NG)
+                      THEN N.SL_NHAP ELSE N.SL_NHAP_NG END
+            WHEN NB.SL_NHAP IS NOT NULL THEN
+                 CASE WHEN ABS(X.JOB_QTY - NB.SL_NHAP) <= ABS(X.JOB_QTY - NB.SL_NHAP_NG)
+                      THEN NB.SL_NHAP ELSE NB.SL_NHAP_NG END
+            ELSE NULL END) MOC
     LEFT JOIN dbo.DM_ITEM         DI WITH (NOLOCK) ON DI.ITEM_ID = X.ITEM_ID
     LEFT JOIN dbo.DM_ITEM         BI WITH (NOLOCK) ON BI.ITEM_ID = X.PRODUCT_ID
     LEFT JOIN dbo.DM_WAREHOUSE    WH WITH (NOLOCK) ON WH.WAREHOUSE_ID = X.WAREHOUSE_ID
     LEFT JOIN dbo.DM_ORGANIZATION O  WITH (NOLOCK) ON O.ORGANIZATION_ID = X.ORGANIZATION_ID
+
+    UNION ALL
+    -- Phiếu xuất SX BTP chưa ghi sổ: nguyên liệu chưa trừ kho, chưa có gì để nhập.
+    SELECT
+        PR_KEY_XUAT   = CAST(CAST(XB.PR_KEY AS bigint) AS varchar(30)),
+        DON_VI        = XB.ORGANIZATION_ID,
+        TEN_DON_VI    = O5.ORGANIZATION_NAME,
+        NGAY_XUAT     = XB.TRAN_DATE,
+        SO_PHIEU_XUAT = XB.TRAN_NO,
+        KHO_XUAT      = XB.WAREHOUSE_ID,
+        TEN_KHO_XUAT  = WH5.WAREHOUSE_NAME,
+        BTP           = XB.PRODUCT_ID,
+        TEN_BTP       = BI5.ITEM_NAME,
+        SL_SX         = XB.JOB_QTY,
+        DVT_BTP       = BI5.UNIT_ID,
+        NVL           = XB.ITEM_ID,
+        TEN_NVL       = DI5.ITEM_NAME,
+        DVT_NVL       = DI5.UNIT_ID,
+        SL_NVL_XUAT   = XB.QUANTITY,
+        TIEN_NVL      = CAST(NULL AS decimal(18, 6)),
+        SO_PHIEU_NHAP = CAST(NULL AS nvarchar(200)),
+        NGAY_NHAP     = CAST(NULL AS smalldatetime),
+        KHO_NHAP      = CAST(NULL AS nvarchar(20)),
+        SL_NHAP       = CAST(NULL AS decimal(18, 6)),
+        TIEN_NHAP     = CAST(NULL AS decimal(18, 6)),
+        CHENH_SL      = CAST(NULL AS decimal(18, 6)),
+        TRANG_THAI    = N'{tt_xuat_nhap}',
+        GHI_CHU       = N'Phiếu xuất chưa ghi sổ — nguyên liệu chưa trừ khỏi kho. '
+                        + N'Kế toán cần ghi sổ phiếu này trước khi nhập kho thành phẩm.'
+    FROM XB
+    LEFT JOIN dbo.DM_ITEM         DI5 WITH (NOLOCK) ON DI5.ITEM_ID = XB.ITEM_ID
+    LEFT JOIN dbo.DM_ITEM         BI5 WITH (NOLOCK) ON BI5.ITEM_ID = XB.PRODUCT_ID
+    LEFT JOIN dbo.DM_WAREHOUSE    WH5 WITH (NOLOCK) ON WH5.WAREHOUSE_ID = XB.WAREHOUSE_ID
+    LEFT JOIN dbo.DM_ORGANIZATION O5  WITH (NOLOCK) ON O5.ORGANIZATION_ID = XB.ORGANIZATION_ID
 
     UNION ALL SELECT * FROM ORPH
 )
@@ -3338,14 +3426,19 @@ _BTPDC_SELECT = ", ".join([
 ])
 
 
-def _btp_cte(inner_sql, inner_orph_sql, inner_orph_wh_sql):
+def _btp_cte(inner_sql, inner_draft_sql, inner_orph_sql, inner_orph_wh_sql):
+    # Thứ tự replace có ý: {inner_orph_wh} phải đi trước {inner_orph}, nếu không
+    # "{inner_orph}" nuốt mất phần đầu của "{inner_orph_wh}" và để lại chuỗi rác "_wh}".
     return _BTPDC_CTE.replace("{inner_orph_wh}", inner_orph_wh_sql) \
                      .replace("{inner_orph}", inner_orph_sql) \
+                     .replace("{inner_draft}", inner_draft_sql) \
                      .replace("{inner}", inner_sql) \
                      .replace("{tt_chua}", BTP_TT_CHUA) \
                      .replace("{tt_du}", BTP_TT_DU) \
                      .replace("{tt_lech}", BTP_TT_LECH) \
-                     .replace("{tt_khonggoc}", BTP_TT_KHONGGOC)
+                     .replace("{tt_khonggoc}", BTP_TT_KHONGGOC) \
+                     .replace("{tt_xuat_nhap}", BTP_TT_XUAT_NHAP) \
+                     .replace("{tt_nhap_nhap}", BTP_TT_NHAP_NHAP)
 
 
 def _build_btp_where(request_args):
@@ -3360,36 +3453,48 @@ def _build_btp_where(request_args):
     # Nhánh phiếu xuất: lọc theo ngày phiếu XUẤT
     inner   = ["W.TRAN_DATE >= ?", "W.TRAN_DATE <= ?"]
     iparams = [d1, d2]
+    # Nhánh phiếu xuất CHƯA GHI SỔ: cùng điều kiện nhưng đọc SALE/SALE_DETAIL
+    draft   = ["S.TRAN_DATE >= ?", "S.TRAN_DATE <= ?"]
+    dparams = [d1, d2]
     # Nhánh phiếu nhập mồ côi: không có phiếu xuất nên lọc theo ngày phiếu NHẬP
     orph    = ["P2.TRAN_DATE >= ?", "P2.TRAN_DATE <= ?"]   # mức phiếu
     oiparams = [d1, d2]
     orph_wh, owparams = [], []                                # mức dòng (kho nhập)
 
-    for field, ofield, arg in [("W.ORGANIZATION_ID", "P2.ORGANIZATION_ID",  "org_ids"),
-                               ("W.WAREHOUSE_ID",    "WN2.WAREHOUSE_ID",    "wh_ids"),
-                               ("W.ITEM_ID",         None,                  "item_ids"),
-                               ("W.PRODUCT_ID",      "WN2.ITEM_ID",         "btp_ids")]:
+    for field, ofield, dfield, arg in [
+            ("W.ORGANIZATION_ID", "P2.ORGANIZATION_ID", "S.ORGANIZATION_ID", "org_ids"),
+            ("W.WAREHOUSE_ID",    "WN2.WAREHOUSE_ID",   "S.WAREHOUSE_ID",    "wh_ids"),
+            ("W.ITEM_ID",         None,                 "SD.ITEM_ID",        "item_ids"),
+            ("W.PRODUCT_ID",      "WN2.ITEM_ID",        "SD.PRODUCT_ID",     "btp_ids")]:
         vals = [v for v in request_args.get(arg, "").split(",") if v]
         if arg == "org_ids":
-            # Lọc đơn vị đi qua _org_filter_sql (ép quyền đơn vị theo tài khoản) cho CẢ 2 nhánh:
-            # dòng khớp (W.) và phiếu nhập mồ côi (P2.). Chọn gì cũng bị giao với đơn vị được phép.
+            # Lọc đơn vị đi qua _org_filter_sql (ép quyền đơn vị theo tài khoản) cho CẢ 3 nhánh:
+            # dòng khớp (W.), phiếu xuất chưa ghi sổ (S.) và phiếu nhập mồ côi (P2.).
+            # Thiếu nhánh nào là nhánh đó lộ dữ liệu ngoài quyền.
             _oc, _op = _org_filter_sql(vals, field)
             if _oc:
                 inner.append(_oc)
                 iparams.extend(_op)
+            _oc3, _op3 = _org_filter_sql(vals, dfield)
+            if _oc3:
+                draft.append(_oc3)
+                dparams.extend(_op3)
             _oc2, _op2 = _org_filter_sql(vals, ofield)
             if _oc2:
                 orph.append(_oc2)
                 oiparams.extend(_op2)
             continue
         if vals:
-            inner.append(f"{field} IN ({','.join(['?'] * len(vals))})")
+            ph = ','.join(['?'] * len(vals))
+            inner.append(f"{field} IN ({ph})")
             iparams.extend(vals)
+            draft.append(f"{dfield} IN ({ph})")
+            dparams.extend(vals)
             if ofield and ofield.startswith("WN2."):      # lọc ở mức dòng
-                orph_wh.append(f"{ofield} IN ({','.join(['?'] * len(vals))})")
+                orph_wh.append(f"{ofield} IN ({ph})")
                 owparams.extend(vals)
             elif ofield:                                   # lọc ở mức phiếu
-                orph.append(f"{ofield} IN ({','.join(['?'] * len(vals))})")
+                orph.append(f"{ofield} IN ({ph})")
                 oiparams.extend(vals)
             else:
                 # Lọc theo nguyên liệu ⇒ dòng phiếu nhập mồ côi không có NVL nên bị loại hẳn
@@ -3412,11 +3517,12 @@ def _build_btp_where(request_args):
             oparams.append(like.format(val))
 
     # Thứ tự params PHẢI đúng thứ tự dấu ? trong SQL (Bẫy 5):
-    # CTE X (iparams) → CTE ORPH (oiparams) → WHERE ngoài (oparams)
-    return (_btp_cte(" AND ".join(inner), " AND ".join(orph),
+    # CTE X (iparams) → CTE XB (dparams) → CTE ORPH_H (oiparams)
+    #   → WHERE của ORPH (owparams) → WHERE ngoài (oparams)
+    return (_btp_cte(" AND ".join(inner), " AND ".join(draft), " AND ".join(orph),
                      " AND ".join(orph_wh) if orph_wh else "1 = 1"),
             (" AND ".join(outer) if outer else "1=1"),
-            iparams + oiparams + owparams + oparams)
+            iparams + dparams + oiparams + owparams + oparams)
 
 
 def _btp_fmt_rows(columns, raw_rows):
@@ -3590,13 +3696,23 @@ DCNB_TT_CHUA = "Chưa nhận hàng"
 DCNB_TT_LECH = "Lệch số lượng"
 DCNB_TT_KHONGGOC = "Không tìm thấy phiếu xuất liên quan"
 
+# ⚠️ HAI TRẠNG THÁI "CHƯA GHI SỔ" — thêm 21/09/2026, xem Bẫy 24 trong CLAUDE.md.
+# STATUS trên SALE/PURCHASE chỉ có ĐÚNG 2 giá trị: 'POSTED' (đã ghi sổ) / 'DRAFT'.
+# (REVIEW_STATUS là thứ khác, gần như không dùng: 29/19.887 phiếu ⇒ ĐỪNG lấy nhầm.)
+# Phiếu DRAFT **KHÔNG sinh một dòng nào trong dbo.WAREHOUSE** — đo T09/2026: 13 phiếu
+# XDCNB DRAFT → 0 dòng; 211 phiếu NDCNB DRAFT → 0 dòng. Vì vậy chúng VÔ HÌNH với nhánh
+# X/N vốn đọc WAREHOUSE, phải đọc thêm SALE_DETAIL / PURCHASE_DETAIL (nối bằng FR_KEY).
+DCNB_TT_XUAT_NHAP = "Phiếu xuất chưa ghi sổ"
+DCNB_TT_NHAP_NHAP = "Phiếu nhập chưa ghi sổ"
+
 DCNB_STATUS_MAP = {"du": DCNB_TT_DU, "chua": DCNB_TT_CHUA,
-                   "lech": DCNB_TT_LECH, "khonggoc": DCNB_TT_KHONGGOC}
+                   "lech": DCNB_TT_LECH, "khonggoc": DCNB_TT_KHONGGOC,
+                   "xuat_chua_gs": DCNB_TT_XUAT_NHAP, "nhap_chua_gs": DCNB_TT_NHAP_NHAP}
 
 DCNB_SORT_WHITELIST = {c: c for c in [
     "DON_VI_XUAT", "TEN_DV_XUAT", "NGAY_XUAT", "SO_PHIEU_XUAT", "KHO_XUAT", "TEN_KHO_XUAT",
     "MA_HANG", "TEN_HANG", "DVT", "SL_XUAT", "TIEN_XUAT",
-    "DON_VI_NHAP", "TEN_DV_NHAP", "SO_PHIEU_NHAP", "NGAY_NHAP", "KHO_NHAP",
+    "DON_VI_NHAP", "TEN_DV_NHAP", "SO_PHIEU_NHAP", "NGAY_NHAP", "KHO_NHAP", "TEN_KHO_NHAP",
     "SL_NHAN", "CHENH_SL", "TRANG_THAI", "GHI_CHU",
 ]}
 
@@ -3607,7 +3723,8 @@ DCNB_CSV_COLS = [
     ("MA_HANG", "Mã hàng"), ("TEN_HANG", "Tên hàng"), ("DVT", "ĐVT"),
     ("SL_XUAT", "SL xuất"), ("TIEN_XUAT", "Tiền xuất"),
     ("DON_VI_NHAP", "Mã ĐV nhận"), ("TEN_DV_NHAP", "Tên đơn vị nhận"),
-    ("SO_PHIEU_NHAP", "Phiếu nhập"), ("NGAY_NHAP", "Ngày nhập"), ("KHO_NHAP", "Kho nhập"),
+    ("SO_PHIEU_NHAP", "Phiếu nhập"), ("NGAY_NHAP", "Ngày nhập"),
+    ("KHO_NHAP", "Mã kho nhập"), ("TEN_KHO_NHAP", "Tên kho nhập"),
     ("SL_NHAN", "SL nhận"), ("CHENH_SL", "Chênh SL"),
     ("TRANG_THAI", "Trạng thái"), ("GHI_CHU", "Ghi chú"),
 ]
@@ -3620,6 +3737,26 @@ WITH X AS (
     FROM dbo.WAREHOUSE W WITH (NOLOCK)
     WHERE W.TRAN_ID = 'XDCNB' AND W.ISSUE_RECEIVE = 'X' AND {inner}
     GROUP BY W.PR_KEY, W.TRAN_NO, W.TRAN_DATE, W.ORGANIZATION_ID, W.WAREHOUSE_ID, W.ITEM_ID
+),
+XD AS (
+    -- Phiếu XUẤT chưa ghi sổ. Không có dòng nào trong WAREHOUSE nên phải lấy từ SALE_DETAIL.
+    -- ⛔ Nối bằng FR_KEY, KHÔNG phải PR_KEY: trên *_DETAIL của iPOS thì PR_KEY là khoá của
+    --    chính dòng đó, FR_KEY mới trỏ về phiếu cha (giống PO_DETAIL.FR_KEY ở Bẫy 20).
+    --    Nối nhầm PR_KEY ra 0 dòng cho CẢ phiếu đã ghi sổ — đã vấp thật khi khảo sát.
+    -- ⛔ SL phải lấy QUANTITY_WH. Đo T09/2026 so với WAREHOUSE.QUANTITY:
+    --    QUANTITY_WH khớp 12.706/12.706 (100%) · QUANTITY chỉ 3.569 (28%) · QUANTITY_EXTRA 3.273.
+    --    QUANTITY ghi theo ĐVT nhập liệu (10 BỊCH) còn kho theo ĐVT cơ bản (7.000 G).
+    -- QUANTITY_WH <> 0: bỏ dòng trống trên phiếu — đo được 39/39 ca lệch giữa SALE_DETAIL và
+    --    WAREHOUSE đều là dòng SL = 0, lọc đi thì hai nguồn trùng khít.
+    SELECT S.PR_KEY, S.TRAN_NO, S.TRAN_DATE, S.ORGANIZATION_ID,
+           S.WAREHOUSE_ID, S.WAREHOUSE_ID_RECEIVE, SD.ITEM_ID,
+           QUANTITY = SUM(SD.QUANTITY_WH)
+    FROM dbo.SALE S WITH (NOLOCK)
+    JOIN dbo.SALE_DETAIL SD WITH (NOLOCK) ON SD.FR_KEY = S.PR_KEY
+    WHERE S.TRAN_ID = 'XDCNB' AND S.STATUS <> 'POSTED'
+      AND ISNULL(SD.QUANTITY_WH, 0) <> 0 AND {inner_draft}
+    GROUP BY S.PR_KEY, S.TRAN_NO, S.TRAN_DATE, S.ORGANIZATION_ID,
+             S.WAREHOUSE_ID, S.WAREHOUSE_ID_RECEIVE, SD.ITEM_ID
 ),
 P AS (
     SELECT PR_KEY, TRAN_NO, TRAN_DATE, SALE_PR_KEY, ORGANIZATION_ID
@@ -3641,6 +3778,25 @@ N AS (
            KHO_NHAP      = STRING_AGG(WAREHOUSE_ID, ' + '),
            SL_NHAN       = SUM(SL)
     FROM N0 GROUP BY SALE_PR_KEY, ITEM_ID
+),
+ND AS (
+    -- Phiếu NHẬP chưa ghi sổ — bên nhận ĐÃ lập phiếu, chỉ chưa bấm ghi sổ.
+    -- Đây mới là gốc thật của nhóm "Chưa nhận hàng": đo T09/2026 thì 211/218 phiếu (96,8%)
+    -- rơi vào đây, cả năm 2026 là 605/631 (95,9%). Không tách ra là đổ oan cho cửa hàng.
+    -- Cùng luật với XD: nối FR_KEY, lấy QUANTITY_WH (khớp WAREHOUSE 11.013/11.013).
+    -- Không lọc theo ngày, giống CTE P ở trên — phiếu nhập có thể sang tháng khác.
+    SELECT P2.SALE_PR_KEY, PD.ITEM_ID,
+           SO_PHIEU_NHAP = MAX(P2.TRAN_NO),
+           NGAY_NHAP     = MIN(P2.TRAN_DATE),
+           DON_VI_NHAP   = MAX(P2.ORGANIZATION_ID),
+           KHO_NHAP      = MAX(PD.WAREHOUSE_ID),
+           SL_NHAN       = SUM(PD.QUANTITY_WH)
+    FROM dbo.PURCHASE P2 WITH (NOLOCK)
+    JOIN dbo.PURCHASE_DETAIL PD WITH (NOLOCK) ON PD.FR_KEY = P2.PR_KEY
+    WHERE P2.TRAN_ID = 'NDCNB' AND P2.STATUS <> 'POSTED'
+      AND P2.SALE_PR_KEY IS NOT NULL AND P2.SALE_PR_KEY <> 0
+      AND ISNULL(PD.QUANTITY_WH, 0) <> 0
+    GROUP BY P2.SALE_PR_KEY, PD.ITEM_ID
 ),
 ORPH_H AS (
     -- Phiếu NHẬP không truy được về phiếu xuất (lọc mức phiếu: ngày nhập + đơn vị nhận)
@@ -3689,6 +3845,7 @@ ORPH AS (
         SO_PHIEU_NHAP = H.TRAN_NO,
         NGAY_NHAP     = H.TRAN_DATE,
         KHO_NHAP      = WN2.WAREHOUSE_ID,
+        TEN_KHO_NHAP  = MAX(DW2.WAREHOUSE_NAME),
         SL_NHAN       = SUM(WN2.QUANTITY),
         CHENH_SL      = CAST(NULL AS decimal(18, 6)),
         TRANG_THAI    = N'{tt_khonggoc}',
@@ -3707,6 +3864,7 @@ ORPH AS (
     LEFT JOIN ORPH_N NK ON NK.PR_KEY = H.PR_KEY
     LEFT JOIN dbo.DM_ITEM         DI2 WITH (NOLOCK) ON DI2.ITEM_ID = WN2.ITEM_ID
     LEFT JOIN dbo.DM_ORGANIZATION O2  WITH (NOLOCK) ON O2.ORGANIZATION_ID = H.ORGANIZATION_ID
+    LEFT JOIN dbo.DM_WAREHOUSE    DW2 WITH (NOLOCK) ON DW2.WAREHOUSE_ID = WN2.WAREHOUSE_ID
     WHERE {inner_orph_wh}
     GROUP BY H.PR_KEY, H.ORGANIZATION_ID, H.ORIG_TRAN_NO, H.TRAN_NO, H.TRAN_DATE,
              WN2.WAREHOUSE_ID, WN2.ITEM_ID
@@ -3725,26 +3883,80 @@ DC AS (
         DVT           = DI.UNIT_ID,
         SL_XUAT       = X.QUANTITY,
         TIEN_XUAT     = X.AMOUNT,
-        DON_VI_NHAP   = N.DON_VI_NHAP,
-        TEN_DV_NHAP   = ON2.ORGANIZATION_NAME,
-        SO_PHIEU_NHAP = N.SO_PHIEU_NHAP,
-        NGAY_NHAP     = N.NGAY_NHAP,
-        KHO_NHAP      = N.KHO_NHAP,
-        SL_NHAN       = N.SL_NHAN,
-        CHENH_SL      = CASE WHEN N.SL_NHAN IS NULL THEN X.QUANTITY
-                             ELSE X.QUANTITY - N.SL_NHAN END,
-        TRANG_THAI    = CASE WHEN N.SL_NHAN IS NULL          THEN N'{tt_chua}'
-                             WHEN X.QUANTITY = N.SL_NHAN     THEN N'{tt_du}'
-                             ELSE                                 N'{tt_lech}' END,
-        GHI_CHU       = CAST(NULL AS nvarchar(200))
+        -- Kho/đơn vị NHẬN lấy theo 3 mức ưu tiên: đã ghi sổ → bản nháp → kho đến ghi sẵn
+        -- trên đầu phiếu xuất (SALE.WAREHOUSE_ID_RECEIVE). Nhờ mức 3 mà dòng chưa nhận
+        -- không còn để trống "—" như trước. Mức 3 đáng tin: đo cả năm 2026 được
+        -- 19.225/19.226 cặp khớp kho nhận thật (1 lệch), và 0 phiếu đi tới nhiều kho.
+        DON_VI_NHAP   = COALESCE(N.DON_VI_NHAP, ND.DON_VI_NHAP, DWR.ORGANIZATION_ID),
+        TEN_DV_NHAP   = COALESCE(ON2.ORGANIZATION_NAME, ON3.ORGANIZATION_NAME),
+        SO_PHIEU_NHAP = COALESCE(N.SO_PHIEU_NHAP, ND.SO_PHIEU_NHAP),
+        NGAY_NHAP     = COALESCE(N.NGAY_NHAP, ND.NGAY_NHAP),
+        KHO_NHAP      = COALESCE(N.KHO_NHAP, ND.KHO_NHAP, XS.WAREHOUSE_ID_RECEIVE),
+        TEN_KHO_NHAP  = COALESCE(WHN.WAREHOUSE_NAME, WHD.WAREHOUSE_NAME, DWR.WAREHOUSE_NAME),
+        SL_NHAN       = COALESCE(N.SL_NHAN, ND.SL_NHAN),
+        CHENH_SL      = CASE WHEN N.SL_NHAN  IS NOT NULL THEN X.QUANTITY - N.SL_NHAN
+                             WHEN ND.SL_NHAN IS NOT NULL THEN X.QUANTITY - ND.SL_NHAN
+                             ELSE X.QUANTITY END,
+        -- Thứ tự xét: đã ghi sổ thắng trước, rồi mới tới bản nháp. Đo được 0 phiếu xuất
+        -- vừa có phiếu nhập đã ghi sổ vừa có bản nháp ⇒ hai nhánh không chồng nhau.
+        TRANG_THAI    = CASE WHEN N.SL_NHAN IS NOT NULL AND X.QUANTITY = N.SL_NHAN
+                                                             THEN N'{tt_du}'
+                             WHEN N.SL_NHAN IS NOT NULL      THEN N'{tt_lech}'
+                             WHEN ND.SL_NHAN IS NOT NULL     THEN N'{tt_nhap_nhap}'
+                             ELSE                                 N'{tt_chua}' END,
+        GHI_CHU       = CASE WHEN N.SL_NHAN IS NULL AND ND.SL_NHAN IS NOT NULL
+                             THEN N'Bên nhận ĐÃ lập phiếu nhập ' + ND.SO_PHIEU_NHAP
+                                  + N' nhưng chưa bấm ghi sổ — hàng chưa vào kho bên nhận'
+                             ELSE CAST(NULL AS nvarchar(200)) END
     FROM X
-    LEFT JOIN N ON N.SALE_PR_KEY = X.PR_KEY AND N.ITEM_ID = X.ITEM_ID
+    LEFT JOIN N  ON N.SALE_PR_KEY  = X.PR_KEY AND N.ITEM_ID  = X.ITEM_ID
+    LEFT JOIN ND ON ND.SALE_PR_KEY = X.PR_KEY AND ND.ITEM_ID = X.ITEM_ID
+    -- Đầu phiếu xuất: chỉ lấy WAREHOUSE_ID_RECEIVE (kho đến). PR_KEY là khoá chính của SALE.
+    LEFT JOIN dbo.SALE            XS  WITH (NOLOCK) ON XS.PR_KEY = X.PR_KEY
     LEFT JOIN dbo.DM_ITEM         DI  WITH (NOLOCK) ON DI.ITEM_ID = X.ITEM_ID
     LEFT JOIN dbo.DM_WAREHOUSE    WH  WITH (NOLOCK) ON WH.WAREHOUSE_ID = X.WAREHOUSE_ID
     LEFT JOIN dbo.DM_ORGANIZATION O   WITH (NOLOCK) ON O.ORGANIZATION_ID = X.ORGANIZATION_ID
+    LEFT JOIN dbo.DM_WAREHOUSE    WHN WITH (NOLOCK) ON WHN.WAREHOUSE_ID = N.KHO_NHAP
+    LEFT JOIN dbo.DM_WAREHOUSE    WHD WITH (NOLOCK) ON WHD.WAREHOUSE_ID = ND.KHO_NHAP
+    LEFT JOIN dbo.DM_WAREHOUSE    DWR WITH (NOLOCK) ON DWR.WAREHOUSE_ID = XS.WAREHOUSE_ID_RECEIVE
     -- Tên đơn vị nhận chỉ tra được khi phiếu xuất đi tới ĐÚNG MỘT đơn vị. Đi nhiều nơi thì
     -- DON_VI_NHAP là chuỗi "35 + 71" nên JOIN không khớp ⇒ để trống tên, mã vẫn hiện đủ.
     LEFT JOIN dbo.DM_ORGANIZATION ON2 WITH (NOLOCK) ON ON2.ORGANIZATION_ID = N.DON_VI_NHAP
+    -- Suy đơn vị nhận từ kho đến. Đo T09/2026: khớp 1.511/1.511, 0 kho thiếu đơn vị.
+    LEFT JOIN dbo.DM_ORGANIZATION ON3 WITH (NOLOCK) ON ON3.ORGANIZATION_ID = DWR.ORGANIZATION_ID
+
+    UNION ALL
+    -- Phiếu XUẤT chưa ghi sổ: hàng chưa hề trừ kho, nên KHÔNG có phía nhận để đối chiếu.
+    SELECT
+        PR_KEY_XUAT   = CAST(CAST(XD.PR_KEY AS bigint) AS varchar(30)),
+        DON_VI_XUAT   = XD.ORGANIZATION_ID,
+        TEN_DV_XUAT   = O4.ORGANIZATION_NAME,
+        NGAY_XUAT     = XD.TRAN_DATE,
+        SO_PHIEU_XUAT = XD.TRAN_NO,
+        KHO_XUAT      = XD.WAREHOUSE_ID,
+        TEN_KHO_XUAT  = WH4.WAREHOUSE_NAME,
+        MA_HANG       = XD.ITEM_ID,
+        TEN_HANG      = DI4.ITEM_NAME,
+        DVT           = DI4.UNIT_ID,
+        SL_XUAT       = XD.QUANTITY,
+        TIEN_XUAT     = CAST(NULL AS decimal(18, 6)),
+        DON_VI_NHAP   = DW4.ORGANIZATION_ID,
+        TEN_DV_NHAP   = ON4.ORGANIZATION_NAME,
+        SO_PHIEU_NHAP = CAST(NULL AS nvarchar(200)),
+        NGAY_NHAP     = CAST(NULL AS smalldatetime),
+        KHO_NHAP      = XD.WAREHOUSE_ID_RECEIVE,
+        TEN_KHO_NHAP  = DW4.WAREHOUSE_NAME,
+        SL_NHAN       = CAST(NULL AS decimal(18, 6)),
+        CHENH_SL      = CAST(NULL AS decimal(18, 6)),
+        TRANG_THAI    = N'{tt_xuat_nhap}',
+        GHI_CHU       = N'Phiếu xuất chưa ghi sổ — hàng chưa trừ khỏi kho, bên nhận chưa '
+                        + N'nhận được. Kế toán đơn vị xuất cần ghi sổ phiếu này.'
+    FROM XD
+    LEFT JOIN dbo.DM_ITEM         DI4 WITH (NOLOCK) ON DI4.ITEM_ID = XD.ITEM_ID
+    LEFT JOIN dbo.DM_WAREHOUSE    WH4 WITH (NOLOCK) ON WH4.WAREHOUSE_ID = XD.WAREHOUSE_ID
+    LEFT JOIN dbo.DM_ORGANIZATION O4  WITH (NOLOCK) ON O4.ORGANIZATION_ID = XD.ORGANIZATION_ID
+    LEFT JOIN dbo.DM_WAREHOUSE    DW4 WITH (NOLOCK) ON DW4.WAREHOUSE_ID = XD.WAREHOUSE_ID_RECEIVE
+    LEFT JOIN dbo.DM_ORGANIZATION ON4 WITH (NOLOCK) ON ON4.ORGANIZATION_ID = DW4.ORGANIZATION_ID
 
     UNION ALL SELECT * FROM ORPH
 )
@@ -3753,16 +3965,18 @@ DC AS (
 _DCNB_SELECT = ", ".join([
     "PR_KEY_XUAT", "DON_VI_XUAT", "TEN_DV_XUAT", "NGAY_XUAT", "SO_PHIEU_XUAT",
     "KHO_XUAT", "TEN_KHO_XUAT", "MA_HANG", "TEN_HANG", "DVT", "SL_XUAT", "TIEN_XUAT",
-    "DON_VI_NHAP", "TEN_DV_NHAP", "SO_PHIEU_NHAP", "NGAY_NHAP", "KHO_NHAP",
+    "DON_VI_NHAP", "TEN_DV_NHAP", "SO_PHIEU_NHAP", "NGAY_NHAP", "KHO_NHAP", "TEN_KHO_NHAP",
     "SL_NHAN", "CHENH_SL", "TRANG_THAI", "GHI_CHU",
 ])
 
 
-def _dcnb_cte(inner, inner_orph, inner_orph_wh):
+def _dcnb_cte(inner, inner_draft, inner_orph, inner_orph_wh):
     return _DCNB_CTE.format(
-        inner=inner, inner_orph=inner_orph, inner_orph_wh=inner_orph_wh,
+        inner=inner, inner_draft=inner_draft,
+        inner_orph=inner_orph, inner_orph_wh=inner_orph_wh,
         tt_du=DCNB_TT_DU, tt_chua=DCNB_TT_CHUA, tt_lech=DCNB_TT_LECH,
         tt_khonggoc=DCNB_TT_KHONGGOC,
+        tt_xuat_nhap=DCNB_TT_XUAT_NHAP, tt_nhap_nhap=DCNB_TT_NHAP_NHAP,
     )
 
 
@@ -3781,30 +3995,41 @@ def _build_dcnb_where(request_args):
 
     inner   = ["W.TRAN_DATE >= ?", "W.TRAN_DATE <= ?"]
     iparams = [d1, d2]
+    draft   = ["S.TRAN_DATE >= ?", "S.TRAN_DATE <= ?"]         # nhánh phiếu xuất chưa ghi sổ
+    dparams = [d1, d2]
     orph    = ["P2.TRAN_DATE >= ?", "P2.TRAN_DATE <= ?"]      # mức phiếu nhập
     oiparams = [d1, d2]
     orph_wh, owparams = [], []                                 # mức dòng (mã hàng)
 
-    for field, ofield, arg in [("W.ORGANIZATION_ID", "P2.ORGANIZATION_ID", "org_ids"),
-                               ("W.WAREHOUSE_ID",    None,                 "wh_ids"),
-                               ("W.ITEM_ID",         "WN2.ITEM_ID",        "item_ids")]:
+    for field, ofield, dfield, arg in [
+            ("W.ORGANIZATION_ID", "P2.ORGANIZATION_ID", "S.ORGANIZATION_ID", "org_ids"),
+            ("W.WAREHOUSE_ID",    None,                 "S.WAREHOUSE_ID",    "wh_ids"),
+            ("W.ITEM_ID",         "WN2.ITEM_ID",        "SD.ITEM_ID",        "item_ids")]:
         vals = [v for v in request_args.get(arg, "").split(",") if v]
         if arg == "org_ids":
-            # Đi qua _org_filter_sql cho CẢ 2 nhánh ⇒ ép quyền đơn vị theo tài khoản.
+            # Đi qua _org_filter_sql cho CẢ 3 nhánh ⇒ ép quyền đơn vị theo tài khoản.
+            # Thiếu nhánh nào là nhánh đó lộ dữ liệu ngoài quyền.
             _oc, _op = _org_filter_sql(vals, field)
             if _oc:
                 inner.append(_oc)
                 iparams.extend(_op)
+            _oc3, _op3 = _org_filter_sql(vals, dfield)
+            if _oc3:
+                draft.append(_oc3)
+                dparams.extend(_op3)
             _oc2, _op2 = _org_filter_sql(vals, ofield)
             if _oc2:
                 orph.append(_oc2)
                 oiparams.extend(_op2)
             continue
         if vals:
-            inner.append(f"{field} IN ({','.join(['?'] * len(vals))})")
+            ph = ','.join(['?'] * len(vals))
+            inner.append(f"{field} IN ({ph})")
             iparams.extend(vals)
+            draft.append(f"{dfield} IN ({ph})")
+            dparams.extend(vals)
             if ofield:
-                orph_wh.append(f"{ofield} IN ({','.join(['?'] * len(vals))})")
+                orph_wh.append(f"{ofield} IN ({ph})")
                 owparams.extend(vals)
             else:
                 # Lọc theo kho XUẤT ⇒ dòng phiếu nhập mồ côi không có kho xuất nên loại hẳn
@@ -3816,26 +4041,44 @@ def _build_dcnb_where(request_args):
         outer.append("TRANG_THAI = ?")
         oparams.append(st)
 
+    # Lọc theo kho NHẬN. Phải đặt ở WHERE ngoài vì KHO_NHAP là cột dựng trong CTE (gộp từ
+    # 3 nguồn). Dùng IN được vì đo 2026: 0/133.607 nhóm đi tới nhiều kho ⇒ KHO_NHAP luôn
+    # là một mã đơn, không bao giờ là chuỗi gộp "A + B".
+    wh_nhap = [v for v in request_args.get("wh_nhap_ids", "").split(",") if v]
+    if wh_nhap:
+        outer.append(f"KHO_NHAP IN ({','.join(['?'] * len(wh_nhap))})")
+        oparams.extend(wh_nhap)
+
     for field, arg, like in [("DON_VI_XUAT", "s_org_id", "{}%"),
                              ("TEN_DV_XUAT", "s_org_name", "%{}%"),
                              ("SO_PHIEU_XUAT", "s_tran_no", "{}%"),
                              ("KHO_XUAT", "s_wh_id", "{}%"),
                              ("MA_HANG", "s_item", "{}%"),
                              ("TEN_HANG", "s_item_name", "%{}%"),
+                             ("DVT", "s_dvt", "{}%"),
                              ("DON_VI_NHAP", "s_dv_nhap", "{}%"),
                              ("TEN_DV_NHAP", "s_dv_nhap_name", "%{}%"),
-                             ("SO_PHIEU_NHAP", "s_nhap_no", "{}%")]:
+                             ("SO_PHIEU_NHAP", "s_nhap_no", "{}%"),
+                             ("KHO_NHAP", "s_kho_nhap", "{}%")]:
         val = request_args.get(arg, "").strip()
         if val:
             outer.append(f"{field} LIKE ?")
             oparams.append(like.format(val))
 
+    # SL xuất là số nên phải ép về chuỗi mới LIKE được. Gõ "1000" ra mọi dòng bắt đầu bằng
+    # 1000 — thô nhưng đồng nhất với các cột khác. Cần lọc khoảng thì phải làm min/max riêng.
+    val = request_args.get("s_sl_xuat", "").strip()
+    if val:
+        outer.append("CAST(CAST(SL_XUAT AS decimal(18, 2)) AS varchar(30)) LIKE ?")
+        oparams.append(f"{val}%")
+
     # Thứ tự params PHẢI đúng thứ tự dấu ? trong SQL (Bẫy 5):
-    # CTE X (iparams) → CTE ORPH_H (oiparams) → WHERE của ORPH (owparams) → WHERE ngoài (oparams)
-    return (_dcnb_cte(" AND ".join(inner), " AND ".join(orph),
+    # CTE X (iparams) → CTE XD (dparams) → CTE ORPH_H (oiparams)
+    #   → WHERE của ORPH (owparams) → WHERE ngoài (oparams)
+    return (_dcnb_cte(" AND ".join(inner), " AND ".join(draft), " AND ".join(orph),
                       " AND ".join(orph_wh) if orph_wh else "1 = 1"),
             (" AND ".join(outer) if outer else "1=1"),
-            iparams + oiparams + owparams + oparams)
+            iparams + dparams + oiparams + owparams + oparams)
 
 
 def _dcnb_fmt_rows(columns, raw_rows):

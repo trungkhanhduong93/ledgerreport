@@ -142,9 +142,16 @@ nhập kho. ⚠️ `JOB_QTY` ghi theo **ĐVT cơ bản HOẶC ĐVT nhập liệu
 202.000 G) ⇒ phải so với mốc gần hơn giữa `QUANTITY` và `QUANTITY_EXTRA`. So thẳng `JOB_QTY`
 với `QUANTITY` cho ra **1.091 ca "sai" hoàn toàn giả** (đã đo trên DB thật).
 
-4 trạng thái: `Đã nhập đủ` · `Chưa nhập kho BTP` · `Lệch số lượng` · `Không tìm thấy phiếu xuất
+**6 trạng thái** kể từ 21/09/2026: `Đã nhập đủ` · `Chưa nhập kho BTP` · `Phiếu nhập chưa ghi sổ` ·
+`Phiếu xuất chưa ghi sổ` · `Lệch số lượng` · `Không tìm thấy phiếu xuất
 liên quan` (chiều ngược — phiếu nhập không truy được về phiếu xuất; cột **Ghi chú** nói rõ là
 *làm tay* / *phiếu xuất đã xoá* / *liên kết đứt do lập lại* / *nghi nhập trùng*).
+
+⚠️ **Hai nhóm "chưa ghi sổ" ở tab này HIỆN LUÔN BẰNG 0** — `XKHOSXBTP` (21.588 phiếu) và `NSP`
+(21.298 phiếu) **100% `POSTED`, chưa từng có một phiếu nháp nào trong cả lịch sử DB**. Giữ lại để
+quy trình đổi thì bắt được ngay. Công thức vẫn được kiểm thật bằng cách chạy lên phiếu **đã** ghi
+sổ: `SALE_DETAIL` khớp `WAREHOUSE` **10.094/10.094** (cả SL lẫn `JOB_QTY`), `PURCHASE_DETAIL` khớp
+**4.149/4.149**, lệch 0. Đối chứng trước/sau với bản git: **mọi con số của tab giữ nguyên.**
 
 ⚠️ Hiệu năng: truy vấn dựng lại toàn bộ CTE mỗi lần gọi (~6–8s cho kỳ 1 tháng). Nhánh phiếu nhập
 mồ côi **phải join một lượt**, đừng dùng `OUTER APPLY` tương quan — `SALE` 1 triệu dòng không có
@@ -154,8 +161,27 @@ index trên `TRAN_NO`, bản đầu viết kiểu đó làm tab tụt xuống 22
 
 Cùng khuôn `btp_reconcile`: nối **CHỈ** bằng `PURCHASE.SALE_PR_KEY = SALE.PR_KEY`.
 Đo trên `IACC_CHULONG` 2026: **19.838 phiếu `NDCNB` → 19.828 nối được (99,95%), 10 mồ côi.**
-4 trạng thái: `Đã nhận đủ` · `Chưa nhận hàng` · `Lệch số lượng` · `Không tìm thấy phiếu xuất liên quan`.
-Phân bố 2026: khớp **133.348** · chưa nhận **4.603** · lệch **28**.
+**6 trạng thái** (thêm 2 ngày 21/09/2026 — xem **Bẫy 24**): `Đã nhận đủ` · `Chưa nhận hàng` ·
+**`Phiếu nhập chưa ghi sổ`** · **`Phiếu xuất chưa ghi sổ`** · `Lệch số lượng` ·
+`Không tìm thấy phiếu xuất liên quan`.
+
+⚠️ **Nhóm "Chưa nhận hàng" trước 21/09 là con số đổ oan.** Đo T09/2026: trong 218 phiếu thì
+**211 (96,8%) bên nhận ĐÃ lập phiếu nhập rồi, chỉ chưa bấm ghi sổ**; cả năm 2026 là 605/631
+(95,9%). Sau khi tách, T09 còn **7 phiếu** thật sự chưa ai lập phiếu — đó mới là việc phải đi đòi.
+Tổng không đổi: 7 + 211 = 218 đúng bằng con số cũ (đã đối chứng với bản git HEAD).
+
+**Kho nhập nay luôn có**, kể cả dòng chưa nhận: lấy theo 3 mức ưu tiên
+đã ghi sổ → bản nháp → `SALE.WAREHOUSE_ID_RECEIVE` ghi sẵn trên đầu phiếu xuất. Mức 3 đo cả năm
+2026: **19.225/19.226 cặp khớp kho nhận thật** (1 lệch), **0 phiếu đi tới nhiều kho**; suy đơn vị
+nhận từ `DM_WAREHOUSE.ORGANIZATION_ID` khớp **1.511/1.511**.
+
+⛔ **KHÔNG có cột "giờ xuất kho"** — đo 4 cột (`TRAN_DATE`, `DOCUMENT_DATE`, `RECEIVE_DATE`,
+`USE_DATE`) trên cả `SALE`/`PURCHASE`/`WAREHOUSE`: **0 dòng nào có giờ khác `00:00`**. Giờ thật chỉ
+có trong `dbo.LOGGING`, nhưng `LOGGING.PR_KEY` **không phải khoá phiếu** (đối chiếu với `SALE`:
+0 dòng trùng), phải dò chuỗi tự do trong `DESCRIPTION`, quét 1 tháng mất **8,95 giây**, và LOGGING
+**chỉ còn từ 17/05/2026**. Đại Ca chốt bỏ 21/09/2026. Đừng đo lại.
+
+Phân bố 2026 (đo trước khi tách nhóm): khớp **133.348** · chưa nhận **4.603** · lệch **28**.
 
 **Ba điểm khác BTP — đừng bê nguyên:**
 1. **Xuất và nhập ở HAI ĐƠN VỊ KHÁC NHAU** (kho tổng `01` xuất → cửa hàng `35`/`71`/`32`… nhận).
@@ -599,6 +625,41 @@ công ty nhận thông báo lỗi rác. Cùng họ với **Bẫy 12** (PowerShel
 
 Script nay in `[OK ] Da doc nguoc clipboard va doi chieu: KHOP tung ky tu`. **Không thấy dòng đó
 thì đừng dán.**
+
+### Bẫy 24 — Phiếu CHƯA GHI SỔ vô hình với mọi tab đọc `WAREHOUSE` *(21/09/2026)*
+
+`STATUS` trên `SALE` / `PURCHASE` chỉ có **đúng 2 giá trị**: `POSTED` (đã ghi sổ) và `DRAFT`.
+⚠️ `REVIEW_STATUS` **không phải** cái đó (chỉ 29/19.887 phiếu `CHECKED`) — đừng lấy nhầm.
+
+**Phiếu `DRAFT` KHÔNG sinh một dòng nào trong `dbo.WAREHOUSE`.** Đo T09/2026: 13 phiếu `XDCNB`
+nháp → **0 dòng**; 211 phiếu `NDCNB` nháp → **0 dòng**. Nghĩa là **mọi tab/báo cáo đọc
+`WAREHOUSE` đều không nhìn thấy chúng**, và tệ hơn: tab đối chiếu quy hết thành *"bên nhận chưa
+bấm nhập"* — **đổ oan cho cửa hàng trong khi lỗi nằm ở chỗ chưa ai bấm ghi sổ.**
+
+➡️ Muốn thấy phiếu nháp thì phải đọc `SALE` + `SALE_DETAIL` (và `PURCHASE` + `PURCHASE_DETAIL`).
+Ba luật khi làm việc đó:
+
+1. ⛔ **Nối bằng `FR_KEY`, KHÔNG phải `PR_KEY`.** Trên mọi bảng `*_DETAIL` của iPOS, `PR_KEY` là
+   khoá của **chính dòng đó**, `FR_KEY` mới trỏ về phiếu cha (giống `PO_DETAIL.FR_KEY` ở Bẫy 20).
+   ⚠️ **Đã vấp thật:** nối nhầm `PR_KEY` ra **0 dòng cho CẢ phiếu đã ghi sổ**, suýt kết luận
+   "iPOS không lưu dòng hàng của phiếu nháp" và bỏ luôn việc. Con số 0 cho nhóm *đã ghi sổ* là
+   dấu hiệu nối sai khoá — **thấy 0 ở chỗ chắc chắn phải có dữ liệu thì nghi câu SQL trước.**
+2. ⛔ **Số lượng lấy `QUANTITY_WH`.** Đo với `WAREHOUSE.QUANTITY` trên T09/2026:
+   `QUANTITY_WH` khớp **12.706/12.706 (100%)** · `QUANTITY` chỉ **3.569 (28%)** ·
+   `QUANTITY_EXTRA` **3.273 (26%)**. `QUANTITY` ghi theo **ĐVT nhập liệu**, kho theo **ĐVT cơ bản**:
+   mã `KEPC-PMR` ghi `10 BỊCH` nhưng kho là `7.000 G` — lấy nhầm cột thì **sai gấp 700 lần**.
+   Cùng họ với bẫy `JOB_QTY` của tab BTP.
+3. **Lọc `QUANTITY_WH <> 0`.** 39 cặp lệch giữa `SALE_DETAIL` và `WAREHOUSE` **đều là dòng SL = 0**
+   (dòng trống trên phiếu, iPOS không đẩy xuống kho). Lọc đi là hai nguồn trùng khít.
+
+⚠️ **Bảng `*_BUFFER` đều TRỐNG** (11 bảng, 0 dòng) — di sản, đừng mất công tìm ở đó.
+
+⚠️ **`PURCHASE_DETAIL` gần như trống là chuyện RIÊNG của phiếu `NM`** (Bẫy 20), không phải của cả
+bảng: với `NDCNB` và `NSP` thì độ phủ là **100% mọi tháng 2026**, cả `POSTED` lẫn `DRAFT`.
+
+💡 **Cách kiểm một nhánh chưa có dữ liệu thật:** chạy đúng công thức của nhánh đó lên phiếu **đã
+ghi sổ** rồi bắt nó phải trùng với nhánh cũ. Nhờ mẹo này mà nhánh nháp của tab BTP được kiểm
+thật (10.094/10.094 và 4.149/4.149) dù `XKHOSXBTP`/`NSP` **chưa từng có phiếu nháp nào**.
 
 ---
 

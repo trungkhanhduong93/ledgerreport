@@ -4,8 +4,55 @@
 > Kiến trúc, ma trận báo cáo, phương án backup: [CLAUDE.md](CLAUDE.md).
 > Mổ xẻ sâu sự cố + 4 bài học: [SU_CO_15082026.md](SU_CO_15082026.md).
 > Phiên gần nhất: **21/09/2026** · Bản phát hành trên GitHub: **v1.10.7**
-> ⚠️ Nhánh `phanquyen` đang có bản build local **v1.11.7** (phân quyền + Google Sheet) — **CHƯA push**.
-> Apps Script trên Google: **Version 4** (21/09/2026 14:39), mã bản `2026-09-21b` — **đã triển khai**.
+> ⚠️ Nhánh `phanquyen` đang có bản build local **v1.11.9** — **CHƯA push, Đại Ca đang test.**
+> Apps Script trên Google: **Version 5** (21/09/2026 19:33), mã bản `2026-09-21c` — **đã triển khai**.
+>
+> 📌 **Việc còn treo gom ở ngay dưới: [§ VIỆC CẦN LÀM](#-việc-cần-làm--cập-nhật-21092026).**
+
+---
+
+## 📌 VIỆC CẦN LÀM — *cập nhật 21/09/2026*
+
+> Gom hết việc còn treo về một chỗ. Nhận việc mới thì **đọc mục này trước**.
+> Trạng thái nhánh: `phanquyen`, build local **v1.11.9**, **5 commit CHƯA push**
+> (`88bf8ca` → `a964739` → `937d3a2` → `d05b3ef` → `79e42a5`).
+> **Đại Ca đang test, chưa cho push** — đừng tự ý đẩy lên GitHub.
+
+### 🔴 Ưu tiên 1 — làm sớm, càng để lâu càng rủi ro
+
+| # | Việc | Vì sao gấp |
+|---|---|---|
+| 1 | **Đổi mật khẩu tài khoản `admin`** | Đã lộ trong khung chat ngày 21/09 để chạy phép thử cuối. Đổi ngay trong tab Phân quyền → ô tài khoản → Đổi mật khẩu |
+| 2 | **Push 5 commit lên GitHub** (sau khi Đại Ca test xong) | Tầng 1 + tầng 2 của [phương án backup 4 tầng](#2--phương-án-backup--phục-hồi) **đang trống** cho toàn bộ việc 19→21/09. Ổ D hỏng là mất hết. Đẩy nhánh `phanquyen` thì Actions **không** chạy, không ai bị ảnh hưởng |
+| 3 | ⛔ **Chốt chặn TRƯỚC khi gộp `main`** | Đã bỏ hẳn chế độ file ⇒ **ai chưa có tài khoản trên Google Sheet là KHÔNG đăng nhập được nữa**. Gộp `main` là Actions tạo Release, app mọi người tự hỏi cập nhật. Phải đủ tài khoản nhân viên trên Sheet rồi mới gộp |
+
+### 🟡 Ưu tiên 2 — Đại Ca tự làm được trên giao diện
+
+| # | Việc | Ghi chú |
+|---|---|---|
+| 4 | **Tick 2 tab mới cho các chức vụ thật** (`KT`, `XSX`, `TM`…) | Cột `dcnb_reconcile` / `po_list` **đã có sẵn trên Sheet** (tạo 21/09). Chỉ cần vào tab Phân quyền tick là ăn. Chức vụ `ADMIN` khỏi cần — app tự tính đủ |
+| 5 | **Hỏi Chú Long / iPOS**: nhập mua hàng có bắt buộc bấm từ phiếu PO không? | Quyết định việc có làm được đối chiếu PO ↔ phiếu nhập hay không. Chi tiết 7 khoá đã đo: [Bẫy 20](CLAUDE.md) |
+| 6 | **Tắt `AUTO_SHRINK` + `AUTO_CLOSE`** trên SQL Server | Việc **rẻ nhất, hiệu quả nhất** còn treo ở phía máy chủ. `AUTO_CLOSE` đúng là triệu chứng "lúc nhanh lúc chậm". Script `Tat_AutoShrink_AutoClose.sql` trong skill `chulong-db-perf` |
+
+### 🟢 Ưu tiên 3 — việc code, chưa chặn ai
+
+| # | Việc | Ghi chú |
+|---|---|---|
+| 7 | **Bộ lọc Đơn vị của tab điều chuyển nội bộ** áp cho phía **XUẤT** | Hệ quả: tài khoản chỉ được xem đơn vị cửa hàng **không thấy hàng chuyển đến mình** (bên xuất là kho tổng `01`). Đại Ca dùng tài khoản toàn quyền nên chưa vướng. Mở cho cửa hàng thì phải đổi sang lọc OR cả hai phía — **cần Đại Ca chốt** |
+| 8 | **Xoá file rác**: `phanquyen.json` (972 B, 4 tài khoản test) + `dist/phanquyen.json.cu` (1.002 B) | Vô dụng từ khi bỏ chế độ file 21/09. Cả hai đã `.gitignore` nên không lộ, chỉ là rác |
+| 9 | Màn đăng nhập **chưa bắt buộc** điền Tài khoản ứng dụng | Để trống thì phải chờ Google **4–7 giây** mới báo lỗi, thay vì chặn ngay tại chỗ |
+| 10 | Dropdown lọc **Đơn vị** vẫn hiện tên đơn vị ngoài quyền | Chọn vào ra 0 dòng — **lộ tên, không lộ số** |
+| 11 | **Nâng 3 GitHub Action lên bản chạy Node 24** | Kẹt vì token `gh` thiếu scope `workflow`. Đại Ca chạy `gh auth refresh -h github.com -s workflow` hoặc sửa thẳng trên web GitHub. Tiện tay thêm `paths-ignore` — [chi tiết](#-việc-còn-treo--nâng-3-action-lên-bản-chạy-node-24) |
+
+### ⚠️ Giới hạn thiết kế — KHÔNG phải lỗi, đừng "sửa giúp"
+
+| Giới hạn | Vì sao cố ý |
+|---|---|
+| **Thu hồi quyền chỉ có hiệu lực khi người đó đăng nhập lại** | Quyền chốt MỘT LẦN lúc đăng nhập. Gọi Google ở mọi request thì mỗi cú bấm chờ 1–3 giây |
+| **Mất mạng vẫn vào được 7 ngày bằng mật khẩu cũ** trên máy khác | Bản cache offline — cùng mô hình credential-cached như Windows domain. Nút "Tải lại" chỉ làm mới phiên của **chính mình** |
+| **Khởi động lại app là phải đăng nhập lại** | Kho phiên nằm trong RAM. Đổi lại là quay về [Bẫy 17](CLAUDE.md) — mật khẩu SQL nằm đọc được trong cookie |
+| Tab điều chuyển nội bộ **6–8,5 giây/tháng** | Dựng lại toàn bộ CTE mỗi lần gọi, ngang `btp_reconcile`. Nút thắt gốc là RAM của SQL Express, không phải code |
+| `PO.EMPLOYEE_ID` **trống** ⇒ cột Người lập luôn rỗng | iPOS không ghi. Giữ cột phòng sau này có |
 
 ---
 
@@ -520,6 +567,7 @@ Apps Script tự sinh** dòng admin. Không còn chỗ cho sai sót.
 M4 không áp dụng — đây là phân quyền, không phải số liệu sổ sách.
 
 ### Còn treo
+> 🕘 *Ảnh chụp lúc đó — nhiều mục dưới đây nay đã xong. Danh sách còn treo THẬT ở [§ VIỆC CẦN LÀM](#-việc-cần-làm--cập-nhật-21092026).*
 
 - **CHƯA commit/push.** `main` vẫn v1.10.7.
 - Thu hồi quyền chỉ có hiệu lực khi người đó **đăng nhập lại** (quyền chốt 1 lần lúc đăng nhập để
@@ -606,15 +654,18 @@ Một ngày dài, **7 mục**. Tóm tắt để khỏi phải đọc hết:
 | 6 | **Ô tài khoản ở header** + nhân viên tự đổi mật khẩu (mẫu SYNA AI PORTAL) | M2 · bấm thật **5/5 ca** |
 | 7 | **Triển khai Code.gs lên Google** | **Version 4**, `ping` trả `ban: 2026-09-21b` ✓ |
 
-### Trạng thái cuối ngày
+### Trạng thái tại thời điểm đó *(giữa ngày 21/09 — ngày còn chạy tiếp sau mục này)*
+
+> 🕘 *Ảnh chụp lúc đó, **không** phải trạng thái hiện hành. Bản mới nhất xem đầu file
+> + [§ VIỆC CẦN LÀM](#-việc-cần-làm--cập-nhật-21092026).*
 
 | | |
 |---|---|
-| EXE local | **v1.11.7** (`dist\iPOS_Accounting_Report.exe`) |
-| Apps Script trên Google | **Version 4** · mã bản `2026-09-21b` · rate limit **đã bật** |
-| URL + TOKEN | **không đổi** — mọi EXE đã phát vẫn nối được |
-| Git | ⛔ **CHƯA commit, CHƯA push.** `main` vẫn v1.10.7 |
-| Mật khẩu `admin` | **vẫn là mật khẩu cũ** — lần đổi hôm trước không ăn nên nó chưa từng thay đổi |
+| EXE local | **v1.11.7** (`dist\iPOS_Accounting_Report.exe`) → *sau đó lên **v1.11.9*** |
+| Apps Script trên Google | **Version 4** · mã bản `2026-09-21b` → *sau đó lên **Version 5** · `2026-09-21c`* |
+| URL + TOKEN | **không đổi** — mọi EXE đã phát vẫn nối được *(vẫn đúng tới giờ)* |
+| Git | ⛔ CHƯA commit, CHƯA push → *sau đó **đã commit 5 lần**, vẫn chưa push* |
+| Mật khẩu `admin` | vẫn là mật khẩu cũ → *⚠️ nay **đã lộ trong chat**, xem việc số 1 ở § VIỆC CẦN LÀM* |
 
 ### Hai sự cố trong ngày — đọc kỹ
 
@@ -625,6 +676,8 @@ Một ngày dài, **7 mục**. Tóm tắt để khỏi phải đọc hết:
    ➡️ Từ nay dùng `python phanquyen_gas/chuan_bi_deploy.py`. Xem **Bẫy 19** trong CLAUDE.md.
 
 ### Còn treo sang phiên sau
+> 🕘 *Ảnh chụp lúc đó — nhiều mục dưới đây nay đã xong. Danh sách còn treo THẬT ở [§ VIỆC CẦN LÀM](#-việc-cần-làm--cập-nhật-21092026).*
+
 
 - ⛔ **Chưa commit/push.** Khi push, lệnh quét secret **sẽ báo động ở `_GS_URL_GHIM`/`_GS_TOKEN_GHIM`**
   — đó là **báo đúng**, không phải báo nhầm (Đại Ca đã chốt chấp nhận, xem Bẫy 18).
@@ -818,6 +871,8 @@ code chết, không ai gọi). Modal Sửa nay chỉ còn **dropdown chức vụ
 Chưa đạt M3 — chưa build EXE, chưa đăng nhập bằng SQL + Google Sheet thật.
 
 ### Còn treo sau việc này
+> 🕘 *Ảnh chụp lúc đó — nhiều mục dưới đây nay đã xong. Danh sách còn treo THẬT ở [§ VIỆC CẦN LÀM](#-việc-cần-làm--cập-nhật-21092026).*
+
 
 - **Việc 3 chưa làm:** nhúng URL + TOKEN vào EXE để chỉ phát một file. ⚠️ **Giờ nó quan trọng
   hơn trước**: sau khi bỏ chế độ file, máy thiếu `ketnoi.json` là **không ai đăng nhập được**,
@@ -896,6 +951,8 @@ Hiệu quả đo được: không giới hạn thì dò ~1.800 lần/giờ; nay 
 Chưa đạt M3 — chưa build EXE, và **`Code.gs` mới chưa được triển khai lên Google**.
 
 ### ⛔ Hai việc Đại Ca phải tự làm (agent không làm thay được)
+> 🕘 *Ảnh chụp lúc đó — nhiều mục dưới đây nay đã xong. Danh sách còn treo THẬT ở [§ VIỆC CẦN LÀM](#-việc-cần-làm--cập-nhật-21092026).*
+
 
 1. **Triển khai lại Apps Script**: mở Sheet → Extensions → Apps Script → dán `Code.gs` mới →
    Triển khai → **Quản lý bản triển khai** → bút chì → Phiên bản: **Mới** → Triển khai.
@@ -904,6 +961,7 @@ Chưa đạt M3 — chưa build EXE, và **`Code.gs` mới chưa được triể
    Đổi hay không thì kết quả cuối cũng như nhau (token mới cũng công khai) — nêu ra để Đại Ca biết.
 
 ### Còn treo
+> 🕘 *Ảnh chụp lúc đó — nhiều mục dưới đây nay đã xong. Danh sách còn treo THẬT ở [§ VIỆC CẦN LÀM](#-việc-cần-làm--cập-nhật-21092026).*
 
 - **CHƯA build EXE, CHƯA commit/push.**
 - Nếu `Code.gs` mới chưa lên Google mà đã phát EXE: app vẫn chạy bình thường, chỉ là **chưa có
@@ -1078,6 +1136,8 @@ chỉ lấy mỗi `items` rồi **vứt phần còn lại**. Nay dùng hết.
 **Build EXE v1.11.6 → v1.11.7.**
 
 ### ⛔ Vẫn chờ Đại Ca: Triển khai `Code.gs`
+> 🕘 *Ảnh chụp lúc đó — nhiều mục dưới đây nay đã xong. Danh sách còn treo THẬT ở [§ VIỆC CẦN LÀM](#-việc-cần-làm--cập-nhật-21092026).*
+
 
 Chừng nào chưa Triển khai thì **cả đổi mật khẩu lẫn rate limit đều chưa có tác dụng** — dù EXE đã
 là v1.11.7. Sau khi Triển khai, `ping` phải trả `"ban":"2026-09-21b"`.

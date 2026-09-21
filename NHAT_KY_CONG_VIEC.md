@@ -1299,3 +1299,24 @@ Cùng tinh thần `Sync-And-Backup.ps1`: không tin lệnh copy, phải đối c
 | Ctrl+F `_maQuyenTrenSheet` | **1 of 5** ⇒ code mới có thật trong bản dán |
 | Deployment ID vs URL trong `ketnoi.json` | **khớp** ⇒ URL sẽ không đổi |
 
+### ✅ Chạy thật trên Google — 8/8, con bug đã chết
+
+Đại Ca cấp mật khẩu quản trị để chạy nốt phép thử cuối (dùng đúng một lần, **không ghi vào file
+nào**; Đại Ca đổi mật khẩu sau).
+
+Cách thử **an toàn**: tạo một chức vụ thử `ZZTEST` rồi xoá — **không đụng chức vụ thật nào**.
+
+| Bước | Kết quả |
+|---|---|
+| Đọc Sheet thật | 2 tài khoản · 9 chức vụ · **chưa chức vụ nào có 2 tab mới** (đúng, cột chưa tồn tại) |
+| Lưu `ZZTEST` với `ledger` + 2 tab mới | Google báo **`cot_moi: ['dcnb_reconcile','po_list']`** — tự tạo cột thật trên Sheet · `da_ghi` đủ 3 mã |
+| **Đọc ngược từ Sheet** | trả về **`['ledger','dcnb_reconcile','po_list']`** — **đủ 3, không mất mã nào** |
+| Xoá `ZZTEST` | xoá sạch, về lại đúng 9 chức vụ |
+
+⇒ **Đây mới là bằng chứng.** Trước đây app cũng báo "lưu thành công" — khác nhau ở chỗ giờ **đọc
+ngược ra vẫn còn**. Hai cột `dcnb_reconcile` / `po_list` nay **nằm vĩnh viễn trên Sheet**, Đại Ca
+tick cho chức vụ thật là ăn.
+
+⏱️ Ghi nhận hiệu năng: đọc danh sách **10–14 giây**, lưu **6,6s**, xoá **8,3s**. Chậm vì mỗi lệnh
+đi vòng qua Apps Script — đúng lý do phải có trạng thái chờ cho nút Lưu.
+

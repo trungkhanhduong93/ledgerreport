@@ -1263,7 +1263,39 @@ chỗ: chỉ nhận đúng chuỗi `'ADMIN'` **do Google Sheet cấp**; chưa đ
 | **Ranh giới ADMIN** | **6/6 ca**: ADMIN dù Sheet cấp 0 mục vẫn đủ 26/26 · nhóm thường đúng số mục · **phiên hỏng ⇒ 0 mục, 403** · **`admin` chữ thường ⇒ KHÔNG được toàn quyền** |
 | M3 | build EXE v1.11.9 |
 
-⚠️ **Chưa chạy trên Google thật** — `Code.gs` mới **chưa Triển khai**. Chừng nào chưa Triển khai
-thì tầng 1 và 2 chưa có tác dụng; chỉ tầng 3 (ADMIN) ăn ngay vì nằm trong EXE.
-Sau khi Triển khai, `ping` phải trả `"ban": "2026-09-21c"`.
+### ✅ Đã Triển khai — 21/09/2026 19:33, **Version 5**
+
+| Bước | Kết quả |
+|---|---|
+| Deploy → **Quản lý bản triển khai** (⛔ không phải "Triển khai mới") | Active đang chạy Version 4 |
+| ✏️ → Phiên bản **Mới** + mô tả | **Deployment ID giữ nguyên** ⇒ **URL không đổi** |
+| Bấm Deploy | *"Deployment successfully updated"* — **Version 5 on Sep 21, 2026, 7:33 PM** |
+| `ping` từ máy | `{"ok": true, "ban": "2026-09-21c", "co_ratelimit": true}` |
+
+⇒ Bản mới đang chạy · token vẫn khớp nên **mọi EXE đã phát vẫn nối được** · lưới chống dò còn nguyên.
+
+### 🔴 Suýt hỏng lần hai — clipboard làm nát tiếng Việt (Bẫy 23)
+
+Dán bản đầu lên Apps Script thì **toàn bộ chữ tiếng Việt thành rác** (`Chá»n gá»­i…`).
+Nguyên nhân: `chuan_bi_deploy.py` bơm UTF-8 vào stdin PowerShell, mà `[Console]::In` giải mã theo
+**bảng mã ANSI của console** (cp1252). Không chỉ hỏng chú thích — **mọi chuỗi thông báo lỗi hiện
+cho người dùng cũng hỏng**.
+
+✅ **Bắt được chỉ vì nhìn màn hình trước khi Ctrl+S.** Ctrl+Z hai lần, nội dung gốc trở lại nguyên
+vẹn, không mất gì. Lưu rồi Triển khai là cả công ty nhận thông báo lỗi rác.
+
+➡️ Sửa **hai lớp** trong `chuan_bi_deploy.py`: đặt `[Console]::InputEncoding = UTF8` trước khi đọc
+stdin, **và đọc ngược clipboard ra đối chiếu từng ký tự** — lệch là dừng, không cho dán.
+Cùng tinh thần `Sync-And-Backup.ps1`: không tin lệnh copy, phải đối chiếu.
+
+⚠️ Đây là **lần thứ hai trong ngày** cùng một họ lỗi với Bẫy 12 (PowerShell + tiếng Việt + bảng mã).
+
+### Kiểm trước khi bấm Deploy — 4 điều kiện, đủ cả 4 mới bấm
+
+| Kiểm | Kết quả |
+|---|---|
+| Ctrl+F `DAN_TOKEN_NGAU_NHIEN` | **No results** ⇒ token thật đã vào |
+| Ctrl+F `2026-09-21c` | **1 of 1** ⇒ đúng bản cần triển khai |
+| Ctrl+F `_maQuyenTrenSheet` | **1 of 5** ⇒ code mới có thật trong bản dán |
+| Deployment ID vs URL trong `ketnoi.json` | **khớp** ⇒ URL sẽ không đổi |
 

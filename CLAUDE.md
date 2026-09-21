@@ -576,6 +576,27 @@ vứt thì **giữ hộp thoại lại kèm cảnh báo**, không đóng im lặ
 không nằm trong EXE. Kiểm bằng `ping`: phải trả `"ban": "2026-09-21c"`. Và **luôn** dán qua
 `python phanquyen_gas/chuan_bi_deploy.py` (Bẫy 19).
 
+✅ **Đã Triển khai 21/09/2026 19:33 — Version 5.** Deployment ID giữ nguyên ⇒ URL không đổi.
+`ping` trả `{"ok": true, "ban": "2026-09-21c", "co_ratelimit": true}`.
+
+### Bẫy 23 — Clipboard qua PowerShell làm **nát tiếng Việt** *(21/09/2026)*
+
+`chuan_bi_deploy.py` bơm UTF-8 vào **stdin của PowerShell**, nhưng `[Console]::In` giải mã theo
+**bảng mã ANSI của console** (cp1252 trên máy này) ⇒ mọi chữ tiếng Việt thành rác kiểu
+`Chá»n gá»­i`. Dán lên Apps Script là **toàn bộ chú thích VÀ các chuỗi thông báo lỗi hiện cho
+người dùng đều hỏng**.
+
+⚠️ **Đã vấp thật.** Bắt được **chỉ vì nhìn màn hình trước khi Ctrl+S** — lưu rồi Triển khai là cả
+công ty nhận thông báo lỗi rác. Cùng họ với **Bẫy 12** (PowerShell + tiếng Việt + bảng mã).
+
+➡️ **Đã sửa hai lớp trong `chuan_bi_deploy.py`:**
+1. `[Console]::InputEncoding=[System.Text.Encoding]::UTF8;` **trước** khi đọc stdin.
+2. **Đọc ngược clipboard ra và đối chiếu từng ký tự** với bản gốc; lệch là dừng, không cho dán.
+   Cùng tinh thần `Sync-And-Backup.ps1`: **không tin lệnh copy, phải đối chiếu.**
+
+Script nay in `[OK ] Da doc nguoc clipboard va doi chieu: KHOP tung ky tu`. **Không thấy dòng đó
+thì đừng dán.**
+
 ---
 
 ## 5. 🛠️ QUY TRÌNH DEV → RELEASE

@@ -79,10 +79,18 @@ def main():
         print('[LOI] Van con chuoi giu cho trong noi dung — DUNG dan len Google.')
         return 1
 
-    # Dua vao clipboard bang PowerShell (giu nguyen UTF-8, khong qua file trung gian)
+    # Dua vao clipboard bang PowerShell (khong qua file trung gian — file do se chua TOKEN that).
+    #
+    # ⛔ BAT BUOC dat [Console]::InputEncoding = UTF8 TRUOC khi doc stdin.
+    #    Thieu dong do thi PowerShell giai ma stdin theo bang ma ANSI cua console (cp1252 tren
+    #    may nay), nen moi ky tu tieng Viet bien thanh rac kieu 'Cháº¡n gá»­i'. Da vap that
+    #    21/09/2026: dan len Apps Script thi TOAN BO chu tieng Viet trong Code.gs hong —
+    #    ke ca cac chuoi thong bao loi hien cho nguoi dung. Phat hien kip vi nhin man hinh
+    #    truoc khi Ctrl+S; neu luu roi Trien khai la ca cong ty nhan thong bao loi rac.
     try:
         p = subprocess.Popen(
             ['powershell', '-NoProfile', '-Command',
+             '[Console]::InputEncoding=[System.Text.Encoding]::UTF8; '
              '$i=[Console]::In.ReadToEnd(); Set-Clipboard -Value $i'],
             stdin=subprocess.PIPE)
         p.communicate(ma.encode('utf-8'))
@@ -90,6 +98,23 @@ def main():
             raise RuntimeError('PowerShell tra ma loi %s' % p.returncode)
     except Exception as e:
         print('[LOI] Khong dua duoc vao clipboard: %s' % e)
+        return 1
+
+    # Doc NGUOC clipboard ra va doi chieu — khong tin lenh copy (cung tinh than voi
+    # Sync-And-Backup.ps1: doi chieu hash tung file, khong tin lenh copy).
+    try:
+        r = subprocess.run(
+            ['powershell', '-NoProfile', '-Command',
+             '[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; Get-Clipboard -Raw'],
+            capture_output=True)
+        lay = r.stdout.decode('utf-8', 'replace').replace('\r\n', '\n').strip()
+        if lay != ma.replace('\r\n', '\n').strip():
+            print('[LOI] Clipboard KHONG khop noi dung goc — DUNG dan len Google.')
+            print('      Dai khai: %d ky tu goc vs %d ky tu trong clipboard.' % (len(ma), len(lay)))
+            return 1
+        print('[OK ] Da doc nguoc clipboard va doi chieu: KHOP tung ky tu (ke ca tieng Viet).')
+    except Exception as e:
+        print('[LOI] Khong doi chieu duoc clipboard: %s' % e)
         return 1
 
     print()

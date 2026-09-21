@@ -4,7 +4,9 @@
 > Kiến trúc, ma trận báo cáo, phương án backup: [CLAUDE.md](CLAUDE.md).
 > Mổ xẻ sâu sự cố + 4 bài học: [SU_CO_15082026.md](SU_CO_15082026.md).
 > Phiên gần nhất: **21/09/2026** · Bản phát hành trên GitHub: **v1.10.7**
-> ⚠️ Nhánh `phanquyen` đang có bản build local **v1.11.9** — **CHƯA push, Đại Ca đang test.**
+> ⚠️ Nhánh `phanquyen` (bản local **v1.11.9**) **đã push lên GitHub 21/09/2026**, tới `3dae340`.
+> Actions **không** chạy và **không** có Release mới — workflow chỉ kích hoạt trên `main` + tag `v*`.
+> ⛔ **Gộp `main` mới là bước nguy hiểm** — xem việc số 3 ngay dưới.
 > Apps Script trên Google: **Version 5** (21/09/2026 19:33), mã bản `2026-09-21c` — **đã triển khai**.
 >
 > 📌 **Việc còn treo gom ở ngay dưới: [§ VIỆC CẦN LÀM](#-việc-cần-làm--cập-nhật-21092026).**
@@ -23,7 +25,7 @@
 | # | Việc | Vì sao gấp |
 |---|---|---|
 | 1 | **Đổi mật khẩu tài khoản `admin`** | Đã lộ trong khung chat ngày 21/09 để chạy phép thử cuối. Đổi ngay trong tab Phân quyền → ô tài khoản → Đổi mật khẩu |
-| 2 | **Push 5 commit lên GitHub** (sau khi Đại Ca test xong) | Tầng 1 + tầng 2 của [phương án backup 4 tầng](#2--phương-án-backup--phục-hồi) **đang trống** cho toàn bộ việc 19→21/09. Ổ D hỏng là mất hết. Đẩy nhánh `phanquyen` thì Actions **không** chạy, không ai bị ảnh hưởng |
+| 2 | ~~Push commit lên GitHub~~ ✅ **XONG 21/09/2026** | Đã đẩy nhánh `phanquyen` lên GitHub (7 commit, tới `3dae340`). Đã kiểm: `origin/main` **không đụng tới**, và **Actions không chạy lần nào** (lần gần nhất vẫn là 15/09) vì workflow chỉ kích hoạt trên `main` + tag `v*`. Tầng 1 backup nay **đã có**; tầng 2 (Release EXE) vẫn trống cho việc 19→21/09 — chỉ có khi gộp `main` |
 | 3 | ⛔ **Chốt chặn TRƯỚC khi gộp `main`** | Đã bỏ hẳn chế độ file ⇒ **ai chưa có tài khoản trên Google Sheet là KHÔNG đăng nhập được nữa**. Gộp `main` là Actions tạo Release, app mọi người tự hỏi cập nhật. Phải đủ tài khoản nhân viên trên Sheet rồi mới gộp |
 
 ### 🟡 Ưu tiên 2 — Đại Ca tự làm được trên giao diện

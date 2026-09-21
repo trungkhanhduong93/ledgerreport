@@ -2,7 +2,8 @@
 
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
-> Cập nhật gần nhất: **21/09/2026** · Bản EXE trên máy: **v1.11.9** (nhánh `phanquyen`, **CHƯA push**)
+> Cập nhật gần nhất: **21/09/2026** · Bản EXE trên máy: **v1.11.9** (nhánh `phanquyen`, **đã push
+> GitHub 21/09/2026** — Actions không chạy vì workflow chỉ kích hoạt trên `main`)
 > · Bản đã phát hành trên GitHub: **v1.10.7** · Apps Script: **Version 5** (`ban 2026-09-21c`)
 >
 > 📌 **VIỆC CẦN LÀM đang treo: [NHAT_KY_CONG_VIEC.md § Việc cần làm](NHAT_KY_CONG_VIEC.md#-việc-cần-làm--cập-nhật-21092026)** — đọc trước khi nhận việc mới.

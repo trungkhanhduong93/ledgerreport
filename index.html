@@ -3679,6 +3679,10 @@ const exportJournalCsv = (mode) => {
             const [roleEdit, setRoleEdit] = useState(null);
             // Hai tab con: 'user' = quản lý tài khoản, 'role' = quản lý chức vụ.
             const [tabCon, setTabCon] = useState('user');
+            // Mọi lệnh ghi đều đi vòng qua Google Apps Script, mất 4–7 GIÂY. Không có trạng thái
+            // chờ thì nút đứng yên, người dùng tưởng hỏng rồi bấm lại → ghi hai lần.
+            // Giá trị: '' | 'user' | 'role' | 'xoa:<uid>' | 'xoarole:<ma>'.
+            const [dangLuu, setDangLuu] = useState('');
             // Nhãn 24 mục để hiển thị checklist (lấy từ chính DOC_TABS + REPORT_TYPES + tab quản trị)
             const ITEM_LABEL = {}; DOC_TABS.forEach(t => ITEM_LABEL[t.id] = t.name); REPORT_TYPES.forEach(r => ITEM_LABEL[r.id] = r.id + ' — ' + r.name); ITEM_LABEL['perm_admin'] = 'Tab Phân quyền (quản trị)';
             const ITEM_SECTIONS = [
@@ -3701,17 +3705,42 @@ const exportJournalCsv = (mode) => {
                         setCfg({ users: j.users || [], groups: j.groups || [] });
                         setCanMatKhau(false);
                         if (mkThu !== undefined) { setAdmPass(mkThu); setMsg(''); }
+                        return j;                       // trả về để chỗ gọi đối chiếu được (xem kiemMucBiVutBo)
                     } else if (j.can_mat_khau) {
                         setCanMatKhau(true);
                         setMsg(mkThu !== undefined ? (j.message || 'Sai mật khẩu quản trị') : '');
                     } else setMsg(j.message || 'Lỗi tải danh sách');
                 } catch (e) { setMsg('Lỗi kết nối'); } finally { setLoading(false); }
+                return null;
+            };
+
+            /* ⚠️ LƯỚI AN TOÀN — Google có thể VỨT BỎ mã quyền trong im lặng.
+               `PERM` trong phanquyen_gas/Code.gs ghi cứng danh sách mã TRÊN GOOGLE, còn checklist
+               ở đây dựng từ DOC_TABS/REPORT_TYPES ở MÁY. Thêm tab mới vào app mà chưa cập nhật
+               Code.gs + thêm cột vào Sheet thì `_apiLuuChucVu` lặp `PERM.forEach` sẽ **bỏ qua mã
+               lạ, không báo lỗi** — app hiện "lưu thành công" mà Sheet không đổi gì.
+               Đã vấp thật 21/09/2026 với dcnb_reconcile / po_list.
+               ⇒ Sau khi lưu, đọc lại từ Google và đối chiếu. Mất mã nào thì NÓI RA. */
+            const kiemMucBiVutBo = (maChucVu, daGui, jSauKhiLuu) => {
+                if (!jSauKhiLuu) return false;
+                const g = (jSauKhiLuu.groups || []).find(x => (x.id || '').toUpperCase() === (maChucVu || '').toUpperCase());
+                if (!g) return false;
+                const nhan = g.items || [];
+                const mat = (daGui || []).filter(c => !nhan.includes(c));
+                if (!mat.length) return false;
+                setMsg('Google chưa biết ' + mat.length + ' mục nên đã BỎ QUA khi lưu: '
+                       + mat.map(c => ITEM_LABEL[c] || c).join(', ')
+                       + '. Các mục còn lại đã lưu bình thường. Muốn cấp được các mục này thì phải bổ sung mã vào '
+                       + 'phanquyen_gas/Code.gs (danh sách PERM) rồi Triển khai lại — hoặc dùng chức vụ ADMIN (luôn thấy đủ mọi mục).');
+                return true;
             };
             useEffect(() => { load(); }, []);
             const startAdd = () => { setMsg(''); setEditing({ uid: '', name: '', group: '', items: [], orgs: null, active: true, password: '', isNew: true }); };
             const startEdit = (u) => { setMsg(''); setEditing({ uid: u.uid, name: u.name, group: u.group || '', items: u.items ? [...u.items] : [], orgs: u.orgs ? [...u.orgs] : null, active: u.active, password: '', isNew: false }); };
             const save = async () => {
+                if (dangLuu) return;                    // chặn bấm hai lần khi Google đang quay 4–7s
                 setMsg('');
+                setDangLuu('user');
                 const body = { uid: (editing.uid || '').trim(), name: editing.name, group: editing.group, items: editing.items, active: editing.active, admin_pass: admPass };
                 if (editing.password) body.password = editing.password;
                 // Tick hết đơn vị = không giới hạn (null) → user thấy cả đơn vị thêm sau này.
@@ -3723,16 +3752,18 @@ const exportJournalCsv = (mode) => {
                     const j = await r.json();
                     if (j.status === 'ok') { setEditing(null); await load(); onPermsChanged && onPermsChanged(); }
                     else setMsg(j.message || 'Lỗi lưu');
-                } catch (e) { setMsg('Lỗi kết nối'); }
+                } catch (e) { setMsg('Lỗi kết nối'); } finally { setDangLuu(''); }
             };
             const del = async (uid) => {
+                if (dangLuu) return;
                 if (!window.confirm('Xoá tài khoản "' + uid + '"?')) return;
+                setDangLuu('xoa:' + uid);
                 try {
                     const r = await fetch('/api/perm/user/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uid, admin_pass: admPass }) });
                     const j = await r.json();
                     if (j.status !== 'ok') { alert(j.message || 'Lỗi xoá'); return; }
                     await load(); onPermsChanged && onPermsChanged();
-                } catch (e) { alert('Lỗi kết nối'); }
+                } catch (e) { alert('Lỗi kết nối'); } finally { setDangLuu(''); }
             };
 
             // ---- CHỨC VỤ (chỉ có khi nguồn là Google Sheet) ----
@@ -3742,22 +3773,34 @@ const exportJournalCsv = (mode) => {
             const startEditRole = (g) => { setMsg(''); setRoleEdit({ ma: g.id, ten: g.name, items: [...(g.items || [])], isNew: false }); };
             const toggleRoleItem = (code) => setRoleEdit(rd => { const has = rd.items.includes(code); return { ...rd, items: has ? rd.items.filter(x => x !== code) : [...rd.items, code] }; });
             const saveRole = async () => {
+                if (dangLuu) return;                    // chặn bấm hai lần khi Google đang quay 4–7s
                 setMsg('');
+                setDangLuu('role');
+                const ma = (roleEdit.ma || '').trim();
+                const daGui = [...roleEdit.items];
                 try {
-                    const r = await fetch('/api/perm/role', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ma: (roleEdit.ma || '').trim(), ten: roleEdit.ten, items: roleEdit.items, admin_pass: admPass }) });
+                    const r = await fetch('/api/perm/role', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ma, ten: roleEdit.ten, items: daGui, admin_pass: admPass }) });
                     const j = await r.json();
-                    if (j.status === 'ok') { setRoleEdit(null); await load(); onPermsChanged && onPermsChanged(); }
+                    if (j.status === 'ok') {
+                        const sau = await load();
+                        onPermsChanged && onPermsChanged();
+                        // Chỉ đóng hộp thoại khi Google nhận ĐỦ. Mất mã nào thì giữ hộp lại
+                        // kèm lời cảnh báo — đóng im lặng là lặp lại đúng con bug này.
+                        if (!kiemMucBiVutBo(ma, daGui, sau)) setRoleEdit(null);
+                    }
                     else setMsg(j.message || 'Lỗi lưu chức vụ');
-                } catch (e) { setMsg('Lỗi kết nối'); }
+                } catch (e) { setMsg('Lỗi kết nối'); } finally { setDangLuu(''); }
             };
             const delRole = async (ma) => {
+                if (dangLuu) return;
                 if (!window.confirm('Xoá chức vụ "' + ma + '"?')) return;
+                setDangLuu('xoarole:' + ma);
                 try {
                     const r = await fetch('/api/perm/role/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ma, admin_pass: admPass }) });
                     const j = await r.json();
                     if (j.status !== 'ok') { alert(j.message || 'Lỗi xoá'); return; }
                     await load(); onPermsChanged && onPermsChanged();
-                } catch (e) { alert('Lỗi kết nối'); }
+                } catch (e) { alert('Lỗi kết nối'); } finally { setDangLuu(''); }
             };
             // Nguồn Google Sheet: mọi lệnh ghi đều đòi tài khoản quản trị. Mật khẩu tool không
             // được lưu trong phiên (luật từ đầu) nên phải hỏi lại đúng một lần ở đây.
@@ -3907,7 +3950,10 @@ const exportJournalCsv = (mode) => {
                                 {msg && <div className="bg-red-50 border border-red-100 text-red-600 p-3 rounded-xl text-[10px] font-bold mt-4 leading-tight">{msg}</div>}
                                 <div className="flex gap-3 mt-6">
                                     <button onClick={() => setRoleEdit(null)} className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 font-black text-[11px] uppercase hover:bg-slate-50">Huỷ</button>
-                                    <button onClick={saveRole} className="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-black text-[11px] uppercase hover:bg-indigo-700">Lưu</button>
+                                    <button onClick={saveRole} disabled={!!dangLuu} className="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-black text-[11px] uppercase hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                                        {dangLuu === 'role' && <Icon name="loader" size={12} className="animate-spin"/>}
+                                        {dangLuu === 'role' ? 'Đang lưu lên Google...' : 'Lưu'}
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -3959,7 +4005,10 @@ const exportJournalCsv = (mode) => {
                                 {msg && <div className="bg-red-50 border border-red-100 text-red-600 p-3 rounded-xl text-[10px] font-bold mt-4 leading-tight">{msg}</div>}
                                 <div className="flex gap-3 mt-6">
                                     <button onClick={() => setEditing(null)} className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 font-black text-[11px] uppercase hover:bg-slate-50">Huỷ</button>
-                                    <button onClick={save} className="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-black text-[11px] uppercase hover:bg-indigo-700">Lưu</button>
+                                    <button onClick={save} disabled={!!dangLuu} className="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-black text-[11px] uppercase hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                                        {dangLuu === 'user' && <Icon name="loader" size={12} className="animate-spin"/>}
+                                        {dangLuu === 'user' ? 'Đang lưu lên Google...' : 'Lưu'}
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -4347,6 +4396,36 @@ const exportJournalCsv = (mode) => {
                 } finally {
                     setRefreshing(false);
                 }
+            };
+
+            /* Nút "Tải lại" — app chạy trong Chrome chế độ --app nên KHÔNG có thanh địa chỉ,
+               không có nút F5. Làm đúng việc của F5 nhưng KHÔNG mất phiên đăng nhập:
+                 1) đọc lại quyền  → menu hiện đúng, kể cả mục vừa được thêm vào app
+                 2) đọc lại danh mục (đơn vị, kho, hàng hoá…)
+                 3) nạp lại dữ liệu của đúng tab đang mở
+               ⚠️ GIỚI HẠN phải biết: quyền của NGƯỜI KHÁC chốt một lần lúc họ đăng nhập
+               (_current_perms đọc session, cố ý không gọi mạng ở mọi request — gọi thì mỗi
+               cú bấm phải chờ Google 1–3 giây). Sửa quyền cho ai thì NGƯỜI ĐÓ vẫn phải
+               đăng nhập lại. Nút này chỉ làm mới phiên của CHÍNH MÌNH. */
+            const [dangTaiLai, setDangTaiLai] = useState(false);
+            const taiLaiTrang = async () => {
+                if (dangTaiLai) return;
+                setDangTaiLai(true);
+                try {
+                    await loadPerms();
+                    try {
+                        const res = await fetch('/api/metadata').then(r => r.json());
+                        if (res.status === 'ok') setMeta(res);
+                    } catch (e) { /* danh mục lỗi thì vẫn nạp tiếp dữ liệu tab */ }
+                    const nap = {
+                        ledger: loadData, sale: loadSaleData, voucher: loadVoucherData,
+                        purchase: loadPurchaseData, warehouse: loadWarehouseData,
+                        warehouse_balance: loadWarehouseBalanceData,
+                        btp_reconcile: loadBtpData, dcnb_reconcile: loadDcnbData,
+                        po_list: loadPoData,
+                    }[activeTab];
+                    if (nap) await nap(1, filters.page_size);
+                } finally { setDangTaiLai(false); }
             };
 
             const loadData = async (targetPage = 1, targetPageSize = filters.page_size, searchOverride = null) => {
@@ -6366,6 +6445,10 @@ const exportJournalCsv = (mode) => {
                             <button id="btn-refresh-meta" onClick={refreshMeta} disabled={refreshing} title="Tải lại danh mục (Tài khoản, Đơn vị...)" className="bg-white/10 hover:bg-indigo-500/20 hover:text-indigo-400 p-1.5 px-3 rounded-lg transition-all flex items-center gap-2 font-black uppercase text-[9px]">
                                 <Icon name="loader" size={10} className={refreshing ? 'animate-spin' : ''}/> 
                                 {refreshing ? 'Đang tải...' : 'Danh mục'}
+                            </button>
+                            <button onClick={taiLaiTrang} disabled={dangTaiLai} title="Tải lại quyền, danh mục và dữ liệu tab đang mở (không phải đăng nhập lại)" className="bg-white/10 hover:bg-emerald-500/20 hover:text-emerald-400 p-1.5 px-3 rounded-lg transition-all flex items-center gap-2 font-black uppercase text-[9px] disabled:opacity-60">
+                                <Icon name="loader" size={10} className={dangTaiLai ? 'animate-spin' : ''}/>
+                                {dangTaiLai ? 'Đang tải...' : 'Tải lại'}
                             </button>
                             <MenuTaiKhoan nguoiDung={nguoiDung} onDoiMatKhau={() => setHienDoiMatKhau(true)} />
                             <button onClick={handleLogout} className="bg-white/10 hover:bg-red-500/20 hover:text-red-400 p-1.5 px-3 rounded-lg transition-all flex items-center gap-2 font-black uppercase text-[9px]"><Icon name="log-out" size={10}/> Đăng xuất</button>

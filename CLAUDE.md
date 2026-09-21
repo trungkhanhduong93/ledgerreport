@@ -547,6 +547,35 @@ vì viết phẳng không CTE; đã bọc `WITH POL AS (…)`.
 
 ⚠️ Lỗi này **chỉ lộ ở nhánh phân trang**, còn `/count` vẫn chạy ⇒ đừng tin mỗi `/count` xanh là xong.
 
+### Bẫy 22 — Thêm tab mới ⇒ **Google nuốt mã quyền trong im lặng** *(21/09/2026)*
+
+Triệu chứng người dùng: *"phân quyền thêm cho nhóm, bấm Lưu không ăn"*. App báo **lưu thành công**,
+Sheet không đổi gì — **y hệt hình dạng con bug đổi mật khẩu** cùng ngày.
+
+Nguyên nhân: `phanquyen_gas/Code.gs` **ghi cứng danh sách mã trong hằng `PERM`** (7 tab), còn
+checklist trong app dựng từ `DOC_TABS` **ở máy**. Thêm tab mới vào app ⇒ checklist hiện ra tick
+được, nhưng `_apiLuuChucVu` lặp `PERM.forEach` **không thấy mã đó nên bỏ qua**, và Sheet cũng
+không có cột để ghi. Ba chỗ cùng bệnh: `_apiLuuChucVu`, `_quyenChucVu`, `_apiNap`.
+
+**Đã sửa ba tầng — nhớ đủ cả ba, thiếu tầng nào là bệnh quay lại:**
+
+1. **Google đọc mã từ SHEET, không đọc từ `PERM`** — `_maQuyenTrenSheet()` lấy mã từ chính hàng
+   tiêu đề (hàng 3) của sheet *Chức vụ*.
+2. **App gửi `tat_ca_muc` + `nhan_muc` lên; Google TỰ TẠO cột cho mã lạ.**
+   ⇒ **Từ nay thêm tab mới KHÔNG phải sửa `Code.gs` rồi Triển khai lại.**
+   (Mã lạ bị siết `^[A-Za-z0-9_]{2,40}$` — mã đó ghi thẳng vào hàng tiêu đề, không siết là bẩn
+   vĩnh viễn cấu trúc Sheet.)
+3. **Chức vụ `ADMIN` được tính đủ 100% mục ở phía app** (`_current_perms()`), không phụ thuộc Sheet.
+   ⚠️ Chỉ nhận đúng chuỗi `'ADMIN'` **do Sheet cấp** — phiên hỏng / chưa đăng nhập vẫn trả tập
+   RỖNG, **không** quay lại lỗi "phiên hỏng thì toàn quyền" của bản trước 21/09.
+
+**Lưới an toàn ở app:** sau khi lưu chức vụ, frontend đọc lại từ Google và đối chiếu; mã nào bị
+vứt thì **giữ hộp thoại lại kèm cảnh báo**, không đóng im lặng (`kiemMucBiVutBo`).
+
+⚠️ **Đổi `Code.gs` thì phải Triển khai mới có tác dụng** — `_apiLuuChucVu` chạy **trên Google**,
+không nằm trong EXE. Kiểm bằng `ping`: phải trả `"ban": "2026-09-21c"`. Và **luôn** dán qua
+`python phanquyen_gas/chuan_bi_deploy.py` (Bẫy 19).
+
 ---
 
 ## 5. 🛠️ QUY TRÌNH DEV → RELEASE

@@ -1209,3 +1209,61 @@ nhìn mỗi `/count` là tưởng xong. Đã bọc `WITH POL AS (…)` như BTP/
   về sau, không phải lỗi.
 - Tên đơn vị nhận để trống khi một phiếu xuất đi tới nhiều đơn vị (mã vẫn hiện đủ dạng `35 + 71`).
 
+---
+
+## 21/09/2026 (tiếp) — "Lưu phân quyền không ăn": Google nuốt mã mới trong im lặng
+
+Đại Ca thử hai tab mới xong báo 4 việc. Việc thứ 4 mới là gốc, ba việc kia là triệu chứng.
+
+### 🔴 Gốc bệnh — và nó KHÔNG phải nút Lưu hỏng
+
+`phanquyen_gas/Code.gs` **ghi cứng danh sách mã trong hằng `PERM`** (7 tab). Checklist trong app
+lại dựng từ `DOC_TABS` **ở máy** — nên 2 tab mới hiện ra tick được. Bấm Lưu thì `_apiLuuChucVu`
+lặp `PERM.forEach`, **không thấy 2 mã đó nên bỏ qua**, Sheet cũng không có cột để ghi.
+⇒ App báo **lưu thành công**, Sheet không đổi gì.
+
+**Đúng y hình dạng con bug đổi mật khẩu sáng nay** (`_apiLuuUser` chỉ ghi mật khẩu khi
+`moi === true`). Hai lần trong một ngày, cùng một kiểu: **Google nhận rồi vứt, app báo OK.**
+➡️ Ghi thành **Bẫy 22** trong CLAUDE.md.
+
+### Đã sửa — ba tầng, thiếu tầng nào là bệnh quay lại
+
+| Tầng | Sửa gì | Ở đâu |
+|---|---|---|
+| 1 | Google đọc mã quyền từ **hàng tiêu đề của Sheet**, không đọc hằng `PERM` | `_maQuyenTrenSheet()` — vá cả `_quyenChucVu`, `_apiNap`, `_apiLuuChucVu` |
+| 2 | App gửi `tat_ca_muc` + `nhan_muc`; Google **tự tạo cột** cho mã lạ | `server.py` `/api/perm/role` + `_apiLuuChucVu` |
+| 3 | Chức vụ **ADMIN tính đủ 100% mục ở phía app** | `_current_perms()` |
+
+⇒ **Từ nay thêm tab mới vào app không phải sửa `Code.gs` rồi Triển khai lại nữa** — đúng cái
+Đại Ca chốt.
+
+⚠️ Tầng 3 dễ hiểu nhầm là quay lại lỗi cũ "phiên hỏng thì toàn quyền" (bản trước 21/09). Khác ở
+chỗ: chỉ nhận đúng chuỗi `'ADMIN'` **do Google Sheet cấp**; chưa đăng nhập / phiên hỏng thì
+`_current_group()` trả `''` ⇒ vẫn tập RỖNG. **Đã test riêng 6 ca cho đúng ranh giới này.**
+
+### Ba việc còn lại Đại Ca nêu
+
+- **Nút "Tải lại"** ở header — app chạy Chrome `--app` nên không có thanh địa chỉ, không có F5.
+  Nút này nạp lại quyền + danh mục + dữ liệu tab đang mở, **không mất phiên đăng nhập**.
+  ⚠️ Giới hạn: quyền của NGƯỜI KHÁC vẫn chốt lúc họ đăng nhập (cố ý — gọi Google ở mọi request
+  thì mỗi cú bấm chờ 1–3 giây). Sửa quyền cho ai thì người đó vẫn phải đăng nhập lại.
+- **Trạng thái chờ cho nút Lưu** — mỗi lệnh ghi đi vòng qua Google mất **4–7 giây**; nút đứng yên
+  nên tưởng hỏng rồi bấm lại ⇒ ghi hai lần. Nay hiện *"Đang lưu lên Google..."* + vòng xoay, và
+  **khoá không cho bấm lần hai**. Áp cho cả Xoá tài khoản / Xoá chức vụ.
+- **Lưới an toàn `kiemMucBiVutBo`** — sau khi lưu, app đọc lại từ Google và đối chiếu. Mã nào bị
+  vứt thì **giữ hộp thoại lại kèm cảnh báo nói rõ mã nào**, không đóng im lặng.
+  Đây là thứ lẽ ra phải có từ đầu: cả hai con bug hôm nay đều sống được vì app tin lời Google.
+
+### Verify
+
+| Mức | Kết quả |
+|---|---|
+| M1 | `ast.parse` OK · `check_babel` SUCCESSFUL · `node --check` cho `Code.gs` OK |
+| **Logic Apps Script** | **18/18 ca** bằng **sheet giả** dựng trong Node (stub `SpreadsheetApp`): tạo cột mới · ghi tick · **bỏ tick phải xoá thật** · không đụng chức vụ khác · **chặn mã bậy không làm bẩn tiêu đề** · `_apiNap` đọc đúng · **tương thích ngược khi app cũ không gửi `tat_ca_muc`** |
+| **Ranh giới ADMIN** | **6/6 ca**: ADMIN dù Sheet cấp 0 mục vẫn đủ 26/26 · nhóm thường đúng số mục · **phiên hỏng ⇒ 0 mục, 403** · **`admin` chữ thường ⇒ KHÔNG được toàn quyền** |
+| M3 | build EXE v1.11.9 |
+
+⚠️ **Chưa chạy trên Google thật** — `Code.gs` mới **chưa Triển khai**. Chừng nào chưa Triển khai
+thì tầng 1 và 2 chưa có tác dụng; chỉ tầng 3 (ADMIN) ăn ngay vì nằm trong EXE.
+Sau khi Triển khai, `ping` phải trả `"ban": "2026-09-21c"`.
+

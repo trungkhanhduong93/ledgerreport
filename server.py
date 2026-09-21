@@ -170,6 +170,22 @@ PERM_TABS    = ['ledger', 'sale', 'voucher', 'purchase', 'warehouse', 'warehouse
 PERM_REPORTS = ['BC%03d' % i for i in range(1, 17)]          # BC001..BC016
 PERM_EXTRA   = ['perm_admin']                                # tab "Phân quyền" — CHỈ ADMIN
 PERM_ALL_ITEMS = PERM_TABS + PERM_REPORTS + PERM_EXTRA
+
+# Nhãn tiếng Việt của từng mã — gửi sang Apps Script để nó đặt tên cột cho mục MỚI trên
+# sheet Chức vụ. Thiếu nhãn thì Google ghi thẳng mã, không hỏng gì, chỉ khó đọc.
+PERM_ITEM_LABELS = {
+    'ledger': 'Chứng từ tổng hợp', 'sale': 'Chứng từ bán hàng',
+    'voucher': 'Chứng từ tiền', 'purchase': 'Chứng từ nhập kho',
+    'warehouse': 'Chứng từ kho', 'warehouse_balance': 'Tồn kho thực tế',
+    'btp_reconcile': 'Đối chiếu xuất SX BTP',
+    'dcnb_reconcile': 'Đối chiếu điều chuyển nội bộ',
+    'po_list': 'Danh sách PO (yêu cầu mua hàng)',
+    'perm_admin': 'Tab Phân quyền (quản trị)',
+}
+
+def _nhan_muc_quyen():
+    """{mã: nhãn} cho MỌI mã hiện có. Mã báo cáo chưa khai nhãn thì dùng chính mã."""
+    return {ma: PERM_ITEM_LABELS.get(ma, ma) for ma in PERM_ALL_ITEMS}
 _BC = lambda a, b: {'BC%03d' % i for i in range(a, b + 1)}   # tiện gom dải BC
 
 # Nhóm → tập mã được xem. BC015/BC016 tạm CHỈ ADMIN (Đại Ca quyết sau).
@@ -190,7 +206,21 @@ def _current_perms():
 
     Không có `app_items` ⇒ trả tập RỖNG. Trước 21/09/2026 nhánh này rơi về
     phanquyen.json rồi cuối cùng về 'ADMIN = full' — tức là phiên hỏng thì được
-    toàn quyền, đúng chiều ngược với cái cần."""
+    toàn quyền, đúng chiều ngược với cái cần.
+
+    ⚠️ PHÂN BIỆT với lỗi cũ đó: chức vụ **ADMIN** (giá trị Google Sheet cấp, không
+    phải giá trị mặc định) được TÍNH RA đủ 100% mục — kể cả mục mới thêm vào app sau
+    này. Lý do: `PERM` trong `phanquyen_gas/Code.gs` **ghi cứng danh sách mã** trên
+    Google, nên mỗi lần app thêm tab/báo cáo mới là ADMIN **không thể** nhận được
+    từ Sheet cho tới khi ai đó sửa Code.gs + thêm cột vào Sheet + Triển khai lại
+    (Bẫy 19 — việc nguy hiểm). Đã vấp thật 21/09/2026: hai tab `dcnb_reconcile` và
+    `po_list` không hiện với chính tài khoản admin.
+    Chỗ này an toàn vì chỉ nhận đúng chuỗi 'ADMIN' **do Sheet trả về**; phiên hỏng
+    hay chưa đăng nhập thì `_current_group()` trả '' ⇒ vẫn tập RỖNG như cũ.
+    ⚠️ Nhóm KHÁC muốn được cấp mục mới thì vẫn phải bổ sung mã vào `PERM` trong
+    Code.gs rồi Triển khai — app không tự làm thay được."""
+    if _current_group() == 'ADMIN':
+        return set(PERM_ALL_ITEMS)
     items = session.get('app_items')
     if isinstance(items, list):
         return set(x for x in items if x in PERM_ALL_ITEMS)
@@ -1048,9 +1078,14 @@ def perm_save_role():
         adm = _gs_admin(d)
     except ValueError as e:
         return jsonify({"status": "error", "message": str(e), "can_mat_khau": True}), 401
+    # Gửi kèm TOÀN BỘ mã app đang có + nhãn tiếng Việt. Google dùng nó để tự tạo cột cho
+    # mục mới và để biết mục nào cần bỏ tick. Trước 21/09/2026 Google lặp hằng PERM ghi cứng
+    # trong Code.gs ⇒ mã app mới thêm bị **bỏ qua trong im lặng**, app vẫn báo lưu thành công.
     return _gs_tra_loi('luu_chuc_vu', ma=(d.get('ma') or '').strip(),
                        ten=(d.get('ten') or '').strip(),
-                       items=[x for x in items if x in PERM_ALL_ITEMS], **adm)
+                       items=[x for x in items if x in PERM_ALL_ITEMS],
+                       tat_ca_muc=list(PERM_ALL_ITEMS),
+                       nhan_muc=_nhan_muc_quyen(), **adm)
 
 @app.route("/api/perm/role/delete", methods=["POST"])
 def perm_delete_role():

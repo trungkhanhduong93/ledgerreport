@@ -31,7 +31,7 @@
 /** Mã bản của chính file này. `ping` trả về chuỗi này để biết **bản đang chạy
  *  trên Google có phải bản mới nhất không** — trước đây không có cách nào biết,
  *  sửa xong quên Triển khai là ngồi đoán. Đổi file này thì đổi luôn chuỗi này. */
-const BAN_CODE = '2026-09-21b';
+const BAN_CODE = '2026-09-21c';
 
 const TOKEN = 'DAN_TOKEN_NGAU_NHIEN_VAO_DAY';
 
@@ -357,6 +357,22 @@ function _o(bang, dong, ma) {
   return c ? String(dong[c - 1] == null ? '' : dong[c - 1]).trim() : '';
 }
 
+/* ===== MÃ QUYỀN ĐỌC TỪ SHEET, KHÔNG ĐỌC TỪ HẰNG PERM =====
+   Trước 21/09/2026 mọi chỗ đều lặp `PERM` — danh sách GHI CỨNG trong file này. Hậu quả:
+   app thêm tab mới (dcnb_reconcile, po_list) thì `_apiLuuChucVu` lặp PERM **không thấy mã
+   đó nên bỏ qua trong im lặng**; app báo "lưu thành công" mà Sheet không đổi gì. Đại Ca
+   vấp thật và tưởng nút Lưu hỏng.
+   ⇒ Nay đọc mã quyền từ chính HÀNG TIÊU ĐỀ (hàng 3) của sheet Chức vụ, và lúc lưu thì
+   TỰ TẠO cột cho mã lạ mà app gửi lên. Thêm tab mới ở app từ nay KHÔNG phải sửa file này
+   rồi Triển khai lại nữa. */
+const ROLE_COT_DINH_DANH = ['MA_CHUC_VU', 'TEN_CHUC_VU'];
+
+function _maQuyenTrenSheet(b) {
+  return Object.keys(b.cot).filter(function (k) {
+    return ROLE_COT_DINH_DANH.indexOf(k) < 0;
+  });
+}
+
 function _bayGio() {
   return Utilities.formatDate(new Date(), 'Asia/Ho_Chi_Minh', 'dd/MM/yyyy HH:mm:ss');
 }
@@ -376,8 +392,9 @@ function _quyenChucVu(maChucVu) {
   for (let i = 0; i < b.rows.length; i++) {
     if (_o(b, b.rows[i], 'MA_CHUC_VU').toUpperCase() !== String(maChucVu || '').toUpperCase()) continue;
     const items = [];
-    PERM.forEach(function (p) {
-      if (_o(b, b.rows[i], p.ma)) items.push(p.ma);
+    // Lặp cột CÓ THẬT trên sheet, không lặp PERM — xem chú thích ở _maQuyenTrenSheet.
+    _maQuyenTrenSheet(b).forEach(function (ma) {
+      if (_o(b, b.rows[i], ma)) items.push(ma);
     });
     return { ten: _o(b, b.rows[i], 'TEN_CHUC_VU'), items: items };
   }
@@ -618,16 +635,17 @@ function _apiNap(p) {
   });
 
   const br = _docBang(SH_ROLE);
+  const maQuyen = _maQuyenTrenSheet(br);       // cột có thật trên sheet, không phải hằng PERM
   const chucVu = [];
   br.rows.forEach(function (r) {
     const ma = _o(br, r, 'MA_CHUC_VU');
     if (!ma) return;
     chucVu.push({
       ma: ma, ten: _o(br, r, 'TEN_CHUC_VU'),
-      items: PERM.filter(q => _o(br, r, q.ma)).map(q => q.ma)
+      items: maQuyen.filter(function (q) { return _o(br, r, q); })
     });
   });
-  return { ok: true, users: users, chuc_vu: chucVu, tat_ca_muc: PERM };
+  return { ok: true, users: users, chuc_vu: chucVu, tat_ca_muc: PERM, ma_quyen_sheet: maQuyen };
 }
 
 function _apiLuuUser(p) {
@@ -781,12 +799,48 @@ function _apiLuuChucVu(p) {
   if (!soDong) soDong = b.sh.getLastRow() + 1;
   b.sh.getRange(soDong, b.cot['MA_CHUC_VU']).setValue(ma);
   if (p.ten !== undefined) b.sh.getRange(soDong, b.cot['TEN_CHUC_VU']).setValue(p.ten);
-  PERM.forEach(function (q) {
-    const c = b.cot[q.ma];
-    if (c) b.sh.getRange(soDong, c).setValue(items.indexOf(q.ma) >= 0 ? 'x' : '');
+
+  // (1) Vũ trụ mã = danh sách APP gửi lên. App mới là nơi biết nó đang có những mục nào;
+  //     Google chỉ ghi theo. Thiếu cột thì TẠO — đây chính là chỗ khiến lần sau thêm tab
+  //     mới không phải sửa file này rồi Triển khai lại.
+  const vuTru = (p.tat_ca_muc instanceof Array && p.tat_ca_muc.length)
+              ? p.tat_ca_muc : PERM.map(function (q) { return q.ma; });
+  const nhan = p.nhan_muc || {};
+  const cotMoi = [];
+  vuTru.forEach(function (q) {
+    q = String(q || '').trim();
+    // Chặn mã bậy: mã lạ được ghi thẳng vào hàng tiêu đề nên phải siết định dạng,
+    // không thì một lần gọi hỏng là bẩn vĩnh viễn cấu trúc sheet.
+    if (!/^[A-Za-z0-9_]{2,40}$/.test(q)) return;
+    if (ROLE_COT_DINH_DANH.indexOf(q) >= 0 || b.cot[q]) return;
+    const c = b.sh.getLastColumn() + 1;
+    b.sh.getRange(1, c).setValue('MỤC THÊM SAU');
+    b.sh.getRange(2, c).setValue(String(nhan[q] || q)).setTextRotation(90).setVerticalAlignment('bottom');
+    b.sh.getRange(3, c).setValue(q);
+    b.sh.setColumnWidth(c, 44);
+    b.cot[q] = c;
+    cotMoi.push(q);
   });
-  _ghiLog(admin.id, 'LƯU CHỨC VỤ', ma + ' · ' + items.length + ' mục', p.may);
-  return { ok: true, ma: ma };
+
+  // (2) Ghi tick MỘT LẦT bằng setValues thay vì setValue từng ô.
+  //     26 ô × ~80ms = hơn 2 giây chỉ để ghi tick — đó là một phần lý do nút Lưu đứng lâu.
+  const tuCot = 3, denCot = b.sh.getLastColumn();
+  const nguoc = {};
+  _maQuyenTrenSheet(b).forEach(function (q) { nguoc[b.cot[q]] = q; });
+  const hang = b.sh.getRange(soDong, tuCot, 1, denCot - tuCot + 1).getValues()[0];
+  for (let c = tuCot; c <= denCot; c++) {
+    const q = nguoc[c];
+    if (q === undefined) continue;             // cột lạ không phải cột quyền — KHÔNG đụng
+    hang[c - tuCot] = items.indexOf(q) >= 0 ? 'x' : '';
+  }
+  b.sh.getRange(soDong, tuCot, 1, denCot - tuCot + 1).setValues([hang]);
+
+  _ghiLog(admin.id, 'LƯU CHỨC VỤ',
+          ma + ' · ' + items.length + ' mục' + (cotMoi.length ? ' · thêm cột: ' + cotMoi.join(',') : ''),
+          p.may);
+  // Trả về mã ĐÃ GHI THẬT để app đối chiếu — im lặng bỏ bớt mã chính là con bug cũ.
+  const daGhi = items.filter(function (q) { return !!b.cot[q]; });
+  return { ok: true, ma: ma, da_ghi: daGhi, cot_moi: cotMoi };
 }
 
 function _apiXoaChucVu(p) {

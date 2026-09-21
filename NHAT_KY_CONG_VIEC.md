@@ -3,7 +3,9 @@
 > Toàn bộ những gì đã làm với **LedgerReport**, và **vì sao**. Đọc file này trước khi sửa tiếp.
 > Kiến trúc, ma trận báo cáo, phương án backup: [CLAUDE.md](CLAUDE.md).
 > Mổ xẻ sâu sự cố + 4 bài học: [SU_CO_15082026.md](SU_CO_15082026.md).
-> Phiên gần nhất: **15/09/2026** · EXE hiện hành: **iPOS_Accounting_Report v1.10.5**
+> Phiên gần nhất: **21/09/2026** · Bản phát hành trên GitHub: **v1.10.7**
+> ⚠️ Nhánh `phanquyen` đang có bản build local **v1.11.7** (phân quyền + Google Sheet) — **CHƯA push**.
+> Apps Script trên Google: **Version 4** (21/09/2026 14:39), mã bản `2026-09-21b` — **đã triển khai**.
 
 ---
 
@@ -314,9 +316,12 @@ powershell -File Sync-And-Backup.ps1 -Commit -Message "fix: ..."
    change (14/09/2026), không vướng cái nào — nhưng token đang dùng **thiếu scope `workflow`** nên cả
    `git push` lẫn REST API đều bị chặn. Bảng 3 dòng cần đổi + toàn bộ kết quả đo ghi ở
    [CLAUDE.md](CLAUDE.md) mục 5. **Để chủ repo xem và quyết.**
-7. **Route `/api/version` đăng ký 2 lần** (`get_version` dòng 210 và `get_app_version_api` dòng 6715).
-   Cái trên thắng nên hàm dưới là code chết, `is_frozen` không bao giờ tới frontend. Frontend không
-   dùng `is_frozen` nên hiện vô hại.
+7. ~~**Route `/api/version` đăng ký 2 lần**~~ — **ĐÃ XỬ LÝ 19/09/2026.** Đã xoá hàm chết
+   `get_app_version_api` (Flask khớp rule đăng ký trước nên `get_version` luôn thắng). Kiểm lại sau
+   khi xoá: **không còn route trùng, không còn hàm trùng tên**, `url_map` chỉ còn 1 rule
+   `/api/version` → `get_version`, `test_client` GET `/api/version` trả **200**
+   `{"status":"ok","version":...}`. Frontend chưa từng đọc `is_frozen` từ endpoint này nên không
+   ảnh hưởng gì; `/api/check_update` vẫn tự trả `is_frozen` riêng, giữ nguyên.
 
 ---
 
@@ -387,3 +392,738 @@ nên buộc phải cache. Chọn `ACTIVE=1` để giữ đúng yêu cầu gốc:
 
 Ba bẫy ghi vào [CLAUDE.md](CLAUDE.md): **Bẫy 14** (dựng bộ lọc từ dữ liệu phát sinh), **Bẫy 15**
 (`SALE_VIEW`/`PURCHASE_VIEW` lọc `IS_SALE=1`), **Bẫy 16** (dropdown lọc `ACTIVE=1` — đã quyết để nguyên).
+
+### Phát hành
+
+Commit `4cc22af` → push thẳng `main` (`e11d2af..4cc22af`), 6 file / +290 −19. Actions chạy **1 phút
+6 giây, thành công**; Release [**v1.10.7**](https://github.com/trungkhanhduong93/ledgerreport/releases/tag/v1.10.7)
+tự tạo, đính `iPOS_Accounting_Report.exe` (13.056.524 bytes) + bản `.zip`.
+
+⚠️ QA trước push phải chạy **bằng tay**: **skill `pre-push-qa` mà mục 3.5 của [CLAUDE.md](CLAUDE.md)
+bắt chạy KHÔNG tồn tại trên máy này** — không có `.claude/skills` ở cả repo lẫn user dir (kiểm
+15/09/2026). Đã chạy thay bằng: M1 `ast.parse` + `check_babel.js` → quét trùng tên hàm/route → quét
+secret 290 dòng thêm mới (sạch) → smoke 12 endpoint in-process → kiểm không có `.exe` bị stage.
+
+### 🔑 Chốt lại quy trình phát hành — không cần ai duyệt
+
+| Kiểm | Kết quả thật (15/09/2026) |
+|---|---|
+| Quyền tài khoản đang dùng | `push=true`, `admin=false`, `maintain=false` |
+| Branch protection trên `main` | **KHÔNG CÓ** — API trả `404 Not Found` |
+| Workflow cần approval? | Không — `release.yml` không khai `environment:` |
+| Release sinh ra | `draft=false`, `prerelease=false` → công khai ngay |
+
+⇒ **Sửa code → QA → push `main` → xong.** Actions tự build EXE trên `windows-latest` rồi đính vào
+Release, **không cần tự build EXE để phát hành** (bản build ở máy chỉ để đạt M3 tại chỗ).
+
+**Máy khác nhận update:** app mở lên **sau 1 giây tự gọi** `/api/check_update` → đọc
+`api.github.com/.../releases/latest` (timeout 3 giây), so semver, lớn hơn thì hiện banner;
+**người dùng phải bấm** mới tải + ghi đè. Máy không vào được `api.github.com` thì im lặng bỏ qua.
+
+⚠️ **`version.txt` quyết định tag** — quên tăng version mà vẫn push thì `action-gh-release` ghi đè
+lên Release cũ cùng tag, máy khác không thấy bản mới. `BuildEXE-LedgerReport.bat` tự tăng file này,
+**nhớ commit kèm**.
+
+
+---
+
+## 19/09/2026 — Phân quyền: PBKDF2 + tab Phân quyền + quyền theo đơn vị (nhánh `phanquyen`, CHƯA push)
+
+> Chi tiết đầy đủ ở nhật ký ngoài repo (Ngày 7). Đây là bản tóm tắt trong repo.
+
+**Bước ngoặt:** iPOS **mã hoá 2 chiều (AES-128)**, KHÔNG băm — bằng chứng: `SEC_USER.USER_PASSWORD` có 2
+độ dài (24/44 ký tự) tùy độ dài mật khẩu (hash thì cố định độ dài). ⇒ **bỏ mật khẩu iPOS**, tool tự quản
+mật khẩu riêng bằng **PBKDF2**.
+
+**Đã làm (code + M1/M2/M3-lite + build EXE `v1.11.0`):**
+1. **Khung quyền theo mục** — 24 mục (7 tab + BC001..016 + `perm_admin`). Guard `_perm_guard`
+   (`@app.before_request`) trả **403** (né Bẫy 1). 3 endpoint dùng chung guard theo tham số `report=`;
+   `/api/cash_flow` cắt `direct`/`indirect` theo quyền. `/api/my_perms` + ẩn menu FE.
+2. **Đăng nhập PBKDF2** — `_pbkdf2_hash/verify`, `_load_phanquyen` (file cạnh EXE ưu tiên, không có →
+   ADMIN bootstrap), `/api/login` xác thực tài khoản tool trước, mật khẩu KHÔNG lưu session. Màn đăng
+   nhập thêm "Tài khoản ứng dụng".
+3. **Tab "Phân quyền"** (chỉ ADMIN) — `PermAdminPanel`: CRUD user, lưới chống mất admin cuối. Quyền lưu
+   **theo từng user** (`items` = tick 24 mục), nhóm chỉ còn là nhãn.
+4. **Quyền theo ĐƠN VỊ (row-level)** — `_current_allowed_orgs()` ép tập trung trong `_org_filter_sql`
+   (điểm DUY NHẤT). Sửa 7 builder tab + vá 2 lỗ (btp dựng IN thẳng; cache `cash_book` thiếu allowed_orgs
+   trong key). Form tick đơn vị, mặc định tất cả. Verify DB thật: giới hạn 1 đơn vị chỉ thấy đơn vị đó,
+   chọn ngoài quyền → 0 dòng.
+
+**Đang bàn dở (phiên sau):** nơi lưu tài khoản dùng chung nhiều máy → **chốt hướng Google Sheet** (mỗi user
+1 hàng, quyền theo cột, hash mật khẩu; đăng nhập băm-lại-so). Nút thắt: cần Đại Ca tạo **Service Account +
+key** trên Google Cloud (agent không tự làm). Đánh đổi: cần internet để đăng nhập.
+
+**Chưa làm / điểm mù:** `secret_key` cứng (cookie giả mạo được / phiên cũ sống qua rebuild); dropdown lọc
+Đơn vị vẫn hiện tên đơn vị ngoài quyền (chọn vào 0 dòng); xoá 4 tài khoản test trước khi phát hành; CHƯA
+commit/push (main vẫn v1.10.7).
+
+**File test:** `phanquyen.json` (đã .gitignore) — `admin1/admin@123`, `tonghop1/th@123`, `ketoan1/kt@123`,
+`xuong1/xsx@123`. Mở EXE bằng double-click/Start-Process (mở qua terminal bị dọn theo phiên).
+
+---
+
+## 20/09/2026 — Tài khoản dùng chung trên Google Sheet (nhánh `phanquyen`, CHƯA push)
+
+Chốt bỏ hướng Service Account, chuyển sang **Apps Script Web App**: không phải phát key JSON, không
+thêm `google-api-python-client` (~18 MB vào EXE), `server.py` gọi bằng `urllib` đã có sẵn từ trước.
+
+### Bốn quyết định của Đại Ca
+
+1. **Apps Script tự kiểm mật khẩu** — bảng hash không bao giờ rời khỏi Sheet, app chỉ nhận về quyền.
+2. **Mất mạng vẫn đăng nhập được 7 ngày** bằng bản cache trên máy, có banner vàng "Chạy offline".
+3. **CHỨC VỤ quyết định toàn bộ quyền** — bỏ tick riêng 24 mục cho từng người (khác bản trước).
+   Riêng **đơn vị được xem vẫn theo từng người** (cùng chức vụ nhưng khác chi nhánh là chuyện thường).
+4. 24 cột quyền đánh dấu `x`, xếp theo nhóm DANH SÁCH / BÁO CÁO / QUẢN TRỊ.
+
+### Băm 2 tầng — vì Apps Script chậm hơn Python 2.500 lần
+
+Bản đầu để Google quay 10.000 vòng: **đăng nhập mất 15 giây**. Đo ra ~0,9ms mỗi vòng HMAC
+(Python 200.000 vòng hết 74ms, Apps Script 10.000 vòng hết 9 giây).
+
+Đẩy phần nặng về máy khách: `_dan_xuat_dk()` trong [server.py](server.py) quay **200.000 vòng
+(95ms)** với salt `"TOOL_CHULONG|<tài khoản>"` rồi gửi **chuỗi đã băm**; Google băm tiếp 1.000 vòng
+với salt ngẫu nhiên riêng. Kết quả: **đăng nhập còn 4–7 giây**, Google không bao giờ thấy mật khẩu
+gốc, mà kẻ trộm được cả Sheet vẫn phải trả 201.000 vòng cho mỗi lần đoán.
+
+⚠️ Hệ quả phải chấp nhận: **gõ mật khẩu thẳng trên Sheet không dùng được nữa** (Apps Script quay
+200.000 vòng mất ~3 phút). `onEdit` nay tự xoá ô và báo "đặt trong app". Tiện thể hết luôn chuyện
+mật khẩu nằm lại trong Version history của Google.
+
+### Ba lỗi chỉ lòi ra khi CHẠY THẬT
+
+| Lỗi | Nguyên nhân | Đã sửa |
+|---|---|---|
+| `The parameters (number[],String) don't match the method signature` | `Utilities.computeHmacSha256Signature` chỉ nhận **(String,String)** hoặc **(Byte[],Byte[])**, cấm trộn | thêm `_byteCuaChuoi()` |
+| `Cannot call SpreadsheetApp.getUi() from this context` | chạy `khoiTao()` lúc không mở bảng tính — 3 sheet **đã dựng xong** rồi mới chết ở dòng cuối, dễ tưởng hỏng | bọc `try/catch` |
+| Google kiểm "mật khẩu ≥ 6 ký tự" thành vô nghĩa | nó chỉ còn nhận chuỗi băm 44 ký tự | chuyển phép kiểm về `server.py` |
+
+**Bài test đầu tiên của tôi KHÔNG bắt được lỗi thứ nhất** vì shim Node viết dễ dãi hơn API thật.
+Đã siết shim ném lỗi đúng như Google khi trộn kiểu — giờ mới đúng là bài test.
+
+### Gõ tay hash vào ô là sai
+
+Thử đặt lại mật khẩu admin bằng cách gõ 2 ô `PW_HASH`/`SALT` → **đăng nhập vẫn hỏng**: base64 có
+`I` hoa và `l` thường nhìn y hệt nhau. Bỏ hẳn cách đó, thêm hằng `ADMIN_DK_BOOTSTRAP` để **chính
+Apps Script tự sinh** dòng admin. Không còn chỗ cho sai sót.
+
+### Verify — đạt M3
+
+| Mức | Nội dung |
+|---|---|
+| M1 | `ast.parse` + `node check_babel.js` + quét trùng tên hàm → sạch |
+| Thuật toán | hàm băm Apps Script **4/4 khớp** `hashlib.pbkdf2_hmac`, kể cả mật khẩu tiếng Việt có dấu và mật khẩu rỗng |
+| Cache offline | **6/6** — sai mật khẩu chặn, máy lạ chặn, **quá 7 ngày hết hiệu lực**, file không chứa mật khẩu thường |
+| M2 | smoke 10/10 ở chế độ Google, không endpoint nào 500 |
+| **M3 — Sheet thật** | **7/7**: ping `iter=1000` · admin đăng nhập 24/24 mục · **gửi mật khẩu gốc bị chặn** (chứng minh cơ chế 2 tầng có hiệu lực) · tạo `ketoan1` chức vụ KT01 → đúng **5 mục**, không có `perm_admin` · xoá lại sạch |
+| Tầng app | **8/8**: sai mật khẩu chặn trước khi đụng SQL · đúng mật khẩu qua Google rồi mới chết ở SQL · **mất mạng vẫn vào được bằng cache mà vẫn chặn mật khẩu sai** |
+
+M4 không áp dụng — đây là phân quyền, không phải số liệu sổ sách.
+
+### Còn treo
+
+- **CHƯA commit/push.** `main` vẫn v1.10.7.
+- Thu hồi quyền chỉ có hiệu lực khi người đó **đăng nhập lại** (quyền chốt 1 lần lúc đăng nhập để
+  mỗi request không phải chờ Google 2 giây).
+- Cột `DON_VI` **để trống = xem tất cả**, không phải "không xem gì" — bỏ tick hết đơn vị trong app
+  sẽ thành "xem tất cả"; muốn khoá thì bỏ tick *Cho phép đăng nhập*.
+- `secret_key` vẫn ghi cứng trong `server.py`.
+- Dropdown lọc Đơn vị vẫn hiện tên đơn vị ngoài quyền (chọn vào ra 0 dòng — lộ tên, không lộ số).
+- Tài khoản `admin`/`admin@123` còn nguyên mật khẩu khởi tạo — **phải đổi trước khi phát hành**.
+
+---
+
+## 20/09/2026 (chiều) — Thông báo lỗi nói tiếng người + 3 lỗi lòi ra theo
+
+Đại Ca gặp lỗi đăng nhập, màn hình quăng nguyên cục `('08001', '[08001] [Microsoft][ODBC SQL
+Server Driver][DBNETLIB]SQL Server does not exist or access denied...` và yêu cầu ghi cho dễ hiểu.
+Lần theo thì ra **bốn** việc, không phải một.
+
+### 1. Dịch lỗi ODBC sang tiếng Việt — `_loi_ket_noi_de_hieu()`
+
+Phân 6 loại: không tới được máy chủ · máy chủ trả lời chậm · sai User/Password SQL · sai tên
+database · chưa cài driver · lỗi lạ. Nguyên văn **vẫn giữ**, nằm sau nút *"+ Chi tiết kỹ thuật"*.
+
+⚠️ **Thứ tự xét quan trọng hơn tưởng.** Driver 17 khi không tới được máy chủ trả về CẢ HAI chuỗi
+`Login timeout expired` lẫn `Server is not found or not accessible`. Bản đầu xét "timeout" trước
+nên báo *"máy chủ quá tải, thử lại sau"* — **dẫn người dùng đi sai hướng**, ngồi chờ thay vì đi bật
+VPN. Đã đảo lại: xét "không tới được" trước, "trả lời chậm" sau.
+
+### 2. Apps Script chập chờn thật — phải thử lại
+
+Đo trên máy mạng tốt (0,2s ra google.com): cùng lệnh `ping` lúc 5s, lúc 10,4s, lúc **19,7s rồi trả
+HTTP 404**. 404 đó không phải sai URL, là lỗi nhất thời phía Google.
+
+Timeout cũ 15 giây + không thử lại ⇒ **nhân viên sẽ ngẫu nhiên đăng nhập hỏng**, lại còn bị báo
+nhầm thành "mất mạng". Nay: timeout **45 giây**, **thử lại 3 lần** (giãn 1,5s → 3s). Đo lại: **5/5
+lần thành công, 3,4–5,7 giây**. Thử lại an toàn vì mọi hành động hiện có đều lặp lại vô hại —
+thêm hành động mới không chịu được gọi hai lần thì phải bỏ qua vòng lặp đó.
+
+### 3. Báo sai bản chất lúc mất mạng
+
+Cũ: *"Máy này chưa từng đăng nhập thành công"* — không nhắc gì tới Google, người đọc không hiểu
+tại sao hôm qua vẫn vào được. Nay nói rõ **"Không kết nối được tới Google (nơi lưu danh sách tài
+khoản), và …"**. `_cache_kiem()` thêm cờ thứ 3 để **sai mật khẩu thì không đổ cho mạng**.
+
+### 4. App mặc định dùng driver đời 2000 → mỗi lần lỗi chờ 21 giây
+
+| Driver | Thời gian báo lỗi |
+|---|---|
+| `SQL Server` (mặc định cũ) | **21,1 giây** — không tôn trọng `timeout=5` |
+| `ODBC Driver 17` | **5,2 giây** |
+
+`/api/check_driver` vốn đã trả về danh sách driver có thật trên máy nhưng frontend vứt đi không
+dùng. Nay: lấy danh sách đó, **chỉ liệt kê driver có thật**, tự chọn theo thứ tự ưu tiên
+17 → 13 → SQL Server, và **nhớ lựa chọn** vào localStorage (trước đây mở lại app là quên).
+
+⛔ **Cố ý KHÔNG tự chọn ODBC Driver 18** — nó mặc định bật mã hoá TLS, máy chủ không có chứng chỉ
+hợp lệ là nối không được. Ai cần thì tự chọn trong danh sách.
+
+### Verify — đạt M3 (nhìn tận mắt trên giao diện EXE thật)
+
+- Dịch lỗi: **4/4** phân loại đúng, kể cả phân biệt *máy chủ chết* với *máy chủ sống nhưng chậm*.
+- Thử lại + thông báo offline: **3/3**.
+- **Trên EXE v1.11.4, mở bằng trình duyệt, điền form và bấm nút thật:** hiện đúng câu
+  *"Không kết nối được tới máy chủ 171.244.129.176,9001. Kiểm tra lần lượt: đã bật VPN…"*, nút
+  *"+ Chi tiết kỹ thuật"* bung ra nguyên văn lỗi. Nguyên văn ghi `[ODBC Driver 17 for SQL Server]`
+  ⇒ chứng minh phần tự chọn driver đã chạy.
+
+Ghi vào CLAUDE.md: thông báo lỗi cho người dùng phải là tiếng Việt dễ hiểu, nguyên văn giấu sau
+nút "Chi tiết" — xem [thong-bao-loi-phai-noi-tieng-nguoi] trong bộ nhớ agent.
+
+---
+
+## 21/09/2026 — TỔNG KẾT NGÀY (đọc mục này trước, 7 mục chi tiết nằm dưới)
+
+Một ngày dài, **7 mục**. Tóm tắt để khỏi phải đọc hết:
+
+| # | Việc | Kết quả |
+|---|---|---|
+| 1 | Tách tab Phân quyền thành **Quản lý tài khoản** / **Quản lý chức vụ** | M2 · bấm thật trên trình duyệt |
+| 2 | 🔴 **Mật khẩu SQL nằm đọc được trong cookie** — cookie Flask chỉ được KÝ, không mã hoá | Đã bịt: cookie chỉ còn `sid`, db_config nằm RAM máy chủ. `secret_key` → ngẫu nhiên mỗi lần chạy. **14/14** |
+| 3 | **Bỏ hẳn chế độ file** — Google Sheet là nguồn duy nhất | Thiếu cấu hình = **chặn đăng nhập**, thay vì mở toang 24 mục. **24/24** |
+| 4 | **Ghim cứng URL + TOKEN** vào `server.py` ⇒ chỉ phát **một file EXE** | Kèm **rate limit** trong Code.gs (khoá 15 phút sau 8 lần sai). **15/15** |
+| 5 | 🔴 **Đổi mật khẩu trong tab Phân quyền không có tác dụng** | `_apiLuuUser` chỉ ghi mật khẩu khi TẠO MỚI. Đã sửa. **14/14** |
+| 6 | **Ô tài khoản ở header** + nhân viên tự đổi mật khẩu (mẫu SYNA AI PORTAL) | M2 · bấm thật **5/5 ca** |
+| 7 | **Triển khai Code.gs lên Google** | **Version 4**, `ping` trả `ban: 2026-09-21b` ✓ |
+
+### Trạng thái cuối ngày
+
+| | |
+|---|---|
+| EXE local | **v1.11.7** (`dist\iPOS_Accounting_Report.exe`) |
+| Apps Script trên Google | **Version 4** · mã bản `2026-09-21b` · rate limit **đã bật** |
+| URL + TOKEN | **không đổi** — mọi EXE đã phát vẫn nối được |
+| Git | ⛔ **CHƯA commit, CHƯA push.** `main` vẫn v1.10.7 |
+| Mật khẩu `admin` | **vẫn là mật khẩu cũ** — lần đổi hôm trước không ăn nên nó chưa từng thay đổi |
+
+### Hai sự cố trong ngày — đọc kỹ
+
+1. **Đổi mật khẩu không ăn** (mục 5). Nguyên nhân nằm ở Google chứ không ở EXE, nên build lại EXE
+   bao nhiêu lần cũng vô ích. Trường `ban` thêm trong `ping` **bắt được ngay lần dùng đầu tiên**.
+2. **Suýt xoá mất TOKEN thật** (mục 7). Dán thẳng `Code.gs` từ repo công khai lên Google ⇒ ghi đè
+   token bằng chuỗi giữ chỗ. Cứu được **chỉ vì** lúc đó chưa bấm Triển khai.
+   ➡️ Từ nay dùng `python phanquyen_gas/chuan_bi_deploy.py`. Xem **Bẫy 19** trong CLAUDE.md.
+
+### Còn treo sang phiên sau
+
+- ⛔ **Chưa commit/push.** Khi push, lệnh quét secret **sẽ báo động ở `_GS_URL_GHIM`/`_GS_TOKEN_GHIM`**
+  — đó là **báo đúng**, không phải báo nhầm (Đại Ca đã chốt chấp nhận, xem Bẫy 18).
+- **Đổi mật khẩu `admin`** trước khi phát cho nhân viên.
+- `phanquyen.json` ở thư mục gốc và `dist/phanquyen.json.cu` nay vô dụng — xoá được.
+- `ADMIN_DK_BOOTSTRAP` trên Google nay là chuỗi giữ chỗ (vô hại, xem mục 7).
+- Chưa đạt M3 đầy đủ: chưa đăng nhập bằng SQL + tài khoản thật trên EXE v1.11.7.
+- Màn đăng nhập chưa bắt buộc điền Tài khoản ứng dụng ở frontend (để trống phải chờ Google 4–7 giây
+  mới báo sai, thay vì chặn ngay).
+
+---
+
+## 21/09/2026 — Tab Phân quyền tách làm 2 tab con (nhánh `phanquyen`, CHƯA push)
+
+Đại Ca xem ảnh màn hình iPOS (hai tab *Nhân viên* / *Chức vụ*) rồi yêu cầu tách y vậy: một tab
+**Quản lý tài khoản**, một tab **Quản lý chức vụ**. Trước đó hai bảng nằm chồng nhau trong cùng
+một trang, phải cuộn xuống mới thấy bảng Chức vụ.
+
+**Đã làm** — chỉ sửa [index.html](index.html), 4 chỗ trong `PermAdminPanel`, **không đụng
+`server.py`**:
+1. Thêm state `tabCon` ('user' / 'role').
+2. Thêm `tabHienTai` — chế độ file **ép cứng về `'user'`**.
+3. Tiêu đề trang tách khỏi nút "+ Thêm người dùng"; thêm thanh tab con gạch chân, mỗi tab kèm
+   số đếm (số tài khoản / số chức vụ).
+4. Bảng tài khoản bọc trong `{tabHienTai === 'user' && (<>…</>)}`; khối chức vụ đổi điều kiện từ
+   `{theoChucVu && …}` sang `{tabHienTai === 'role' && …}`.
+
+**Vì sao chế độ file KHÔNG có tab Chức vụ** (Đại Ca chốt): không có `ketnoi.json` thì
+`/api/perm/role` trả thẳng 400 *"Chức vụ chỉ sửa được khi dùng nguồn Google Sheet"* — bày ra một
+tab bấm vào là báo lỗi thì thà ẩn. Chế độ file trông y hệt trước đây.
+
+**Verify:**
+
+| Mức | Nội dung |
+|---|---|
+| M1 | `node check_babel.js` → SUCCESSFUL · `ast.parse(server.py)` → OK |
+| M3-lite | Dựng trang demo độc lập: **cắt nguyên văn 341 dòng `PermAdminPanel` từ chính `index.html`** (không gõ lại tay), stub `fetch('/api/perm/config')` để khỏi cần VPN + SQL + Google. Mở bằng trình duyệt thật, bấm nút thật |
+| Kết quả | Thanh tab hiện đúng số đếm 4/4 · đổi tab đổi đúng bảng · trạng thái tab kiểm bằng `getComputedStyle` (tab đang chọn `rgb(79,70,229)` + viền dưới indigo, tab kia `rgb(148,163,184)` + viền trong suốt) · modal **Sửa chức vụ: KT01** mở đúng 5/24 mục · modal **Sửa: ketoan1** mở đúng chức vụ + 2/4 đơn vị · **chế độ file: thanh tab biến mất hẳn**, chỉ còn bảng Tài khoản |
+
+**Chưa đạt M3 đầy đủ:** chưa build EXE và chưa bấm trên bản chạy thật có SQL + Google Sheet.
+Thay đổi thuần bố cục hiển thị, không đụng luồng dữ liệu, nhưng vẫn nên bấm thử một lượt trên EXE
+trước khi phát.
+
+**Điểm mù ghi lại (có sẵn từ trước, không phải do lần sửa này):** biến `msg` ở cấp trang chỉ được
+hiển thị bên trong hai modal và màn hình nhập mật khẩu. Lỗi từ `load()` (ví dụ *"Lỗi tải danh
+sách"*, *"Lỗi kết nối"*) **không hiện ở đâu cả** — bảng chỉ đứng im. Sửa được bằng một dòng, để
+lần sau.
+
+---
+
+## 21/09/2026 (tiếp) — Mật khẩu SQL nằm đọc được trong cookie (nhánh `phanquyen`, CHƯA push)
+
+Đại Ca chốt tiêu chí: *"tuyệt đối không dò thấy được thông tin SQL dùng để kết nối"*.
+Đi kiểm thì ra một lỗ thật, nằm đúng chỗ không ai ngờ.
+
+### Lỗ — chứng minh bằng code, không phải suy đoán
+
+`session['db_config'] = data` đặt nguyên **server / database / user / password** của SQL vào
+cookie. Cookie Flask chỉ được **KÝ để chống sửa, KHÔNG MÃ HOÁ**. Giải ra **không cần
+`secret_key`** — chỉ tách phần payload rồi base64 + unzip:
+
+```
+{"db_config":{"server":"171.244.129.176,9001","database":"IACC_CHULONG",
+ "user":"sa","password":"MatKhauThatCuaSQL",...},"app_user":"ketoan1"}
+```
+
+Mở **F12 → Application → Cookies** là đọc được. Mượn máy đồng nghiệp một phút là lấy được
+mật khẩu SQL của người đó.
+
+Đi kèm lỗ thứ hai: `secret_key = 'IACC_SECRET_SUPREME_2026'` ghi cứng trong mã nguồn của
+repo **CÔNG KHAI** ⇒ ai cũng **tự ký được cookie giả**, tự cấp `app_items` cho mình; và phiên
+cũ sống xuyên qua mọi lần build lại. Hai điểm này đã ghi là điểm mù từ 19/09 nhưng chưa sửa.
+
+### Quét hết các đường rò khác — sạch
+
+| Đường | Kết quả |
+|---|---|
+| Ghi log ra file | không ghi file nào |
+| Chỗ nào log `db_config` | không có |
+| Endpoint trả `db_config` về trình duyệt | không có |
+| `localStorage` | chỉ `iacc_server` / `iacc_db` / `iacc_driver` — **không có mật khẩu** |
+| Frontend giữ mật khẩu trong biến | không |
+| Thông báo lỗi ODBC (`_loi_ket_noi_de_hieu`) | chỉ dùng `str(e)`, không chạm chuỗi kết nối |
+| **Cookie phiên** | ⚠️ **có — nguyên văn mật khẩu** |
+
+⇒ Đúng **MỘT** đường rò, và đã bịt.
+
+### Đã sửa — kho phiên phía máy chủ
+
+- Cookie nay **chỉ còn mã phiên ngẫu nhiên `sid`**. Toàn bộ `db_config` nằm trong
+  `_phien_db` (RAM tiến trình), truy cập qua `_db_cfg()` / `_dat_db_cfg()` / `_xoa_db_cfg()`.
+- **32 chỗ** trong `server.py` đổi từ `session.get('db_config')` sang `_db_cfg()` — thay cơ học,
+  mỗi mẫu đều kiểm đúng số lượng trước khi thay.
+- `_dat_db_cfg()` **luôn sinh `sid` mới** mỗi lần đăng nhập ⇒ mã phiên cũ bị lộ không dùng
+  lại được (chống session fixation).
+- `secret_key` → `os.urandom(32)` mỗi lần khởi động ⇒ **hết đường giả cookie**.
+- Ghi rõ `SESSION_COOKIE_HTTPONLY=True`, `SESSION_COOKIE_SAMESITE='Lax'`.
+  ⛔ **Cố ý KHÔNG bật `SECURE`** — app chạy `http://localhost:5050`, bật lên là trình duyệt
+  ngừng gửi cookie, đăng nhập xong vẫn bị coi là chưa đăng nhập.
+
+### Verify — đạt M2
+
+| Mount | Nội dung |
+|---|---|
+| M1 | `ast.parse` OK · quét trùng tên hàm: không trùng · không còn `session['db_config']` nào ngoài 2 ghi chú |
+| **M2 — 14/14** | Đăng nhập bằng `test_client` (SQL giả), rồi **giải cookie đúng cách kẻ tấn công làm**: không còn mật khẩu, không còn user `sa`, không còn địa chỉ máy chủ, chỉ còn `sid` · app vẫn nhận ra phiên (`/api/my_perms` → 200) · đăng nhập lại đổi `sid`, `sid` cũ bị xoá · đăng xuất dọn sạch kho · sau đăng xuất gọi lại bị chặn 401 · `secret_key` là 32 byte ngẫu nhiên |
+
+Chưa đạt M3 — chưa build EXE, chưa đăng nhập bằng SQL thật.
+
+### ⚠️ Hệ quả vận hành phải báo cho người dùng
+
+**Khởi động lại app là phải đăng nhập lại**, kể cả sau khi tự cập nhật. Trước đây cookie
+mang sẵn thông tin kết nối nên app tự dựng lại kết nối mà người dùng không hề hay — tiện,
+nhưng tiện đó chính là cái lỗ.
+
+### Quyết định của Đại Ca trong phiên này
+
+1. **Nhân viên VẪN tự gõ thông tin SQL** như hiện nay ⇒ không nhúng credential SQL vào app.
+2. **Bỏ hẳn chế độ file** (`phanquyen.json`) — chỉ còn nguồn Google Sheet. Không có phân
+   quyền = **không ai vào được**, thay vì mở toang 24 mục như hiện nay. *(chưa làm)*
+3. **Nhúng URL + TOKEN vào EXE** để chỉ còn **một file** phát cho nhân viên. *(chưa làm —
+   còn chờ Đại Ca chốt đặt token ở GitHub Secrets hay code cứng)*
+
+### Vì sao token Apps Script lộ không đáng sợ (đã tra tận nơi)
+
+Token chỉ được kiểm ở **đúng một chỗ** — cửa vào `doPost` của `Code.gs`. Qua được cửa đó thì
+**7/8 lệnh còn đòi mật khẩu**: `nap` / `luu_user` / `xoa_user` / `dat_mat_khau` / `luu_chuc_vu` /
+`xoa_chuc_vu` đều gọi `_doiAdmin()` ngay dòng đầu; `dang_nhap` đòi mật khẩu của chính người đó.
+Chỉ `ping` là không đòi gì.
+
+⇒ Kẻ cầm token **không đọc được danh sách tài khoản, không sửa được ai, không lấy được bảng
+hash, và tuyệt nhiên không chạm được số liệu kế toán** (số liệu ở SQL Server sau VPN).
+Cái mất thật sự: **`Code.gs` không có rate limit** nên người lạ đoán mật khẩu không giới hạn
+số lần (thực tế ~1.800 lần/giờ vì mỗi lần phải quay 200.000 vòng + chờ Apps Script ~2s), và
+có thể **spam cho cạn quota Apps Script** ⇒ nhân viên không đăng nhập được trong ngày.
+⇒ Nếu chọn nhúng token vào EXE thì **phải thêm khoá tạm sau N lần sai** vào `Code.gs`.
+
+---
+
+## 21/09/2026 (tiếp) — Bỏ hẳn chế độ file: Google Sheet là nguồn DUY NHẤT
+
+Đại Ca chốt: bỏ `phanquyen.json`, mọi máy đều đối chiếu tài khoản + quyền trên Google Sheet.
+
+### Vì sao phải bỏ — không phải cho gọn mà vì một cái bẫy
+
+Nhánh dự phòng cũ xếp thế này:
+
+```
+có ketnoi.json ? → hỏi Google Sheet
+không         ? → có phanquyen.json ? → tra file
+                   không             ? → app_group = 'ADMIN'   ← Ở ĐÂY
+```
+
+Dòng cuối nghĩa là: **máy nào chỉ có miền EXE là bất kỳ ai đăng nhập được SQL sẽ thấy đủ
+24 mục, mọi đơn vị** — im lặng, không một dòng cảnh báo, nhìn bằng mắt thì y hệt bản đúng.
+Quên chép cấu hình sang một máy = máy đó coi như không có phân quyền.
+
+Nay: thiếu cấu hình ⇒ **chặn đăng nhập (503)** kèm câu tiếng Việt dễ hiểu, nguyên văn giấu
+sau `chi_tiet` — xem `_loi_chua_cau_hinh()`.
+
+### Đã bỏ khỏi `server.py`
+
+| Thứ | Ghi chú |
+|---|---|
+| `_load_phanquyen` · `_app_users` · `_find_app_user` · `_effective_matrix` · `_save_phanquyen` · `_user_items` · `_has_active_admin` | 7 hàm chỉ phục vụ chế độ file |
+| `PERM_MATRIX` · `PERM_GROUP_NAMES` | bảng nhóm quyền **ghi cứng trong code**. Chức vụ nay nằm trên Sheet ⇒ giữ lại là có **HAI nguồn sự thật mâu thuẫn nhau**, đúng loại bẫy đã gây tai nạn trước đây |
+| nhánh `elif users:` trong `/api/login` | đường đăng nhập bằng file |
+| nhánh chế độ file trong 4 endpoint quản trị | `perm_config` · `perm_save_user` · `perm_delete_user` · `perm_set_password` |
+
+`_current_perms()` trước đây không có `app_items` thì rơi về file rồi cuối cùng về *'ADMIN = full'*
+— tức là **phiên hỏng thì được toàn quyền**, đúng chiều ngược với cái cần. Nay trả tập **rỗng**.
+`_current_group()` cũng bỏ mặc định `'ADMIN'`.
+
+**Giữ lại:** `_pbkdf2_hash` / `_pbkdf2_verify` — nay chỉ còn phục vụ **bản cache offline 7 ngày**,
+không còn dùng để đăng nhập.
+
+### Đã bỏ khỏi `index.html`
+
+State `nguon` · biến `theoChucVu` · 4 chỗ rẽ nhánh theo nó · toàn bộ **checklist tick riêng 24 mục
+cho từng người** trong modal Sửa · hai hàm `applyPreset` / `toggleItem` (`applyPreset` vốn đã là
+code chết, không ai gọi). Modal Sửa nay chỉ còn **dropdown chức vụ** + danh sách đơn vị.
+
+### Verify — đạt M2
+
+| Mức | Nội dung |
+|---|---|
+| M1 | `ast.parse` OK · `node check_babel.js` SUCCESSFUL · không còn tham chiếu treo nào |
+| **M2 — 24/24** | (A) **thiếu cấu hình: 503, không cấp phiên, gọi `/api/ledger` vẫn bị chặn** · (B) có cấu hình: kế toán đăng nhập → đúng 5 mục / chức vụ KT01 / 2 đơn vị; mục ngoài quyền **403**; tab Phân quyền **403** · (C) sai tài khoản → 401, không lọt vào bằng ADMIN · (D) 7 hàm + 2 bảng ghi cứng đã biến mất, `PERM_ALL_ITEMS` vẫn đủ 24 |
+| Giao diện | Mở trên trình duyệt thật: 2 tab con chạy đúng · modal Sửa **chỉ còn dropdown chức vụ**, checklist 24 mục đã biến mất |
+
+Chưa đạt M3 — chưa build EXE, chưa đăng nhập bằng SQL + Google Sheet thật.
+
+### Còn treo sau việc này
+
+- **Việc 3 chưa làm:** nhúng URL + TOKEN vào EXE để chỉ phát một file. ⚠️ **Giờ nó quan trọng
+  hơn trước**: sau khi bỏ chế độ file, máy thiếu `ketnoi.json` là **không ai đăng nhập được**,
+  chứ không phải "chạy như cũ" nữa.
+- ⛔ **Chưa nhúng thì ĐừNG PHÁT bản này** — hoặc phải chép kèm `ketnoi.json` sang từng máy.
+- `Code.gs` **không có rate limit** — phải thêm khoá tạm sau N lần sai TRƯỚC khi phát EXE
+  có token công khai.
+- `phanquyen.json` ở thư mục gốc và `dist/phanquyen.json.cu` nay **vô dụng** — xoá được.
+  Giữ dòng `phanquyen.json` trong `.gitignore` cho chắc.
+- Màn đăng nhập **chưa bắt buộc** điền Tài khoản ứng dụng ở phía frontend; để trống thì Google
+  trả "Sai tài khoản hoặc mật khẩu" — đúng nhưng chậm hơn 4–7 giây so với chặn ngay tại chỗ.
+
+---
+
+## 21/09/2026 (tiếp) — Ghim cứng token + chống dò mật khẩu: chỉ còn MỘT file EXE
+
+Đại Ca chốt: **code cứng URL + TOKEN vào `server.py`**, không phát kèm file cấu hình nào.
+
+### Trước khi làm — gỡ một hiểu nhầm quan trọng
+
+Đại Ca hỏi *"token này là token của Google Sheet đúng không"*. **Không.** Nó là chuỗi
+**Đại Ca tự gõ** ở `const TOKEN` trong `Code.gs`, Google không biết nó là gì.
+
+| | Token Google thật | `TOKEN` của app này |
+|---|---|---|
+| Ai cấp | Google | Đại Ca tự đặt |
+| Cầm được thì vào được | **Drive, Gmail, mọi Sheet** | chỉ gõ cửa đúng một script |
+| App này có không | ❌ **KHÔNG CÓ** | ✅ có |
+
+Trong toàn bộ app **không có một mẩu credential Google nào** — đó chính là lý do 19/09 bỏ hướng
+Service Account. Lộ `url` + `token` **không cho ai vào tài khoản Google của Đại Ca**.
+
+⚠️ Ghi lại cho sòng phẳng: luật cũ của chính Đại Ca là *"không ghi credential vào bất kỳ file nào
+trong repo"*. Việc này **đi ngược luật đó**, đã cảnh báo hai lần và Đại Ca chốt chấp nhận, vì
+token Apps Script không mở vào dữ liệu. **Luật vẫn giữ nguyên cho mọi thứ khác — nhất là SQL.**
+
+### Đã làm
+
+**1. Ghim cứng vào `server.py`** — `_GS_URL_GHIM` / `_GS_TOKEN_GHIM`, kèm khối ghi chú dài giải
+thích vì sao cố ý. Thứ tự ưu tiên trong `_gs_config()`:
+
+```
+1. ketnoi.json cạnh EXE      (để đổi gấp, khỏi build lại — gửi 1 file là xong)
+2. ketnoi.json nhúng trong EXE
+3. BẢN GHIM CỨNG             ← đường mặc định, dùng cho mọi máy bình thường
+```
+
+Tức là **file ĐÈ LÊN bản ghim**, không phải ngược lại. Bình thường không cần file nào.
+
+**2. Chống dò mật khẩu trong `Code.gs`** — đây là phần **bắt buộc đi kèm**: token công khai nghĩa
+là ai cũng gọi được API, mà trước đó `Code.gs` **không có giới hạn số lần thử nào**.
+
+- Khoá tạm **15 phút** sau **8 lần sai** trong cửa sổ 15 phút. Đăng nhập đúng thì xoá bộ đếm.
+- Áp cho **cả `_doiAdmin`** — dò mật khẩu admin là nguy nhất (vào được là đọc/sửa cả bảng).
+- Dùng `CacheService`, không đụng Sheet ⇒ không làm chậm đăng nhập.
+- **Đang bị khoá thì KHÔNG ghi log** — nếu không, mỗi lần kẻ lạ gõ là một dòng, sheet Nhật ký
+  phình vô ích. Dòng báo khoá ghi đúng **một** lần lúc bắt đầu khoá.
+
+⚠️ **Cố ý chỉ khoá THEO TỪNG TÀI KHOẢN, không khoá toàn cục.** Khoá toàn cục thì một kẻ rảnh rỗi
+gõ bậy vài chục lần là **khoá được cả công ty** — đổi một lỗ nhỏ lấy một lỗ to hơn.
+
+Hiệu quả đo được: không giới hạn thì dò ~1.800 lần/giờ; nay còn **32 lần/giờ mỗi tài khoản**
+— giảm 56 lần.
+
+### Verify — đạt M2
+
+| Mức | Nội dung |
+|---|---|
+| M1 | `ast.parse` OK · URL/TOKEN ghim **khớp từng ký tự** với `ketnoi.json` đang chạy (kiểm bằng so sánh, không in giá trị ra màn hình) |
+| Bản ghim | **4/4** — chạy từ thư mục **không có** `ketnoi.json`: vẫn lấy được cấu hình, url/token đúng, `/api/login` không còn bị chặn 503 |
+| Rate limit | **15/15** bằng shim Node **siết sát API Google** (`get()` chỉ trả String, `put()` bắt buộc String, TTL ≤ 21600, hết hạn thì trả null): sai 7 lần chưa khoá · đăng nhập đúng xoá bộ đếm · chạm ngưỡng thì khoá và ghi **đúng 1** dòng log · đang khoá thì **gõ đúng mật khẩu vẫn bị chặn** · gõ thêm 20 lần **không ghi thêm dòng nào** · **người khác vẫn đăng nhập bình thường** · hết hạn vào lại được · admin chịu chung lưới · quá cửa sổ thì bộ đếm về 0 |
+
+⚠️ Shim Node viết dễ dãi thì test vô dụng — bài học 20/09 (shim cũ không bắt được lỗi
+`computeHmacSha256Signature` trộn kiểu). Shim lần này ném lỗi đúng như Google.
+
+Chưa đạt M3 — chưa build EXE, và **`Code.gs` mới chưa được triển khai lên Google**.
+
+### ⛔ Hai việc Đại Ca phải tự làm (agent không làm thay được)
+
+1. **Triển khai lại Apps Script**: mở Sheet → Extensions → Apps Script → dán `Code.gs` mới →
+   Triển khai → **Quản lý bản triển khai** → bút chì → Phiên bản: **Mới** → Triển khai.
+   ⛔ **ĐỪNG bấm "Triển khai mới"** — nó sinh URL khác và mọi EXE đã phát sẽ chết.
+2. Quyết định có **đổi token mới** hay không. Token hiện tại sẽ công khai ngay khi push.
+   Đổi hay không thì kết quả cuối cũng như nhau (token mới cũng công khai) — nêu ra để Đại Ca biết.
+
+### Còn treo
+
+- **CHƯA build EXE, CHƯA commit/push.**
+- Nếu `Code.gs` mới chưa lên Google mà đã phát EXE: app vẫn chạy bình thường, chỉ là **chưa có
+  lưới chống dò** — không hỏng gì, nhưng mất đúng cái lớp bảo vệ vừa thêm.
+  → ✅ **Đã triển khai cuối ngày 21/09 (Version 4)** — xem mục cuối file.
+- `phanquyen.json` ở thư mục gốc và `dist/phanquyen.json.cu` nay vô dụng — xoá được.
+
+### Build EXE v1.11.5 + chạy thật — đạt M3 (phần kiểm được)
+
+Build qua `BuildEXE-LedgerReport.bat` (lớp chặn theo đường dẫn cho qua vì thư mục chứa chữ
+`ledgerreport`). **v1.11.4 → v1.11.5.**
+
+⚠️ **Một phép đo tôi làm SAI, ghi lại để đừng lặp:** tôi thử kiểm nội dung EXE bằng cách tìm
+chuỗi thô (`_GS_TOKEN_GHIM`, `_phien_db`…) trong file `.exe`. **Vô hiệu** — PyInstaller nén
+bytecode vào PYZ nên không chuỗi nào tìm thấy, kể cả thứ chắc chắn có. Kết quả "đã bị xoá → đạt"
+cũng là đạt giả. **Muốn biết EXE chứa gì thì phải CHẠY nó.**
+
+| Phép kiểm | Kết quả |
+|---|---|
+| Bẫy 10 — EXE mới hơn code | EXE **11:58** > `server.py` **11:46** ✓ |
+| `/api/version` trên EXE thật | `{"status":"ok","version":"1.11.5"}` ✓ |
+| **Bản ghim cứng có chạy không** | Tạm đổi tên `dist/ketnoi.json` → EXE **không còn file cấu hình nào**. Đăng nhập với tài khoản không tồn tại → **HTTP 401 sau 3,3 giây**, nội dung `"Sai tài khoản hoặc mật khẩu"` — **đúng câu Google trả về** |
+| Không cấp phiên khi đăng nhập hỏng | `curl -c` không nhận được cookie nào ✓ |
+
+**Vì sao 401-sau-3,3-giây là bằng chứng quyết định:** nếu bản ghim KHÔNG chạy thì `_gs_config()`
+trả None ⇒ `_loi_chua_cau_hinh()` ⇒ **503 trả về tức thì (0 giây)**. Nhận được 401 kèm đúng câu
+của Google nghĩa là app **đã gọi Apps Script thật** mà trong tay không có file cấu hình nào.
+⇒ Ghim cứng hoạt động, và chế độ file đã bỏ hẳn (không rơi về `ADMIN`).
+
+**Chưa kiểm được trên EXE thật** (cần VPN + SQL + tài khoản thật, không có trong phiên này):
+đăng nhập thành công end-to-end · cookie không chứa mật khẩu SQL (đã đạt 14/14 ở M2) ·
+tab Phân quyền 2 tab con · **rate limit** (vì `Code.gs` mới **chưa deploy lên Google**).
+
+Đã trả lại tên `dist/ketnoi.json` sau khi test.
+
+---
+
+## 21/09/2026 (tiếp) — 🔴 Đổi mật khẩu trong tab Phân quyền KHÔNG có tác dụng
+
+**Triệu chứng Đại Ca báo:** đổi mật khẩu `admin` trong tab Phân quyền → app báo lưu thành công →
+**đăng nhập lại không vào được**, màn hình hiện *"Sai tài khoản hoặc mật khẩu"*.
+
+### Nguyên nhân — `_apiLuuUser` trong Code.gs
+
+```javascript
+if (moi) {                                    // ← moi = TẠO MỚI
+    if (!p.mat_khau) return {...};
+    const kq = _doiMatKhauDong(b, soDong, p.mat_khau);
+}
+```
+
+**Mật khẩu CHỈ được ghi khi tạo tài khoản mới.** Sửa tài khoản đã có thì `p.mat_khau` bị **vứt đi
+trong im lặng** — không một dòng nào xử lý.
+
+Mà ô *"Mật khẩu mới (để trống nếu giữ nguyên)"* trong modal **Sửa** đi đúng đường đó:
+modal Sửa → `/api/perm/user` → `luu_user`. App báo "Lưu thành công", Sheet cập nhật tên/chức vụ/
+đơn vị — **nhưng cột `PW_HASH` không hề đổi**. Gõ mật khẩu mới thì không khớp hash cũ.
+
+✅ **May: mật khẩu CŨ vẫn còn nguyên hiệu lực** nên không mất tài khoản. Đại Ca vào lại bằng
+`admin@123`.
+
+⚠️ Endpoint `/api/perm/password` (đường đổi mật khẩu *đúng*, có xoá cache offline) vẫn nằm đó
+trong `server.py` nhưng **không frontend nào gọi tới** — hôm 21/09 tôi đã thấy điều này và chỉ ghi
+vào điểm mù, **không lần tiếp xem vậy thì đổi mật khẩu đi đường nào**. Nếu lần thì đã ra lỗi này
+trước khi Đại Ca vấp.
+
+### Lỗi thứ hai — bài test bắt được, chưa ai gặp
+
+`_apiLuuUser` **ghi USER_ID / họ tên / chức vụ / đơn vị vào Sheet RỒI MỚI** kiểm *"tài khoản mới
+phải có mật khẩu"*. Tạo tài khoản mà quên gõ mật khẩu ⇒ Sheet đã có một dòng **không có PW_HASH**
+(tài khoản ma). Tệ hơn: lần lưu sau `moi` thành `false` nên **không còn bắt buộc mật khẩu nữa**.
+Không đăng nhập được bằng dòng đó (`_xacThuc` đòi cả salt lẫn hash) nên không phải lỗ bảo mật,
+nhưng là rác trên Sheet và làm người dùng tưởng đã tạo xong.
+
+### Đã sửa
+
+| Chỗ | Sửa gì |
+|---|---|
+| `Code.gs` · `_apiLuuUser` | Đặt mật khẩu **khi nào có gửi lên**, không chỉ lúc tạo mới. Để trống = giữ nguyên, **đúng như nhãn trên modal** |
+| `Code.gs` · `_apiLuuUser` | Chuyển phép kiểm mật khẩu **LÊN TRƯỚC** khi ghi Sheet |
+| `Code.gs` · log | Ghi rõ `· ĐỔI MẬT KHẨU` để còn truy vết |
+| `Code.gs` · `ping` | Trả thêm `ban: BAN_CODE` + `co_ratelimit: true` — **để biết bản đang chạy trên Google có phải bản mới không**. Trước đây sửa xong quên Triển khai là ngồi đoán |
+| `server.py` · `perm_save_user` | Đổi mật khẩu xong thì **xoá bản cache offline** của tài khoản đó (`_xoa_cache_uid`) |
+
+⚠️ **Hạn chế còn lại của cache offline:** chỉ xoá được cache **trên máy đang thao tác**. Máy khác
+đã từng đăng nhập bằng mật khẩu cũ thì vẫn giữ cache đó tới khi hết 7 ngày ⇒ **mất mạng vẫn vào
+được bằng mật khẩu cũ**. Đây là hạn chế của mô hình "credential cached", giống hệt Windows domain.
+Ghi ra để khỏi tưởng đã kín.
+
+### Verify — đạt M2
+
+**14/14** bằng shim Node (shim tầng Sheet, dùng `_apiLuuUser` / `_doiMatKhauDong` / `_xacThuc` /
+`_apiDangNhap` **nguyên văn** từ Code.gs):
+- Tái hiện đúng lỗi: sửa tài khoản + gửi mật khẩu → **PW_HASH đã đổi** (trước khi sửa thì y nguyên)
+- Sau khi đổi: **vào được bằng mật khẩu MỚI, mật khẩu CŨ hết tác dụng**
+- Để trống ô mật khẩu → PW_HASH giữ nguyên, **tên và đơn vị vẫn được cập nhật**
+- Tạo mới không mật khẩu → bị từ chối **và không để lại dòng rác nào**
+- Log ghi rõ `ĐỔI MẬT KHẨU`
+
+Chạy lại hai bộ test cũ: rate limit **15/15**, bỏ chế độ file **24/24** — không vỡ gì.
+
+**Build lại EXE v1.11.5 → v1.11.6.**
+
+### ⛔ Việc Đại Ca phải làm
+
+`Code.gs` sửa rồi nhưng **chưa lên Google** — phải Triển khai → Quản lý bản triển khai → bút chì →
+Phiên bản **Mới**. Chừng nào chưa làm thì **đổi mật khẩu vẫn không có tác dụng**.
+Sau khi deploy, kiểm bằng `ping`: kết quả phải có `"ban":"2026-09-21a"`.
+
+> ✅ **ĐÃ XONG cuối ngày 21/09 — Version 4.** Lưu ý: mã bản cuối cùng là **`2026-09-21b`**
+> (không phải `a` như viết lúc này) vì sau đó còn vá thêm lỗ rate limit ở `_apiDatMatKhau`.
+> Và Đại Ca ĐÃ gặp đúng cảnh báo này: đổi mật khẩu vẫn không ăn trên EXE v1.11.6 vì chưa Triển khai.
+
+---
+
+## 21/09/2026 (tiếp) — Ô tài khoản ở header + tự đổi mật khẩu (mẫu SYNA AI PORTAL)
+
+### Vì sao Google vẫn chạy bản cũ — và cách phát hiện
+
+Đại Ca báo đổi mật khẩu **vẫn không ăn** trên EXE v1.11.6. Chạy `ping` thì rõ ngay:
+kết quả **không có trường `ban`** ⇒ Google vẫn chạy `Code.gs` **bản cũ**.
+`_apiLuuUser` chạy **trên Google**, không nằm trong EXE — build lại EXE bao nhiêu lần cũng vô ích
+nếu chưa Triển khai.
+
+✅ Trường `ban: BAN_CODE` thêm sáng nay **bắt được đúng việc này ngay lần dùng đầu tiên**.
+Trước đây không có cách nào biết, sửa xong quên Triển khai là ngồi đoán.
+
+### Vá thêm một lỗ trước khi mở giao diện đổi mật khẩu cho mọi người
+
+`_apiDatMatKhau` khi mật khẩu cũ sai **chỉ trả lỗi, không đếm lần sai**. Mà `/api/perm/password`
+nằm trong `PERM_PUBLIC` (miễn kiểm quyền) ⇒ ai đăng nhập được cũng gửi `user_id` của **người khác**
++ đoán mật khẩu **không giới hạn số lần** — **đường dò mật khẩu VÒNG QUA rate limit**.
+Chưa nguy vì chưa giao diện nào gọi tới; mở ra thì thành nguy. Nay chịu chung lưới với `_apiDangNhap`.
+⇒ `BAN_CODE` lên **`2026-09-21b`**.
+
+### Ô tài khoản ở header — theo đúng mẫu Portal
+
+Đọc `Zalo CRM ASSISTANT.html` (SYNA AI PORTAL) rồi làm theo:
+
+| Luật của Portal | Áp vào đây |
+|---|---|
+| Ô tài khoản chỉ gánh **2 việc**: cho biết đang ở tài khoản nào, và đổi mật khẩu | Menu chỉ có **Đổi mật khẩu** |
+| **KHÔNG đưa Đăng xuất vào menu** — nút đó đã nằm chỗ khác, bày hai chỗ chỉ tổ rối | Giữ nguyên nút Đăng xuất cạnh bên |
+| Tên/email nằm **ngay cạnh** ảnh đại diện | Tên + chức vụ cạnh ô chữ cái đầu |
+| Menu thả xuống có dòng đầu nhắc đang ở tài khoản nào | Có, kèm **"Được xem N mục · M đơn vị"** |
+
+⚠️ **Bẫy z-index Portal đã trả giá** (ghi trong chính file đó): menu nằm trong thẻ cha có z-index
+thì cha tạo một **tầng riêng**, số z-index của con chỉ tranh nhau trong tầng đó chứ **không vượt ra**
+so với khối khác ⇒ dòng dưới của menu bị phủ, **nhìn thấy mà bấm không ăn**. Đặt z-index 5000 cho
+riêng menu KHÔNG cứu được, phải nâng chính thanh cha.
+➡️ Ở đây tránh hẳn bằng `createPortal` — đúng cách `DocumentTabDropdown` trong chính `index.html`
+đã dùng. Header là `z-[1000]`, khối dưới `z-[900]` nên vốn không vướng, nhưng portal thì miễn nhiễm.
+
+### Vì sao việc này cần, không chỉ là cho đẹp
+
+Tab Phân quyền **chỉ ADMIN vào được** ⇒ nhân viên thường **không có bất kỳ cách nào tự đổi mật
+khẩu**, phải nhờ Đại Ca đổi hộ từng người và gửi mật khẩu qua Zalo.
+Phần khó vốn đã có sẵn: `/api/perm/password` hỗ trợ **chính chủ tự đổi** (kèm `old_password`,
+KHÔNG cần tài khoản quản trị) và nằm trong danh sách miễn kiểm quyền. **Chỉ thiếu mỗi giao diện.**
+
+Nhân tiện: `/api/my_perms` vốn đã trả về `name` / `group` / `allowed_orgs` từ lâu, nhưng frontend
+chỉ lấy mỗi `items` rồi **vứt phần còn lại**. Nay dùng hết.
+
+### Verify — đạt M2
+
+| Mức | Nội dung |
+|---|---|
+| M1 | `node check_babel.js` SUCCESSFUL · `ast.parse` OK |
+| Apps Script | rate limit **15/15** · đổi mật khẩu **14/14** — chạy lại sau khi vá, không vỡ gì |
+| **Giao diện — bấm thật trên trình duyệt** | Cắt nguyên văn 136 dòng component từ `index.html`, stub `fetch`. Menu mở đúng: tên · `KETOAN1 · KT01` · *"Được xem 5 mục · 2 đơn vị"* · dòng **Đổi mật khẩu**. Modal: **5/5 ca** — mật khẩu mới < 6 ký tự bị chặn · hai ô gõ lại không khớp bị chặn · mật khẩu hiện tại sai thì **gọi server rồi báo "Mật khẩu hiện tại không đúng"** · lúc chờ nút đổi thành **"ĐANG ĐỔI..."** · đổi đúng thì hiện hộp xanh *"Đã đổi mật khẩu…"* và các ô nhập biến mất |
+
+**Build EXE v1.11.6 → v1.11.7.**
+
+### ⛔ Vẫn chờ Đại Ca: Triển khai `Code.gs`
+
+Chừng nào chưa Triển khai thì **cả đổi mật khẩu lẫn rate limit đều chưa có tác dụng** — dù EXE đã
+là v1.11.7. Sau khi Triển khai, `ping` phải trả `"ban":"2026-09-21b"`.
+
+---
+
+## 21/09/2026 (tiếp) — Triển khai Code.gs lên Google, và một cú suýt chết
+
+Đại Ca giao tôi triển khai luôn. Điều khiển **Chrome thật của Đại Ca** (đã đăng nhập Google sẵn) —
+tôi không đăng nhập thay, chỉ dùng phiên có sẵn.
+
+### 🔴 Sự cố: dán thẳng Code.gs lên Google = xoá mất TOKEN thật
+
+Tôi dán nguyên `phanquyen_gas/Code.gs` vào editor rồi **Ctrl+S**, quên rằng repo này công khai nên
+file trong repo cố ý để `TOKEN` là chuỗi giữ chỗ `DAN_TOKEN_NGAU_NHIEN_VAO_DAY`.
+**Token thật trong editor đã bị ghi đè và đã lưu.**
+
+✅ **Không thiệt hại** vì lúc đó chưa bấm Triển khai — bản đang chạy vẫn là Version 3 mang token
+thật, app của Đại Ca vẫn sống bình thường suốt lúc tôi sửa.
+❌ **Bấm Deploy sớm vài phút là cả công ty mất đăng nhập ngay lập tức.**
+
+**Đã sửa:** nạp lại token thật từ `ketnoi.json`, dán đè lại, lưu, rồi xác minh bằng Ctrl+F tìm
+`DAN_TOKEN_NGAU_NHIEN` → **"No results"**, và `BAN_CODE = '2026-09-21b'` → **1 of 1**.
+
+**Không khôi phục được:** hằng `ADMIN_DK_BOOTSTRAP` nay là chuỗi giữ chỗ. Nó chỉ dùng một lần lúc
+`khoiTao()` sinh admin đầu tiên; Sheet đã có admin nên vô hại. Cần dựng lại từ đầu thì phải tự điền.
+
+**Để không lặp lại:** thêm `phanquyen_gas/chuan_bi_deploy.py` — đọc Code.gs, thay token thật từ
+`ketnoi.json`, đưa vào clipboard, **không ghi ra file nào trong repo**. Và ghi **Bẫy 19** vào CLAUDE.md.
+
+### Triển khai — đạt M3
+
+| Bước | Kết quả |
+|---|---|
+| Deploy → **Quản lý bản triển khai** (⛔ KHÔNG phải "Triển khai mới") | Active = "Untitled", đang chạy **Version 3 (20/09)** |
+| ✏️ → Phiên bản **Mới** + mô tả | **Deployment ID giữ nguyên** `AKfycbx8Zr…G5b7PEiFlk` ⇒ **URL không đổi** |
+| Bấm Deploy | *"Deployment successfully updated"* — **Version 4 on Sep 21, 2026, 2:39 PM** |
+| `ping` từ máy | `{"ok": true, "ban": "2026-09-21b", "co_ratelimit": true}` |
+
+⇒ Bản mới đang chạy · lưới chống dò đã bật · **token cũ vẫn khớp nên mọi EXE đã phát vẫn nối được**.
+
+Trước khi bấm Deploy tôi dừng lại xin Đại Ca xác nhận, kèm bằng chứng Deployment ID không đổi —
+đúng cam kết đầu việc, và càng cần thiết sau cú suýt chết ở trên.
+
+### Giờ Đại Ca thử được rồi
+
+Trên EXE **v1.11.7**: đổi mật khẩu trong tab Phân quyền, hoặc dùng **ô tài khoản ở góc phải header**
+→ *Đổi mật khẩu*. Cả hai đường giờ đều ăn thật.
+

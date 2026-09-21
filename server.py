@@ -76,8 +76,457 @@ def _read_app_version():
 APP_VERSION = _read_app_version()
 
 app = Flask(__name__)
-app.secret_key = 'IACC_SECRET_SUPREME_2026'
+
+# ⚠️ secret_key SINH NGẪU NHIÊN MỖI LẦN CHẠY — trước đây ghi cứng
+# 'IACC_SECRET_SUPREME_2026'. Khoá ghi cứng trong mã nguồn của repo CÔNG KHAI nghĩa là
+# ai cũng **tự ký được cookie giả**, và phiên cũ sống xuyên qua mọi lần build lại.
+# Hệ quả phải chấp nhận: khởi động lại app (kể cả sau khi tự cập nhật) là phải
+# đăng nhập lại — đúng với việc kho phiên bên dưới cũng nằm trong RAM.
+app.secret_key = os.urandom(32)
+
+# Cờ bảo vệ cookie — ghi rõ thay vì dựa vào mặc định của Flask.
+# KHÔNG bật SECURE vì app chạy trên http://localhost:5050, bật lên là trình duyệt
+# không gửi cookie nữa ⇒ đăng nhập xong vẫn bị coi là chưa đăng nhập.
+app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Lax')
 CORS(app, supports_credentials=True)
+
+# ===================================================================
+# KHO PHIÊN PHÍA MÁY CHỦ — THÔNG TIN KẾT NỐI SQL KHÔNG ĐƯỢC NẰM TRONG COOKIE
+#
+# ⚠️ BẪY ĐÃ ĐO THẬT (21/09/2026): cookie phiên của Flask được **KÝ, KHÔNG MÃ HOÁ**.
+# Trước đây `session["db_config"] = data` đặt nguyên server/database/user/**password**
+# của SQL vào cookie. Giải ra chỉ cần tách phần payload rồi base64 — **không cần
+# secret_key**. Mở F12 → Application → Cookies là đọc được mật khẩu SQL.
+#
+# Nay cookie chỉ còn một **mã phiên ngẫu nhiên** (`sid`), bản thân nó không nói lên
+# điều gì. Toàn bộ db_config nằm trong RAM của tiến trình này và chết theo tiến trình.
+#
+# ⛔ Đừng quay lại đặt db_config vào `session` — đó chính là cái vừa bị gỡ ra.
+# ===================================================================
+_phien_db = {}                      # sid -> {'cfg': db_config, 'luc': datetime}
+_phien_lock = threading.Lock()
+_PHIEN_HAN_GIO = 24                 # phiên không đụng tới quá số giờ này thì dọn
+
+def _phien_don_dep_locked():
+    """Dọn phiên quá hạn. Gọi khi ĐÃ giữ _phien_lock."""
+    if len(_phien_db) < 50:
+        return                      # app chạy local, thường chỉ vài phiên — khỏi quét
+    nguong = datetime.now() - timedelta(hours=_PHIEN_HAN_GIO)
+    for k in [k for k, v in _phien_db.items() if v.get('luc', nguong) < nguong]:
+        _phien_db.pop(k, None)
+
+def _db_cfg():
+    """Thông tin kết nối SQL của phiên hiện tại, hoặc None khi chưa đăng nhập.
+    Thay cho `session.get("db_config")` cũ — xem khối ghi chú ngay trên."""
+    sid = session.get('sid')
+    if not sid:
+        return None
+    with _phien_lock:
+        m = _phien_db.get(sid)
+        if not m:
+            return None
+        m['luc'] = datetime.now()
+        return m['cfg']
+
+def _dat_db_cfg(cfg):
+    """Ghi thông tin kết nối cho phiên. **Luôn sinh sid MỚI** để một mã phiên bị lộ
+    trước đó không dùng lại được sau khi đăng nhập (chống session fixation)."""
+    cu = session.get('sid')
+    sid = _secrets.token_urlsafe(32)
+    with _phien_lock:
+        if cu:
+            _phien_db.pop(cu, None)
+        _phien_db[sid] = {'cfg': cfg, 'luc': datetime.now()}
+        _phien_don_dep_locked()
+    session['sid'] = sid
+    return sid
+
+def _xoa_db_cfg():
+    """Xoá phiên khỏi kho + bỏ sid khỏi cookie."""
+    sid = session.pop('sid', None)
+    if sid:
+        with _phien_lock:
+            _phien_db.pop(sid, None)
+
+# ===================================================================
+# PHÂN QUYỀN THEO MỤC — 23 mục (7 tab + BC001..BC016). Thêm 18/09/2026.
+# NGUỒN chuẩn: PHANQUYEN_MA_TRAN_NHOM.csv (Đại Ca duyệt), NGOÀI repo.
+#
+# NGUYÊN TẮC (rút từ sự cố 15/08/2026):
+#  - Cấm quyền phải trả 403, KHÔNG trả 401. Frontend gặp 401 là setIsLoggedIn(false)
+#    → "bấm là văng ra khỏi phần mềm" (Bẫy 1). Guard này CHỈ lo QUYỀN MỤC; việc chưa
+#    đăng nhập SQL vẫn để từng endpoint tự trả 401 như cũ.
+#  - 3 endpoint phục vụ 2 báo cáo cùng lúc phải guard theo THAM SỐ, không theo tên route:
+#    /api/report (BC001+BC003), /api/report_by_job (BC002+BC004), /api/cash_flow (BC009+BC010).
+#    Chặn theo tên route thì người bị cấm BC003 vẫn xem được qua BC001 — lỗi không triệu chứng.
+#  - /api/cash_flow trả CẢ direct+indirect trong một response ⇒ phải CẮT theo quyền, nếu không
+#    ẩn menu BC010 mà vẫn lộ số qua network.
+# ⚠️ GIAI ĐOẠN KHUNG: chưa có đăng nhập người dùng (PBKDF2 làm pha sau) → mặc định nhóm ADMIN
+#    để app chạy y như cũ. Khi cắm đăng nhập, /api/login sẽ set session['app_group'] theo nhóm
+#    thật; chỉ cần đổi giá trị mặc định ở _current_group() cho an toàn.
+# ===================================================================
+PERM_TABS    = ['ledger', 'sale', 'voucher', 'purchase', 'warehouse', 'warehouse_balance', 'btp_reconcile']
+PERM_REPORTS = ['BC%03d' % i for i in range(1, 17)]          # BC001..BC016
+PERM_EXTRA   = ['perm_admin']                                # tab "Phân quyền" — CHỈ ADMIN
+PERM_ALL_ITEMS = PERM_TABS + PERM_REPORTS + PERM_EXTRA
+_BC = lambda a, b: {'BC%03d' % i for i in range(a, b + 1)}   # tiện gom dải BC
+
+# Nhóm → tập mã được xem. BC015/BC016 tạm CHỈ ADMIN (Đại Ca quyết sau).
+
+# Tên nhóm hiển thị trong tab Phân quyền (dropdown chọn nhóm).
+
+def _current_group():
+    """Mã chức vụ của phiên. Rỗng = chưa đăng nhập.
+    ⚠️ Trước 21/09/2026 hàm này mặc định trả 'ADMIN' — nghĩa là ai không có chức vụ
+    thì thành toàn quyền. Giờ chức vụ do Google Sheet cấp, không có = không gì."""
+    return session.get('app_group') or ''
+
+def _current_perms():
+    """Tập mã 24 mục phiên này được xem.
+
+    Quyền đã chốt MỘT LẦN lúc đăng nhập và nằm sẵn trong session — **KHÔNG gọi
+    mạng ở đây**, hàm này chạy ở MỌI request.
+
+    Không có `app_items` ⇒ trả tập RỖNG. Trước 21/09/2026 nhánh này rơi về
+    phanquyen.json rồi cuối cùng về 'ADMIN = full' — tức là phiên hỏng thì được
+    toàn quyền, đúng chiều ngược với cái cần."""
+    items = session.get('app_items')
+    if isinstance(items, list):
+        return set(x for x in items if x in PERM_ALL_ITEMS)
+    return set()
+
+# path tĩnh → mã quyền (1 route = 1 mục)
+PERM_ROUTE_STATIC = {
+    '/api/ledger': 'ledger', '/api/ledger/count': 'ledger',
+    '/api/ledger/stream_csv': 'ledger', '/api/ledger/export': 'ledger',
+    '/api/sale': 'sale', '/api/sale/count': 'sale', '/api/sale/stream_csv': 'sale',
+    '/api/voucher': 'voucher', '/api/voucher/count': 'voucher', '/api/voucher/stream_csv': 'voucher',
+    '/api/purchase': 'purchase', '/api/purchase/count': 'purchase',
+    '/api/purchase/stream_csv': 'purchase', '/api/debug_purchase': 'purchase',
+    '/api/warehouse': 'warehouse', '/api/warehouse/count': 'warehouse', '/api/warehouse/stream_csv': 'warehouse',
+    '/api/warehouse_balance': 'warehouse_balance', '/api/warehouse_balance/count': 'warehouse_balance',
+    '/api/warehouse_balance/stream_csv': 'warehouse_balance',
+    '/api/btp_reconcile': 'btp_reconcile', '/api/btp_reconcile/count': 'btp_reconcile',
+    '/api/btp_reconcile/stream_csv': 'btp_reconcile',
+    '/api/balance_sheet': 'BC005', '/api/trial_balance': 'BC006', '/api/journal': 'BC007',
+    '/api/account_details': 'BC008', '/api/cash_flow_cl': 'BC011',
+    '/api/cash_book': 'BC012', '/api/cash_book/export_csv': 'BC012',
+    '/api/debt_summary': 'BC013', '/api/vat_sales_report': 'BC014',
+    '/api/sale_by_source': 'BC015', '/api/nxt': 'BC016',
+    # Tab Phân quyền — CHỈ ADMIN (ADMIN bypass guard; nhóm khác thiếu 'perm_admin' → 403).
+    '/api/perm/config': 'perm_admin', '/api/perm/user': 'perm_admin',
+    '/api/perm/user/delete': 'perm_admin',
+    '/api/perm/role': 'perm_admin', '/api/perm/role/delete': 'perm_admin',
+}
+# path không giới hạn theo mục (vẫn cần đăng nhập SQL — từng endpoint tự kiểm)
+PERM_PUBLIC = {
+    '/api/version', '/api/check_driver', '/api/install_driver', '/api/login', '/api/logout',
+    '/api/metadata', '/api/metadata/refresh', '/api/export/status', '/api/export/cancel',
+    '/api/save_export', '/api/open_file', '/api/open_folder',
+    '/api/check_update', '/api/update_progress', '/api/apply_update', '/api/my_perms',
+    # Tự đổi mật khẩu: ai cũng gọi được. Endpoint TỰ kiểm mật khẩu cũ hoặc tài khoản
+    # quản trị rồi mới cho đổi — ĐỪNG đổi thành 'perm_admin', người thường sẽ kẹt.
+    '/api/perm/password',
+}
+
+def _needed_perm(path):
+    """Mã quyền cần cho path. '' = public (không kiểm mục). '__UNKNOWN__' = /api chưa khai báo."""
+    if path in PERM_PUBLIC:
+        return ''
+    if path in PERM_ROUTE_STATIC:
+        return PERM_ROUTE_STATIC[path]
+    rep = (request.args.get('report') or '').strip().upper()
+    if path == '/api/report':
+        return rep if rep in ('BC001', 'BC003') else 'BC001'
+    if path == '/api/report_by_job':
+        return rep if rep in ('BC002', 'BC004') else 'BC002'
+    if path == '/api/cash_flow':
+        return rep if rep in ('BC009', 'BC010') else 'BC009'
+    if path in ('/api/export_excel_backend', '/api/report_export_csv'):
+        rt = (request.args.get('report_type') or '').strip().upper()
+        return rt if rt in PERM_ALL_ITEMS else '__UNKNOWN__'
+    return '__UNKNOWN__'
+
+@app.before_request
+def _perm_guard():
+    path = request.path
+    if not path.startswith('/api/'):
+        return None                                  # file tĩnh — guard chỉ lo tầng dữ liệu
+    if not _db_cfg():
+        return None                                  # chưa đăng nhập SQL → endpoint tự trả 401
+    needed = _needed_perm(path)
+    if needed == '':
+        return None                                  # public
+    perms = _current_perms()
+    if needed == '__UNKNOWN__':
+        # route /api chưa khai báo → chỉ tài khoản có quyền quản trị (perm_admin) mới qua
+        if 'perm_admin' in perms:
+            return None
+        logger.warning('PERM: route /api chua khai bao quyen: %s', path)
+        return jsonify({"status": "error", "message": "Route chưa khai báo quyền"}), 403
+    if needed in perms:
+        return None
+    return jsonify({"status": "error", "message": "Bạn không có quyền xem mục này"}), 403
+
+# ===================================================================
+# ĐĂNG NHẬP NGƯỜI DÙNG — mật khẩu RIÊNG của tool, băm PBKDF2 (một chiều, có salt).
+# KHÔNG dùng mật khẩu iPOS (SEC_USER mã hoá 2 chiều AES, khoá chôn trong client — xem
+# nhật ký 18/09/2026). Tool tự quản mật khẩu, Đại Ca cấp mật khẩu ban đầu cho từng người.
+#
+# Nguồn tài khoản: **Google Sheet TOOL_CHULONG, DUY NHẤT** (từ 21/09/2026). Chế độ file
+# phanquyen.json đã BỎ HẲN — máy thiếu cấu hình là chặn đăng nhập, xem _loi_chua_cau_hinh.
+# ⚠️ Mật khẩu tool KHÔNG lưu vào session/cookie (tách khỏi db_config lúc login).
+# Hai hàm PBKDF2 dưới đây nay chỉ còn phục vụ BẢN CACHE OFFLINE (_cache_ghi/_cache_kiem);
+# mật khẩu thật được kiểm tại Google, hash không bao giờ rời khỏi Sheet.
+# ===================================================================
+import json as _json, hmac as _hmac, base64 as _b64, secrets as _secrets
+
+def _pbkdf2_hash(password, salt=None, iterations=200_000):
+    if salt is None:
+        salt = _secrets.token_bytes(16)
+    dk = hashlib.pbkdf2_hmac('sha256', (password or '').encode('utf-8'), salt, iterations)
+    return "pbkdf2_sha256$%d$%s$%s" % (iterations, _b64.b64encode(salt).decode(), _b64.b64encode(dk).decode())
+
+def _pbkdf2_verify(password, stored):
+    try:
+        algo, iter_s, salt_b64, hash_b64 = (stored or '').split('$')
+        if algo != 'pbkdf2_sha256':
+            return False
+        salt = _b64.b64decode(salt_b64)
+        expected = _b64.b64decode(hash_b64)
+        dk = hashlib.pbkdf2_hmac('sha256', (password or '').encode('utf-8'), salt, int(iter_s))
+        return _hmac.compare_digest(dk, expected)
+    except Exception:
+        return False
+
+_phanquyen_cache = None
+
+
+
+
+
+
+
+def _current_allowed_orgs():
+    """Đơn vị phiên này được xem. Chốt lúc đăng nhập, không gọi mạng.
+
+    None = KHÔNG giới hạn (thấy tất cả, kể cả đơn vị thêm sau này).
+    set(...) = chỉ được xem đúng các đơn vị đó (áp cho MỌI danh sách + báo cáo).
+    ⚠️ Trên Sheet, cột DON_VI để trống = xem TẤT CẢ, không phải "không xem gì"."""
+    orgs = session.get('app_orgs')
+    return set(str(o) for o in orgs) if isinstance(orgs, list) else None
+
+# ===================================================================
+# NGUỒN TÀI KHOẢN DÙNG CHUNG NHIỀU MÁY — GOOGLE SHEET qua Apps Script
+# (chốt 19/09/2026; chi tiết: phanquyen_gas/HUONG_DAN.md)
+#
+# LUẬT: mật khẩu được KIỂM TẠI GOOGLE, bảng hash KHÔNG BAO GIỜ tải về máy khách.
+#       App gửi lên user+mật khẩu, nhận về đúng danh sách quyền.
+#
+# ⚠️ Quyền lấy MỘT LẦN lúc đăng nhập rồi giữ trong session. _current_perms() và
+#    _current_allowed_orgs() chạy ở MỌI request — gọi mạng trong đó là mỗi cú bấm
+#    phải chờ Google 1–3 giây. Hệ quả phải chấp nhận: thu hồi quyền của ai đó chỉ có
+#    hiệu lực khi người đó đăng nhập lại.
+#
+# ⛔ Chưa cấu hình ketnoi.json → **CHẶN đăng nhập** (_loi_chua_cau_hinh). Trước 21/09/2026
+#    nhánh đó rơi về phanquyen.json rồi về 'ADMIN = full' — mở toang mà không cảnh báo gì.
+# ===================================================================
+import urllib.request as _url_req
+import urllib.error as _url_err
+import time as _time
+
+# ⚠️ Apps Script CHẬP CHỜN THẬT — đo 20/09/2026 trên máy có mạng tốt (0,2s ra google.com):
+#    cùng một lệnh `ping` lúc trả sau 5s, lúc 10,4s, lúc mất 19,7s rồi trả HTTP 404.
+#    404 ở đây KHÔNG phải sai URL — là lỗi nhất thời phía Google, gọi lại là được.
+#    Để timeout 15s + không thử lại thì nhân viên sẽ ngẫu nhiên đăng nhập hỏng mà
+#    không hiểu vì sao, lại còn bị báo nhầm thành "mất mạng".
+_GS_TIMEOUT = 45.0          # rộng tay: máy thật sự mất mạng vẫn hỏng nhanh ở bước nối
+_GS_SO_LAN_THU = 3          # thử lại khi Google trả 404 / 5xx / hết giờ
+_CACHE_HAN_NGAY = 7         # số ngày bản cache offline còn dùng được
+
+class _GSOffline(Exception):
+    """Không nối được tới Google (mất mạng / Google chặn). KHÁC với sai mật khẩu."""
+
+_DK_ITER = 200_000
+def _dan_xuat_dk(uid, mat_khau):
+    """Băm mật khẩu NGAY TẠI MÁY NÀY rồi mới gửi lên Google — mật khẩu gốc không
+    bao giờ rời khỏi máy người dùng.
+
+    Vì sao phải làm ở đây: Apps Script chậm hơn Python ~2.500 lần (đo thật
+    19/09/2026 — Python 200.000 vòng hết 74 mili-giây, Apps Script 10.000 vòng
+    hết 9 GIÂY). Đẩy phần nặng về máy khách thì đăng nhập nhanh mà vẫn giữ đủ
+    200.000 vòng bảo vệ cho bảng lưu bên Google.
+
+    Salt suy thẳng từ tên tài khoản (không ngẫu nhiên) để khỏi tốn thêm một lượt
+    hỏi Google xin salt — mỗi lượt như thế mất gần 2 giây. Google vẫn băm tiếp
+    1.000 vòng với salt ngẫu nhiên riêng nên bảng lưu bên đó không bị trùng nhau.
+
+    ⚠️ uid phải chuẩn hoá y hệt ở MỌI nơi gọi (strip + lower), lệch một chữ hoa
+    là ra chuỗi khác và người dùng không đăng nhập được."""
+    u = (uid or '').strip().lower()
+    salt = ('TOOL_CHULONG|' + u).encode('utf-8')
+    dk = hashlib.pbkdf2_hmac('sha256', (mat_khau or '').encode('utf-8'), salt, _DK_ITER)
+    return _b64.b64encode(dk).decode()
+
+def _thu_muc_canh_exe():
+    return os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.abspath('.')
+
+_gs_cfg_cache = None
+# -------------------------------------------------------------------
+# ĐỊ CHỈ KẾT NỐI — GHIM CỨNG (chốt 21/09/2026)
+#
+# Để chỉ phải phát **MỘT file EXE**, không kèm file cấu hình nào. Đổi về sau thì
+# sửa đúng hai dòng dưới đây rồi build lại.
+#
+# ⚠️ REPO NÀY CÔNG KHAI ⇒ hai chuỗi này ai cũng đọc được trên GitHub. Đã cân nhắc
+#    và chấp nhận: TOKEN chỉ là **lớp chắn bot**, không phải thứ quyết định quyền.
+#    7/8 lệnh của Apps Script đều đòi thêm mật khẩu (xem `_doiAdmin` trong Code.gs):
+#    kẻ cầm token KHÔNG đọc được danh sách tài khoản, KHÔNG sửa được ai, KHÔNG lấy
+#    được bảng hash, và không chạm được số liệu kế toán (nằm ở SQL Server sau VPN).
+#
+# ⛔ CÁI NÀY CHỈ ĐÚNG CHO **TOKEN APPS SCRIPT**. Tuyệt đối không ghim theo kiểu này
+#    bất cứ thông tin SQL Server nào — cái đó mở thật vào dữ liệu kế toán.
+#
+# Đổi token thì phải đổi CẢ HAI đầu: `const TOKEN` trong Code.gs + dòng dưới đây.
+# Triển khai lại Apps Script bằng **Phiên bản mới**, đừNG bấm "Triển khai mới"
+# — nó sinh URL khác và mọi EXE đã phát cho nhân viên sẽ mất kết nối.
+# -------------------------------------------------------------------
+_GS_URL_GHIM = 'https://script.google.com/macros/s/AKfycbx8ZrKnVNbb3RcSORdYgaFmhqoBC-CvzRUnEJW1l_2CKad0S43IMZxHL-G5b7PEiFIk/exec'
+_GS_TOKEN_GHIM = 'kpP8e2h7CVHKJQjxApSbsWRbirJ4U9Z2K1hqnGwcqFy8jjuv'
+
+def _gs_config(force=False):
+    """Cấu hình kết nối tới Apps Script.
+
+    Thứ tự ưu tiên — file ĐÈ LÊN bản ghim cứng:
+      1. `ketnoi.json` cạnh EXE  → để đổi gấp mà khỏi build lại (gửi 1 file là xong)
+      2. `ketnoi.json` nhúng trong EXE (nếu build có kèm)
+      3. **Bản ghim cứng ở trên** — đường mặc định, dùng cho mọi máy bình thường
+
+    Trả None **chỉ khi** cả ba đều trống — lúc đó `_loi_chua_cau_hinh()` chặn đăng nhập."""
+    global _gs_cfg_cache
+    if _gs_cfg_cache is not None and not force:
+        return _gs_cfg_cache or None
+    cfg = {}
+    for p in (os.path.join(_thu_muc_canh_exe(), 'ketnoi.json'), resource_path('ketnoi.json')):
+        try:
+            with open(p, encoding='utf-8') as f:
+                cfg = _json.load(f) or {}
+            logger.info('Nap cau hinh Google Sheet tu file: %s', p)
+            break
+        except FileNotFoundError:
+            continue
+        except Exception as e:
+            logger.warning('Loi doc ketnoi.json %s: %s', p, e)
+    if not (cfg.get('url') and cfg.get('token')):
+        if _GS_URL_GHIM and _GS_TOKEN_GHIM:
+            cfg = {'url': _GS_URL_GHIM, 'token': _GS_TOKEN_GHIM}
+            logger.info('Dung cau hinh Google Sheet ghim san trong ma nguon')
+        else:
+            cfg = {}
+    _gs_cfg_cache = cfg
+    return cfg or None
+
+def _gs_goi(hanh_dong, **thamso):
+    """Gọi Apps Script. Trả dict kết quả.
+    Ném _GSOffline nếu KHÔNG NỐI ĐƯỢC — phải phân biệt với 'nối được nhưng sai mật khẩu',
+    vì chỉ trường hợp mất mạng mới được phép rơi về bản cache offline."""
+    cfg = _gs_config()
+    if not cfg:
+        raise _GSOffline('Chưa cấu hình ketnoi.json')
+    body = dict(thamso)
+    body['token'] = cfg['token']
+    body['hanh_dong'] = hanh_dong
+    body.setdefault('may', platform.node())
+    data = _json.dumps(body, ensure_ascii=False).encode('utf-8')
+
+    # Thử lại được vì mọi hành động hiện có đều lặp lại vô hại: 'luu_user' tìm theo
+    # user_id rồi ghi đè, 'dat_mat_khau' đặt lại cùng giá trị, 'dang_nhap'/'nap' chỉ đọc.
+    # Thêm hành động MỚI mà không chịu được gọi hai lần thì phải bỏ qua vòng lặp này.
+    loi_cuoi = None
+    for lan in range(1, _GS_SO_LAN_THU + 1):
+        req = _url_req.Request(cfg['url'], data=data,
+                               headers={'Content-Type': 'application/json'})
+        try:
+            # Apps Script trả kết quả qua 1 lần redirect sang script.googleusercontent.com;
+            # urlopen tự đi theo redirect nên không cần xử lý thêm.
+            with _url_req.urlopen(req, timeout=_GS_TIMEOUT) as resp:
+                return _json.loads(resp.read().decode('utf-8'))
+        except _url_err.HTTPError as e:
+            loi_cuoi = 'Google trả lỗi HTTP %s' % e.code
+            # 404 và 5xx của Apps Script là lỗi nhất thời — gọi lại thường là được.
+            # Mã khác (403 chẳng hạn) là hỏng thật, dừng ngay khỏi mất công chờ.
+            if e.code != 404 and e.code < 500:
+                raise Exception('%s — kiểm tra lại bản triển khai' % loi_cuoi)
+        except Exception as e:
+            loi_cuoi = str(e)
+        if lan < _GS_SO_LAN_THU:
+            logger.warning('Goi Google that bai (lan %d/%d): %s — thu lai',
+                           lan, _GS_SO_LAN_THU, loi_cuoi)
+            _time.sleep(1.5 * lan)
+    raise _GSOffline(loi_cuoi or 'không rõ nguyên nhân')
+
+# ---------- Bản cache offline ----------
+# Chứa hash PBKDF2 200.000 vòng của mật khẩu (KHÔNG chứa mật khẩu), kèm quyền đã cấp.
+# Đây là mô hình "credential cached" quen thuộc: chỉ những ai ĐÃ đăng nhập thành công
+# trên CHÍNH máy này mới có mục trong file, và mục đó hết hạn sau _CACHE_HAN_NGAY ngày.
+def _cache_path():
+    return os.path.join(_thu_muc_canh_exe(), 'phanquyen_cache.json')
+
+def _cache_doc_file():
+    try:
+        with open(_cache_path(), encoding='utf-8') as f:
+            return _json.load(f) or {}
+    except Exception:
+        return {}
+
+def _cache_ghi(uid, mat_khau, thongtin):
+    """Lưu lại để lần sau mất mạng vẫn đăng nhập được."""
+    try:
+        d = _cache_doc_file()
+        d[uid.lower()] = {
+            'pw': _pbkdf2_hash(mat_khau),
+            'ttin': thongtin,
+            'luc': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        }
+        with open(_cache_path(), 'w', encoding='utf-8') as f:
+            _json.dump(d, f, ensure_ascii=False, indent=1)
+    except Exception as e:
+        logger.warning('Khong ghi duoc cache quyen: %s', e)
+
+def _xoa_cache_uid(uid):
+    """Xoá một mục khỏi bản cache offline trên MÁY NÀY.
+    Gọi sau khi đổi mật khẩu — không thì mất mạng vẫn vào được bằng mật khẩu cũ."""
+    try:
+        c = _cache_doc_file()
+        if c.pop((uid or '').lower(), None) is not None:
+            with open(_cache_path(), 'w', encoding='utf-8') as f:
+                _json.dump(c, f, ensure_ascii=False, indent=1)
+            logger.info('Da xoa cache offline cua tai khoan sau khi doi mat khau')
+    except Exception as e:
+        logger.warning('Khong xoa duoc cache sau khi doi mat khau: %s', e)
+
+def _cache_kiem(uid, mat_khau):
+    """Đăng nhập bằng bản cache khi mất mạng.
+    Trả (thongtin, mốc_đồng_bộ, False) nếu vào được, hoặc (None, lý_do, có_phải_sai_mật_khẩu).
+
+    Cần cờ thứ 3 vì hai chuyện phải nói khác nhau: gõ sai mật khẩu là lỗi của người
+    dùng, còn mấy lý do kia đều là hệ quả của việc KHÔNG gọi được Google — phải nói
+    rõ điều đó ra, không thì người ta đọc "máy này chưa từng đăng nhập" mà chẳng hiểu
+    tại sao hôm qua vẫn vào được."""
+    m = _cache_doc_file().get((uid or '').lower())
+    if not m:
+        return None, 'máy này chưa từng đăng nhập thành công nên không có bản lưu để dùng tạm.', False
+    try:
+        luc = datetime.strptime(m['luc'], '%Y-%m-%d %H:%M:%S')
+    except Exception:
+        return None, 'bản quyền lưu trên máy bị hỏng.', False
+    so_ngay = (datetime.now() - luc).days
+    if so_ngay > _CACHE_HAN_NGAY:
+        return None, ('bản quyền lưu trên máy đã quá %d ngày (đồng bộ lần cuối %s) nên không '
+                      'dùng tạm được nữa.' % (_CACHE_HAN_NGAY, luc.strftime('%d/%m/%Y'))), False
+    if not _pbkdf2_verify(mat_khau, m.get('pw', '')):
+        return None, 'Sai tài khoản hoặc mật khẩu ứng dụng.', True
+    return m.get('ttin') or {}, luc.strftime('%d/%m/%Y %H:%M'), False
 
 # ===== GZIP COMPRESSION =====
 # JSON nén rất tốt (5–10× nhỏ hơn) → giảm bandwidth + parse time cho payload 500k dòng
@@ -229,7 +678,7 @@ def serve_static(filename):
 
 def get_connection():
     """Trả connection từ pool, tạo mới nếu chưa có hoặc đã chết."""
-    db_config = session.get('db_config')
+    db_config = _db_cfg()
     if not db_config:
         raise Exception("Vui lòng đăng nhập SQL Server trước!")
 
@@ -277,7 +726,7 @@ def close_pool_for(db_config):
 
 def invalidate_pool():
     """Drop connection hiện tại khỏi pool (gọi khi query lỗi — có thể do conn chết giữa chừng)."""
-    db_config = session.get('db_config')
+    db_config = _db_cfg()
     close_pool_for(db_config)
 
 @app.route("/api/check_driver")
@@ -292,39 +741,362 @@ def install_driver():
     success, message = install_odbc_driver()
     return jsonify({"success": success, "message": message})
 
+def _loi_ket_noi_de_hieu(e, cau_hinh=None):
+    """Đổi lỗi ODBC thô thành câu người dùng đọc được.
+
+    Lỗi gốc trông như thế này — không ai ngoài dân kỹ thuật hiểu nổi:
+      ('08001', '[08001] [Microsoft][ODBC SQL Server Driver][DBNETLIB]SQL Server
+       does not exist or access denied. (17) (SQLDriverConnect)...')
+
+    Trả (thông_điệp_dễ_hiểu, nguyên_văn_lỗi). Nguyên văn vẫn gửi kèm để còn chẩn
+    đoán, nhưng để sau nút "Chi tiết" chứ không đập thẳng vào mặt người dùng.
+    """
+    goc = str(e)
+    t = goc.lower()
+    c = cau_hinh or {}
+    may_chu = c.get('server') or 'máy chủ'
+    csdl = c.get('database') or 'database'
+    nguoi_dung = c.get('user') or 'tài khoản'
+
+    # ⚠️ THỨ TỰ XÉT RẤT QUAN TRỌNG, và phải xét "không tới được máy chủ" TRƯỚC "hết giờ chờ".
+    #    ODBC Driver 17 khi không tới được máy chủ sẽ trả VỀ CẢ HAI:
+    #      "Login timeout expired" + "Server is not found or not accessible"
+    #    Xét chữ "timeout" trước thì báo thành "máy chủ quá tải, thử lại sau" — dẫn người
+    #    dùng đi sai hướng, ngồi chờ thay vì đi bật VPN. Đã trả giá 20/09/2026.
+    khong_toi_duoc = ('server is not found or not accessible' in t
+                      or 'network-related' in t
+                      or 'does not exist or access denied' in t
+                      or 'connectionopen' in t
+                      or 'tcp provider' in t
+                      or 'named pipes provider' in t)
+    if khong_toi_duoc:
+        return ('Không kết nối được tới máy chủ %s.\n'
+                'Kiểm tra lần lượt: đã bật VPN / vào đúng mạng nội bộ chưa · địa chỉ và cổng '
+                'có gõ đúng không · máy chủ SQL có đang bật không.' % may_chu, goc)
+    # Tới đây mới là "gọi được máy chủ nhưng nó trả lời chậm quá".
+    if 'timeout expired' in t or 'hyt00' in t:
+        return ('Máy chủ có trả lời nhưng quá chậm nên phải bỏ cuộc. Mạng đang chậm, hoặc '
+                'máy chủ SQL đang quá tải. Thử lại sau ít phút.', goc)
+    if 'login failed for user' in t or '28000' in t:
+        return ('Sai User ID hoặc Password của SQL Server (không phải mật khẩu ứng dụng).', goc)
+    if 'cannot open database' in t:
+        return ('Không mở được database "%s". Kiểm tra tên database, hoặc tài khoản "%s" '
+                'chưa được cấp quyền vào database này.' % (csdl, nguoi_dung), goc)
+    if 'data source name not found' in t or 'im002' in t:
+        return ('Máy này chưa cài driver ODBC cho SQL Server. Bấm nút cài driver ở màn hình '
+                'đăng nhập rồi thử lại.', goc)
+    if '08001' in t or '08s01' in t:
+        return ('Không kết nối được tới máy chủ %s.\n'
+                'Kiểm tra lần lượt: đã bật VPN / vào đúng mạng nội bộ chưa · địa chỉ và cổng '
+                'có gõ đúng không · máy chủ SQL có đang bật không.' % may_chu, goc)
+    return ('Không kết nối được tới máy chủ %s.' % may_chu, goc)
+
 @app.route("/api/login", methods=["POST"])
 def login():
+    data = None          # phải khai trước: khối except ở cuối có đọc biến này
     try:
-        data = request.json
-        # Nếu đã login trước đó với config khác → đóng connection cũ
-        old = session.get('db_config')
+        data = request.json or {}
+        # Tách credential ỨNG DỤNG khỏi db_config — mật khẩu tool KHÔNG được lưu vào session/cookie.
+        app_user = (data.pop('app_user', '') or '').strip()
+        app_password = data.pop('app_password', '') or ''
+
+        # (1) Xác thực tài khoản ứng dụng — **Google Sheet là nguồn DUY NHẤT**.
+        #     Thiếu cấu hình là chặn ngay. Trước 21/09/2026 nhánh này rơi về
+        #     phanquyen.json, và không có cả file đó thì app_group='ADMIN' ⇒ mở toang
+        #     24 mục cho bất kỳ ai đăng nhập được SQL (xem _loi_chua_cau_hinh).
+        if not _gs_config():
+            return _loi_chua_cau_hinh()
+
+        app_group = ''
+        real_uid = None
+        app_items = None
+        app_orgs = None
+        app_nguon = 'gsheet'
+        ho_ten = None
+        canh_bao = None
+
+        try:
+            # Gửi CHUỖI ĐÃ BĂM, không gửi mật khẩu gốc (xem _dan_xuat_dk).
+            kq = _gs_goi('dang_nhap', user=app_user,
+                         mat_khau=_dan_xuat_dk(app_user, app_password))
+        except _GSOffline as _e_gs:
+            # CHỈ khi mất mạng mới được rơi về bản lưu trên máy.
+            ttin, ly_do, sai_mat_khau = _cache_kiem(app_user, app_password)
+            if not ttin:
+                thong_diep = ly_do if sai_mat_khau else (
+                    'Không kết nối được tới Google (nơi lưu danh sách tài khoản), và %s\n'
+                    'Kiểm tra mạng rồi thử lại.' % ly_do)
+                return jsonify({"status": "error", "message": thong_diep,
+                                "chi_tiet": str(_e_gs)}), 401
+            kq = {"ok": True, "user": ttin}
+            canh_bao = ('Không nối được Google — đang dùng bản quyền lưu trên máy '
+                        '(đồng bộ lần cuối %s). Quyền mới cấp/thu hồi chưa có hiệu lực.' % ly_do)
+        if not kq.get('ok'):
+            return jsonify({"status": "error",
+                            "message": kq.get('loi') or 'Sai tài khoản hoặc mật khẩu'}), 401
+        u = kq.get('user') or {}
+        real_uid = u.get('id') or app_user
+        ho_ten = u.get('ho_ten')
+        app_group = u.get('chuc_vu') or ''
+        app_items = [x for x in (u.get('items') or []) if x in PERM_ALL_ITEMS]
+        app_orgs = u.get('don_vi') if isinstance(u.get('don_vi'), list) else None
+        if not canh_bao:
+            _cache_ghi(real_uid, app_password, u)   # để lần sau mất mạng vẫn vào được
+
+        # (2) Kết nối SQL (như cũ). data giờ chỉ còn field SQL.
+        old = _db_cfg()
         if old:
             close_pool_for(old)
-
-        # Test kết nối bằng cách tạo conn mới và lưu vào pool luôn
         conn = _make_conn(data)
-        # Giữ lại trong pool (không close)
         key = _pool_key(data)
         with _pool_lock:
             _conn_pool[key] = conn
 
-        session['db_config'] = data
+        _dat_db_cfg(data)
+        session['app_user'] = real_uid
+        session['app_group'] = app_group
+        session['app_nguon'] = app_nguon
+        session['app_ten'] = ho_ten
+        # Chỉ ghi khi nguồn là Google Sheet — để _current_perms() biết đường nào mà lần.
+        session['app_items'] = app_items or []
+        session['app_orgs'] = app_orgs
         _meta_cache.pop(data.get('database'), None)
         _tran_usage_cache.pop(data.get('database'), None)
-        return jsonify({"status": "ok", "message": "Kết nối SQL Server thành công!"})
+        return jsonify({"status": "ok", "message": "Đăng nhập thành công!",
+                        "app_user": real_uid, "group": app_group,
+                        "name": ho_ten, "canh_bao": canh_bao})
     except Exception as e:
-        return jsonify({"status": "error", "message": f"Lỗi kết nối: {str(e)}"}), 401
+        # Không quăng nguyên văn lỗi ODBC ra màn hình — dịch sang tiếng người,
+        # nguyên văn để sau nút "Chi tiết" cho lúc cần chẩn đoán.
+        thong_diep, nguyen_van = _loi_ket_noi_de_hieu(e, data if isinstance(data, dict) else None)
+        logger.warning('Login that bai: %s', nguyen_van)
+        return jsonify({"status": "error", "message": thong_diep, "chi_tiet": nguyen_van}), 401
 
 @app.route("/api/logout", methods=["POST"])
 def logout():
-    db_config = session.get('db_config')
+    db_config = _db_cfg()
     db_name = (db_config or {}).get('database')
     close_pool_for(db_config)
-    session.pop('db_config', None)
+    _xoa_db_cfg()
+    session.pop('app_group', None)
+    session.pop('app_user', None)
+    for _k in ('app_items', 'app_orgs', 'app_nguon', 'app_ten'):
+        session.pop(_k, None)
     if db_name:
         _meta_cache.pop(db_name, None)
         _tran_usage_cache.pop(db_name, None)
     return jsonify({"status": "ok"})
+
+@app.route("/api/my_perms")
+def my_perms():
+    """Frontend gọi sau khi đăng nhập để lọc menu (7 tab + 16 báo cáo) theo quyền.
+    'items' là danh sách mã ĐƯỢC xem; FE ẩn mọi mục không nằm trong đây."""
+    if not _db_cfg():
+        return jsonify({"status": "error", "message": "Chưa đăng nhập SQL Server"}), 401
+    _ao = _current_allowed_orgs()
+    return jsonify({"status": "ok", "group": _current_group(), "items": sorted(_current_perms()),
+                    "app_user": session.get('app_user'), "name": session.get('app_ten'),
+                    "nguon": session.get('app_nguon') or 'gsheet',
+                    "allowed_orgs": (sorted(_ao) if _ao is not None else None)})
+
+# --------- TAB PHÂN QUYỀN (chỉ ADMIN — guard đã chặn nhóm khác bằng mã 'perm_admin') ---------
+# --- Cầu nối lên Google Sheet cho các lệnh QUẢN TRỊ ---
+# Mật khẩu tool KHÔNG lưu session (luật từ đầu). Mọi lệnh ghi lên Sheet đều đòi tài khoản
+# admin + mật khẩu, nên frontend phải hỏi lại mật khẩu quản trị và gửi kèm theo từng lệnh.
+def _gs_admin(d):
+    mk = (d.get('admin_pass') or '').strip()
+    if not mk:
+        raise ValueError('Nhập lại mật khẩu quản trị để ghi lên Google Sheet')
+    adm = session.get('app_user') or ''
+    # Băm bằng chính tài khoản ADMIN đang đăng nhập — không phải tài khoản bị sửa.
+    return {'admin_user': adm, 'admin_pass': _dan_xuat_dk(adm, mk)}
+
+def _loi_chua_cau_hinh():
+    """Máy chưa có cấu hình tới nơi lưu tài khoản ⇒ **KHÔNG cho vào**.
+
+    ⚠️ Trước 21/09/2026 nhánh này rơi về phanquyen.json, và không có cả file đó
+    thì `app_group='ADMIN'` ⇒ **bất kỳ ai đăng nhập được SQL là thấy đủ 24 mục, mọi
+    đơn vị** — im lặng, không một dòng cảnh báo. Quên chép cấu hình sang máy nào là
+    máy đó coi như không có phân quyền, mà nhìn bằng mắt thì y hệt bản đúng.
+    Nay thiếu cấu hình là chặn thẳng, và nói rõ phải làm gì."""
+    return jsonify({
+        "status": "error",
+        "message": ("Bản cài đặt này chưa được cấu hình để kiểm tra tài khoản và phân quyền.\n"
+                    "Liên hệ người quản trị để nhận lại bản cài đúng."),
+        "chi_tiet": "Thiếu cấu hình kết nối tới nơi lưu tài khoản (ketnoi.json cạnh EXE).",
+    }), 503
+
+def _gs_tra_loi(hanh_dong, **thamso):
+    """Gọi Sheet và quy đổi thẳng thành response Flask."""
+    try:
+        kq = _gs_goi(hanh_dong, **thamso)
+    except _GSOffline as e:
+        return jsonify({"status": "error",
+                        "message": "Không nối được Google Sheet (%s). Quản trị tài khoản "
+                                   "bắt buộc phải có mạng." % e}), 503
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 502
+    if not kq.get('ok'):
+        return jsonify({"status": "error", "message": kq.get('loi') or 'Google Sheet từ chối'}), 400
+    return jsonify(dict(kq, status="ok"))
+
+@app.route("/api/perm/config", methods=["GET", "POST"])
+def perm_config():
+    if not _db_cfg():
+        return jsonify({"status": "error", "message": "Chưa đăng nhập"}), 401
+    if not _gs_config():
+        return _loi_chua_cau_hinh()
+    # Cần mật khẩu quản trị (gửi qua POST body, KHÔNG qua URL).
+    try:
+        adm = _gs_admin(request.json or {})
+    except ValueError as e:
+        return jsonify({"status": "error", "message": str(e), "can_mat_khau": True}), 401
+    try:
+        kq = _gs_goi('nap', **adm)
+    except _GSOffline as e:
+        return jsonify({"status": "error",
+                        "message": "Không nối được Google Sheet (%s)." % e}), 503
+    if not kq.get('ok'):
+        return jsonify({"status": "error", "message": kq.get('loi') or 'Sai mật khẩu quản trị'}), 401
+    vai = {c['ma'].upper(): c for c in kq.get('chuc_vu', [])}
+    ulist = [{"uid": u['id'], "name": u.get('ho_ten', ''),
+              "group": u.get('chuc_vu', ''),
+              "group_name": vai.get((u.get('chuc_vu') or '').upper(), {}).get('ten', u.get('chuc_vu', '')),
+              "items": sorted(vai.get((u.get('chuc_vu') or '').upper(), {}).get('items', [])),
+              "orgs": u.get('don_vi'),
+              "active": bool(u.get('active')),
+              "co_mat_khau": bool(u.get('co_mat_khau')),
+              "dang_nhap_luc": u.get('dang_nhap_luc', ''),
+              "ghi_chu": u.get('ghi_chu', '')}
+             for u in kq.get('users', [])]
+    groups = [{"id": c['ma'], "name": c.get('ten', c['ma']), "items": c.get('items', [])}
+              for c in kq.get('chuc_vu', [])]
+    return jsonify({"status": "ok", "nguon": "gsheet", "users": ulist, "groups": groups,
+                    "all_items": PERM_ALL_ITEMS})
+
+@app.route("/api/perm/user", methods=["POST"])
+def perm_save_user():
+    if not _db_cfg():
+        return jsonify({"status": "error", "message": "Chưa đăng nhập"}), 401
+    if not _gs_config():
+        return _loi_chua_cau_hinh()
+    d = request.json or {}
+    uid = (d.get('uid') or '').strip()
+    if not uid:
+        return jsonify({"status": "error", "message": "Thiếu mã tài khoản"}), 400
+    # Chức vụ quyết định quyền → KHÔNG gửi 'items' của riêng user lên Sheet.
+    # ⚠️ Độ dài mật khẩu PHẢI kiểm ở đây: Google chỉ nhận được chuỗi băm 44 ký tự
+    #    nên phép kiểm "≥ 6 ký tự" bên đó không còn ý nghĩa.
+    if d.get('password') and len(d['password']) < 6:
+        return jsonify({"status": "error", "message": "Mật khẩu phải từ 6 ký tự trở lên"}), 400
+    try:
+        adm = _gs_admin(d)
+    except ValueError as e:
+        return jsonify({"status": "error", "message": str(e), "can_mat_khau": True}), 401
+    kq = _gs_tra_loi('luu_user', user_id=uid,
+                       ho_ten=(d.get('name') or '').strip(),
+                       chuc_vu=(d.get('group') or '').strip(),
+                       active=bool(d.get('active', True)),
+                       don_vi=(d.get('orgs') if isinstance(d.get('orgs'), list) else []),
+                       ghi_chu=d.get('ghi_chu', ''),
+                       # Băm bằng tài khoản MỚI (uid), không phải tài khoản admin.
+                       mat_khau=(_dan_xuat_dk(uid, d['password']) if d.get('password') else ''),
+                       **adm)
+    if d.get('password') and not isinstance(kq, tuple):
+        # Đổi mật khẩu rồi ⇒ bản cache offline cũ không còn khớp. Phải xoá, không thì
+        # máy này **mất mạng vẫn đăng nhập được bằng MẬT KHẨU CŨ** suốt 7 ngày.
+        # ⚠️ Chỉ xoá được cache TRÊN MÁY NÀY. Máy khác đã từng đăng nhập bằng mật khẩu
+        #    cũ thì vẫn giữ cache đó tới khi hết hạn — hạn chế của mô hình "credential
+        #    cached", giống hệt Windows domain. Ghi ra đây để khỏi tưởng đã kín.
+        _xoa_cache_uid(uid)
+    return kq
+
+@app.route("/api/perm/user/delete", methods=["POST"])
+def perm_delete_user():
+    if not _db_cfg():
+        return jsonify({"status": "error", "message": "Chưa đăng nhập"}), 401
+    if not _gs_config():
+        return _loi_chua_cau_hinh()
+    d = request.json or {}
+    uid = (d.get('uid') or '').strip()
+    try:
+        adm = _gs_admin(d)
+    except ValueError as e:
+        return jsonify({"status": "error", "message": str(e), "can_mat_khau": True}), 401
+    return _gs_tra_loi('xoa_user', user_id=uid, **adm)
+
+# --- CHỨC VỤ (chỉ có khi nguồn là Google Sheet) ---
+# Chốt 19/09/2026: CHỨC VỤ QUYẾT ĐỊNH QUYỀN, user không tick riêng nữa.
+# Sửa 1 dòng chức vụ là cả nhóm đổi theo — nhưng chỉ có hiệu lực khi người ta đăng nhập lại.
+@app.route("/api/perm/role", methods=["POST"])
+def perm_save_role():
+    if not _db_cfg():
+        return jsonify({"status": "error", "message": "Chưa đăng nhập"}), 401
+    if not _gs_config():
+        return jsonify({"status": "error",
+                        "message": "Chức vụ chỉ sửa được khi dùng nguồn Google Sheet"}), 400
+    d = request.json or {}
+    items = d.get('items')
+    if not isinstance(items, list):
+        return jsonify({"status": "error", "message": "Thiếu danh sách quyền (items)"}), 400
+    try:
+        adm = _gs_admin(d)
+    except ValueError as e:
+        return jsonify({"status": "error", "message": str(e), "can_mat_khau": True}), 401
+    return _gs_tra_loi('luu_chuc_vu', ma=(d.get('ma') or '').strip(),
+                       ten=(d.get('ten') or '').strip(),
+                       items=[x for x in items if x in PERM_ALL_ITEMS], **adm)
+
+@app.route("/api/perm/role/delete", methods=["POST"])
+def perm_delete_role():
+    if not _db_cfg():
+        return jsonify({"status": "error", "message": "Chưa đăng nhập"}), 401
+    if not _gs_config():
+        return jsonify({"status": "error",
+                        "message": "Chức vụ chỉ sửa được khi dùng nguồn Google Sheet"}), 400
+    d = request.json or {}
+    try:
+        adm = _gs_admin(d)
+    except ValueError as e:
+        return jsonify({"status": "error", "message": str(e), "can_mat_khau": True}), 401
+    return _gs_tra_loi('xoa_chuc_vu', ma=(d.get('ma') or '').strip(), **adm)
+
+@app.route("/api/perm/password", methods=["POST"])
+def perm_set_password():
+    """Đổi mật khẩu. Admin đổi hộ người khác, hoặc chính chủ tự đổi (phải kèm mật khẩu cũ).
+    Mật khẩu đi theo đường này KHÔNG bao giờ nằm lại trong Sheet — khác với gõ tay lên ô."""
+    if not _db_cfg():
+        return jsonify({"status": "error", "message": "Chưa đăng nhập"}), 401
+    if not _gs_config():
+        return _loi_chua_cau_hinh()
+    d = request.json or {}
+    uid = (d.get('uid') or '').strip()
+    mk_moi = d.get('password') or ''
+    if not uid:
+        return jsonify({"status": "error", "message": "Thiếu mã tài khoản"}), 400
+    if len(mk_moi) < 6:
+        return jsonify({"status": "error", "message": "Mật khẩu phải từ 6 ký tự trở lên"}), 400
+    # Cả mật khẩu cũ lẫn mới đều băm bằng uid CỦA NGƯỜI BỊ ĐỔI.
+    tham = {'user_id': uid, 'mat_khau_moi': _dan_xuat_dk(uid, mk_moi)}
+    if d.get('old_password'):                 # chính chủ tự đổi
+        tham['mat_khau_cu'] = _dan_xuat_dk(uid, d['old_password'])
+    else:                                     # admin đổi hộ
+        try:
+            tham.update(_gs_admin(d))
+        except ValueError as e:
+            return jsonify({"status": "error", "message": str(e), "can_mat_khau": True}), 401
+    kq = _gs_tra_loi('dat_mat_khau', **tham)
+    # _gs_tra_loi trả Response khi thành công, trả tuple (Response, mã lỗi) khi hỏng.
+    if not isinstance(kq, tuple):
+        # Mật khẩu đã đổi ⇒ bản cache offline cũ không còn khớp, phải xoá mục đó.
+        try:
+            c = _cache_doc_file()
+            if c.pop(uid.lower(), None) is not None:
+                with open(_cache_path(), 'w', encoding='utf-8') as f:
+                    _json.dump(c, f, ensure_ascii=False, indent=1)
+        except Exception as e:
+            logger.warning('Khong xoa duoc cache sau khi doi mat khau: %s', e)
+    return kq
 
 # ---------------------------------------------------------------------------
 # DANH MỤC LOẠI CHỨNG TỪ ("Loại CT") — nguồn là dbo.SYS_TRAN, KHÔNG phải
@@ -470,7 +1242,7 @@ def _build_tran_catalog(cursor, db_name):
 @with_db_lock
 def get_metadata():
     try:
-        db_name = session.get('db_config', {}).get('database', 'N/A')
+        db_name = (_db_cfg() or {}).get('database', 'N/A')
 
         if db_name in _meta_cache:
             # Danh mục nặng (TK, hàng hoá, đối tượng…) giữ nguyên cache, nhưng danh
@@ -569,7 +1341,7 @@ def get_metadata():
 
 @app.route("/api/metadata/refresh", methods=["POST"])
 def refresh_metadata():
-    db_name = session.get('db_config', {}).get('database')
+    db_name = (_db_cfg() or {}).get('database')
     if db_name:
         _meta_cache.pop(db_name, None)
         _tran_usage_cache.pop(db_name, None)   # bấm "Danh mục" thì quét lại cả mã đang dùng thật
@@ -701,17 +1473,17 @@ def _build_where(request_args):
     ]:
         raw = request_args.get(arg, "")
         vals = [v for v in raw.split(",") if v]
-        if vals:
-            clauses.append(f"{field} IN ({','.join(['?']*len(vals))})")
-            params.extend(vals)
-        elif arg == "org_ids":
-            # KHÔNG chọn đơn vị ⇒ LOẠI đơn vị ngoài cây '00' (vd '66') — mặc định giống
-            # mọi báo cáo, để tổng cuối danh sách tie được với BC001/BC005/BC006/BC009…
-            # Muốn xem riêng đơn vị ngoài cây thì tự chọn nó ở bộ lọc Đơn vị.
-            _oc, _op = _org_filter_sql([], field)
+        if arg == "org_ids":
+            # Lọc đơn vị LUÔN đi qua _org_filter_sql — nơi DUY NHẤT ép quyền đơn vị theo tài
+            # khoản (chọn gì cũng bị giao với danh sách được phép). Không chọn ⇒ mặc định loại
+            # đơn vị ngoài cây '00', hoặc = đúng đơn vị được phép nếu tài khoản bị giới hạn.
+            _oc, _op = _org_filter_sql(vals, field)
             if _oc:
                 clauses.append(_oc)
                 params.extend(_op)
+        elif vals:
+            clauses.append(f"{field} IN ({','.join(['?']*len(vals))})")
+            params.extend(vals)
 
     # Tài khoản / TK đối ứng: nếu chọn TK mẹ (vd 641) → match cả TK con (6411..6419)
     # Dùng LIKE 'xxx%' (SARGable) thay cho IN exact match
@@ -924,7 +1696,7 @@ def get_ledger():
             raw_rows = cursor.fetchall()
 
         # Chuẩn bị dimension maps từ cache (để post-enrich khi không JOIN)
-        db_name = session.get('db_config', {}).get('database', 'N/A')
+        db_name = (_db_cfg() or {}).get('database', 'N/A')
         meta = _meta_cache.get(db_name)
         if meta is None:
             # Cache chưa có → populate bằng cách truy vấn dimension nhẹ
@@ -1087,17 +1859,17 @@ def _build_purchase_where(request_args):
     ]:
         raw = request_args.get(arg, "")
         vals = [v for v in raw.split(",") if v]
-        if vals:
-            clauses.append(f"{field} IN ({','.join(['?']*len(vals))})")
-            params.extend(vals)
-        elif arg == "org_ids":
-            # KHÔNG chọn đơn vị ⇒ LOẠI đơn vị ngoài cây '00' (vd '66') — mặc định giống
-            # mọi báo cáo, để tổng cuối danh sách tie được với BC001/BC005/BC006/BC009…
-            # Muốn xem riêng đơn vị ngoài cây thì tự chọn nó ở bộ lọc Đơn vị.
-            _oc, _op = _org_filter_sql([], field)
+        if arg == "org_ids":
+            # Lọc đơn vị LUÔN đi qua _org_filter_sql — nơi DUY NHẤT ép quyền đơn vị theo tài
+            # khoản (chọn gì cũng bị giao với danh sách được phép). Không chọn ⇒ mặc định loại
+            # đơn vị ngoài cây '00', hoặc = đúng đơn vị được phép nếu tài khoản bị giới hạn.
+            _oc, _op = _org_filter_sql(vals, field)
             if _oc:
                 clauses.append(_oc)
                 params.extend(_op)
+        elif vals:
+            clauses.append(f"{field} IN ({','.join(['?']*len(vals))})")
+            params.extend(vals)
 
     # ID prefix LIKE
     for field, arg in [
@@ -1268,7 +2040,7 @@ def get_purchase():
             columns  = [c[0] for c in cursor.description]
             raw_rows = cursor.fetchall()
 
-        db_name = session.get('db_config', {}).get('database', 'N/A')
+        db_name = (_db_cfg() or {}).get('database', 'N/A')
         meta = _meta_cache.get(db_name) or {}
         tran_map = { (it.get('id') or '').strip(): it.get('name') or '' for it in meta.get('tran_ids', []) }
 
@@ -1343,17 +2115,17 @@ def _build_warehouse_where(request_args):
     ]:
         raw = request_args.get(arg, "")
         vals = [v for v in raw.split(",") if v]
-        if vals:
-            clauses.append(f"{field} IN ({','.join(['?']*len(vals))})")
-            params.extend(vals)
-        elif arg == "org_ids":
-            # KHÔNG chọn đơn vị ⇒ LOẠI đơn vị ngoài cây '00' (vd '66') — mặc định giống
-            # mọi báo cáo, để tổng cuối danh sách tie được với BC001/BC005/BC006/BC009…
-            # Muốn xem riêng đơn vị ngoài cây thì tự chọn nó ở bộ lọc Đơn vị.
-            _oc, _op = _org_filter_sql([], field)
+        if arg == "org_ids":
+            # Lọc đơn vị LUÔN đi qua _org_filter_sql — nơi DUY NHẤT ép quyền đơn vị theo tài
+            # khoản (chọn gì cũng bị giao với danh sách được phép). Không chọn ⇒ mặc định loại
+            # đơn vị ngoài cây '00', hoặc = đúng đơn vị được phép nếu tài khoản bị giới hạn.
+            _oc, _op = _org_filter_sql(vals, field)
             if _oc:
                 clauses.append(_oc)
                 params.extend(_op)
+        elif vals:
+            clauses.append(f"{field} IN ({','.join(['?']*len(vals))})")
+            params.extend(vals)
 
     ir = request_args.get("issue_receive", "").strip()
     if ir in ("N", "X"):
@@ -1474,7 +2246,7 @@ def get_warehouse():
             columns  = [c[0] for c in cursor.description]
             raw_rows = cursor.fetchall()
 
-        db_name = session.get('db_config', {}).get('database', 'N/A')
+        db_name = (_db_cfg() or {}).get('database', 'N/A')
         meta = _meta_cache.get(db_name) or {}
         tran_map = { (it.get('id') or '').strip(): it.get('name') or '' for it in meta.get('tran_ids', []) }
 
@@ -1780,7 +2552,7 @@ def _start_export_job(filename, headers, sql, params, transform_row, total_estim
             'file_path': None, 'filename': filename, 'error': None,
             'cancelled': False,
         }
-    db_cfg = session.get('db_config')
+    db_cfg = _db_cfg()
 
     def _runner():
         own_conn = None
@@ -2166,17 +2938,17 @@ def _build_warehouse_balance_where(request_args):
     ]:
         raw = request_args.get(arg, "")
         vals = [v for v in raw.split(",") if v]
-        if vals:
-            clauses.append(f"{field} IN ({','.join(['?']*len(vals))})")
-            params.extend(vals)
-        elif arg == "org_ids":
-            # KHÔNG chọn đơn vị ⇒ LOẠI đơn vị ngoài cây '00' (vd '66') — mặc định giống
-            # mọi báo cáo, để tổng cuối danh sách tie được với BC001/BC005/BC006/BC009…
-            # Muốn xem riêng đơn vị ngoài cây thì tự chọn nó ở bộ lọc Đơn vị.
-            _oc, _op = _org_filter_sql([], field)
+        if arg == "org_ids":
+            # Lọc đơn vị LUÔN đi qua _org_filter_sql — nơi DUY NHẤT ép quyền đơn vị theo tài
+            # khoản (chọn gì cũng bị giao với danh sách được phép). Không chọn ⇒ mặc định loại
+            # đơn vị ngoài cây '00', hoặc = đúng đơn vị được phép nếu tài khoản bị giới hạn.
+            _oc, _op = _org_filter_sql(vals, field)
             if _oc:
                 clauses.append(_oc)
                 params.extend(_op)
+        elif vals:
+            clauses.append(f"{field} IN ({','.join(['?']*len(vals))})")
+            params.extend(vals)
 
     for field, arg in [
         ("WBA.ORGANIZATION_ID", "s_org_id"),
@@ -2558,6 +3330,18 @@ def _build_btp_where(request_args):
                                ("W.ITEM_ID",         None,                  "item_ids"),
                                ("W.PRODUCT_ID",      "WN2.ITEM_ID",         "btp_ids")]:
         vals = [v for v in request_args.get(arg, "").split(",") if v]
+        if arg == "org_ids":
+            # Lọc đơn vị đi qua _org_filter_sql (ép quyền đơn vị theo tài khoản) cho CẢ 2 nhánh:
+            # dòng khớp (W.) và phiếu nhập mồ côi (P2.). Chọn gì cũng bị giao với đơn vị được phép.
+            _oc, _op = _org_filter_sql(vals, field)
+            if _oc:
+                inner.append(_oc)
+                iparams.extend(_op)
+            _oc2, _op2 = _org_filter_sql(vals, ofield)
+            if _oc2:
+                orph.append(_oc2)
+                oiparams.extend(_op2)
+            continue
         if vals:
             inner.append(f"{field} IN ({','.join(['?'] * len(vals))})")
             iparams.extend(vals)
@@ -2570,16 +3354,6 @@ def _build_btp_where(request_args):
             else:
                 # Lọc theo nguyên liệu ⇒ dòng phiếu nhập mồ côi không có NVL nên bị loại hẳn
                 orph.append("1 = 0")
-        elif arg == "org_ids":
-            # Không chọn đơn vị ⇒ loại đơn vị ngoài cây '00', giống mọi báo cáo khác.
-            _oc, _op = _org_filter_sql([], field)
-            if _oc:
-                inner.append(_oc)
-                iparams.extend(_op)
-            _oc2, _op2 = _org_filter_sql([], ofield)
-            if _oc2:
-                orph.append(_oc2)
-                oiparams.extend(_op2)
 
     outer, oparams = [], []
     st = BTP_STATUS_MAP.get(request_args.get("status", "").strip())
@@ -2801,17 +3575,17 @@ def _build_sale_where(request_args):
     ]:
         raw = request_args.get(arg, "")
         vals = [v for v in raw.split(",") if v]
-        if vals:
-            clauses.append(f"{field} IN ({','.join(['?']*len(vals))})")
-            params.extend(vals)
-        elif arg == "org_ids":
-            # KHÔNG chọn đơn vị ⇒ LOẠI đơn vị ngoài cây '00' (vd '66') — mặc định giống
-            # mọi báo cáo, để tổng cuối danh sách tie được với BC001/BC005/BC006/BC009…
-            # Muốn xem riêng đơn vị ngoài cây thì tự chọn nó ở bộ lọc Đơn vị.
-            _oc, _op = _org_filter_sql([], field)
+        if arg == "org_ids":
+            # Lọc đơn vị LUÔN đi qua _org_filter_sql — nơi DUY NHẤT ép quyền đơn vị theo tài
+            # khoản (chọn gì cũng bị giao với danh sách được phép). Không chọn ⇒ mặc định loại
+            # đơn vị ngoài cây '00', hoặc = đúng đơn vị được phép nếu tài khoản bị giới hạn.
+            _oc, _op = _org_filter_sql(vals, field)
             if _oc:
                 clauses.append(_oc)
                 params.extend(_op)
+        elif vals:
+            clauses.append(f"{field} IN ({','.join(['?']*len(vals))})")
+            params.extend(vals)
 
     # Lọc hàng bán trả lại (IS_RETURN): '1' chỉ hàng trả, '0' chỉ bán thường
     ret = request_args.get("is_return", "").strip()
@@ -2901,7 +3675,7 @@ def _sale_needs_join(args):
 
 def _sale_name_maps():
     """Map ID → tên cho đơn vị / MCP / kho / ĐVT, lấy từ _meta_cache (tránh JOIN)."""
-    db_name = session.get('db_config', {}).get('database', 'N/A')
+    db_name = (_db_cfg() or {}).get('database', 'N/A')
     meta = _meta_cache.get(db_name) or {}
     org_map  = {(it.get('id') or '').strip(): it.get('name') or '' for it in meta.get('orgs', [])}
     exp_map  = {(it.get('id') or '').strip(): it.get('name') or '' for it in meta.get('expenses', [])}
@@ -2918,7 +3692,7 @@ def _sale_dim_info():
     """Trả {'cols': set(tên cột SALE_VIEW in HOA), 'pay': {id:tên HTTT}, 'extra2': {id:tên nguồn}}.
     Introspect 1 lần rồi cache theo DB. Nếu KHÔNG đọc được schema → 'cols' rỗng → KHÔNG thêm cột phụ
     (an toàn: thà thiếu cột còn hơn crash pool). DM_PAYMENT_METHOD/DM_EXTRA_2 bọc try riêng."""
-    db = session.get('db_config', {}).get('database', 'N/A')
+    db = (_db_cfg() or {}).get('database', 'N/A')
     info = _sale_dim_cache.get(db)
     if info is not None:
         return info
@@ -3042,7 +3816,7 @@ def get_sale():
             columns  = [c[0] for c in cursor.description]
             raw_rows = cursor.fetchall()
 
-        db_name = session.get('db_config', {}).get('database', 'N/A')
+        db_name = (_db_cfg() or {}).get('database', 'N/A')
         meta = _meta_cache.get(db_name) or {}
         tran_map = { (it.get('id') or '').strip(): it.get('name') or '' for it in meta.get('tran_ids', []) }
         org_map, exp_map, wh_map, unit_map = _sale_name_maps()
@@ -3200,17 +3974,17 @@ def _build_voucher_where(request_args):
     for field, arg in [("H.TRAN_ID", "tran_ids"), ("H.ORGANIZATION_ID", "org_ids")]:
         raw = request_args.get(arg, "")
         vals = [v for v in raw.split(",") if v]
-        if vals:
-            clauses.append(f"{field} IN ({','.join(['?']*len(vals))})")
-            params.extend(vals)
-        elif arg == "org_ids":
-            # KHÔNG chọn đơn vị ⇒ LOẠI đơn vị ngoài cây '00' (vd '66') — mặc định giống
-            # mọi báo cáo, để tổng cuối danh sách tie được với BC001/BC005/BC006/BC009…
-            # Muốn xem riêng đơn vị ngoài cây thì tự chọn nó ở bộ lọc Đơn vị.
-            _oc, _op = _org_filter_sql([], field)
+        if arg == "org_ids":
+            # Lọc đơn vị LUÔN đi qua _org_filter_sql — nơi DUY NHẤT ép quyền đơn vị theo tài
+            # khoản (chọn gì cũng bị giao với danh sách được phép). Không chọn ⇒ mặc định loại
+            # đơn vị ngoài cây '00', hoặc = đúng đơn vị được phép nếu tài khoản bị giới hạn.
+            _oc, _op = _org_filter_sql(vals, field)
             if _oc:
                 clauses.append(_oc)
                 params.extend(_op)
+        elif vals:
+            clauses.append(f"{field} IN ({','.join(['?']*len(vals))})")
+            params.extend(vals)
 
     for arg, field_debit, field_credit in [
         ("acc_ids", "D.ACCOUNT_ID_DEBIT", "D.ACCOUNT_ID_CREDIT"),
@@ -3265,7 +4039,7 @@ def _voucher_prdetail_map(cursor):
 
 def _voucher_enrich(rows_dicts, cursor):
     """Bổ sung tên đơn vị / tên chứng từ / tên+bank đối tượng Nợ/Có."""
-    db_name = session.get('db_config', {}).get('database', 'N/A')
+    db_name = (_db_cfg() or {}).get('database', 'N/A')
     meta = _meta_cache.get(db_name) or {}
     org_map  = {(it.get('id') or '').strip(): it.get('name') or '' for it in meta.get('orgs', [])}
     tran_map = {(it.get('id') or '').strip(): it.get('name') or '' for it in meta.get('tran_ids', [])}
@@ -3420,7 +4194,7 @@ def get_voucher_stream_csv():
         sql = f"SELECT {VOUCHER_SELECT} {VOUCHER_FROM} WHERE {where_sql} ORDER BY {order_by_sql}"
 
         # Map tên/bank chuẩn bị sẵn (chạy 1 lần) để transform per-row khỏi query DB
-        db_name = session.get('db_config', {}).get('database', 'N/A')
+        db_name = (_db_cfg() or {}).get('database', 'N/A')
         meta = _meta_cache.get(db_name) or {}
         org_map  = {(it.get('id') or '').strip(): it.get('name') or '' for it in meta.get('orgs', [])}
         tran_map = {(it.get('id') or '').strip(): it.get('name') or '' for it in meta.get('tran_ids', [])}
@@ -3739,7 +4513,7 @@ def _ledger_cum_by_cutoffs(cur, first_day_of_year, cutoffs, org_ids):
     # '< d' chặt hơn '<= d' nên phải đứng trước khi trùng ngày, để các lát luôn lồng nhau
     uniq = sorted(set(cutoffs), key=lambda c: (c[1], 0 if c[0] == '<' else 1))
 
-    ck = ((session.get('db_config') or {}).get('database', ''),
+    ck = ((_db_cfg() or {}).get('database', ''),
           first_day_of_year, tuple(uniq), tuple(org_ids or ()))
     hit = _ledger_cum_cache.get(ck)
     if hit is not None and (time.time() - hit[0]) < _LEDGER_CUM_TTL_SEC:
@@ -4655,7 +5429,7 @@ def report_export_csv():
         account_id = request.args.get("account_id", "").strip()
         from_dt = datetime.strptime(f_date, "%d/%m/%Y").date()
         to_dt   = datetime.strptime(t_date, "%d/%m/%Y").date()
-        db_cfg = session.get('db_config')
+        db_cfg = _db_cfg()
         if not db_cfg:
             return jsonify({"status": "error", "message": "Chưa đăng nhập SQL Server"}), 401
 
@@ -4912,7 +5686,7 @@ def report_export_csv():
 def _get_external_org_ids():
     """Danh sách ORGANIZATION_ID KHÔNG thuộc cây đơn vị '00' (vd: đơn vị ngoài như '66').
     Mặc định các báo cáo loại trừ những đơn vị này; người dùng muốn xem thì tự chọn ở bộ lọc."""
-    db_config = session.get('db_config') or {}
+    db_config = (_db_cfg() or {})
     db_name = db_config.get('database', '')
     if db_name in _external_orgs_cache:
         return _external_orgs_cache[db_name]
@@ -4964,6 +5738,14 @@ def _org_filter_sql(org_ids, col="ORGANIZATION_ID"):
     - Có chọn đơn vị  -> col IN (...)  (tôn trọng đúng lựa chọn, kể cả đơn vị ngoài)
     - Không chọn      -> mặc định loại đơn vị ngoài cây 00 (col NOT IN externals)
     """
+    # ÉP QUYỀN ĐƠN VỊ theo tài khoản (row-level). Điểm DUY NHẤT — mọi danh sách/báo cáo đi qua đây.
+    allowed = _current_allowed_orgs()
+    if allowed is not None:
+        base = [str(o) for o in org_ids] if org_ids else None
+        eff = [o for o in base if o in allowed] if base else sorted(allowed)
+        if not eff:
+            return "1=0", []                 # chọn toàn đơn vị ngoài quyền → không trả dòng nào
+        return f"{col} IN ({','.join(['?'] * len(eff))})", list(eff)
     if org_ids:
         return f"{col} IN ({','.join(['?'] * len(org_ids))})", list(org_ids)
     ext = _get_external_org_ids()
@@ -5139,7 +5921,13 @@ def get_cash_flow():
                   "31", "32", "33", "34", "35", "36", "40", "50", "60", "61", "70"):
             i[k] = d.get(k, 0.0)
 
-        return jsonify({"status": "ok", "data": {"direct": d, "indirect": i}})
+        # Cắt theo quyền: user chỉ có BC009 thì KHÔNG trả 'indirect' (và ngược lại) —
+        # tránh ẩn menu BC010 mà vẫn lộ số qua network. ADMIN có cả hai nên trả đủ như cũ.
+        _p = _current_perms()
+        _cf = {}
+        if 'BC009' in _p: _cf['direct'] = d
+        if 'BC010' in _p: _cf['indirect'] = i
+        return jsonify({"status": "ok", "data": _cf})
     except Exception as e:
         msg = str(e)
         if "đăng nhập" not in msg:
@@ -5380,7 +6168,7 @@ _cashbook_cache = {}  # {cache_key: flat_list}
 
 
 def _cashbook_key(f_date, t_date, acc_ids, contra_ids, tran_no, org_ids):
-    db_name = session.get('db_config', {}).get('database', 'N/A')
+    db_name = (_db_cfg() or {}).get('database', 'N/A')
     return hashlib.md5("|".join([
         db_name, f_date, t_date, ",".join(acc_ids), ",".join(contra_ids), tran_no, ",".join(org_ids)
     ]).encode()).hexdigest()
@@ -5484,7 +6272,11 @@ def _build_cashbook_flat(from_dt, to_dt, acc_ids, contra_ids, tran_no, org_ids):
 def _cashbook_flat_cached(f_date, t_date, acc_ids, contra_ids, tran_no, org_ids):
     from_dt = datetime.strptime(f_date, "%d/%m/%Y").date()
     to_dt   = datetime.strptime(t_date, "%d/%m/%Y").date()
-    key = _cashbook_key(f_date, t_date, acc_ids, contra_ids, tran_no, org_ids)
+    # Cache key PHẢI kèm đơn vị-được-phép của tài khoản: 2 user khác quyền, cùng tham số lọc,
+    # nếu dùng chung key sẽ trả nhầm dữ liệu của nhau (lỗ bảo mật do cache).
+    _allowed = _current_allowed_orgs()
+    _akey = tuple(sorted(_allowed)) if _allowed is not None else None
+    key = (_cashbook_key(f_date, t_date, acc_ids, contra_ids, tran_no, org_ids), _akey)
     flat = _cashbook_cache.get(key)
     if flat is None:
         flat = _build_cashbook_flat(from_dt, to_dt, acc_ids, contra_ids, tran_no, org_ids)
@@ -6172,10 +6964,11 @@ def get_cash_flow_cl():
     + biến động chi tiết các khoản mục trên Bảng cân đối kế toán (CĐKT) + biến động
     TK 411 cho hoạt động tài chính. Liệt kê 12 dòng vốn lưu động, KHÔNG dùng dòng plug.
     Chênh lệch nhỏ (nếu có, do bút toán P&L chưa kết chuyển hết) gom vào Mã 16/17."""
-    # Phiên đăng nhập chỉ lưu session['db_config'] (xem /api/login) — KHÔNG có khóa "logged_in".
+    # Phiên đăng nhập: cookie chỉ giữ 'sid', thông tin SQL nằm ở kho _phien_db
+    # phía máy chủ (xem _db_cfg) — và KHÔNG có khóa "logged_in" (Bẫy 1).
     # Kiểm nhầm khóa đó thì endpoint LUÔN trả 401, mà frontend gặp 401 là setIsLoggedIn(false)
     # → người dùng bị đá văng về màn hình đăng nhập ngay khi bấm Xem báo cáo.
-    if not session.get('db_config'):
+    if not _db_cfg():
         return jsonify({"status": "error", "message": "Chưa đăng nhập SQL Server"}), 401
     try:
         f_date  = request.args.get("from_date")
@@ -6531,10 +7324,11 @@ def _vat_payable_closing(from_dt, to_dt, org_ids, job_ids=None):
 @app.route('/api/report')
 @with_db_lock
 def get_report():
-    # Phiên đăng nhập chỉ lưu session['db_config'] (xem /api/login) — KHÔNG có khóa "logged_in".
+    # Phiên đăng nhập: cookie chỉ giữ 'sid', thông tin SQL nằm ở kho _phien_db
+    # phía máy chủ (xem _db_cfg) — và KHÔNG có khóa "logged_in" (Bẫy 1).
     # Kiểm nhầm khóa đó thì endpoint LUÔN trả 401, mà frontend gặp 401 là setIsLoggedIn(false)
     # → người dùng bị đá văng về màn hình đăng nhập ngay khi bấm Xem báo cáo.
-    if not session.get('db_config'):
+    if not _db_cfg():
         return jsonify({"status": "error", "message": "Chưa đăng nhập SQL Server"}), 401
     try:
         from_date = request.args.get('from_date')
@@ -6649,10 +7443,11 @@ def get_report():
 @app.route('/api/report_by_job')
 @with_db_lock
 def get_report_by_job():
-    # Phiên đăng nhập chỉ lưu session['db_config'] (xem /api/login) — KHÔNG có khóa "logged_in".
+    # Phiên đăng nhập: cookie chỉ giữ 'sid', thông tin SQL nằm ở kho _phien_db
+    # phía máy chủ (xem _db_cfg) — và KHÔNG có khóa "logged_in" (Bẫy 1).
     # Kiểm nhầm khóa đó thì endpoint LUÔN trả 401, mà frontend gặp 401 là setIsLoggedIn(false)
     # → người dùng bị đá văng về màn hình đăng nhập ngay khi bấm Xem báo cáo.
-    if not session.get('db_config'):
+    if not _db_cfg():
         return jsonify({"status": "error", "message": "Chưa đăng nhập SQL Server"}), 401
     try:
         from_date = request.args.get('from_date')
@@ -6737,7 +7532,7 @@ def get_report_by_job():
                     job_list_ids.append(jid)
             job_list_ids.sort()
 
-        db_name = session.get('db_config', {}).get('database', 'N/A')
+        db_name = (_db_cfg() or {}).get('database', 'N/A')
         meta = _meta_cache.get(db_name) or {}
         job_name_map = {(j.get('id') or '').strip(): (j.get('name') or '') for j in meta.get('jobs', [])}
         job_list = [{"id": jid, "name": job_name_map.get(jid, '')} for jid in job_list_ids]
@@ -6862,15 +7657,6 @@ def _parse_semver(v_str):
     if not nums:
         return (0, 0, 0)
     return tuple(int(n) for n in nums[:3])
-
-@app.route('/api/version', methods=['GET'])
-def get_app_version_api():
-    """Trả về phiên bản hiện tại của ứng dụng và trạng thái đóng gói EXE."""
-    return jsonify({
-        "status": "ok",
-        "version": APP_VERSION,
-        "is_frozen": getattr(sys, 'frozen', False)
-    })
 
 @app.route('/api/check_update', methods=['GET'])
 def check_github_update():

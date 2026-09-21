@@ -580,7 +580,9 @@ window.showConnectionLost = function() {
                 "chevron-up": '<path d="m18 15-6-6-6 6"/>',
                 "arrow-up": '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',
                 "arrow-down": '<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>',
-                "arrows-updown": '<path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/>'
+                "arrows-updown": '<path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/>',
+                "user": '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+                "key": '<circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/>'
             };
             return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className} dangerouslySetInnerHTML={{ __html: icons[name] || '' }} />;
         };
@@ -1218,14 +1220,14 @@ window.showConnectionLost = function() {
             { id: '440', name: 'TỔNG CỘNG NGUỒN VỐN  (440 = 300 + 400)', type: 'total' },
         ];
 
-        const ReportTypeDropdown = ({ value, onChange, isActive, onToggle }) => {
+        const ReportTypeDropdown = ({ value, onChange, isActive, onToggle, items = REPORT_TYPES }) => {
             const ref = useRef(null);
             useEffect(() => {
                 const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) onToggle(null); };
                 if (isActive) document.addEventListener('mousedown', handler);
                 return () => document.removeEventListener('mousedown', handler);
             }, [isActive]);
-            const current = REPORT_TYPES.find(r => r.id === value) || REPORT_TYPES[0];
+            const current = items.find(r => r.id === value) || items[0] || REPORT_TYPES[0];
             return (
                 <div className="relative" ref={ref}>
                     <div className="label-text text-violet-600">Mẫu báo cáo</div>
@@ -1238,7 +1240,7 @@ window.showConnectionLost = function() {
                     </button>
                     {isActive && (
                         <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.25)] border border-slate-200 z-[500] overflow-y-auto custom-scrollbar" style={{ maxHeight: 260 }}>
-                            {REPORT_TYPES.map(rt => (
+                            {items.map(rt => (
                                 <div key={rt.id} onClick={() => { onChange(rt.id); onToggle(null); }}
                                     className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-all ${value === rt.id ? 'bg-violet-600 text-white' : 'hover:bg-slate-50 text-slate-700'}`}>
                                     <span className={`px-1.5 py-0.5 rounded text-[9px] font-black border shrink-0 ${value === rt.id ? 'bg-violet-500/50 border-violet-400 text-white' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>{rt.id}</span>
@@ -1282,7 +1284,7 @@ window.showConnectionLost = function() {
             );
         };
 
-        const ReportTab = ({ filters, setFilters, period, setPeriod, meta, onToggleFilter, activeDropdown, setActiveDropdown, reportData: initialReportData, loadReportData, loading, monthList, monthlyData: initialMonthlyData, jobList, jobData: initialJobData, reportType, setReportType, setPendingReportType, setShowClearModal, trialBalanceData, trialBalanceTotal, cashBookData, vatSalesTotals, vatSalesMode, setVatSalesMode, saleSourceTotals, saleSourceMode, setSaleSourceMode, nxtData, nxtGroupBy, setNxtGroupBy, journalViewMode, setJournalViewMode, onExportSuccess }) => {
+        const ReportTab = ({ filters, setFilters, period, setPeriod, meta, onToggleFilter, activeDropdown, setActiveDropdown, reportData: initialReportData, loadReportData, loading, monthList, monthlyData: initialMonthlyData, jobList, jobData: initialJobData, reportType, setReportType, setPendingReportType, setShowClearModal, trialBalanceData, trialBalanceTotal, cashBookData, vatSalesTotals, vatSalesMode, setVatSalesMode, saleSourceTotals, saleSourceMode, setSaleSourceMode, nxtData, nxtGroupBy, setNxtGroupBy, journalViewMode, setJournalViewMode, onExportSuccess, allowedReports = REPORT_TYPES }) => {
             const paperScrollRef = React.useRef(null);
             const [showJournalExport, setShowJournalExport] = React.useState(false);
             const [exportModal, setExportModal] = React.useState(null); // { open: true, progress: 0-100, status: 'exporting'|'done', path: '', filename: '' }
@@ -2166,7 +2168,7 @@ const exportJournalCsv = (mode) => {
                                 </div>
                                 </>
                             ) : null}
-                            <div className="ml-auto"><ReportTypeDropdown value={reportType} onChange={(type) => { if (type !== reportType && Object.keys(reportData).length > 0) { setPendingReportType(type); setShowClearModal(true); } else { setReportType(type); } }} isActive={activeDropdown === 'reportType'} onToggle={setActiveDropdown} /></div>
+                            <div className="ml-auto"><ReportTypeDropdown value={reportType} onChange={(type) => { if (type !== reportType && Object.keys(reportData).length > 0) { setPendingReportType(type); setShowClearModal(true); } else { setReportType(type); } }} isActive={activeDropdown === 'reportType'} onToggle={setActiveDropdown} items={allowedReports} /></div>
                             <div className="flex gap-1.5">
                                 <button onClick={() => loadReportData(1)} disabled={loading} className="bg-indigo-600 text-white px-5 h-[32px] rounded-lg font-black text-[9px] shadow-lg hover:bg-indigo-700 transition-all uppercase tracking-widest flex items-center gap-2">
                                     {loading && <Icon name="loader" className="animate-spin" />}
@@ -3553,7 +3555,7 @@ const exportJournalCsv = (mode) => {
             { id: 'btp_reconcile', name: 'Danh sách đối chiếu xuất SX BTP – nhập thành phẩm' },
         ];
 
-        const DocumentTabDropdown = ({ activeTab, setActiveTab }) => {
+        const DocumentTabDropdown = ({ activeTab, setActiveTab, items = DOC_TABS }) => {
             const [open, setOpen] = useState(false);
             const [pos, setPos] = useState({ top: 0, left: 0 });
             const btnRef = useRef(null);
@@ -3595,7 +3597,7 @@ const exportJournalCsv = (mode) => {
                     {open && createPortal(
                         <div ref={panelRef} style={{ position: 'fixed', top: pos.top, left: pos.left, zIndex: 99999, width: 320 }} className="bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.35)] border border-slate-200 overflow-hidden">
                             <div className="px-4 py-2 bg-slate-50 border-b border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-widest">Chọn danh sách</div>
-                            {DOC_TABS.map(t => (
+                            {items.map(t => (
                                 <div key={t.id}
                                      onClick={() => { setActiveTab(t.id); setOpen(false); }}
                                      className={`px-4 py-3 cursor-pointer transition-all border-b last:border-b-0 border-slate-100 flex items-center gap-2 ${activeTab === t.id ? 'bg-indigo-600 text-white font-black' : 'hover:bg-indigo-50 text-slate-700 font-bold'}`}>
@@ -3660,6 +3662,458 @@ const exportJournalCsv = (mode) => {
             );
         };
 
+        // ===== TAB PHÂN QUYỀN (chỉ ADMIN thấy) — quản lý người dùng + gán nhóm, app tự lưu file =====
+        const PermAdminPanel = ({ onPermsChanged, orgs = [] }) => {
+            const [cfg, setCfg] = useState({ users: [], groups: [] });
+            const [loading, setLoading] = useState(false);
+            const [editing, setEditing] = useState(null);
+            const [msg, setMsg] = useState('');
+            // Từ 21/09/2026 chỉ còn MỘT nguồn: Google Sheet, quyền do CHỨC VỤ quyết định.
+            // Chế độ file (phanquyen.json) đã bỏ hẳn — backend thiếu cấu hình là chặn đăng nhập.
+            // Mật khẩu quản trị chỉ nằm trong bộ nhớ React, KHÔNG ghi localStorage/cookie/session.
+            const [admPass, setAdmPass] = useState('');
+            const [canMatKhau, setCanMatKhau] = useState(false);
+            const [goMk, setGoMk] = useState('');
+            const [roleEdit, setRoleEdit] = useState(null);
+            // Hai tab con: 'user' = quản lý tài khoản, 'role' = quản lý chức vụ.
+            const [tabCon, setTabCon] = useState('user');
+            // Nhãn 24 mục để hiển thị checklist (lấy từ chính DOC_TABS + REPORT_TYPES + tab quản trị)
+            const ITEM_LABEL = {}; DOC_TABS.forEach(t => ITEM_LABEL[t.id] = t.name); REPORT_TYPES.forEach(r => ITEM_LABEL[r.id] = r.id + ' — ' + r.name); ITEM_LABEL['perm_admin'] = 'Tab Phân quyền (quản trị)';
+            const ITEM_SECTIONS = [
+                { title: 'Danh sách chứng từ', ids: DOC_TABS.map(t => t.id) },
+                { title: 'Báo cáo', ids: REPORT_TYPES.map(r => r.id) },
+                { title: 'Quản trị', ids: ['perm_admin'] },
+            ];
+            // Đơn vị: editing.orgs === null nghĩa TẤT CẢ (không giới hạn, gồm cả đơn vị thêm sau này).
+            const orgChecked = (id) => !editing || editing.orgs === null || editing.orgs.includes(id);
+            const toggleOrg = (id) => setEditing(ed => { const cur = ed.orgs === null ? orgs.map(o => o.id) : ed.orgs; const has = cur.includes(id); return { ...ed, orgs: has ? cur.filter(x => x !== id) : [...cur, id] }; });
+            const setAllOrgs = (all) => setEditing(ed => ({ ...ed, orgs: all ? null : [] }));
+            // POST chứ không GET: mật khẩu quản trị phải đi trong body, TUYỆT ĐỐI không nhét lên URL.
+            const load = async (mkThu) => {
+                const mk = (mkThu !== undefined) ? mkThu : admPass;
+                setLoading(true);
+                try {
+                    const r = await fetch('/api/perm/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ admin_pass: mk }) });
+                    const j = await r.json();
+                    if (j.status === 'ok') {
+                        setCfg({ users: j.users || [], groups: j.groups || [] });
+                        setCanMatKhau(false);
+                        if (mkThu !== undefined) { setAdmPass(mkThu); setMsg(''); }
+                    } else if (j.can_mat_khau) {
+                        setCanMatKhau(true);
+                        setMsg(mkThu !== undefined ? (j.message || 'Sai mật khẩu quản trị') : '');
+                    } else setMsg(j.message || 'Lỗi tải danh sách');
+                } catch (e) { setMsg('Lỗi kết nối'); } finally { setLoading(false); }
+            };
+            useEffect(() => { load(); }, []);
+            const startAdd = () => { setMsg(''); setEditing({ uid: '', name: '', group: '', items: [], orgs: null, active: true, password: '', isNew: true }); };
+            const startEdit = (u) => { setMsg(''); setEditing({ uid: u.uid, name: u.name, group: u.group || '', items: u.items ? [...u.items] : [], orgs: u.orgs ? [...u.orgs] : null, active: u.active, password: '', isNew: false }); };
+            const save = async () => {
+                setMsg('');
+                const body = { uid: (editing.uid || '').trim(), name: editing.name, group: editing.group, items: editing.items, active: editing.active, admin_pass: admPass };
+                if (editing.password) body.password = editing.password;
+                // Tick hết đơn vị = không giới hạn (null) → user thấy cả đơn vị thêm sau này.
+                let orgsToSend = editing.orgs;
+                if (orgsToSend !== null && orgs.length && orgsToSend.length === orgs.length) orgsToSend = null;
+                body.orgs = orgsToSend;
+                try {
+                    const r = await fetch('/api/perm/user', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                    const j = await r.json();
+                    if (j.status === 'ok') { setEditing(null); await load(); onPermsChanged && onPermsChanged(); }
+                    else setMsg(j.message || 'Lỗi lưu');
+                } catch (e) { setMsg('Lỗi kết nối'); }
+            };
+            const del = async (uid) => {
+                if (!window.confirm('Xoá tài khoản "' + uid + '"?')) return;
+                try {
+                    const r = await fetch('/api/perm/user/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uid, admin_pass: admPass }) });
+                    const j = await r.json();
+                    if (j.status !== 'ok') { alert(j.message || 'Lỗi xoá'); return; }
+                    await load(); onPermsChanged && onPermsChanged();
+                } catch (e) { alert('Lỗi kết nối'); }
+            };
+
+            // ---- CHỨC VỤ (chỉ có khi nguồn là Google Sheet) ----
+            // Chốt 19/09/2026: chức vụ quyết định quyền. Sửa 1 chức vụ = cả nhóm đổi theo,
+            // nhưng chỉ có hiệu lực khi từng người ĐĂNG NHẬP LẠI.
+            const startAddRole = () => { setMsg(''); setRoleEdit({ ma: '', ten: '', items: [], isNew: true }); };
+            const startEditRole = (g) => { setMsg(''); setRoleEdit({ ma: g.id, ten: g.name, items: [...(g.items || [])], isNew: false }); };
+            const toggleRoleItem = (code) => setRoleEdit(rd => { const has = rd.items.includes(code); return { ...rd, items: has ? rd.items.filter(x => x !== code) : [...rd.items, code] }; });
+            const saveRole = async () => {
+                setMsg('');
+                try {
+                    const r = await fetch('/api/perm/role', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ma: (roleEdit.ma || '').trim(), ten: roleEdit.ten, items: roleEdit.items, admin_pass: admPass }) });
+                    const j = await r.json();
+                    if (j.status === 'ok') { setRoleEdit(null); await load(); onPermsChanged && onPermsChanged(); }
+                    else setMsg(j.message || 'Lỗi lưu chức vụ');
+                } catch (e) { setMsg('Lỗi kết nối'); }
+            };
+            const delRole = async (ma) => {
+                if (!window.confirm('Xoá chức vụ "' + ma + '"?')) return;
+                try {
+                    const r = await fetch('/api/perm/role/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ma, admin_pass: admPass }) });
+                    const j = await r.json();
+                    if (j.status !== 'ok') { alert(j.message || 'Lỗi xoá'); return; }
+                    await load(); onPermsChanged && onPermsChanged();
+                } catch (e) { alert('Lỗi kết nối'); }
+            };
+            // Nguồn Google Sheet: mọi lệnh ghi đều đòi tài khoản quản trị. Mật khẩu tool không
+            // được lưu trong phiên (luật từ đầu) nên phải hỏi lại đúng một lần ở đây.
+            if (canMatKhau) {
+                return (
+                    <div className="max-w-md mx-auto mt-20 p-8 bg-white rounded-2xl border border-slate-200 shadow-sm">
+                        <h1 className="text-[16px] font-black text-slate-900 flex items-center gap-2 mb-1"><Icon name="lock" size={16} className="text-indigo-600"/> Xác nhận quyền quản trị</h1>
+                        <p className="text-[11px] font-bold text-slate-400 mb-5">Tài khoản dùng chung đang lưu trên Google Sheet. Nhập lại mật khẩu của chính bạn để mở tab này.</p>
+                        <form onSubmit={(e) => { e.preventDefault(); load(goMk); }}>
+                            <input type="password" autoFocus value={goMk} onChange={e => setGoMk(e.target.value)} placeholder="Mật khẩu quản trị"
+                                className="w-full border border-slate-300 rounded-xl px-4 py-3 text-[12px] font-bold focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"/>
+                            {msg && <div className="mt-3 text-[11px] font-black text-rose-600">{msg}</div>}
+                            <button type="submit" disabled={loading || !goMk}
+                                className="mt-4 w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white py-3 rounded-xl font-black text-[11px] uppercase tracking-wider shadow-lg shadow-indigo-500/30">
+                                {loading ? 'Đang kiểm tra...' : 'Mở tab Phân quyền'}
+                            </button>
+                        </form>
+                        <p className="mt-4 text-[10px] font-bold text-slate-400 leading-relaxed">Mật khẩu chỉ nằm trong bộ nhớ của phiên làm việc này, không ghi xuống máy. Đóng app là mất.</p>
+                    </div>
+                );
+            }
+            const tabHienTai = tabCon;
+            return (
+                <div className="max-w-4xl mx-auto p-8">
+                    <div className="mb-5">
+                        <h1 className="text-[20px] font-black text-slate-900 tracking-tight flex items-center gap-2"><Icon name="lock" size={18} className="text-indigo-600"/> Phân quyền người dùng</h1>
+                        <p className="text-[11px] font-bold text-slate-400 mt-1">Tài khoản dùng chung trên Google Sheet — QUYỀN DO CHỨC VỤ QUYẾT ĐỊNH. Sửa chức vụ là cả nhóm đổi theo, có hiệu lực khi từng người đăng nhập lại.</p>
+                    </div>
+
+                    <div className="flex items-center gap-6 border-b border-slate-200 mb-5">
+                        {[{ id: 'user', ten: 'Quản lý tài khoản', so: cfg.users.length }, { id: 'role', ten: 'Quản lý chức vụ', so: cfg.groups.length }].map(t => (
+                            <button key={t.id} onClick={() => { setMsg(''); setTabCon(t.id); }}
+                                className={`-mb-px px-1 pb-3 font-black text-[12px] tracking-tight transition-colors border-b-2 ${tabHienTai === t.id ? 'text-indigo-600 border-indigo-600' : 'text-slate-400 border-transparent hover:text-slate-600'}`}>
+                                {t.ten}
+                                <span className={`ml-2 px-1.5 py-0.5 rounded-md text-[10px] font-black ${tabHienTai === t.id ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-400'}`}>{t.so}</span>
+                            </button>
+                        ))}
+                    </div>
+
+                    {tabHienTai === 'user' && (<>
+                    <div className="flex items-center justify-between mb-3">
+                        <div>
+                            <h2 className="text-[15px] font-black text-slate-900">Tài khoản</h2>
+                            <p className="text-[10px] font-bold text-slate-400 mt-0.5">Mỗi người gán MỘT chức vụ (quyết định được xem mục nào) và danh sách đơn vị được xem.</p>
+                        </div>
+                        <button onClick={startAdd} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-wider shadow-lg shadow-indigo-500/30">+ Thêm người dùng</button>
+                    </div>
+                    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                        <table className="w-full text-[12px]">
+                            <thead><tr className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[9px] tracking-widest">
+                                <th className="text-left px-4 py-3 font-black">Tài khoản</th>
+                                <th className="text-left px-4 py-3 font-black">Tên</th>
+                                <th className="text-left px-4 py-3 font-black">Quyền xem</th>
+                                <th className="text-center px-4 py-3 font-black">Trạng thái</th>
+                                <th className="text-right px-4 py-3 font-black">Thao tác</th>
+                            </tr></thead>
+                            <tbody>
+                                {cfg.users.length === 0 && (<tr><td colSpan={5} className="text-center py-10 text-slate-400 font-bold text-[11px]">{loading ? 'Đang tải...' : 'Chưa có tài khoản nào. Bấm "Thêm người dùng" — tài khoản đầu tiên nên áp mẫu "Admin" để còn vào lại tab này.'}</td></tr>)}
+                                {cfg.users.map(u => (
+                                    <tr key={u.uid} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/60">
+                                        <td className="px-4 py-3 font-black text-slate-800">{u.uid}</td>
+                                        <td className="px-4 py-3 text-slate-600 font-medium">{u.name || '—'}</td>
+                                        <td className="px-4 py-3"><span className="px-2 py-1 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-700 font-bold text-[10px]">{(u.items || []).length} mục</span><span className="ml-2 text-slate-400 text-[10px] font-bold">· {u.orgs ? (u.orgs.length + ' đơn vị') : 'tất cả ĐV'}</span></td>
+                                        <td className="px-4 py-3 text-center">{u.active ? <span className="text-emerald-600 font-black text-[10px]">● Hoạt động</span> : <span className="text-slate-400 font-black text-[10px]">○ Khoá</span>}</td>
+                                        <td className="px-4 py-3 text-right whitespace-nowrap">
+                                            <button onClick={() => startEdit(u)} className="text-indigo-600 hover:bg-indigo-50 px-2.5 py-1.5 rounded-lg font-bold text-[10px] uppercase">Sửa</button>
+                                            <button onClick={() => del(u.uid)} className="text-red-500 hover:bg-red-50 px-2.5 py-1.5 rounded-lg font-bold text-[10px] uppercase ml-1">Xoá</button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    </>)}
+
+                    {tabHienTai === 'role' && (
+                        <div>
+                            <div className="flex items-center justify-between mb-3">
+                                <div>
+                                    <h2 className="text-[15px] font-black text-slate-900 flex items-center gap-2"><Icon name="lock" size={15} className="text-indigo-600"/> Chức vụ</h2>
+                                    <p className="text-[10px] font-bold text-slate-400 mt-0.5">Nguồn duy nhất quyết định quyền. Sửa một dòng ở đây là mọi người mang chức vụ đó đổi theo.</p>
+                                </div>
+                                <button onClick={startAddRole} className="bg-slate-800 hover:bg-slate-900 text-white px-3.5 py-2 rounded-xl font-black text-[10px] uppercase tracking-wider">+ Thêm chức vụ</button>
+                            </div>
+                            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                                <table className="w-full text-[12px]">
+                                    <thead><tr className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[9px] tracking-widest">
+                                        <th className="text-left px-4 py-3 font-black">Mã</th>
+                                        <th className="text-left px-4 py-3 font-black">Tên chức vụ</th>
+                                        <th className="text-left px-4 py-3 font-black">Quyền xem</th>
+                                        <th className="text-center px-4 py-3 font-black">Đang dùng</th>
+                                        <th className="text-right px-4 py-3 font-black">Thao tác</th>
+                                    </tr></thead>
+                                    <tbody>
+                                        {cfg.groups.length === 0 && (<tr><td colSpan={5} className="text-center py-8 text-slate-400 font-bold text-[11px]">{loading ? 'Đang tải...' : 'Chưa có chức vụ nào.'}</td></tr>)}
+                                        {cfg.groups.map(g => {
+                                            const soNguoi = cfg.users.filter(u => (u.group || '').toUpperCase() === (g.id || '').toUpperCase()).length;
+                                            return (
+                                                <tr key={g.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/60">
+                                                    <td className="px-4 py-3 font-black text-slate-800">{g.id}</td>
+                                                    <td className="px-4 py-3 text-slate-600 font-medium">{g.name || '—'}</td>
+                                                    <td className="px-4 py-3"><span className="px-2 py-1 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-700 font-bold text-[10px]">{(g.items || []).length} mục</span>{(g.items || []).includes('perm_admin') && <span className="ml-2 px-2 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 font-black text-[9px] uppercase">Quản trị</span>}</td>
+                                                    <td className="px-4 py-3 text-center text-slate-500 font-bold text-[10px]">{soNguoi ? (soNguoi + ' người') : '—'}</td>
+                                                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                                                        <button onClick={() => startEditRole(g)} className="text-indigo-600 hover:bg-indigo-50 px-2.5 py-1.5 rounded-lg font-bold text-[10px] uppercase">Sửa</button>
+                                                        <button onClick={() => delRole(g.id)} disabled={soNguoi > 0} title={soNguoi > 0 ? 'Còn người đang giữ chức vụ này' : ''} className="text-red-500 disabled:text-slate-300 hover:bg-red-50 disabled:hover:bg-transparent px-2.5 py-1.5 rounded-lg font-bold text-[10px] uppercase ml-1">Xoá</button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {roleEdit && (
+                        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[9999] px-4">
+                            <div className="bg-white rounded-3xl p-7 max-w-lg w-full shadow-2xl border border-slate-100 max-h-[92vh] overflow-auto">
+                                <h2 className="text-[16px] font-black text-slate-900 mb-5">{roleEdit.isNew ? 'Thêm chức vụ' : ('Sửa chức vụ: ' + roleEdit.ma)}</h2>
+                                <div className="space-y-4">
+                                    <div><div className="label-text mb-1.5 ml-1">Mã chức vụ (CHỮ HOA, không dấu)</div><input className="login-input" value={roleEdit.ma} disabled={!roleEdit.isNew} onChange={e => setRoleEdit({ ...roleEdit, ma: e.target.value.toUpperCase() })} placeholder="vd: KT03"/></div>
+                                    <div><div className="label-text mb-1.5 ml-1">Tên chức vụ</div><input className="login-input" value={roleEdit.ten} onChange={e => setRoleEdit({ ...roleEdit, ten: e.target.value })} placeholder="vd: Kế toán công nợ"/></div>
+                                    <div>
+                                        <div className="flex items-center justify-between mb-2 ml-1">
+                                            <div className="label-text">Được xem mục nào ({roleEdit.items.length}/{ITEM_SECTIONS.reduce((n, s) => n + s.ids.length, 0)})</div>
+                                            <div className="flex gap-3">
+                                                <button type="button" onClick={() => setRoleEdit(rd => ({ ...rd, items: ITEM_SECTIONS.flatMap(s => s.ids) }))} className="text-[10px] font-black text-indigo-600 hover:underline uppercase">Chọn hết</button>
+                                                <button type="button" onClick={() => setRoleEdit(rd => ({ ...rd, items: [] }))} className="text-[10px] font-black text-slate-400 hover:underline uppercase">Bỏ hết</button>
+                                            </div>
+                                        </div>
+                                        <div className="border border-slate-200 rounded-xl p-3 max-h-64 overflow-auto space-y-3 bg-slate-50/50">
+                                            {ITEM_SECTIONS.map(sec => (
+                                                <div key={sec.title}>
+                                                    <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{sec.title}</div>
+                                                    {sec.ids.map(code => (
+                                                        <label key={code} className="flex items-center gap-2 cursor-pointer px-2 py-1 rounded-lg hover:bg-white text-[11px] font-medium text-slate-700">
+                                                            <input type="checkbox" checked={roleEdit.items.includes(code)} onChange={() => toggleRoleItem(code)}/>
+                                                            <span className="truncate">{ITEM_LABEL[code] || code}</span>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                                {msg && <div className="bg-red-50 border border-red-100 text-red-600 p-3 rounded-xl text-[10px] font-bold mt-4 leading-tight">{msg}</div>}
+                                <div className="flex gap-3 mt-6">
+                                    <button onClick={() => setRoleEdit(null)} className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 font-black text-[11px] uppercase hover:bg-slate-50">Huỷ</button>
+                                    <button onClick={saveRole} className="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-black text-[11px] uppercase hover:bg-indigo-700">Lưu</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {editing && (
+                        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[9999] px-4">
+                            <div className="bg-white rounded-3xl p-7 max-w-lg w-full shadow-2xl border border-slate-100 max-h-[92vh] overflow-auto">
+                                <h2 className="text-[16px] font-black text-slate-900 mb-5">{editing.isNew ? 'Thêm người dùng' : ('Sửa: ' + editing.uid)}</h2>
+                                <div className="space-y-4">
+                                    <div><div className="label-text mb-1.5 ml-1">Tài khoản (mã đăng nhập)</div><input className="login-input" value={editing.uid} disabled={!editing.isNew} onChange={e => setEditing({ ...editing, uid: e.target.value })} placeholder="vd: ketoan1"/></div>
+                                    <div><div className="label-text mb-1.5 ml-1">Tên hiển thị</div><input className="login-input" value={editing.name} onChange={e => setEditing({ ...editing, name: e.target.value })} placeholder="Nguyễn Văn A"/></div>
+                                    <div><div className="label-text mb-1.5 ml-1">{editing.isNew ? 'Mật khẩu' : 'Mật khẩu mới (để trống nếu giữ nguyên)'}</div><input type="password" className="login-input" value={editing.password} onChange={e => setEditing({ ...editing, password: e.target.value })} placeholder="••••••••"/></div>
+                                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={editing.active} onChange={e => setEditing({ ...editing, active: e.target.checked })}/> <span className="text-[12px] font-bold text-slate-600">Cho phép đăng nhập (bỏ tick = khoá)</span></label>
+                                    <div>
+                                        <div className="label-text mb-1.5 ml-1">Chức vụ — quyết định toàn bộ quyền xem</div>
+                                        <select className="login-input" value={editing.group} onChange={e => { const g = cfg.groups.find(x => x.id === e.target.value); setEditing({ ...editing, group: e.target.value, items: g ? [...(g.items || [])] : [] }); }}>
+                                            <option value="">— Chọn chức vụ —</option>
+                                            {cfg.groups.map(g => <option key={g.id} value={g.id}>{g.id} — {g.name}</option>)}
+                                        </select>
+                                        <div className="mt-2 border border-slate-200 rounded-xl p-3 max-h-40 overflow-auto bg-slate-50/50">
+                                            <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Chức vụ này được xem {editing.items.length} mục</div>
+                                            {editing.items.length === 0
+                                                ? <div className="text-[10px] font-bold text-slate-400">Chưa chọn chức vụ, hoặc chức vụ này chưa được cấp mục nào.</div>
+                                                : <div className="flex flex-wrap gap-1">{editing.items.map(code => <span key={code} className="px-2 py-0.5 rounded-md bg-white border border-slate-200 text-[10px] font-bold text-slate-600">{ITEM_LABEL[code] || code}</span>)}</div>}
+                                        </div>
+                                        <p className="text-[10px] font-bold text-slate-400 mt-1.5 ml-1">Đổi quyền thì sửa ở bảng <b className="text-slate-500">Chức vụ</b>, không sửa riêng từng người.</p>
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center justify-between mb-2 ml-1">
+                                            <div className="label-text">Đơn vị được xem ({editing.orgs === null ? 'Tất cả' : (editing.orgs.length + '/' + orgs.length)})</div>
+                                            <div className="flex gap-3">
+                                                <button type="button" onClick={() => setAllOrgs(true)} className="text-[10px] font-black text-indigo-600 hover:underline uppercase">Tất cả</button>
+                                                <button type="button" onClick={() => setAllOrgs(false)} className="text-[10px] font-black text-slate-400 hover:underline uppercase">Bỏ hết</button>
+                                            </div>
+                                        </div>
+                                        {editing.orgs === null && <div className="text-[10px] font-bold text-emerald-600 mb-1.5 ml-1">✓ Thấy tất cả đơn vị (kể cả đơn vị thêm sau này)</div>}
+                                        <div className="border border-slate-200 rounded-xl p-3 max-h-44 overflow-auto space-y-1 bg-slate-50/50">
+                                            {orgs.length === 0 && <div className="text-[10px] text-slate-400 font-bold px-2">Không tải được danh sách đơn vị.</div>}
+                                            {orgs.map(o => (
+                                                <label key={o.id} className="flex items-center gap-2 cursor-pointer px-2 py-1 rounded-lg hover:bg-white text-[11px] font-medium text-slate-700">
+                                                    <input type="checkbox" checked={orgChecked(o.id)} onChange={() => toggleOrg(o.id)}/>
+                                                    <span className="truncate">{o.id} — {o.name}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                                {msg && <div className="bg-red-50 border border-red-100 text-red-600 p-3 rounded-xl text-[10px] font-bold mt-4 leading-tight">{msg}</div>}
+                                <div className="flex gap-3 mt-6">
+                                    <button onClick={() => setEditing(null)} className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 font-black text-[11px] uppercase hover:bg-slate-50">Huỷ</button>
+                                    <button onClick={save} className="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-black text-[11px] uppercase hover:bg-indigo-700">Lưu</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // ===== Ô TÀI KHOẢN Ở HEADER (mẫu SYNA AI PORTAL) =====
+        //
+        // Luật lấy từ Portal (Đại Ca chốt 2026-08-17): ô này chỉ gánh 2 việc — cho biết
+        // đang ở tài khoản nào, và đổi mật khẩu. **KHÔNG đưa Đăng xuất vào đây** — nút đó
+        // đã nằm sẵn cạnh bên, bày hai chỗ chỉ tổ rối.
+        //
+        // ⚠️ Menu thả xuống dựng bằng createPortal, KHÔNG phải absolute trong header.
+        //    Portal đã trả giá đúng chỗ này: menu nằm trong thẻ cha có z-index thì nó tạo
+        //    một tầng riêng, số z-index của con chỉ tranh nhau TRONG tầng đó chứ không
+        //    vượt ra so với khối khác ⇒ dòng dưới của menu bị khối bên dưới phủ lên,
+        //    nhìn thấy mà bấm KHÔNG ăn. DocumentTabDropdown trong chính file này cũng đã
+        //    giải bằng portal — đi theo cách đó.
+        const MenuTaiKhoan = ({ nguoiDung, onDoiMatKhau }) => {
+            const [mo, setMo] = useState(false);
+            const [pos, setPos] = useState({ top: 0, right: 0 });
+            const btnRef = useRef(null);
+            const panelRef = useRef(null);
+            useEffect(() => {
+                if (!mo) return;
+                const dong = (e) => {
+                    if (btnRef.current && btnRef.current.contains(e.target)) return;
+                    if (panelRef.current && panelRef.current.contains(e.target)) return;
+                    setMo(false);
+                };
+                const esc = (e) => { if (e.key === 'Escape') setMo(false); };
+                document.addEventListener('mousedown', dong);
+                document.addEventListener('keydown', esc);
+                return () => { document.removeEventListener('mousedown', dong); document.removeEventListener('keydown', esc); };
+            }, [mo]);
+
+            const ten = (nguoiDung && (nguoiDung.name || nguoiDung.app_user)) || '';
+            const chuDau = (ten.trim()[0] || '?').toUpperCase();
+            const soMuc = nguoiDung && Array.isArray(nguoiDung.items) ? nguoiDung.items.length : null;
+            const soDonVi = nguoiDung && nguoiDung.allowed_orgs ? nguoiDung.allowed_orgs.length : null;
+
+            const bat = () => {
+                if (!mo && btnRef.current) {
+                    const r = btnRef.current.getBoundingClientRect();
+                    setPos({ top: r.bottom + 8, right: Math.max(8, window.innerWidth - r.right) });
+                }
+                setMo(v => !v);
+            };
+
+            return (
+                <div className="flex items-center gap-2.5">
+                    <div className="text-right leading-tight hidden sm:block">
+                        <div className="font-black text-slate-200 text-[10px] tracking-wide">{ten || '—'}</div>
+                        <div className="font-bold text-slate-500 text-[9px] uppercase tracking-widest">{(nguoiDung && nguoiDung.group) || '—'}</div>
+                    </div>
+                    <button ref={btnRef} onClick={bat} title="Tài khoản"
+                        aria-haspopup="true" aria-expanded={mo}
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-[11px] transition-all border ${mo ? 'bg-indigo-500 border-indigo-400 text-white' : 'bg-white/10 border-white/10 text-indigo-300 hover:bg-white/20'}`}>
+                        {chuDau}
+                    </button>
+                    {mo && createPortal(
+                        <div ref={panelRef} style={{ position: 'fixed', top: pos.top, right: pos.right, zIndex: 99999, minWidth: 236 }}
+                             className="bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.35)] border border-slate-200 overflow-hidden">
+                            <div className="px-4 py-3 bg-slate-50 border-b border-slate-100">
+                                <div className="font-black text-slate-800 text-[12px] truncate">{ten || '—'}</div>
+                                <div className="font-bold text-slate-400 text-[10px] uppercase tracking-widest mt-0.5">
+                                    {(nguoiDung && nguoiDung.app_user) || ''}{nguoiDung && nguoiDung.group ? ' · ' + nguoiDung.group : ''}
+                                </div>
+                                {soMuc !== null && (
+                                    <div className="font-bold text-slate-400 text-[10px] mt-1.5">
+                                        Được xem <b className="text-slate-600">{soMuc}</b> mục · <b className="text-slate-600">{soDonVi === null ? 'tất cả' : soDonVi}</b> đơn vị
+                                    </div>
+                                )}
+                            </div>
+                            <button type="button" onClick={() => { setMo(false); onDoiMatKhau(); }}
+                                className="w-full flex items-center gap-2.5 px-4 py-3 text-left text-slate-800 font-bold text-[12px] hover:bg-slate-50 transition-colors">
+                                <Icon name="key" size={14} className="text-indigo-600"/> Đổi mật khẩu
+                            </button>
+                        </div>, document.body)}
+                </div>
+            );
+        };
+
+        // ===== MODAL ĐỔI MẬT KHẨU (chính chủ tự đổi) =====
+        // Đi qua /api/perm/password kèm `old_password` ⇒ Google tự kiểm mật khẩu hiện tại,
+        // KHÔNG cần tài khoản quản trị. Đây là lý do nhân viên thường cũng đổi được.
+        // ⚠️ Gọi Google nên mất 4–7 giây — phải có trạng thái chờ, không thì người dùng
+        //    bấm lại nhiều lần, mà mỗi lần sai là một lần bị tính vào lưới chống dò.
+        const ModalDoiMatKhau = ({ uid, onDong }) => {
+            const [cu, setCu] = useState('');
+            const [moi, setMoi] = useState('');
+            const [lai, setLai] = useState('');
+            const [loi, setLoi] = useState('');
+            const [dangLuu, setDangLuu] = useState(false);
+            const [xong, setXong] = useState(false);
+
+            const luu = async (e) => {
+                e.preventDefault();
+                setLoi('');
+                if (!cu) return setLoi('Nhập mật khẩu hiện tại');
+                if (moi.length < 6) return setLoi('Mật khẩu mới phải từ 6 ký tự trở lên');
+                if (moi !== lai) return setLoi('Hai ô mật khẩu mới không giống nhau');
+                if (moi === cu) return setLoi('Mật khẩu mới trùng mật khẩu hiện tại');
+                setDangLuu(true);
+                try {
+                    const r = await fetch('/api/perm/password', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ uid, old_password: cu, password: moi }) });
+                    const j = await r.json();
+                    if (j.status === 'ok') setXong(true);
+                    else setLoi(j.message || 'Không đổi được mật khẩu');
+                } catch (err) { setLoi('Lỗi kết nối'); } finally { setDangLuu(false); }
+            };
+
+            return createPortal(
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[99999] px-4">
+                    <div className="bg-white rounded-3xl p-7 max-w-sm w-full shadow-2xl border border-slate-100">
+                        <h2 className="text-[16px] font-black text-slate-900 flex items-center gap-2 mb-1">
+                            <Icon name="key" size={16} className="text-indigo-600"/> Đổi mật khẩu
+                        </h2>
+                        <p className="text-[11px] font-bold text-slate-400 mb-5">Tài khoản <b className="text-slate-600">{uid}</b></p>
+                        {xong ? (
+                            <>
+                                <div className="bg-emerald-50 border border-emerald-100 text-emerald-700 p-3 rounded-xl text-[11px] font-bold leading-relaxed">
+                                    Đã đổi mật khẩu. Lần đăng nhập sau dùng mật khẩu mới.
+                                    <div className="text-emerald-600/80 font-medium mt-1">Phiên đang mở vẫn dùng bình thường, không phải đăng nhập lại ngay.</div>
+                                </div>
+                                <button onClick={onDong} className="mt-5 w-full py-3 rounded-xl bg-indigo-600 text-white font-black text-[11px] uppercase tracking-wider hover:bg-indigo-700">Xong</button>
+                            </>
+                        ) : (
+                            <form onSubmit={luu} className="space-y-4">
+                                <div><div className="label-text mb-1.5 ml-1">Mật khẩu hiện tại</div>
+                                    <input type="password" autoFocus className="login-input" value={cu} onChange={e => setCu(e.target.value)} placeholder="••••••••"/></div>
+                                <div><div className="label-text mb-1.5 ml-1">Mật khẩu mới (từ 6 ký tự)</div>
+                                    <input type="password" className="login-input" value={moi} onChange={e => setMoi(e.target.value)} placeholder="••••••••"/></div>
+                                <div><div className="label-text mb-1.5 ml-1">Gõ lại mật khẩu mới</div>
+                                    <input type="password" className="login-input" value={lai} onChange={e => setLai(e.target.value)} placeholder="••••••••"/></div>
+                                {loi && <div className="bg-red-50 border border-red-100 text-red-600 p-3 rounded-xl text-[10px] font-bold leading-tight">{loi}</div>}
+                                <div className="flex gap-3 pt-1">
+                                    <button type="button" onClick={onDong} disabled={dangLuu}
+                                        className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 font-black text-[11px] uppercase hover:bg-slate-50 disabled:opacity-40">Huỷ</button>
+                                    <button type="submit" disabled={dangLuu}
+                                        className="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-black text-[11px] uppercase hover:bg-indigo-700 disabled:opacity-40 flex items-center justify-center gap-2">
+                                        {dangLuu && <Icon name="loader" size={12} className="animate-spin"/>}
+                                        {dangLuu ? 'Đang đổi...' : 'Đổi mật khẩu'}
+                                    </button>
+                                </div>
+                                <p className="text-[10px] font-bold text-slate-400 leading-relaxed">Mật khẩu được kiểm tại Google nên bước này mất vài giây. Đừng bấm lại nhiều lần — mỗi lần sai đều bị tính vào lưới chống dò mật khẩu.</p>
+                            </form>
+                        )}
+                    </div>
+                </div>, document.body);
+        };
+
         const App = () => {
             const appVersion = useAppVersion();   // lấy từ /api/version — hiện ở màn hình login + header
             const autoUpdate = useAutoUpdate();   // Quản lý kiểm tra và tự động cập nhật bản mới từ GitHub
@@ -3674,6 +4128,11 @@ const exportJournalCsv = (mode) => {
             const [toggleGroupRender, setToggleGroupRender] = useState(0); // Để ép update khi toggle expand
             const ledgerScrollRef = useRef();
             const [isLoggedIn, setIsLoggedIn] = useState(false);
+            const [allowedItems, setAllowedItems] = useState(null); // null = chưa nạp quyền → chưa lọc menu (tránh nháy menu rỗng)
+            // Thông tin người đang đăng nhập — /api/my_perms vốn đã trả về từ trước
+            // nhưng frontend chỉ lấy mỗi 'items' rồi vứt phần còn lại.
+            const [nguoiDung, setNguoiDung] = useState(null);
+            const [hienDoiMatKhau, setHienDoiMatKhau] = useState(false);
             const [activeTab, setActiveTab] = useState('ledger');
             const [data, setData] = useState([]);
             const [reportData, setReportData] = useState({});
@@ -3699,6 +4158,12 @@ const exportJournalCsv = (mode) => {
             const [loading, setLoading] = useState(false);
             const [loginLoading, setLoginLoading] = useState(false);
             const [loginError, setLoginError] = useState("");
+            // Nguyên văn lỗi ODBC — giấu sau nút "Chi tiết", chỉ mở khi cần chẩn đoán.
+            const [loginErrorChiTiet, setLoginErrorChiTiet] = useState("");
+            const [hienChiTietLoi, setHienChiTietLoi] = useState(false);
+            // Mất mạng lúc đăng nhập → server trả "canh_bao". Phải nói rõ cho người dùng biết
+            // họ đang chạy bằng bản quyền lưu trên máy, không phải bản mới nhất trên Google Sheet.
+            const [canhBaoOffline, setCanhBaoOffline] = useState("");
             const [activeDropdown, setActiveDropdown] = useState(null);
             const [period, setPeriod] = useState({ year: 2026, type: 'month', value: 1 });
             const [filters, setFilters] = useState({ from_date: '01/01/2026', to_date: '31/01/2026', tran_ids: [], org_ids: [], acc_ids: [], contra_acc_ids: [], job_ids: [], pr_detail_ids: [], item_ids: [], product_ids: [], expense_ids: [], tran_no: '', page: 1, page_size: 10000 });
@@ -3722,15 +4187,25 @@ const exportJournalCsv = (mode) => {
                 return { field: null, dir: 'desc' };
             };
 
-            const [loginData, setLoginData] = useState({ driver: "SQL Server", server: localStorage.getItem("iacc_server") || "", database: localStorage.getItem("iacc_db") || "", user: "", password: "" });
+            const [loginData, setLoginData] = useState({ driver: localStorage.getItem("iacc_driver") || "SQL Server", server: localStorage.getItem("iacc_server") || "", database: localStorage.getItem("iacc_db") || "", user: "", password: "", app_user: "", app_password: "" });
             const [showDriverDialog, setShowDriverDialog] = useState(false);
             const [driverInstalling, setDriverInstalling] = useState(false);
             const [driverDropdownOpen, setDriverDropdownOpen] = useState(false);
-            const driverOptions = [
+            // Thứ tự ưu tiên khi TỰ chọn driver. Đo 20/09/2026: driver "SQL Server" đời cũ
+            // KHÔNG tôn trọng timeout nên mỗi lần nối hỏng phải chờ 21 giây, trong khi
+            // ODBC Driver 17 chỉ mất 5 giây.
+            // ⚠️ CỐ Ý không tự chọn "ODBC Driver 18": nó mặc định bật mã hoá TLS, máy chủ
+            //    không có chứng chỉ hợp lệ là nối không được. Ai cần thì tự chọn trong danh sách.
+            const UU_TIEN_DRIVER = [
+                "ODBC Driver 17 for SQL Server",
+                "ODBC Driver 13 for SQL Server",
+                "SQL Server"
+            ];
+            const [driverOptions, setDriverOptions] = useState([
                 { value: "ODBC Driver 17 for SQL Server", label: "ODBC Driver 17 for SQL Server" },
                 { value: "ODBC Driver 13 for SQL Server", label: "ODBC Driver 13 for SQL Server" },
-                { value: "SQL Server", label: "SQL Server (mặc định)" }
-            ];
+                { value: "SQL Server", label: "SQL Server (đời cũ, chậm)" }
+            ]);
 
             // AbortController để hủy request cũ khi có request mới
             const abortRef = useRef(null);
@@ -3746,12 +4221,25 @@ const exportJournalCsv = (mode) => {
                     if (!res.has_driver) {
                         setShowDriverDialog(true);
                     }
+                    // Chỉ liệt kê driver CÓ THẬT trên máy này, rồi tự chọn cái tốt nhất.
+                    const coTrenMay = (res.drivers || []).filter(d => /SQL Server/i.test(d));
+                    if (!coTrenMay.length) return;
+                    setDriverOptions(coTrenMay.map(d => ({
+                        value: d, label: d === 'SQL Server' ? 'SQL Server (đời cũ, chậm)' : d
+                    })));
+                    setLoginData(ld => {
+                        // Đại Ca đã tự chọn lần trước và driver đó vẫn còn → tôn trọng, đừng đổi.
+                        const daChon = localStorage.getItem('iacc_driver');
+                        if (daChon && coTrenMay.includes(daChon)) return { ...ld, driver: daChon };
+                        const tot = UU_TIEN_DRIVER.find(d => coTrenMay.includes(d));
+                        return tot ? { ...ld, driver: tot } : ld;
+                    });
                 }).catch(err => { if (window.isNetworkError(err)) window.showConnectionLost(); });
 
                 fetch('/api/metadata').then(r => {
                     if (r.status === 401) { setIsLoggedIn(false); }
                     else return r.json();
-                }).then(res => { if(res) { setMeta(res); setIsLoggedIn(true); } })
+                }).then(res => { if(res) { setMeta(res); setIsLoggedIn(true); loadPerms(); } })
                   .catch(err => { if (window.isNetworkError(err)) window.showConnectionLost(); });
             }, []);
 
@@ -3766,10 +4254,43 @@ const exportJournalCsv = (mode) => {
                 setFilters(p => ({ ...p, from_date: f(s), to_date: f(e) }));
             }, [period]);
 
+            // Nhóm bị hạn chế: nếu tab/báo cáo đang mở không được phép thì nhảy về mục ĐƯỢC phép,
+            // tránh việc auto-load một mục bị cấm rồi nhận 403. Giai đoạn khung (ADMIN thấy hết) không kích hoạt.
+            useEffect(() => {
+                if (!allowedItems) return;
+                const visDoc = DOC_TABS.filter(t => canSee(t.id));
+                const visRep = REPORT_TYPES.filter(r => canSee(r.id));
+                if (activeTab === 'report') {
+                    if (!visRep.length && visDoc.length) setActiveTab(visDoc[0].id);
+                } else if (DOC_TABS.some(t => t.id === activeTab) && !canSee(activeTab)) {
+                    if (visDoc.length) setActiveTab(visDoc[0].id);
+                    else if (visRep.length) setActiveTab('report');
+                }
+                if (!canSee(reportType) && visRep.length) setReportType(visRep[0].id);
+            }, [allowedItems]);
+
+            // Quyền theo mục: mục nào KHÔNG nằm trong allowedItems thì ẩn khỏi menu.
+            // null (chưa nạp) coi như thấy hết — tránh nháy menu rỗng ngay sau đăng nhập.
+            const canSee = (id) => !allowedItems || allowedItems.includes(id);
+            const loadPerms = async () => {
+                try {
+                    const r = await fetch('/api/my_perms');
+                    if (!r.ok) return;
+                    const j = await r.json();
+                    if (j.status === 'ok') {
+                        setAllowedItems(j.items);
+                        setNguoiDung({ app_user: j.app_user, name: j.name, group: j.group,
+                                       items: j.items, allowed_orgs: j.allowed_orgs });
+                    }
+                } catch (e) { /* server chưa sẵn sàng — giữ null, không lọc */ }
+            };
+
             const handleLogin = async (e) => {
                 e.preventDefault();
                 setLoginLoading(true);
                 setLoginError("");
+                setLoginErrorChiTiet("");
+                setHienChiTietLoi(false);
                 try {
                     const r = await fetch('/api/login', {
                         method: 'POST',
@@ -3778,16 +4299,21 @@ const exportJournalCsv = (mode) => {
                     });
                     const res = await r.json();
                     if (res.status === 'ok') {
+                        setCanhBaoOffline(res.canh_bao || "");
                         localStorage.setItem("iacc_server", loginData.server);
                         localStorage.setItem("iacc_db", loginData.database);
+                        localStorage.setItem("iacc_driver", loginData.driver);   // nhớ driver cho lần sau
+                        await loadPerms();                 // nạp quyền TRƯỚC khi vào app → menu + tab mặc định đúng ngay
                         setIsLoggedIn(true);
                         const metaRes = await fetch('/api/metadata').then(r => r.json());
                         setMeta(metaRes);
                     } else {
                         setLoginError(res.message);
+                        setLoginErrorChiTiet(res.chi_tiet || "");
                     }
                 } catch (err) {
-                    setLoginError("Không thể kết nối đến Server Python.");
+                    setLoginError("Không gọi được máy chủ của phần mềm. Thử đóng phần mềm rồi mở lại.");
+                    setLoginErrorChiTiet(String(err && err.message || err));
                 } finally {
                     setLoginLoading(false);
                 }
@@ -3796,6 +4322,9 @@ const exportJournalCsv = (mode) => {
             const handleLogout = async () => {
                 await fetch('/api/logout', { method: 'POST' });
                 setIsLoggedIn(false);
+                setAllowedItems(null);
+                setNguoiDung(null);
+                setHienDoiMatKhau(false);
                 setMeta({ accounts: [], orgs: [], pr_details: [], tran_ids: [], jobs: [], items: [], products: [], expenses: [], warehouses: [], db_info: {}, global_total: 0 });
             };
 
@@ -5312,7 +5841,7 @@ const exportJournalCsv = (mode) => {
                             alert('Lỗi xem Sổ tiền mặt và ngân hàng: ' + (res.message || 'không có dữ liệu'));
                         }
                     } else if (reportType === 'BC009' || reportType === 'BC010') {
-                        const r = await fetch(`/api/cash_flow?${query.toString()}`, { signal: abortRef.current.signal });
+                        const r = await fetch(`/api/cash_flow?${query.toString()}&report=${reportType}`, { signal: abortRef.current.signal });
                         if (r.status === 401) { setIsLoggedIn(false); return; }
                         const res = await r.json();
                         if (res.status === 'ok') {
@@ -5321,7 +5850,7 @@ const exportJournalCsv = (mode) => {
                             setMonthList([]); setMonthlyData({}); setJobList([]); setJobData({});
                         }
                     } else if (['BC002', 'BC004'].includes(reportType)) {
-                        const r = await fetch(`/api/report_by_job?${query.toString()}`, { signal: abortRef.current.signal });
+                        const r = await fetch(`/api/report_by_job?${query.toString()}&report=${reportType}`, { signal: abortRef.current.signal });
                         if (r.status === 401) { setIsLoggedIn(false); return; }
                         const res = await r.json();
                         if (res.status === 'ok') {
@@ -5333,7 +5862,7 @@ const exportJournalCsv = (mode) => {
                         }
                     } else {
                         // BC001 và BC003
-                        const r = await fetch(`/api/report?${query.toString()}`, { signal: abortRef.current.signal });
+                        const r = await fetch(`/api/report?${query.toString()}&report=${reportType}`, { signal: abortRef.current.signal });
                         if (r.status === 401) { setIsLoggedIn(false); return; }
                         const res = await r.json();
                         if (res.status === 'ok') {
@@ -5470,7 +5999,31 @@ const exportJournalCsv = (mode) => {
                                     <div><div className="label-text mb-1.5 ml-1">Password</div><input required type="password" className="login-input" value={loginData.password} onChange={e => setLoginData({...loginData, password: e.target.value})} placeholder="••••••••"/></div>
                                 </div>
 
-                                {loginError && <div className="bg-red-50 border border-red-100 text-red-600 p-3 rounded-xl text-[10px] font-bold flex items-center gap-2 mt-2 leading-tight animate-shake"><Icon name="lock" size={12}/> {loginError}</div>}
+                                <div className="pt-3 mt-1 border-t border-slate-200/70">
+                                    <div className="label-text mb-2 ml-1 text-indigo-500">Tài khoản ứng dụng</div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div><div className="label-text mb-1.5 ml-1">Tài khoản</div><input className="login-input" value={loginData.app_user} onChange={e => setLoginData({...loginData, app_user: e.target.value})} placeholder="vd: ketoan1"/></div>
+                                        <div><div className="label-text mb-1.5 ml-1">Mật khẩu</div><input type="password" className="login-input" value={loginData.app_password} onChange={e => setLoginData({...loginData, app_password: e.target.value})} placeholder="••••••••"/></div>
+                                    </div>
+                                </div>
+
+                                {loginError && (
+                                    <div className="bg-red-50 border border-red-100 text-red-600 p-3 rounded-xl text-[10px] font-bold mt-2 leading-relaxed animate-shake">
+                                        <div className="flex items-start gap-2">
+                                            <Icon name="lock" size={12} className="mt-0.5 shrink-0"/>
+                                            <span className="whitespace-pre-line">{loginError}</span>
+                                        </div>
+                                        {loginErrorChiTiet && (
+                                            <div className="mt-2 pt-2 border-t border-red-100">
+                                                <button type="button" onClick={() => setHienChiTietLoi(v => !v)}
+                                                    className="text-[9px] font-black uppercase tracking-wider text-red-400 hover:text-red-600">
+                                                    {hienChiTietLoi ? '− Ẩn chi tiết kỹ thuật' : '+ Chi tiết kỹ thuật'}
+                                                </button>
+                                                {hienChiTietLoi && <div className="mt-1.5 text-[9px] font-mono font-normal text-red-400 break-all leading-snug">{loginErrorChiTiet}</div>}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
 
                                 <button disabled={loginLoading} type="submit" className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-[12px] uppercase tracking-widest shadow-xl shadow-indigo-500/30 hover:bg-indigo-700 active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-6">
                                     {loginLoading ? <Icon name="loader" className="animate-spin"/> : <><Icon name="database" size={14}/> KẾT NỐI NGAY</>}
@@ -5546,6 +6099,16 @@ const exportJournalCsv = (mode) => {
             const isWarehouseGroupedOrSearched = groupByWarehouse.length > 0 || Object.values(warehouseColSearch).some(val => (val || '').trim() !== '');
             return (
                 <div className="h-screen flex flex-col">
+                    {hienDoiMatKhau && nguoiDung && nguoiDung.app_user && (
+                        <ModalDoiMatKhau uid={nguoiDung.app_user} onDong={() => setHienDoiMatKhau(false)} />
+                    )}
+                    {canhBaoOffline && (
+                        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center gap-3 shrink-0">
+                            <span className="text-[11px] font-black text-amber-700 uppercase tracking-wider shrink-0">Chạy offline</span>
+                            <span className="text-[11px] font-bold text-amber-800 flex-1 leading-tight">{canhBaoOffline}</span>
+                            <button onClick={() => setCanhBaoOffline("")} className="text-amber-600 hover:text-amber-900 font-black text-[11px] px-2 shrink-0">Đóng</button>
+                        </div>
+                    )}
                     {!autoUpdate.dismissed && (
                         <AutoUpdateBanner
                             updateInfo={autoUpdate.updateInfo}
@@ -5556,8 +6119,15 @@ const exportJournalCsv = (mode) => {
                     <div className="bg-slate-900 text-[10px] text-slate-400 px-6 py-1.5 flex justify-between items-center shrink-0 z-[1000]">
                         <div className="flex items-center gap-6"><div className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div><span className="font-black text-slate-200 uppercase tracking-widest">Connected</span></div><div className="font-black text-indigo-400 uppercase tracking-widest">{meta.db_info?.database}</div><div className="text-slate-500 font-bold">{appVersion}</div></div>
                         <div className="flex bg-white/5 rounded-lg border border-white/10">
-                            <DocumentTabDropdown activeTab={activeTab} setActiveTab={setActiveTab} />
-                            <button onClick={() => setActiveTab('report')} className={`tab-btn flex items-center gap-2 ${activeTab === 'report' ? 'active bg-white/5' : 'hover:bg-white/5'}`}><Icon name="file-text" size={12}/> Báo cáo</button>
+                            {DOC_TABS.some(t => canSee(t.id)) && (
+                                <DocumentTabDropdown activeTab={activeTab} setActiveTab={setActiveTab} items={DOC_TABS.filter(t => canSee(t.id))} />
+                            )}
+                            {REPORT_TYPES.some(r => canSee(r.id)) && (
+                                <button onClick={() => setActiveTab('report')} className={`tab-btn flex items-center gap-2 ${activeTab === 'report' ? 'active bg-white/5' : 'hover:bg-white/5'}`}><Icon name="file-text" size={12}/> Báo cáo</button>
+                            )}
+                            {canSee('perm_admin') && (
+                                <button onClick={() => setActiveTab('perm_admin')} className={`tab-btn flex items-center gap-2 ${activeTab === 'perm_admin' ? 'active bg-white/5' : 'hover:bg-white/5'}`}><Icon name="lock" size={12}/> Phân quyền</button>
+                            )}
                         </div>
                         <div className="flex items-center gap-4">
                             <div className="font-black uppercase tracking-widest">Records: <span className="text-white">{meta.global_total?.toLocaleString()}</span></div>
@@ -5565,6 +6135,7 @@ const exportJournalCsv = (mode) => {
                                 <Icon name="loader" size={10} className={refreshing ? 'animate-spin' : ''}/> 
                                 {refreshing ? 'Đang tải...' : 'Danh mục'}
                             </button>
+                            <MenuTaiKhoan nguoiDung={nguoiDung} onDoiMatKhau={() => setHienDoiMatKhau(true)} />
                             <button onClick={handleLogout} className="bg-white/10 hover:bg-red-500/20 hover:text-red-400 p-1.5 px-3 rounded-lg transition-all flex items-center gap-2 font-black uppercase text-[9px]"><Icon name="log-out" size={10}/> Đăng xuất</button>
                         </div>
                     </div>
@@ -6893,6 +7464,7 @@ const exportJournalCsv = (mode) => {
                         <div className="flex-1 flex flex-col relative overflow-hidden">
                             {loading && <div className="absolute inset-0 bg-white/60 z-50 flex flex-col items-center justify-center backdrop-blur-[4px] transition-all"><div className="bg-white p-8 rounded-[40px] shadow-[0_30px_100px_rgba(0,0,0,0.2)] flex flex-col items-center gap-6 border border-indigo-50 scale-110"><div className="relative"><div className="w-16 h-16 border-4 border-indigo-100 rounded-full"></div><div className="w-16 h-16 border-4 border-indigo-600 rounded-full border-t-transparent animate-spin absolute top-0 left-0"></div><Icon name="file-text" size={24} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-indigo-600"/></div><div className="flex flex-col items-center gap-1"><div className="text-[12px] font-black text-indigo-900 uppercase tracking-widest">Đang kết xuất báo cáo</div><div className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter italic">Vui lòng chờ trong giây lát...</div></div></div></div>}
                             <ReportTab
+                                allowedReports={REPORT_TYPES.filter(r => canSee(r.id))}
                                 filters={filters}
                                 setFilters={setFilters}
                                 period={period}
@@ -6928,6 +7500,11 @@ const exportJournalCsv = (mode) => {
                                 setNxtGroupBy={setNxtGroupBy}
                                 onExportSuccess={(path, filename) => setExportNoticeModal({ path, filename })}
                             />
+                        </div>
+                    )}
+                    {activeTab === 'perm_admin' && canSee('perm_admin') && (
+                        <div className="flex-1 overflow-auto bg-slate-50">
+                            <PermAdminPanel onPermsChanged={loadPerms} orgs={meta.orgs} />
                         </div>
                     )}
                     {/* MODAL: Xác nhận xuất CSV cho dataset lớn */}

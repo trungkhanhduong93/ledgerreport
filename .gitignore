@@ -31,3 +31,11 @@ Thumbs.db
 
 # Credential DB - TUYET DOI KHONG COMMIT
 config.json
+
+# File phan quyen (chua user + hash mat khau khach) - KHONG commit
+phanquyen.json
+
+# Ket noi Google Sheet (chua URL + TOKEN) - TUYET DOI KHONG COMMIT
+ketnoi.json
+# Ban luu quyen offline (sinh ra canh EXE luc chay)
+phanquyen_cache.json

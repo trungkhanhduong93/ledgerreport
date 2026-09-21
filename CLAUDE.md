@@ -279,7 +279,8 @@ Luật: **chép file `.bak` sang ổ vật lý khác hoặc cloud** — để c�
 `/api/login` chỉ gán `session['db_config']`. Endpoint nào kiểm `session.get("logged_in")` sẽ **luôn trả 401**,
 frontend gặp 401 là `setIsLoggedIn(false)` → **user bị đá về màn hình đăng nhập ngay khi bấm Xem báo cáo**.
 Đã giết BC001–BC004 + BC011. Triệu chứng người dùng: *"bấm là văng ra khỏi phần mềm"*.
-➡️ Kiểm đúng: `session.get('db_config')`. Nghe báo triệu chứng đó thì `grep -n "logged_in" server.py` đầu tiên.
+➡️ Kiểm đúng: **`_db_cfg()`** (từ 21/09/2026 — trước đó là `session.get('db_config')`, xem Bẫy 17).
+Nghe báo triệu chứng đó thì `grep -n "logged_in" server.py` đầu tiên.
 
 ### Bẫy 2 — Nối code vào cuối `server.py` sinh hàm trùng tên *(15/08/2026)*
 Python lấy định nghĩa **sau cùng**. Một bản `_calc_results` nối thêm ở cuối che mất bản ở trên →
@@ -380,6 +381,93 @@ mất khỏi bộ lọc. Đã đo trên `IACC_CHULONG`: năm 2026 an toàn (0 ca
 `ACTIVE=0`**, trong đó công việc **`CH.162BT` có 48 dòng LEDGER ngày 02/12/2025** → xem kỳ 2025 là
 không chọn được. **Đã bàn và quyết định để nguyên** (sửa sẽ làm dropdown Công việc phình 98 → 237 mục).
 Chỉ ghi nhận — gặp triệu chứng "có chứng từ mà không lọc được" thì kiểm `ACTIVE` của danh mục trước.
+
+### Bẫy 17 — Cookie phiên của Flask được **KÝ, KHÔNG MÃ HOÁ** *(21/09/2026)*
+
+`session['db_config'] = data` đặt nguyên **server / database / user / password** của SQL vào cookie.
+Cookie Flask chỉ được ký để chống sửa — **nội dung là base64 đọc được, không cần `secret_key`**:
+
+```python
+payload = cookie.split('.')[1]          # phần sau dấu chấm đầu = dữ liệu đã nén
+print(zlib.decompress(base64.urlsafe_b64decode(payload + '==')).decode())
+# -> {"db_config":{"server":"...","user":"sa","password":"...","database":"IACC_CHULONG"}, ...}
+```
+
+Mở **F12 → Application → Cookies** là đọc được mật khẩu SQL của người đang đăng nhập —
+mượn máy đồng nghiệp một phút là lấy được. Đi kèm: `secret_key` ghi cứng
+`'IACC_SECRET_SUPREME_2026'` trong mã nguồn của repo **CÔNG KHAI** ⇒ ai cũng **tự ký được
+cookie giả** (tự cấp quyền `app_items`), và phiên cũ sống xuyên qua mọi lần build lại.
+
+➡️ **Đã sửa:** cookie nay chỉ giữ một **mã phiên ngẫu nhiên `sid`**; db_config nằm trong kho
+`_phien_db` phía máy chủ (RAM). Dùng `_db_cfg()` / `_dat_db_cfg()` / `_xoa_db_cfg()`.
+`secret_key` đổi thành `os.urandom(32)` mỗi lần khởi động.
+
+⛔ **Đừng quay lại đặt bất cứ thứ gì bí mật vào `session`** — cookie là chỗ ai cũng đọc được.
+Những thứ đang nằm đó (`app_user`, `app_group`, `app_items`, `app_orgs`) đều là thông tin
+không bí mật, và nay chữ ký ngẫu nhiên mới thật sự chống được sửa.
+
+⚠️ **Hệ quả vận hành phải biết:** kho phiên nằm trong RAM nên **khởi động lại app là phải
+đăng nhập lại** — kể cả sau khi tự cập nhật. Trước đây cookie mang sẵn thông tin kết nối nên
+app dựng lại kết nối được mà người dùng không hề hay.
+
+⚠️ `SESSION_COOKIE_SECURE` **cố ý KHÔNG bật**: app chạy trên `http://localhost:5050`, bật lên
+là trình duyệt ngừng gửi cookie ⇒ đăng nhập xong vẫn bị coi là chưa đăng nhập.
+
+### Bẫy 18 — `_GS_TOKEN_GHIM` trong `server.py` là CỐ Ý, đừng "sửa giúp" *(21/09/2026)*
+
+`server.py` ghim cứng **URL + TOKEN của Apps Script** (`_GS_URL_GHIM` / `_GS_TOKEN_GHIM`) để
+chỉ phải phát **một file EXE**, không kèm file cấu hình nào. Repo này **CÔNG KHAI** nên
+hai chuỗi đó ai cũng đọc được — **đã cân nhắc và Đại Ca chốt chấp nhận.**
+
+| | |
+|---|---|
+| TOKEN này là gì | chuỗi **Đại Ca tự đặt** ở `const TOKEN` trong Code.gs — **KHÔNG phải token Google** |
+| Cầm được thì vào được Drive/Gmail/Sheet? | **Không.** Trong app không có một mẩu credential Google nào (đó là lý do bỏ hướng Service Account 19/09) |
+| Cầm được thì đọc được danh sách tài khoản? | **Không.** 7/8 lệnh đòi thêm mật khẩu qua `_doiAdmin()` |
+| Cầm được thì chạm được số liệu kế toán? | **Không.** Số liệu ở SQL Server sau VPN, không dính dáng |
+| Vậy mất gì | người lạ **gõ cửa dò mật khẩu** và **spam cạn quota Apps Script**. Chống bằng rate limit trong `Code.gs` (KHOA_SO_LAN / KHOA_PHAT_S) |
+
+⛔ **CHỈ ĐÚNG CHO TOKEN APPS SCRIPT.** Tuyệt đối **không ghim kiểu này bất cứ thông tin
+SQL Server nào** — cái đó mở thật vào dữ liệu kế toán. Nhân viên vẫn tự gõ thông tin SQL
+(Đại Ca chốt 21/09/2026).
+
+⚠️ **Quét secret trước commit sẽ báo động ở hai dòng này** — đó là báo đúng, không phải
+báo nhầm. Biết rồi thì cho qua, đừng hoảng và cũng đừng bỏ lệ quét.
+
+Đổi token thì phải đổi **CẢ HAI đầu**: `const TOKEN` trong `phanquyen_gas/Code.gs` **và**
+`_GS_TOKEN_GHIM` trong `server.py`, rồi triển khai Apps Script bằng **Phiên bản mới**
+(⛔ đừng bấm *"Triển khai mới"* — sinh URL khác, mọi EXE đã phát sẽ mất kết nối).
+
+`ketnoi.json` cạnh EXE **vẫn được đọc và ĐÈ LÊN bản ghim cứng** — giữ lại để đổi gấp mà
+khỏi build lại EXE. Bình thường không cần file này.
+
+### Bẫy 19 — Dán thẳng `Code.gs` lên Google là XOÁ MẤT TOKEN THẬT *(21/09/2026)*
+
+Repo này **công khai**, nên `phanquyen_gas/Code.gs` **cố ý** để hai hằng bí mật ở dạng giữ chỗ:
+
+```javascript
+const TOKEN = 'DAN_TOKEN_NGAU_NHIEN_VAO_DAY';
+const ADMIN_DK_BOOTSTRAP = 'DAN_CHUOI_BAM_ADMIN_VAO_DAY';
+```
+
+Dán thẳng file đó vào Apps Script ⇒ **ghi đè TOKEN thật bằng chuỗi giữ chỗ**. Editor hỏng ngay,
+và lần **Triển khai** kế tiếp là **toàn bộ EXE đã phát mất kết nối** — token trong EXE không còn
+khớp token trên Google. Người dùng thấy *"Không kết nối được tới Google"*, không ai đăng nhập được.
+
+⚠️ **Đã vấp thật 21/09/2026.** Cứu được **chỉ vì** lúc đó chưa bấm Triển khai: bản đang chạy vẫn là
+Version cũ mang token thật, nên app vẫn sống trong lúc sửa. Sớm vài phút là chết cả công ty.
+
+➡️ **Luôn dùng `python phanquyen_gas/chuan_bi_deploy.py`** — nó lấy token thật từ `ketnoi.json`,
+thay vào, rồi đưa vào clipboard. Không ghi ra file nào trong repo (file đó sẽ chứa token thật).
+
+**Kiểm sau khi dán, TRƯỚC khi Triển khai:** Ctrl+F trong editor tìm `DAN_TOKEN_NGAU_NHIEN` →
+phải ra **"No results"**.
+
+**Kiểm sau khi Triển khai:** `ping` phải trả `"ban"` đúng bằng `BAN_CODE` trong file, và `ok: true`
+(nghĩa là token vẫn khớp).
+
+⚠️ `ADMIN_DK_BOOTSTRAP` **không khôi phục được** — nó chỉ dùng một lần lúc `khoiTao()` sinh admin
+đầu tiên. Sheet đã có admin nên để nguyên chuỗi giữ chỗ là vô hại.
 
 ---
 

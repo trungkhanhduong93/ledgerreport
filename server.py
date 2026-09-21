@@ -165,7 +165,8 @@ def _xoa_db_cfg():
 #    để app chạy y như cũ. Khi cắm đăng nhập, /api/login sẽ set session['app_group'] theo nhóm
 #    thật; chỉ cần đổi giá trị mặc định ở _current_group() cho an toàn.
 # ===================================================================
-PERM_TABS    = ['ledger', 'sale', 'voucher', 'purchase', 'warehouse', 'warehouse_balance', 'btp_reconcile']
+PERM_TABS    = ['ledger', 'sale', 'voucher', 'purchase', 'warehouse', 'warehouse_balance',
+                'btp_reconcile', 'dcnb_reconcile', 'po_list']
 PERM_REPORTS = ['BC%03d' % i for i in range(1, 17)]          # BC001..BC016
 PERM_EXTRA   = ['perm_admin']                                # tab "Phân quyền" — CHỈ ADMIN
 PERM_ALL_ITEMS = PERM_TABS + PERM_REPORTS + PERM_EXTRA
@@ -208,6 +209,10 @@ PERM_ROUTE_STATIC = {
     '/api/warehouse_balance/stream_csv': 'warehouse_balance',
     '/api/btp_reconcile': 'btp_reconcile', '/api/btp_reconcile/count': 'btp_reconcile',
     '/api/btp_reconcile/stream_csv': 'btp_reconcile',
+    '/api/dcnb_reconcile': 'dcnb_reconcile', '/api/dcnb_reconcile/count': 'dcnb_reconcile',
+    '/api/dcnb_reconcile/stream_csv': 'dcnb_reconcile',
+    '/api/po_list': 'po_list', '/api/po_list/count': 'po_list',
+    '/api/po_list/stream_csv': 'po_list',
     '/api/balance_sheet': 'BC005', '/api/trial_balance': 'BC006', '/api/journal': 'BC007',
     '/api/account_details': 'BC008', '/api/cash_flow_cl': 'BC011',
     '/api/cash_book': 'BC012', '/api/cash_book/export_csv': 'BC012',
@@ -3520,6 +3525,723 @@ def get_btp_reconcile_stream_csv():
 
         headers = [label for _, label in BTPDC_CSV_COLS]
         fname   = f"DoiChieuXuatSX_NhapTP_{args.get('from_date','').replace('/','')}-{args.get('to_date','').replace('/','')}.{args.get('format', 'csv')}"
+        job_id  = _start_export_job(fname, headers, sql, params, transform, total_estimate)
+        return jsonify({"status": "ok", "job_id": job_id, "filename": fname})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# =============== ĐỐI CHIẾU ĐIỀU CHUYỂN NỘI BỘ (XDCNB → NDCNB) ===============
+# Danh sách RIÊNG BIỆT. Mỗi dòng = 1 mã hàng trên phiếu xuất XDCNB, kèm phiếu nhập
+# NDCNB tương ứng của đúng mã hàng đó.
+#
+# KHOÁ NỐI — đo trên IACC_CHULONG ngày 21/09/2026:
+#   PURCHASE.SALE_PR_KEY = SALE.PR_KEY, y hệt khuôn BTP.
+#   19.838 phiếu NDCNB năm 2026 → 19.828 nối được (99,95%), 10 mồ côi.
+#   ⛔ CẤM nối theo số phiếu — số phiếu trùng nhau giữa các đơn vị.
+#
+# ⚠️ KHÁC BTP Ở HAI ĐIỂM, ĐỪNG BÊ NGUYÊN:
+#   1) Xuất và nhập ở HAI ĐƠN VỊ KHÁC NHAU (kho tổng 01 xuất → cửa hàng 35/71/32… nhận).
+#      Vì vậy có CẢ HAI cột đơn vị. Bộ lọc Đơn vị áp cho phía XUẤT (chủ phiếu), phía nhận
+#      lọc bằng ô tìm kiếm riêng — xem ghi chú ở _build_dcnb_where.
+#   2) NDCNB có IS_SALE = 0 ⇒ **KHÔNG nằm trong PURCHASE_VIEW** (Bẫy 15). Phải đọc thẳng
+#      bảng dbo.PURCHASE; đọc qua view là ra 0 dòng mà không báo lỗi.
+#
+# SỐ LƯỢNG: hai phía cùng ĐVT cơ bản nên so THẲNG QUANTITY là đúng — đã đo 2026:
+#   khớp 133.348 · chưa nhận 4.603 · lệch 28. KHÔNG cần mẹo "mốc gần hơn" như BTP
+#   (mẹo đó sinh ra vì JOB_QTY của BTP ghi bằng 1 trong 2 đơn vị tuỳ người gõ).
+DCNB_TT_DU   = "Đã nhận đủ"
+DCNB_TT_CHUA = "Chưa nhận hàng"
+DCNB_TT_LECH = "Lệch số lượng"
+DCNB_TT_KHONGGOC = "Không tìm thấy phiếu xuất liên quan"
+
+DCNB_STATUS_MAP = {"du": DCNB_TT_DU, "chua": DCNB_TT_CHUA,
+                   "lech": DCNB_TT_LECH, "khonggoc": DCNB_TT_KHONGGOC}
+
+DCNB_SORT_WHITELIST = {c: c for c in [
+    "DON_VI_XUAT", "TEN_DV_XUAT", "NGAY_XUAT", "SO_PHIEU_XUAT", "KHO_XUAT", "TEN_KHO_XUAT",
+    "MA_HANG", "TEN_HANG", "DVT", "SL_XUAT", "TIEN_XUAT",
+    "DON_VI_NHAP", "TEN_DV_NHAP", "SO_PHIEU_NHAP", "NGAY_NHAP", "KHO_NHAP",
+    "SL_NHAN", "CHENH_SL", "TRANG_THAI", "GHI_CHU",
+]}
+
+DCNB_CSV_COLS = [
+    ("DON_VI_XUAT", "Mã ĐV xuất"), ("TEN_DV_XUAT", "Tên đơn vị xuất"),
+    ("NGAY_XUAT", "Ngày xuất"), ("SO_PHIEU_XUAT", "Phiếu xuất"),
+    ("KHO_XUAT", "Mã kho xuất"), ("TEN_KHO_XUAT", "Tên kho xuất"),
+    ("MA_HANG", "Mã hàng"), ("TEN_HANG", "Tên hàng"), ("DVT", "ĐVT"),
+    ("SL_XUAT", "SL xuất"), ("TIEN_XUAT", "Tiền xuất"),
+    ("DON_VI_NHAP", "Mã ĐV nhận"), ("TEN_DV_NHAP", "Tên đơn vị nhận"),
+    ("SO_PHIEU_NHAP", "Phiếu nhập"), ("NGAY_NHAP", "Ngày nhập"), ("KHO_NHAP", "Kho nhập"),
+    ("SL_NHAN", "SL nhận"), ("CHENH_SL", "Chênh SL"),
+    ("TRANG_THAI", "Trạng thái"), ("GHI_CHU", "Ghi chú"),
+]
+
+# {inner} = lọc sớm trên dòng xuất (ngày/đơn vị xuất/kho/mã hàng)
+_DCNB_CTE = """
+WITH X AS (
+    SELECT W.PR_KEY, W.TRAN_NO, W.TRAN_DATE, W.ORGANIZATION_ID, W.WAREHOUSE_ID, W.ITEM_ID,
+           QUANTITY = SUM(W.QUANTITY), AMOUNT = SUM(W.AMOUNT)
+    FROM dbo.WAREHOUSE W WITH (NOLOCK)
+    WHERE W.TRAN_ID = 'XDCNB' AND W.ISSUE_RECEIVE = 'X' AND {inner}
+    GROUP BY W.PR_KEY, W.TRAN_NO, W.TRAN_DATE, W.ORGANIZATION_ID, W.WAREHOUSE_ID, W.ITEM_ID
+),
+P AS (
+    SELECT PR_KEY, TRAN_NO, TRAN_DATE, SALE_PR_KEY, ORGANIZATION_ID
+    FROM dbo.PURCHASE WITH (NOLOCK)
+    WHERE TRAN_ID = 'NDCNB' AND SALE_PR_KEY IS NOT NULL AND SALE_PR_KEY <> 0
+),
+N0 AS (
+    SELECT P.SALE_PR_KEY, WN.ITEM_ID, P.TRAN_NO, P.TRAN_DATE,
+           P.ORGANIZATION_ID, WN.WAREHOUSE_ID, SL = SUM(WN.QUANTITY)
+    FROM P
+    JOIN dbo.WAREHOUSE WN WITH (NOLOCK) ON WN.PR_KEY = P.PR_KEY AND WN.ISSUE_RECEIVE = 'N'
+    GROUP BY P.SALE_PR_KEY, WN.ITEM_ID, P.TRAN_NO, P.TRAN_DATE, P.ORGANIZATION_ID, WN.WAREHOUSE_ID
+),
+N AS (
+    SELECT SALE_PR_KEY, ITEM_ID,
+           SO_PHIEU_NHAP = STRING_AGG(TRAN_NO, ' + '),
+           NGAY_NHAP     = MIN(TRAN_DATE),
+           DON_VI_NHAP   = STRING_AGG(ORGANIZATION_ID, ' + '),
+           KHO_NHAP      = STRING_AGG(WAREHOUSE_ID, ' + '),
+           SL_NHAN       = SUM(SL)
+    FROM N0 GROUP BY SALE_PR_KEY, ITEM_ID
+),
+ORPH_H AS (
+    -- Phiếu NHẬP không truy được về phiếu xuất (lọc mức phiếu: ngày nhập + đơn vị nhận)
+    SELECT P2.PR_KEY, P2.ORGANIZATION_ID, P2.ORIG_TRAN_NO, P2.TRAN_NO, P2.TRAN_DATE
+    FROM dbo.PURCHASE P2 WITH (NOLOCK)
+    LEFT JOIN dbo.SALE S2 WITH (NOLOCK) ON S2.PR_KEY = P2.SALE_PR_KEY
+    WHERE P2.TRAN_ID = 'NDCNB'
+      AND (P2.SALE_PR_KEY IS NULL OR P2.SALE_PR_KEY = 0 OR S2.PR_KEY IS NULL)
+      AND {inner_orph}
+),
+ORPH_X AS (
+    -- Số chứng từ xuất ghi trên phiếu nhập giờ còn dẫn tới phiếu nào không?
+    -- JOIN một lượt, KHÔNG dùng OUTER APPLY tương quan: SALE 1 triệu dòng không có
+    -- index trên TRAN_NO, viết kiểu tương quan làm tab tụt xuống hàng chục giây.
+    SELECT H.PR_KEY, PK_MOI = MAX(S3.PR_KEY)
+    FROM ORPH_H H
+    JOIN dbo.SALE S3 WITH (NOLOCK)
+      ON S3.TRAN_NO = H.ORIG_TRAN_NO AND S3.TRAN_ID = 'XDCNB'
+    GROUP BY H.PR_KEY
+),
+ORPH_N AS (
+    -- Phiếu xuất đó đã có phiếu nhập KHÁC nối vào chưa ⇒ nghi nhận trùng
+    SELECT X.PR_KEY, NDC_KHAC = MAX(P3.TRAN_NO)
+    FROM ORPH_X X
+    JOIN dbo.PURCHASE P3 WITH (NOLOCK)
+      ON P3.TRAN_ID = 'NDCNB' AND P3.SALE_PR_KEY = X.PK_MOI AND P3.PR_KEY <> X.PR_KEY
+    GROUP BY X.PR_KEY
+),
+ORPH AS (
+    -- Mỗi dòng = 1 mã hàng đã nhận. Phần xuất để trống vì không có phiếu xuất để lấy.
+    SELECT
+        PR_KEY_XUAT   = 'N' + CAST(CAST(H.PR_KEY AS bigint) AS varchar(30)),
+        DON_VI_XUAT   = CAST(NULL AS nvarchar(20)),
+        TEN_DV_XUAT   = CAST(NULL AS nvarchar(150)),
+        NGAY_XUAT     = CAST(NULL AS smalldatetime),
+        SO_PHIEU_XUAT = NULLIF(LTRIM(RTRIM(H.ORIG_TRAN_NO)), ''),
+        KHO_XUAT      = CAST(NULL AS nvarchar(20)),
+        TEN_KHO_XUAT  = CAST(NULL AS nvarchar(150)),
+        MA_HANG       = WN2.ITEM_ID,
+        TEN_HANG      = MAX(DI2.ITEM_NAME),
+        DVT           = MAX(DI2.UNIT_ID),
+        SL_XUAT       = CAST(NULL AS decimal(18, 6)),
+        TIEN_XUAT     = CAST(NULL AS decimal(18, 6)),
+        DON_VI_NHAP   = H.ORGANIZATION_ID,
+        TEN_DV_NHAP   = MAX(O2.ORGANIZATION_NAME),
+        SO_PHIEU_NHAP = H.TRAN_NO,
+        NGAY_NHAP     = H.TRAN_DATE,
+        KHO_NHAP      = WN2.WAREHOUSE_ID,
+        SL_NHAN       = SUM(WN2.QUANTITY),
+        CHENH_SL      = CAST(NULL AS decimal(18, 6)),
+        TRANG_THAI    = N'{tt_khonggoc}',
+        GHI_CHU       = CASE
+            WHEN NULLIF(LTRIM(RTRIM(H.ORIG_TRAN_NO)), '') IS NULL
+                 THEN N'Làm tay — không bấm từ phiếu xuất nào, không dựng lại được'
+            WHEN MAX(XM.PK_MOI) IS NULL
+                 THEN N'Phiếu xuất đã bị xoá — không còn phiếu nào cùng số, phải lập lại phiếu xuất'
+            WHEN MAX(NK.NDC_KHAC) IS NOT NULL
+                 THEN N'NGHI NHẬN TRÙNG — phiếu xuất đã có phiếu nhập khác: ' + MAX(NK.NDC_KHAC)
+            ELSE N'Liên kết đứt — phiếu xuất đã lập lại (khoá mới), chưa có phiếu nhập nào nối vào'
+        END
+    FROM ORPH_H H
+    JOIN dbo.WAREHOUSE WN2 WITH (NOLOCK) ON WN2.PR_KEY = H.PR_KEY AND WN2.ISSUE_RECEIVE = 'N'
+    LEFT JOIN ORPH_X XM ON XM.PR_KEY = H.PR_KEY
+    LEFT JOIN ORPH_N NK ON NK.PR_KEY = H.PR_KEY
+    LEFT JOIN dbo.DM_ITEM         DI2 WITH (NOLOCK) ON DI2.ITEM_ID = WN2.ITEM_ID
+    LEFT JOIN dbo.DM_ORGANIZATION O2  WITH (NOLOCK) ON O2.ORGANIZATION_ID = H.ORGANIZATION_ID
+    WHERE {inner_orph_wh}
+    GROUP BY H.PR_KEY, H.ORGANIZATION_ID, H.ORIG_TRAN_NO, H.TRAN_NO, H.TRAN_DATE,
+             WN2.WAREHOUSE_ID, WN2.ITEM_ID
+),
+DC AS (
+    SELECT
+        PR_KEY_XUAT   = CAST(CAST(X.PR_KEY AS bigint) AS varchar(30)),
+        DON_VI_XUAT   = X.ORGANIZATION_ID,
+        TEN_DV_XUAT   = O.ORGANIZATION_NAME,
+        NGAY_XUAT     = X.TRAN_DATE,
+        SO_PHIEU_XUAT = X.TRAN_NO,
+        KHO_XUAT      = X.WAREHOUSE_ID,
+        TEN_KHO_XUAT  = WH.WAREHOUSE_NAME,
+        MA_HANG       = X.ITEM_ID,
+        TEN_HANG      = DI.ITEM_NAME,
+        DVT           = DI.UNIT_ID,
+        SL_XUAT       = X.QUANTITY,
+        TIEN_XUAT     = X.AMOUNT,
+        DON_VI_NHAP   = N.DON_VI_NHAP,
+        TEN_DV_NHAP   = ON2.ORGANIZATION_NAME,
+        SO_PHIEU_NHAP = N.SO_PHIEU_NHAP,
+        NGAY_NHAP     = N.NGAY_NHAP,
+        KHO_NHAP      = N.KHO_NHAP,
+        SL_NHAN       = N.SL_NHAN,
+        CHENH_SL      = CASE WHEN N.SL_NHAN IS NULL THEN X.QUANTITY
+                             ELSE X.QUANTITY - N.SL_NHAN END,
+        TRANG_THAI    = CASE WHEN N.SL_NHAN IS NULL          THEN N'{tt_chua}'
+                             WHEN X.QUANTITY = N.SL_NHAN     THEN N'{tt_du}'
+                             ELSE                                 N'{tt_lech}' END,
+        GHI_CHU       = CAST(NULL AS nvarchar(200))
+    FROM X
+    LEFT JOIN N ON N.SALE_PR_KEY = X.PR_KEY AND N.ITEM_ID = X.ITEM_ID
+    LEFT JOIN dbo.DM_ITEM         DI  WITH (NOLOCK) ON DI.ITEM_ID = X.ITEM_ID
+    LEFT JOIN dbo.DM_WAREHOUSE    WH  WITH (NOLOCK) ON WH.WAREHOUSE_ID = X.WAREHOUSE_ID
+    LEFT JOIN dbo.DM_ORGANIZATION O   WITH (NOLOCK) ON O.ORGANIZATION_ID = X.ORGANIZATION_ID
+    -- Tên đơn vị nhận chỉ tra được khi phiếu xuất đi tới ĐÚNG MỘT đơn vị. Đi nhiều nơi thì
+    -- DON_VI_NHAP là chuỗi "35 + 71" nên JOIN không khớp ⇒ để trống tên, mã vẫn hiện đủ.
+    LEFT JOIN dbo.DM_ORGANIZATION ON2 WITH (NOLOCK) ON ON2.ORGANIZATION_ID = N.DON_VI_NHAP
+
+    UNION ALL SELECT * FROM ORPH
+)
+"""
+
+_DCNB_SELECT = ", ".join([
+    "PR_KEY_XUAT", "DON_VI_XUAT", "TEN_DV_XUAT", "NGAY_XUAT", "SO_PHIEU_XUAT",
+    "KHO_XUAT", "TEN_KHO_XUAT", "MA_HANG", "TEN_HANG", "DVT", "SL_XUAT", "TIEN_XUAT",
+    "DON_VI_NHAP", "TEN_DV_NHAP", "SO_PHIEU_NHAP", "NGAY_NHAP", "KHO_NHAP",
+    "SL_NHAN", "CHENH_SL", "TRANG_THAI", "GHI_CHU",
+])
+
+
+def _dcnb_cte(inner, inner_orph, inner_orph_wh):
+    return _DCNB_CTE.format(
+        inner=inner, inner_orph=inner_orph, inner_orph_wh=inner_orph_wh,
+        tt_du=DCNB_TT_DU, tt_chua=DCNB_TT_CHUA, tt_lech=DCNB_TT_LECH,
+        tt_khonggoc=DCNB_TT_KHONGGOC,
+    )
+
+
+def _build_dcnb_where(request_args):
+    """Trả (cte_sql, outer_where, params) — params đúng thứ tự dấu ? (Bẫy 5: inner trước outer).
+
+    ⚠️ Bộ lọc Đơn vị áp cho phía XUẤT (W.ORGANIZATION_ID), giống mọi tab khác lấy đơn vị của
+    chính chứng từ. Nhánh phiếu nhập mồ côi không có phía xuất nên áp cho đơn vị NHẬN.
+    Muốn lọc theo đơn vị nhận ở nhánh thường thì dùng ô tìm "s_dv_nhap" ở WHERE ngoài.
+    """
+    f_date = request_args.get("from_date", "01/01/2026")
+    t_date = request_args.get("to_date",  "31/12/2026")
+    from_dt = datetime.strptime(f_date, "%d/%m/%Y").date()
+    to_dt   = datetime.strptime(t_date, "%d/%m/%Y").date()
+    d1, d2 = from_dt.strftime("%Y%m%d"), to_dt.strftime("%Y%m%d")
+
+    inner   = ["W.TRAN_DATE >= ?", "W.TRAN_DATE <= ?"]
+    iparams = [d1, d2]
+    orph    = ["P2.TRAN_DATE >= ?", "P2.TRAN_DATE <= ?"]      # mức phiếu nhập
+    oiparams = [d1, d2]
+    orph_wh, owparams = [], []                                 # mức dòng (mã hàng)
+
+    for field, ofield, arg in [("W.ORGANIZATION_ID", "P2.ORGANIZATION_ID", "org_ids"),
+                               ("W.WAREHOUSE_ID",    None,                 "wh_ids"),
+                               ("W.ITEM_ID",         "WN2.ITEM_ID",        "item_ids")]:
+        vals = [v for v in request_args.get(arg, "").split(",") if v]
+        if arg == "org_ids":
+            # Đi qua _org_filter_sql cho CẢ 2 nhánh ⇒ ép quyền đơn vị theo tài khoản.
+            _oc, _op = _org_filter_sql(vals, field)
+            if _oc:
+                inner.append(_oc)
+                iparams.extend(_op)
+            _oc2, _op2 = _org_filter_sql(vals, ofield)
+            if _oc2:
+                orph.append(_oc2)
+                oiparams.extend(_op2)
+            continue
+        if vals:
+            inner.append(f"{field} IN ({','.join(['?'] * len(vals))})")
+            iparams.extend(vals)
+            if ofield:
+                orph_wh.append(f"{ofield} IN ({','.join(['?'] * len(vals))})")
+                owparams.extend(vals)
+            else:
+                # Lọc theo kho XUẤT ⇒ dòng phiếu nhập mồ côi không có kho xuất nên loại hẳn
+                orph.append("1 = 0")
+
+    outer, oparams = [], []
+    st = DCNB_STATUS_MAP.get(request_args.get("status", "").strip())
+    if st:
+        outer.append("TRANG_THAI = ?")
+        oparams.append(st)
+
+    for field, arg, like in [("DON_VI_XUAT", "s_org_id", "{}%"),
+                             ("TEN_DV_XUAT", "s_org_name", "%{}%"),
+                             ("SO_PHIEU_XUAT", "s_tran_no", "{}%"),
+                             ("KHO_XUAT", "s_wh_id", "{}%"),
+                             ("MA_HANG", "s_item", "{}%"),
+                             ("TEN_HANG", "s_item_name", "%{}%"),
+                             ("DON_VI_NHAP", "s_dv_nhap", "{}%"),
+                             ("TEN_DV_NHAP", "s_dv_nhap_name", "%{}%"),
+                             ("SO_PHIEU_NHAP", "s_nhap_no", "{}%")]:
+        val = request_args.get(arg, "").strip()
+        if val:
+            outer.append(f"{field} LIKE ?")
+            oparams.append(like.format(val))
+
+    # Thứ tự params PHẢI đúng thứ tự dấu ? trong SQL (Bẫy 5):
+    # CTE X (iparams) → CTE ORPH_H (oiparams) → WHERE của ORPH (owparams) → WHERE ngoài (oparams)
+    return (_dcnb_cte(" AND ".join(inner), " AND ".join(orph),
+                      " AND ".join(orph_wh) if orph_wh else "1 = 1"),
+            (" AND ".join(outer) if outer else "1=1"),
+            iparams + oiparams + owparams + oparams)
+
+
+def _dcnb_fmt_rows(columns, raw_rows):
+    rows = []
+    for raw in raw_rows:
+        r = dict(zip(columns, raw))
+        for dk in ("NGAY_XUAT", "NGAY_NHAP"):
+            v = r.get(dk)
+            if isinstance(v, (date, datetime)):
+                r[dk] = v.strftime("%d/%m/%Y")
+        for nk in ("SL_XUAT", "TIEN_XUAT", "SL_NHAN", "CHENH_SL"):
+            v = r.get(nk)
+            if v is not None:
+                try: r[nk] = float(v)
+                except: pass
+        pk = r.pop("PR_KEY_XUAT", None)
+        r["PR_KEY_XUAT"] = str(pk) if pk is not None else ""
+        rows.append(r)
+    return rows
+
+
+def _dcnb_summary(cursor, cte, where_sql, params):
+    """Thống kê theo trạng thái — dùng luôn làm COUNT, khỏi quét bảng thêm lần nữa."""
+    cursor.execute(f"""
+        {cte}
+        SELECT TRANG_THAI, SO_DONG = COUNT(*),
+               SO_PHIEU = COUNT(DISTINCT CAST(PR_KEY_XUAT AS varchar(30))),
+               TIEN_XUAT = SUM(TIEN_XUAT)
+        FROM DC WHERE {where_sql}
+        GROUP BY TRANG_THAI
+    """, params)
+    out = {"tong_dong": 0, "so_phieu": {}, "tien": {}}
+    for tt, so_dong, so_phieu, tien in cursor.fetchall():
+        tt = (tt or "").strip()
+        out["tong_dong"] += int(so_dong or 0)
+        out["so_phieu"][tt] = int(so_phieu or 0)
+        out["tien"][tt] = float(tien or 0)
+    return out
+
+
+@app.route("/api/dcnb_reconcile")
+@with_db_lock
+def get_dcnb_reconcile():
+    try:
+        page      = int(request.args.get("page", 1))
+        page_size = int(request.args.get("page_size", 100))
+        export_all  = request.args.get("export_all") == "1"
+        known_total = request.args.get("known_total")
+        skip_count  = page > 1 and known_total is not None and not export_all
+
+        cte, where_sql, params = _build_dcnb_where(request.args)
+        order_by_sql = _resolve_order_by(
+            request.args, DCNB_SORT_WHITELIST,
+            "DON_VI_XUAT, NGAY_XUAT, SO_PHIEU_XUAT, MA_HANG"
+        )
+
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        summary = None
+        if export_all:
+            cursor.execute(f"{cte} SELECT {_DCNB_SELECT} FROM DC WHERE {where_sql} ORDER BY {order_by_sql}", params)
+            columns  = [c[0] for c in cursor.description]
+            raw_rows = cursor.fetchall()
+            total_rows = len(raw_rows)
+        else:
+            if skip_count:
+                total_rows = int(known_total)
+            else:
+                summary = _dcnb_summary(cursor, cte, where_sql, params)
+                total_rows = summary["tong_dong"]
+
+            offset = (page - 1) * page_size
+            cursor.execute(f"""
+                {cte}
+                SELECT * FROM (
+                    SELECT {_DCNB_SELECT},
+                           ROW_NUMBER() OVER (ORDER BY {order_by_sql}) AS RowNum
+                    FROM DC WHERE {where_sql}
+                ) AS T WHERE RowNum > ? AND RowNum <= ?
+            """, params + [offset, offset + page_size])
+            columns  = [c[0] for c in cursor.description]
+            raw_rows = cursor.fetchall()
+
+        return jsonify({
+            "status": "ok",
+            "data": _dcnb_fmt_rows(columns, raw_rows),
+            "summary": summary,
+            "pagination": {
+                "total_rows": total_rows,
+                "total_pages": max(1, (total_rows + page_size - 1) // page_size),
+                "page": page if not export_all else 1
+            }
+        })
+    except Exception as e:
+        msg = str(e)
+        if "đăng nhập" not in msg:
+            invalidate_pool()
+        return jsonify({"status": "error", "message": msg}), 401 if "đăng nhập" in msg else 500
+
+
+@app.route("/api/dcnb_reconcile/count")
+@with_db_lock
+def get_dcnb_reconcile_count():
+    try:
+        cte, where_sql, params = _build_dcnb_where(request.args)
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute(f"{cte} SELECT COUNT(*) FROM DC WHERE {where_sql}", params)
+        total = cursor.fetchone()[0] or 0
+        return jsonify({"status": "ok", "total": int(total)})
+    except Exception as e:
+        msg = str(e)
+        if "đăng nhập" not in msg:
+            invalidate_pool()
+        return jsonify({"status": "error", "message": msg}), 401 if "đăng nhập" in msg else 500
+
+
+@app.route("/api/dcnb_reconcile/stream_csv", methods=["POST", "GET"])
+def get_dcnb_reconcile_stream_csv():
+    try:
+        args = request.args
+        total_estimate = int(args.get("total", 0) or 0)
+        cte, where_sql, params = _build_dcnb_where(args)
+        order_by_sql = _resolve_order_by(
+            args, DCNB_SORT_WHITELIST, "DON_VI_XUAT, NGAY_XUAT, SO_PHIEU_XUAT, MA_HANG"
+        )
+        sql = f"{cte} SELECT {_DCNB_SELECT} FROM DC WHERE {where_sql} ORDER BY {order_by_sql}"
+
+        def transform(raw, sql_cols):
+            d = dict(zip(sql_cols, raw))
+            out = []
+            for key, _ in DCNB_CSV_COLS:
+                v = d.get(key)
+                if isinstance(v, (date, datetime)):
+                    v = v.strftime("%d/%m/%Y")
+                out.append(v)
+            return out
+
+        headers = [label for _, label in DCNB_CSV_COLS]
+        fname   = f"DoiChieuDieuChuyenNoiBo_{args.get('from_date','').replace('/','')}-{args.get('to_date','').replace('/','')}.{args.get('format', 'csv')}"
+        job_id  = _start_export_job(fname, headers, sql, params, transform, total_estimate)
+        return jsonify({"status": "ok", "job_id": job_id, "filename": fname})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# =============== DANH SÁCH PO — YÊU CẦU MUA HÀNG (TX / TX1 / TX2) ===============
+# Mỗi dòng = 1 mã hàng trên một phiếu PO. Nguồn dbo.PO + dbo.PO_DETAIL (KHÔNG có view).
+#
+# ⛔ CỐ Ý KHÔNG CÓ CỘT "ĐÃ CÓ PHIẾU MUA HÀNG CHƯA" — Đại Ca chốt bỏ ngày 21/09/2026.
+#    iPOS trên IACC_CHULONG KHÔNG ghi liên kết PO → phiếu nhập mua. Đã đo 7 khoá:
+#      • PURCHASE.SALE_PR_KEY (khoá mà BTP/ĐCNB dùng) ........ 0/4.950 phiếu NM có
+#      • PURCHASE.ORIG_TRAN_NO ............................... 0 (chỉ 147 phiếu ghi 'EXCEL')
+#      • WAREHOUSE ........................................... không có cột nào trỏ về PO
+#      • PURCHASE_DETAIL.PO_TRAN_NO + đơn vị ................. duy nhất nhưng mã hàng chỉ khớp 3,3%
+#      • PURCHASE_DETAIL.PO_TRAN_NO không kèm đơn vị ......... mã hàng khớp 41,6% NHƯNG
+#        1 dòng nhập ghép với tới 50 phiếu PO (số phiếu PO trùng: POCH2026/0001/T08 có 50 bản
+#        ở 50 đơn vị, cùng ngày) ⇒ nổ dòng, số sai hoàn toàn
+#      • PO_DETAIL.FR_KEY → PURCHASE.PR_KEY .................. 766 dòng có, mã hàng khớp 2,2%;
+#        5 PO khác đơn vị cùng trỏ về MỘT phiếu nhập ⇒ giá trị rác
+#      • PO_DETAIL.QUANTITY_RECEIVE .......................... = 0 trên cả 3.383 dòng
+#    Ca soi tận nơi: PO POCH2026/0001/T01 của đơn vị 44 đặt LY-NH600 22.000 CÁI, nhưng 12 dòng
+#    nhập ghi tham chiếu đúng số PO đó lại toàn mã KEA-* — không dính dáng gì.
+#    ➡️ Thêm cột đó vào là bịa liên kết. Muốn làm thì phải hỏi Chú Long / iPOS trước.
+#
+# ⚠️ ĐỪNG lọc theo dbo.PURCHASE_ORDER — bảng đó TRỐNG 0 dòng (di sản). PO thật ở dbo.PO.
+# ⚠️ Danh mục TX/TX1/TX2 lấy TÊN từ SYS_TRAN (Bẫy 14: danh mục lấy ở bảng danh mục).
+PO_TRAN_IDS = ("TX", "TX1", "TX2")
+
+# STATUS trên dbo.PO — đo 2026: APPROVED 4.198 · PENDING_APPROVAL 15 · CANCEL 3 · RECEIVED 1.
+# Dịch sang tiếng người: người dùng là kế toán, không đọc mã tiếng Anh.
+PO_TT_MAP_SQL = """CASE UPPER(LTRIM(RTRIM(ISNULL(PO.STATUS, ''))))
+        WHEN 'APPROVED'         THEN N'Đã duyệt'
+        WHEN 'PENDING_APPROVAL' THEN N'Chờ duyệt'
+        WHEN 'CANCEL'           THEN N'Đã huỷ'
+        WHEN 'CANCELLED'        THEN N'Đã huỷ'
+        WHEN 'RECEIVED'         THEN N'Đã nhận hàng'
+        WHEN ''                 THEN N'(chưa ghi)'
+        ELSE PO.STATUS END"""
+
+PO_STATUS_MAP = {"duyet": "Đã duyệt", "cho": "Chờ duyệt",
+                 "huy": "Đã huỷ", "nhan": "Đã nhận hàng"}
+
+POLIST_SORT_WHITELIST = {c: c for c in [
+    "DON_VI", "TEN_DON_VI", "LOAI_PO", "TEN_LOAI", "SO_PHIEU", "NGAY", "NGAY_GIAO",
+    "KHO", "TEN_KHO", "NGUOI_LAP", "TEN_NGUOI_LAP",
+    "MA_HANG", "TEN_HANG", "DVT", "SL_DAT", "DON_GIA", "THANH_TIEN", "TONG_TIEN",
+    "TRANG_THAI", "GHI_CHU",
+]}
+
+POLIST_CSV_COLS = [
+    ("DON_VI", "Mã ĐV"), ("TEN_DON_VI", "Tên đơn vị"),
+    ("LOAI_PO", "Loại PO"), ("TEN_LOAI", "Tên loại PO"),
+    ("SO_PHIEU", "Số phiếu PO"), ("NGAY", "Ngày lập"), ("NGAY_GIAO", "Ngày giao"),
+    ("KHO", "Mã kho"), ("TEN_KHO", "Tên kho"),
+    ("NGUOI_LAP", "Mã người lập"), ("TEN_NGUOI_LAP", "Người lập"),
+    ("MA_HANG", "Mã hàng"), ("TEN_HANG", "Tên hàng"), ("DVT", "ĐVT"),
+    ("SL_DAT", "SL đặt"), ("DON_GIA", "Đơn giá"),
+    ("THANH_TIEN", "Thành tiền"), ("TONG_TIEN", "Tổng tiền"),
+    ("TRANG_THAI", "Trạng thái"), ("GHI_CHU", "Ghi chú"),
+]
+
+# Bọc trong CTE `POL` — KHÔNG phải để cho đẹp: ORDER BY của phân trang dùng tên cột đầu ra
+# (DON_VI, NGAY, SO_PHIEU…). SQL Server KHÔNG cho dùng bí danh của chính câu SELECT bên trong
+# ROW_NUMBER() OVER (ORDER BY …) ⇒ lỗi "Invalid column name 'DON_VI'". Đã vấp thật 21/09/2026.
+# Vật chất hoá qua CTE rồi mới ORDER BY thì hết — đúng cách BTP/ĐCNB đang làm.
+_POLIST_CTE = """
+WITH POL AS (
+SELECT
+    PR_KEY_PO     = CAST(CAST(PO.PR_KEY AS bigint) AS varchar(30)),
+    DON_VI        = PO.ORGANIZATION_ID,
+    TEN_DON_VI    = O.ORGANIZATION_NAME,
+    LOAI_PO       = PO.TRAN_ID,
+    TEN_LOAI      = ST.TRAN_NAME,
+    SO_PHIEU      = PO.TRAN_NO,
+    NGAY          = PO.TRAN_DATE,
+    NGAY_GIAO     = PO.RELEASE_DATE,
+    KHO           = D.WAREHOUSE_ID,
+    TEN_KHO       = WH.WAREHOUSE_NAME,
+    NGUOI_LAP     = PO.EMPLOYEE_ID,
+    TEN_NGUOI_LAP = EM.EMPLOYEE_NAME,
+    MA_HANG       = D.ITEM_ID,
+    TEN_HANG      = ISNULL(NULLIF(LTRIM(RTRIM(D.DESCRIPTION)), ''), DI.ITEM_NAME),
+    DVT           = ISNULL(NULLIF(LTRIM(RTRIM(D.UNIT_ID)), ''), DI.UNIT_ID),
+    SL_DAT        = D.QUANTITY,
+    DON_GIA       = D.UNIT_PRICE,
+    THANH_TIEN    = D.AMOUNT,
+    TONG_TIEN     = D.TOTAL_AMOUNT,
+    TRANG_THAI    = {tt},
+    GHI_CHU       = PO.COMMENTS
+FROM dbo.PO PO WITH (NOLOCK)
+JOIN dbo.PO_DETAIL D WITH (NOLOCK) ON D.PR_KEY = PO.PR_KEY
+LEFT JOIN dbo.SYS_TRAN        ST WITH (NOLOCK) ON ST.TRAN_ID = PO.TRAN_ID
+LEFT JOIN dbo.DM_ORGANIZATION O  WITH (NOLOCK) ON O.ORGANIZATION_ID = PO.ORGANIZATION_ID
+LEFT JOIN dbo.DM_WAREHOUSE    WH WITH (NOLOCK) ON WH.WAREHOUSE_ID = D.WAREHOUSE_ID
+LEFT JOIN dbo.DM_ITEM         DI WITH (NOLOCK) ON DI.ITEM_ID = D.ITEM_ID
+LEFT JOIN dbo.DM_EMPLOYEE     EM WITH (NOLOCK) ON EM.EMPLOYEE_ID = PO.EMPLOYEE_ID
+WHERE {where}
+)
+"""
+
+# Không danh mục nào trong 5 bảng JOIN ở trên có khoá trùng (đã đo 21/09/2026: SYS_TRAN,
+# DM_ORGANIZATION, DM_WAREHOUSE, DM_ITEM, DM_EMPLOYEE đều 0 khoá trùng) ⇒ JOIN không nhân dòng.
+_POLIST_SELECT = ", ".join([
+    "PR_KEY_PO", "DON_VI", "TEN_DON_VI", "LOAI_PO", "TEN_LOAI", "SO_PHIEU", "NGAY",
+    "NGAY_GIAO", "KHO", "TEN_KHO", "NGUOI_LAP", "TEN_NGUOI_LAP", "MA_HANG", "TEN_HANG",
+    "DVT", "SL_DAT", "DON_GIA", "THANH_TIEN", "TONG_TIEN", "TRANG_THAI", "GHI_CHU",
+])
+
+
+def _build_polist_where(request_args):
+    """Trả (cte_sql, params). Mọi điều kiện nằm cùng một mệnh đề WHERE nên thứ tự params
+    chính là thứ tự thêm vào đây (Bẫy 5)."""
+    f_date = request_args.get("from_date", "01/01/2026")
+    t_date = request_args.get("to_date",  "31/12/2026")
+    from_dt = datetime.strptime(f_date, "%d/%m/%Y").date()
+    to_dt   = datetime.strptime(t_date, "%d/%m/%Y").date()
+    d1, d2 = from_dt.strftime("%Y%m%d"), to_dt.strftime("%Y%m%d")
+
+    where  = ["PO.TRAN_DATE >= ?", "PO.TRAN_DATE <= ?"]
+    params = [d1, d2]
+
+    # Loại PO: mặc định cả 3 mã TX/TX1/TX2; người dùng chọn thì giao với danh sách hợp lệ
+    # (đừng nhận thẳng giá trị người dùng gửi lên — nhận bậy là quét cả bảng PO).
+    loai = [v for v in request_args.get("loai_po", "").split(",") if v in PO_TRAN_IDS]
+    loai = loai or list(PO_TRAN_IDS)
+    where.append(f"PO.TRAN_ID IN ({','.join(['?'] * len(loai))})")
+    params.extend(loai)
+
+    # Đơn vị đi qua _org_filter_sql ⇒ ép quyền đơn vị theo tài khoản (điểm DUY NHẤT).
+    orgs = [v for v in request_args.get("org_ids", "").split(",") if v]
+    oc, op = _org_filter_sql(orgs, "PO.ORGANIZATION_ID")
+    if oc:
+        where.append(oc)
+        params.extend(op)
+
+    for field, arg in [("D.WAREHOUSE_ID", "wh_ids"), ("D.ITEM_ID", "item_ids")]:
+        vals = [v for v in request_args.get(arg, "").split(",") if v]
+        if vals:
+            where.append(f"{field} IN ({','.join(['?'] * len(vals))})")
+            params.extend(vals)
+
+    st = PO_STATUS_MAP.get(request_args.get("status", "").strip())
+    if st:
+        where.append(f"{PO_TT_MAP_SQL} = ?")
+        params.append(st)
+
+    for field, arg, like in [("PO.ORGANIZATION_ID", "s_org_id", "{}%"),
+                             ("O.ORGANIZATION_NAME", "s_org_name", "%{}%"),
+                             ("PO.TRAN_NO", "s_tran_no", "{}%"),
+                             ("D.WAREHOUSE_ID", "s_wh_id", "{}%"),
+                             ("D.ITEM_ID", "s_item", "{}%"),
+                             ("DI.ITEM_NAME", "s_item_name", "%{}%"),
+                             ("PO.EMPLOYEE_ID", "s_emp", "{}%")]:
+        val = request_args.get(arg, "").strip()
+        if val:
+            where.append(f"{field} LIKE ?")
+            params.append(like.format(val))
+
+    return _POLIST_CTE.format(where=" AND ".join(where), tt=PO_TT_MAP_SQL), params
+
+
+def _polist_fmt_rows(columns, raw_rows):
+    rows = []
+    for raw in raw_rows:
+        r = dict(zip(columns, raw))
+        for dk in ("NGAY", "NGAY_GIAO"):
+            v = r.get(dk)
+            if isinstance(v, (date, datetime)):
+                r[dk] = v.strftime("%d/%m/%Y")
+        for nk in ("SL_DAT", "DON_GIA", "THANH_TIEN", "TONG_TIEN"):
+            v = r.get(nk)
+            if v is not None:
+                try: r[nk] = float(v)
+                except: pass
+        pk = r.pop("PR_KEY_PO", None)
+        r["PR_KEY_PO"] = str(pk) if pk is not None else ""
+        rows.append(r)
+    return rows
+
+
+def _polist_summary(cursor, cte, params):
+    """Thống kê theo trạng thái — dùng luôn làm COUNT, khỏi quét bảng thêm lần nữa."""
+    cursor.execute(f"""
+        {cte}
+        SELECT TRANG_THAI,
+               SO_DONG  = COUNT(*),
+               SO_PHIEU = COUNT(DISTINCT PR_KEY_PO),
+               TIEN     = SUM(TONG_TIEN)
+        FROM POL GROUP BY TRANG_THAI
+    """, params)
+    out = {"tong_dong": 0, "so_phieu": {}, "tien": {}}
+    for tt, so_dong, so_phieu, tien in cursor.fetchall():
+        tt = (tt or "").strip()
+        out["tong_dong"] += int(so_dong or 0)
+        out["so_phieu"][tt] = int(so_phieu or 0)
+        out["tien"][tt] = float(tien or 0)
+    return out
+
+
+@app.route("/api/po_list")
+@with_db_lock
+def get_po_list():
+    try:
+        page      = int(request.args.get("page", 1))
+        page_size = int(request.args.get("page_size", 100))
+        export_all  = request.args.get("export_all") == "1"
+        known_total = request.args.get("known_total")
+        skip_count  = page > 1 and known_total is not None and not export_all
+
+        cte, params = _build_polist_where(request.args)
+        order_by_sql = _resolve_order_by(
+            request.args, POLIST_SORT_WHITELIST, "DON_VI, NGAY, SO_PHIEU, MA_HANG"
+        )
+
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        summary = None
+        if export_all:
+            cursor.execute(f"{cte} SELECT {_POLIST_SELECT} FROM POL ORDER BY {order_by_sql}", params)
+            columns  = [c[0] for c in cursor.description]
+            raw_rows = cursor.fetchall()
+            total_rows = len(raw_rows)
+        else:
+            if skip_count:
+                total_rows = int(known_total)
+            else:
+                summary = _polist_summary(cursor, cte, params)
+                total_rows = summary["tong_dong"]
+
+            offset = (page - 1) * page_size
+            cursor.execute(f"""
+                {cte}
+                SELECT * FROM (
+                    SELECT {_POLIST_SELECT},
+                           RowNum = ROW_NUMBER() OVER (ORDER BY {order_by_sql})
+                    FROM POL
+                ) AS T WHERE RowNum > ? AND RowNum <= ?
+            """, params + [offset, offset + page_size])
+            columns  = [c[0] for c in cursor.description]
+            raw_rows = cursor.fetchall()
+
+        return jsonify({
+            "status": "ok",
+            "data": _polist_fmt_rows(columns, raw_rows),
+            "summary": summary,
+            "pagination": {
+                "total_rows": total_rows,
+                "total_pages": max(1, (total_rows + page_size - 1) // page_size),
+                "page": page if not export_all else 1
+            }
+        })
+    except Exception as e:
+        msg = str(e)
+        if "đăng nhập" not in msg:
+            invalidate_pool()
+        return jsonify({"status": "error", "message": msg}), 401 if "đăng nhập" in msg else 500
+
+
+@app.route("/api/po_list/count")
+@with_db_lock
+def get_po_list_count():
+    try:
+        cte, params = _build_polist_where(request.args)
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute(f"{cte} SELECT COUNT(*) FROM POL", params)
+        total = cursor.fetchone()[0] or 0
+        return jsonify({"status": "ok", "total": int(total)})
+    except Exception as e:
+        msg = str(e)
+        if "đăng nhập" not in msg:
+            invalidate_pool()
+        return jsonify({"status": "error", "message": msg}), 401 if "đăng nhập" in msg else 500
+
+
+@app.route("/api/po_list/stream_csv", methods=["POST", "GET"])
+def get_po_list_stream_csv():
+    try:
+        args = request.args
+        total_estimate = int(args.get("total", 0) or 0)
+        cte, params = _build_polist_where(args)
+        order_by_sql = _resolve_order_by(
+            args, POLIST_SORT_WHITELIST, "DON_VI, NGAY, SO_PHIEU, MA_HANG"
+        )
+        sql = f"{cte} SELECT {_POLIST_SELECT} FROM POL ORDER BY {order_by_sql}"
+
+        def transform(raw, sql_cols):
+            d = dict(zip(sql_cols, raw))
+            out = []
+            for key, _ in POLIST_CSV_COLS:
+                v = d.get(key)
+                if isinstance(v, (date, datetime)):
+                    v = v.strftime("%d/%m/%Y")
+                out.append(v)
+            return out
+
+        headers = [label for _, label in POLIST_CSV_COLS]
+        fname   = f"DanhSachPO_{args.get('from_date','').replace('/','')}-{args.get('to_date','').replace('/','')}.{args.get('format', 'csv')}"
         job_id  = _start_export_job(fname, headers, sql, params, transform, total_estimate)
         return jsonify({"status": "ok", "job_id": job_id, "filename": fname})
     except Exception as e:

@@ -3553,6 +3553,8 @@ const exportJournalCsv = (mode) => {
             { id: 'warehouse', name: 'Danh sách chứng từ kho' },
             { id: 'warehouse_balance', name: 'Danh sách tồn kho thực tế' },
             { id: 'btp_reconcile', name: 'Danh sách đối chiếu xuất SX BTP – nhập thành phẩm' },
+            { id: 'dcnb_reconcile', name: 'Danh sách đối chiếu điều chuyển nội bộ (xuất – nhập)' },
+            { id: 'po_list', name: 'Danh sách PO – yêu cầu mua hàng' },
         ];
 
         const DocumentTabDropdown = ({ activeTab, setActiveTab, items = DOC_TABS }) => {
@@ -5188,6 +5190,228 @@ const exportJournalCsv = (mode) => {
                 ['TRANG_THAI','Trạng thái'],['GHI_CHU','Ghi chú'],
             ];
 
+            /* ===== ĐỐI CHIẾU ĐIỀU CHUYỂN NỘI BỘ (XDCNB → NDCNB) =====
+               Cùng khuôn với đối chiếu BTP. Khác hai chỗ: có CẢ HAI cột đơn vị (xuất ở kho tổng,
+               nhận ở cửa hàng), và không có khái niệm bán thành phẩm nên bỏ bộ lọc đó. */
+            const dcnbScrollRef = useRef();
+            const [dcnbSort, setDcnbSort] = useState({ field: null, dir: 'desc' });
+            const [dcnbData, setDcnbData] = useState([]);
+            const [dcnbSummary, setDcnbSummary] = useState(null);
+            const [dcnbPagination, setDcnbPagination] = useState({ total_rows: 0, total_pages: 1, page: 1 });
+            const [dcnbColSearch, setDcnbColSearch] = useState({});
+            const [dcnbLoading, setDcnbLoading] = useState(false);
+            const [dcnbFilters, setDcnbFilters] = useState({ wh_ids: [], status: '' });
+
+            const toggleDcnbFilter = (key, id) => {
+                setDcnbFilters(p => ({ ...p, [key]: p[key].includes(id) ? p[key].filter(x => x !== id) : [...p[key], id] }));
+            };
+
+            const dcnbFlatData = useMemo(() => {
+                const searchKeys = Object.keys(dcnbColSearch).filter(k => (dcnbColSearch[k] || '').trim() !== '');
+                const base = searchKeys.length === 0 ? dcnbData : dcnbData.filter(row => searchKeys.every(k => {
+                    const val = String(row[k] || '').toLowerCase();
+                    return val.includes(dcnbColSearch[k].trim().toLowerCase());
+                }));
+                let grp = 0, prevKey = null;
+                return base.map(row => {
+                    const key = row.PR_KEY_XUAT;
+                    const first = key !== prevKey;
+                    if (first) { grp = 1 - grp; prevKey = key; }
+                    return { ...row, _grp: grp, _first: first };
+                });
+            }, [dcnbData, dcnbColSearch]);
+
+            const dcnbVS = useVirtualScroll(dcnbFlatData, 28, dcnbScrollRef);
+
+            const dcnbRow2Count = useMemo(() => (
+                (filters.item_ids?.length || 0) + (dcnbFilters.wh_ids?.length || 0)
+                + (dcnbFilters.status ? 1 : 0)
+            ), [filters.item_ids, dcnbFilters.wh_ids, dcnbFilters.status]);
+
+            const buildDcnbQuery = (targetPage = 1, targetPageSize = filters.page_size, searchOverride = null, extra = {}) => {
+                const cs = searchOverride !== null ? searchOverride : dcnbColSearch;
+                const query = new URLSearchParams();
+                query.set('from_date', filters.from_date);
+                query.set('to_date', filters.to_date);
+                query.set('page', targetPage);
+                query.set('page_size', targetPageSize);
+                query.set('org_ids', (filters.org_ids || []).join(','));
+                query.set('item_ids', (filters.item_ids || []).join(','));
+                query.set('wh_ids', (dcnbFilters.wh_ids || []).join(','));
+                if (dcnbFilters.status) query.set('status', dcnbFilters.status);
+
+                const take = (v) => { const x = (v || '').trim(); return x || null; };
+                const sp = {
+                    s_org_id:       take(cs.DON_VI_XUAT),
+                    s_org_name:     take(cs.TEN_DV_XUAT),
+                    s_tran_no:      take(cs.SO_PHIEU_XUAT),
+                    s_wh_id:        take(cs.KHO_XUAT),
+                    s_item:         take(cs.MA_HANG),
+                    s_item_name:    take(cs.TEN_HANG),
+                    s_dv_nhap:      take(cs.DON_VI_NHAP),
+                    s_dv_nhap_name: take(cs.TEN_DV_NHAP),
+                    s_nhap_no:      take(cs.SO_PHIEU_NHAP),
+                };
+                Object.keys(sp).forEach(k => { if (sp[k]) query.set(k, sp[k]); });
+                if (dcnbSort.field) { query.set('order_by', dcnbSort.field); query.set('order_dir', dcnbSort.dir); }
+                Object.keys(extra).forEach(k => query.set(k, extra[k]));
+                return query;
+            };
+
+            const loadDcnbData = async (targetPage = 1, targetPageSize = filters.page_size, searchOverride = null) => {
+                if (abortRef.current) abortRef.current.abort();
+                const _ctrl = new AbortController(); abortRef.current = _ctrl;
+                setDcnbLoading(true);
+                try {
+                    const extras = {};
+                    if (targetPage > 1 && targetPageSize === filters.page_size && dcnbPagination.total_rows > 0) {
+                        extras.known_total = dcnbPagination.total_rows;
+                    }
+                    const query = buildDcnbQuery(targetPage, targetPageSize, searchOverride, extras);
+                    const r = await fetch(`/api/dcnb_reconcile?${query.toString()}`, { signal: _ctrl.signal });
+                    if (r.status === 401) { setIsLoggedIn(false); return; }
+                    const res = await r.json();
+                    if (res.status === 'ok') {
+                        setDcnbData(res.data);
+                        setDcnbPagination(res.pagination);
+                        if (res.summary) setDcnbSummary(res.summary);
+                        setFilters(p => ({ ...p, page_size: targetPageSize }));
+                    } else {
+                        alert('Lỗi truy vấn đối chiếu điều chuyển nội bộ:\n\n' + (res.message || JSON.stringify(res)));
+                    }
+                } catch (err) {
+                    if (err.name === 'AbortError' || _ctrl.signal.aborted) return;
+                    alert('Lỗi mạng / parse: ' + err.message);
+                } finally { setDcnbLoading(false); }
+            };
+
+            useEffect(() => {
+                if (isLoggedIn && activeTab === 'dcnb_reconcile') loadDcnbData(1, filters.page_size);
+            }, [dcnbSort, dcnbFilters.status]);
+
+            const DCNB_EXPORT_COLS = [
+                ['DON_VI_XUAT','Mã ĐV xuất'],['TEN_DV_XUAT','Tên đơn vị xuất'],
+                ['NGAY_XUAT','Ngày xuất'],['SO_PHIEU_XUAT','Phiếu xuất'],
+                ['KHO_XUAT','Mã kho xuất'],['TEN_KHO_XUAT','Tên kho xuất'],
+                ['MA_HANG','Mã hàng'],['TEN_HANG','Tên hàng'],['DVT','ĐVT'],
+                ['SL_XUAT','SL xuất'],['TIEN_XUAT','Tiền xuất'],
+                ['DON_VI_NHAP','Mã ĐV nhận'],['TEN_DV_NHAP','Tên đơn vị nhận'],
+                ['SO_PHIEU_NHAP','Phiếu nhập'],['NGAY_NHAP','Ngày nhập'],['KHO_NHAP','Kho nhập'],
+                ['SL_NHAN','SL nhận'],['CHENH_SL','Chênh SL'],
+                ['TRANG_THAI','Trạng thái'],['GHI_CHU','Ghi chú'],
+            ];
+
+            /* ===== DANH SÁCH PO — YÊU CẦU MUA HÀNG (TX / TX1 / TX2) =====
+               CỐ Ý KHÔNG có cột "đã có phiếu mua hàng chưa": iPOS trên DB này không ghi liên kết
+               PO → phiếu nhập mua (đã đo 7 khoá ngày 21/09/2026, xem chú thích ở server.py).
+               Thêm cột đó vào là bịa liên kết. */
+            const poScrollRef = useRef();
+            const [poSort, setPoSort] = useState({ field: null, dir: 'desc' });
+            const [poData, setPoData] = useState([]);
+            const [poSummary, setPoSummary] = useState(null);
+            const [poPagination, setPoPagination] = useState({ total_rows: 0, total_pages: 1, page: 1 });
+            const [poColSearch, setPoColSearch] = useState({});
+            const [poLoading, setPoLoading] = useState(false);
+            const [poFilters, setPoFilters] = useState({ wh_ids: [], loai_po: [], status: '' });
+
+            const togglePoFilter = (key, id) => {
+                setPoFilters(p => ({ ...p, [key]: p[key].includes(id) ? p[key].filter(x => x !== id) : [...p[key], id] }));
+            };
+
+            const poFlatData = useMemo(() => {
+                const searchKeys = Object.keys(poColSearch).filter(k => (poColSearch[k] || '').trim() !== '');
+                const base = searchKeys.length === 0 ? poData : poData.filter(row => searchKeys.every(k => {
+                    const val = String(row[k] || '').toLowerCase();
+                    return val.includes(poColSearch[k].trim().toLowerCase());
+                }));
+                let grp = 0, prevKey = null;
+                return base.map(row => {
+                    const key = row.PR_KEY_PO;
+                    const first = key !== prevKey;
+                    if (first) { grp = 1 - grp; prevKey = key; }
+                    return { ...row, _grp: grp, _first: first };
+                });
+            }, [poData, poColSearch]);
+
+            const poVS = useVirtualScroll(poFlatData, 28, poScrollRef);
+
+            const poRow2Count = useMemo(() => (
+                (filters.item_ids?.length || 0) + (poFilters.wh_ids?.length || 0)
+                + (poFilters.loai_po?.length || 0) + (poFilters.status ? 1 : 0)
+            ), [filters.item_ids, poFilters.wh_ids, poFilters.loai_po, poFilters.status]);
+
+            const buildPoQuery = (targetPage = 1, targetPageSize = filters.page_size, searchOverride = null, extra = {}) => {
+                const cs = searchOverride !== null ? searchOverride : poColSearch;
+                const query = new URLSearchParams();
+                query.set('from_date', filters.from_date);
+                query.set('to_date', filters.to_date);
+                query.set('page', targetPage);
+                query.set('page_size', targetPageSize);
+                query.set('org_ids', (filters.org_ids || []).join(','));
+                query.set('item_ids', (filters.item_ids || []).join(','));
+                query.set('wh_ids', (poFilters.wh_ids || []).join(','));
+                query.set('loai_po', (poFilters.loai_po || []).join(','));
+                if (poFilters.status) query.set('status', poFilters.status);
+
+                const take = (v) => { const x = (v || '').trim(); return x || null; };
+                const sp = {
+                    s_org_id:    take(cs.DON_VI),
+                    s_org_name:  take(cs.TEN_DON_VI),
+                    s_tran_no:   take(cs.SO_PHIEU),
+                    s_wh_id:     take(cs.KHO),
+                    s_item:      take(cs.MA_HANG),
+                    s_item_name: take(cs.TEN_HANG),
+                    s_emp:       take(cs.NGUOI_LAP),
+                };
+                Object.keys(sp).forEach(k => { if (sp[k]) query.set(k, sp[k]); });
+                if (poSort.field) { query.set('order_by', poSort.field); query.set('order_dir', poSort.dir); }
+                Object.keys(extra).forEach(k => query.set(k, extra[k]));
+                return query;
+            };
+
+            const loadPoData = async (targetPage = 1, targetPageSize = filters.page_size, searchOverride = null) => {
+                if (abortRef.current) abortRef.current.abort();
+                const _ctrl = new AbortController(); abortRef.current = _ctrl;
+                setPoLoading(true);
+                try {
+                    const extras = {};
+                    if (targetPage > 1 && targetPageSize === filters.page_size && poPagination.total_rows > 0) {
+                        extras.known_total = poPagination.total_rows;
+                    }
+                    const query = buildPoQuery(targetPage, targetPageSize, searchOverride, extras);
+                    const r = await fetch(`/api/po_list?${query.toString()}`, { signal: _ctrl.signal });
+                    if (r.status === 401) { setIsLoggedIn(false); return; }
+                    const res = await r.json();
+                    if (res.status === 'ok') {
+                        setPoData(res.data);
+                        setPoPagination(res.pagination);
+                        if (res.summary) setPoSummary(res.summary);
+                        setFilters(p => ({ ...p, page_size: targetPageSize }));
+                    } else {
+                        alert('Lỗi truy vấn danh sách PO:\n\n' + (res.message || JSON.stringify(res)));
+                    }
+                } catch (err) {
+                    if (err.name === 'AbortError' || _ctrl.signal.aborted) return;
+                    alert('Lỗi mạng / parse: ' + err.message);
+                } finally { setPoLoading(false); }
+            };
+
+            useEffect(() => {
+                if (isLoggedIn && activeTab === 'po_list') loadPoData(1, filters.page_size);
+            }, [poSort, poFilters.status, poFilters.loai_po]);
+
+            const PO_EXPORT_COLS = [
+                ['DON_VI','Mã ĐV'],['TEN_DON_VI','Tên đơn vị'],
+                ['LOAI_PO','Loại PO'],['TEN_LOAI','Tên loại PO'],
+                ['SO_PHIEU','Số phiếu PO'],['NGAY','Ngày lập'],['NGAY_GIAO','Ngày giao'],
+                ['KHO','Mã kho'],['TEN_KHO','Tên kho'],
+                ['NGUOI_LAP','Mã người lập'],['TEN_NGUOI_LAP','Người lập'],
+                ['MA_HANG','Mã hàng'],['TEN_HANG','Tên hàng'],['DVT','ĐVT'],
+                ['SL_DAT','SL đặt'],['DON_GIA','Đơn giá'],
+                ['THANH_TIEN','Thành tiền'],['TONG_TIEN','Tổng tiền'],
+                ['TRANG_THAI','Trạng thái'],['GHI_CHU','Ghi chú'],
+            ];
+
             const buildWarehouseBalanceQuery = (targetPage = 1, targetPageSize = filters.page_size, searchOverride = null, extra = {}) => {
                 const cs = searchOverride !== null ? searchOverride : warehouseBalanceColSearch;
                 const query = new URLSearchParams();
@@ -5450,6 +5674,8 @@ const exportJournalCsv = (mode) => {
                 if (kind === 'voucher') return buildVoucherQuery(1, 1, null, {});
                 if (kind === 'warehouse_balance') return buildWarehouseBalanceQuery(1, 1, null, {});
                 if (kind === 'btp_reconcile') return buildBtpQuery(1, 1, null, {});
+                if (kind === 'dcnb_reconcile') return buildDcnbQuery(1, 1, null, {});
+                if (kind === 'po_list') return buildPoQuery(1, 1, null, {});
                 return buildWarehouseQuery(1, 1, null, {});
             };
 
@@ -5568,6 +5794,10 @@ const exportJournalCsv = (mode) => {
                         url = `/api/warehouse_balance?${buildWarehouseBalanceQuery(1, 1, null, { export_all: '1' }).toString()}`;
                     } else if (kind === 'btp_reconcile') {
                         url = `/api/btp_reconcile?${buildBtpQuery(1, 1, null, { export_all: '1' }).toString()}`;
+                    } else if (kind === 'dcnb_reconcile') {
+                        url = `/api/dcnb_reconcile?${buildDcnbQuery(1, 1, null, { export_all: '1' }).toString()}`;
+                    } else if (kind === 'po_list') {
+                        url = `/api/po_list?${buildPoQuery(1, 1, null, { export_all: '1' }).toString()}`;
                     } else {
                         url = `/api/warehouse?${buildWarehouseQuery(1, 1, null, { export_all: '1' }).toString()}`;
                     }
@@ -5586,10 +5816,12 @@ const exportJournalCsv = (mode) => {
                                : kind === 'voucher' ? VOUCHER_EXPORT_COLS
                                : kind === 'warehouse_balance' ? WAREHOUSE_BALANCE_EXPORT_COLS
                                : kind === 'btp_reconcile' ? BTP_EXPORT_COLS
+                               : kind === 'dcnb_reconcile' ? DCNB_EXPORT_COLS
+                               : kind === 'po_list' ? PO_EXPORT_COLS
                                : WAREHOUSE_EXPORT_COLS;
                     const extractor = kind === 'ledger' ? extractLedgerRow : (r) => extractRowGeneric(cols, r);
 
-                    const prefix = kind === 'ledger' ? 'ChungTuTongHop_' : (kind === 'purchase' ? 'PhieuNhapKho_' : (kind === 'sale' ? 'ChungTuBanHang_' : (kind === 'voucher' ? 'ChungTuTien_' : (kind === 'warehouse_balance' ? 'TonKhoThucTe_' : (kind === 'btp_reconcile' ? 'DoiChieuXuatSX_NhapTP_' : 'ChungTuKho_')))));
+                    const prefix = kind === 'ledger' ? 'ChungTuTongHop_' : (kind === 'purchase' ? 'PhieuNhapKho_' : (kind === 'sale' ? 'ChungTuBanHang_' : (kind === 'voucher' ? 'ChungTuTien_' : (kind === 'warehouse_balance' ? 'TonKhoThucTe_' : (kind === 'btp_reconcile' ? 'DoiChieuXuatSX_NhapTP_' : (kind === 'dcnb_reconcile' ? 'DoiChieuDieuChuyenNoiBo_' : (kind === 'po_list' ? 'DanhSachPO_' : 'ChungTuKho_')))))));
                     const fname = prefix + filters.from_date.replace(/\//g,'') + '-' + filters.to_date.replace(/\//g,'') + '.xlsx';
 
                     setExportProgress({ phase: 'build', current: 0, total: rows.length });
@@ -7452,6 +7684,338 @@ const exportJournalCsv = (mode) => {
                                             <span className="text-[9px] font-black text-slate-300 uppercase tracking-tighter">XKHOSXBTP → NSP</span>
                                             <span className="text-[11px] font-black text-indigo-400 uppercase tracking-widest">
                                                 Trang {btpPagination.page} / {btpPagination.total_pages}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    {activeTab === 'dcnb_reconcile' && (
+                        <>
+                            <div className="bg-white border-b border-slate-200 p-4 px-6 shrink-0 shadow-sm z-[900]">
+                                <div className="space-y-4">
+                                    <div className="flex items-end gap-4">
+                                        <div className="w-64"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
+                                        <div className="w-32"><IOSDatePicker label="Từ ngày" value={filters.from_date} onChange={val => toggleFilter('from_date', val)} disabled={period.type !== 'custom'} /></div>
+                                        <div className="w-32"><IOSDatePicker label="Đến ngày" value={filters.to_date} onChange={val => toggleFilter('to_date', val)} disabled={period.type !== 'custom'} /></div>
+                                        <div className="w-40"><PremiumDropdown label="Đơn vị xuất" items={meta.orgs} selectedItems={filters.org_ids} onSelect={id => toggleFilter('org_ids', id)} isActive={activeDropdown === 'Đơn vị xuất'} onToggle={setActiveDropdown} /></div>
+                                        <div className="ml-auto flex items-center gap-2">
+                                            <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/60 rounded-xl px-3 py-1 shrink-0 h-[40px]">
+                                                <div className="flex flex-col items-start shrink-0">
+                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.1em] mb-0.5">Hiển thị</span>
+                                                    <PageSizeDropdown value={filters.page_size} onChange={newSize => { setFilters(p => ({ ...p, page_size: newSize, page: 1 })); }} />
+                                                </div>
+                                                <div className="h-6 w-px bg-slate-200"></div>
+                                                <div className="flex flex-col items-end shrink-0">
+                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em] mb-0.5">Results</span>
+                                                    <div className="text-[12px] font-black text-indigo-600 tabular-nums leading-none tracking-tighter">{dcnbPagination.total_rows?.toLocaleString()}</div>
+                                                </div>
+                                            </div>
+                                            <button onClick={() => loadDcnbData()} disabled={dcnbLoading} className="group relative overflow-hidden bg-slate-900 text-white px-4 h-[40px] rounded-xl font-black text-[10px] uppercase tracking-wider transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-indigo-500/30 shrink-0">
+                                                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-violet-600 opacity-90 group-hover:opacity-100 transition-opacity"></div>
+                                                <div className="relative flex items-center gap-2">
+                                                    {dcnbLoading ? <Icon name="loader" className="animate-spin" /> : <Icon name="search" size={12} className="group-hover:rotate-12 transition-transform"/>}
+                                                    <span>{dcnbLoading ? 'ĐANG TẢI...' : 'TRUY VẤN'}</span>
+                                                </div>
+                                            </button>
+                                            <FilterToggleButton expanded={filtersExpanded} onToggle={() => setFiltersExpanded(v => !v)} count={dcnbRow2Count} />
+                                            <ExportButton kind="dcnb_reconcile" />
+                                        </div>
+                                    </div>
+                                    {filtersExpanded && <div className="grid grid-cols-8 gap-1.5">
+                                        <PremiumDropdown label="Kho xuất" items={meta.warehouses} selectedItems={dcnbFilters.wh_ids} onSelect={id => toggleDcnbFilter('wh_ids', id)} isActive={activeDropdown === 'Kho xuất'} onToggle={setActiveDropdown} />
+                                        <PremiumDropdown label="Hàng hoá" items={meta.items} selectedItems={filters.item_ids} onSelect={id => toggleFilter('item_ids', id)} isActive={activeDropdown === 'Hàng hoá'} onToggle={setActiveDropdown} />
+                                    </div>}
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        {[['', 'Tất cả', null],
+                                          ['chua', 'Chưa nhận hàng', 'Chưa nhận hàng'],
+                                          ['lech', 'Lệch số lượng', 'Lệch số lượng'],
+                                          ['khonggoc', 'Không thấy phiếu xuất', 'Không tìm thấy phiếu xuất liên quan'],
+                                          ['du', 'Đã nhận đủ', 'Đã nhận đủ']].map(([val, label, sumKey]) => {
+                                            const on = dcnbFilters.status === val;
+                                            const cnt = sumKey && dcnbSummary ? (dcnbSummary.so_phieu?.[sumKey] || 0) : null;
+                                            const tone = val === 'chua' ? 'text-rose-600 border-rose-200 bg-rose-50'
+                                                       : val === 'lech' ? 'text-amber-600 border-amber-200 bg-amber-50'
+                                                       : val === 'khonggoc' ? 'text-violet-600 border-violet-200 bg-violet-50'
+                                                       : val === 'du'   ? 'text-emerald-600 border-emerald-200 bg-emerald-50'
+                                                                        : 'text-slate-600 border-slate-200 bg-slate-50';
+                                            return (
+                                                <button key={val || 'all'} onClick={() => setDcnbFilters(p => ({ ...p, status: val }))}
+                                                    className={`px-3 h-[30px] rounded-lg border text-[10px] font-black uppercase tracking-wider transition-all ${on ? 'ring-2 ring-indigo-400 ' + tone : tone + ' opacity-70 hover:opacity-100'}`}>
+                                                    {label}{cnt !== null ? ` · ${cnt.toLocaleString()}` : ''}
+                                                </button>
+                                            );
+                                        })}
+                                        {dcnbSummary && <span className="text-[10px] font-bold text-slate-400 ml-2">
+                                            Số đếm là <b>số phiếu xuất</b> · <b>Chưa nhận hàng</b> = hàng đã xuất khỏi kho nhưng bên nhận chưa bấm nhập · nhóm <b>Không thấy phiếu xuất</b> là chiều ngược: phiếu nhập không truy được về phiếu xuất
+                                        </span>}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex-1 min-h-0 p-3 overflow-hidden bg-slate-50 flex flex-col relative">
+                                {dcnbLoading && <div className="absolute inset-0 bg-white/40 z-50 flex flex-col items-center justify-center backdrop-blur-[2px] transition-all"><div className="bg-white p-6 rounded-3xl shadow-2xl flex flex-col items-center gap-4 border border-indigo-50"><Icon name="loader" size={48} className="animate-spin text-indigo-600"/><div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest animate-pulse">Đang đối chiếu...</div></div></div>}
+                                <div className="flex-1 min-h-0 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden flex flex-col mx-0">
+                                    <div className="flex-1 min-h-0 overflow-auto custom-scrollbar" ref={dcnbScrollRef}>
+                                        <table className="w-max border-collapse" style={{ width: 'max-content', minWidth: '100%' }}>
+                                            <thead className="sticky top-0 bg-slate-50/95 backdrop-blur-md z-30 shadow-sm">
+                                                <tr className="text-slate-400 uppercase text-[9px] font-black tracking-widest text-center">
+                                                    <th className="border-r w-12">#</th>
+                                                    <SortableHeader field="DON_VI_XUAT"   sort={dcnbSort} onSort={f => setDcnbSort(s => cycleSort(s, f))} className="border-r w-16">ĐV xuất</SortableHeader>
+                                                    <SortableHeader field="NGAY_XUAT"     sort={dcnbSort} onSort={f => setDcnbSort(s => cycleSort(s, f))} className="border-r w-24">Ngày xuất</SortableHeader>
+                                                    <SortableHeader field="SO_PHIEU_XUAT" sort={dcnbSort} onSort={f => setDcnbSort(s => cycleSort(s, f))} className="border-r w-28">Phiếu xuất</SortableHeader>
+                                                    <SortableHeader field="KHO_XUAT"      sort={dcnbSort} onSort={f => setDcnbSort(s => cycleSort(s, f))} className="border-r w-24">Kho xuất</SortableHeader>
+                                                    <SortableHeader field="MA_HANG"       sort={dcnbSort} onSort={f => setDcnbSort(s => cycleSort(s, f))} className="border-r w-28 bg-indigo-50/40">Mã hàng</SortableHeader>
+                                                    <SortableHeader field="TEN_HANG"      sort={dcnbSort} onSort={f => setDcnbSort(s => cycleSort(s, f))} className="border-r w-44 px-3 bg-indigo-50/40" align="left">Tên hàng</SortableHeader>
+                                                    <SortableHeader field="DVT"           sort={dcnbSort} onSort={f => setDcnbSort(s => cycleSort(s, f))} className="border-r w-16 bg-indigo-50/40">ĐVT</SortableHeader>
+                                                    <SortableHeader field="SL_XUAT"       sort={dcnbSort} onSort={f => setDcnbSort(s => cycleSort(s, f))} className="border-r w-28 px-2 bg-indigo-50/40" align="right">SL xuất</SortableHeader>
+                                                    <SortableHeader field="TIEN_XUAT"     sort={dcnbSort} onSort={f => setDcnbSort(s => cycleSort(s, f))} className="border-r w-28 px-2 bg-indigo-50/40" align="right">Tiền xuất</SortableHeader>
+                                                    <SortableHeader field="DON_VI_NHAP"   sort={dcnbSort} onSort={f => setDcnbSort(s => cycleSort(s, f))} className="border-r w-20 bg-emerald-50/40">ĐV nhận</SortableHeader>
+                                                    <SortableHeader field="TEN_DV_NHAP"   sort={dcnbSort} onSort={f => setDcnbSort(s => cycleSort(s, f))} className="border-r w-44 px-3 bg-emerald-50/40" align="left">Tên đơn vị nhận</SortableHeader>
+                                                    <SortableHeader field="SO_PHIEU_NHAP" sort={dcnbSort} onSort={f => setDcnbSort(s => cycleSort(s, f))} className="border-r w-32 bg-emerald-50/40">Phiếu nhập</SortableHeader>
+                                                    <SortableHeader field="NGAY_NHAP"     sort={dcnbSort} onSort={f => setDcnbSort(s => cycleSort(s, f))} className="border-r w-24 bg-emerald-50/40">Ngày nhập</SortableHeader>
+                                                    <SortableHeader field="KHO_NHAP"      sort={dcnbSort} onSort={f => setDcnbSort(s => cycleSort(s, f))} className="border-r w-24 bg-emerald-50/40">Kho nhập</SortableHeader>
+                                                    <SortableHeader field="SL_NHAN"       sort={dcnbSort} onSort={f => setDcnbSort(s => cycleSort(s, f))} className="border-r w-28 px-2 bg-emerald-50/40" align="right">SL nhận</SortableHeader>
+                                                    <SortableHeader field="CHENH_SL"      sort={dcnbSort} onSort={f => setDcnbSort(s => cycleSort(s, f))} className="border-r w-24 px-2 bg-emerald-50/40" align="right">Chênh SL</SortableHeader>
+                                                    <SortableHeader field="TRANG_THAI"    sort={dcnbSort} onSort={f => setDcnbSort(s => cycleSort(s, f))} className="border-r w-44 px-2" align="left">Trạng thái</SortableHeader>
+                                                    <SortableHeader field="GHI_CHU"       sort={dcnbSort} onSort={f => setDcnbSort(s => cycleSort(s, f))} className="w-96 px-3" align="left">Ghi chú</SortableHeader>
+                                                </tr>
+                                                <tr className="bg-indigo-50/60 border-b-2 border-indigo-200">
+                                                    {['','DON_VI_XUAT','','SO_PHIEU_XUAT','KHO_XUAT','MA_HANG','TEN_HANG','','','','DON_VI_NHAP','TEN_DV_NHAP','SO_PHIEU_NHAP','','','','','',''].map((key, idx) => (
+                                                        <th key={idx} className="border-r px-1 py-1">
+                                                            {key ? <input
+                                                                type="text"
+                                                                value={dcnbColSearch[key] || ''}
+                                                                onChange={e => setDcnbColSearch(p => ({...p, [key]: e.target.value}))}
+                                                                className="w-full bg-white border border-slate-200 rounded-md px-1.5 py-1 text-[10px] font-semibold text-slate-700 outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-200 focus:bg-indigo-50/30 transition-all placeholder:text-slate-300 placeholder:text-center"
+                                                            /> : null}
+                                                        </th>
+                                                    ))}
+                                                </tr>
+                                            </thead>
+                                            <tbody className="text-[11px] font-medium text-slate-700">
+                                                {dcnbVS.topPadding > 0 && <tr><td colSpan={100} style={{ height: dcnbVS.topPadding, padding: 0, border: 0 }}></td></tr>}
+                                                {dcnbFlatData.slice(dcnbVS.startIndex, dcnbVS.endIndex + 1).map((row, i) => {
+                                                    const bad  = row.TRANG_THAI === 'Chưa nhận hàng';
+                                                    const warn = row.TRANG_THAI === 'Lệch số lượng';
+                                                    const nogoc = row.TRANG_THAI === 'Không tìm thấy phiếu xuất liên quan';
+                                                    const rowBg = bad ? 'bg-rose-50/70' : warn ? 'bg-amber-50/70'
+                                                                : nogoc ? 'bg-violet-50/70' : (row._grp ? 'bg-slate-50/60' : '');
+                                                    const num = (v, d = 2) => v == null ? '—' : Number(v).toLocaleString('en-US', { maximumFractionDigits: d });
+                                                    const topLine = row._first ? 'border-t-2 border-t-indigo-300' : '';
+                                                    return (
+                                                        <tr key={dcnbVS.startIndex + i} className={`border-b hover:bg-indigo-50/40 text-center ${rowBg} ${topLine}`}>
+                                                            <td className="border-r text-slate-300 font-mono">{dcnbVS.startIndex + i + 1}</td>
+                                                            <td className="border-r font-black text-slate-600">{row._first ? (row.DON_VI_XUAT || '—') : ''}</td>
+                                                            <td className="border-r">{row._first ? (row.NGAY_XUAT || '—') : ''}</td>
+                                                            <td className="border-r font-mono font-bold text-indigo-700">{row._first ? (row.SO_PHIEU_XUAT || '—') : ''}</td>
+                                                            <td className="border-r">{row._first ? (row.KHO_XUAT || '—') : ''}</td>
+                                                            <td className="border-r font-mono">{row.MA_HANG}</td>
+                                                            <td className="border-r px-3 text-left">{row.TEN_HANG}</td>
+                                                            <td className="border-r text-slate-400">{row.DVT}</td>
+                                                            <td className="border-r px-2 text-right font-mono">{num(row.SL_XUAT)}</td>
+                                                            <td className="border-r px-2 text-right font-mono">{num(row.TIEN_XUAT, 0)}</td>
+                                                            <td className="border-r font-black text-emerald-700">{row.DON_VI_NHAP || '—'}</td>
+                                                            <td className="border-r px-3 text-left">{row.TEN_DV_NHAP || ''}</td>
+                                                            <td className="border-r font-mono text-emerald-700">{row.SO_PHIEU_NHAP || '—'}</td>
+                                                            <td className="border-r">{row.NGAY_NHAP || '—'}</td>
+                                                            <td className="border-r">{row.KHO_NHAP || '—'}</td>
+                                                            <td className="border-r px-2 text-right font-mono">{num(row.SL_NHAN)}</td>
+                                                            <td className={`border-r px-2 text-right font-mono ${row.CHENH_SL != null && Number(row.CHENH_SL) !== 0 ? 'font-black text-rose-600' : 'text-slate-300'}`}>{num(row.CHENH_SL)}</td>
+                                                            <td className={`px-2 text-left font-black ${bad ? 'text-rose-600' : warn ? 'text-amber-600' : nogoc ? 'text-violet-600' : 'text-emerald-600'}`}>{row.TRANG_THAI}</td>
+                                                            <td className="px-3 text-left text-slate-500">{row.GHI_CHU || ''}</td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                                {dcnbVS.bottomPadding > 0 && <tr><td colSpan={100} style={{ height: dcnbVS.bottomPadding, padding: 0, border: 0 }}></td></tr>}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div className="p-4 bg-white border-t flex justify-between items-center px-10 shrink-0 z-40 shadow-inner">
+                                        <div className="flex items-center gap-8">
+                                            <div className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic underline">iPOS Accounting Report</div>
+                                        </div>
+                                        <div className="flex items-center gap-6">
+                                            <div className="flex items-center gap-2">
+                                                <PageJumper page={dcnbPagination.page} totalPages={dcnbPagination.total_pages} onGoto={p => loadDcnbData(p)} />
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-col items-end">
+                                            <span className="text-[9px] font-black text-slate-300 uppercase tracking-tighter">XDCNB → NDCNB</span>
+                                            <span className="text-[11px] font-black text-indigo-400 uppercase tracking-widest">
+                                                Trang {dcnbPagination.page} / {dcnbPagination.total_pages}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    {activeTab === 'po_list' && (
+                        <>
+                            <div className="bg-white border-b border-slate-200 p-4 px-6 shrink-0 shadow-sm z-[900]">
+                                <div className="space-y-4">
+                                    <div className="flex items-end gap-4">
+                                        <div className="w-64"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
+                                        <div className="w-32"><IOSDatePicker label="Từ ngày" value={filters.from_date} onChange={val => toggleFilter('from_date', val)} disabled={period.type !== 'custom'} /></div>
+                                        <div className="w-32"><IOSDatePicker label="Đến ngày" value={filters.to_date} onChange={val => toggleFilter('to_date', val)} disabled={period.type !== 'custom'} /></div>
+                                        <div className="w-40"><PremiumDropdown label="Đơn vị" items={meta.orgs} selectedItems={filters.org_ids} onSelect={id => toggleFilter('org_ids', id)} isActive={activeDropdown === 'Đơn vị'} onToggle={setActiveDropdown} /></div>
+                                        <div className="ml-auto flex items-center gap-2">
+                                            <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/60 rounded-xl px-3 py-1 shrink-0 h-[40px]">
+                                                <div className="flex flex-col items-start shrink-0">
+                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.1em] mb-0.5">Hiển thị</span>
+                                                    <PageSizeDropdown value={filters.page_size} onChange={newSize => { setFilters(p => ({ ...p, page_size: newSize, page: 1 })); }} />
+                                                </div>
+                                                <div className="h-6 w-px bg-slate-200"></div>
+                                                <div className="flex flex-col items-end shrink-0">
+                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em] mb-0.5">Results</span>
+                                                    <div className="text-[12px] font-black text-indigo-600 tabular-nums leading-none tracking-tighter">{poPagination.total_rows?.toLocaleString()}</div>
+                                                </div>
+                                            </div>
+                                            <button onClick={() => loadPoData()} disabled={poLoading} className="group relative overflow-hidden bg-slate-900 text-white px-4 h-[40px] rounded-xl font-black text-[10px] uppercase tracking-wider transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-indigo-500/30 shrink-0">
+                                                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-violet-600 opacity-90 group-hover:opacity-100 transition-opacity"></div>
+                                                <div className="relative flex items-center gap-2">
+                                                    {poLoading ? <Icon name="loader" className="animate-spin" /> : <Icon name="search" size={12} className="group-hover:rotate-12 transition-transform"/>}
+                                                    <span>{poLoading ? 'ĐANG TẢI...' : 'TRUY VẤN'}</span>
+                                                </div>
+                                            </button>
+                                            <FilterToggleButton expanded={filtersExpanded} onToggle={() => setFiltersExpanded(v => !v)} count={poRow2Count} />
+                                            <ExportButton kind="po_list" />
+                                        </div>
+                                    </div>
+                                    {filtersExpanded && <div className="grid grid-cols-8 gap-1.5">
+                                        <PremiumDropdown label="Kho" items={meta.warehouses} selectedItems={poFilters.wh_ids} onSelect={id => togglePoFilter('wh_ids', id)} isActive={activeDropdown === 'Kho'} onToggle={setActiveDropdown} />
+                                        <PremiumDropdown label="Hàng hoá" items={meta.items} selectedItems={filters.item_ids} onSelect={id => toggleFilter('item_ids', id)} isActive={activeDropdown === 'Hàng hoá'} onToggle={setActiveDropdown} />
+                                    </div>}
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        {[['TX', 'TX · Yêu cầu mua hàng'],
+                                          ['TX1', 'TX1 · PO Kho tổng'],
+                                          ['TX2', 'TX2 · Đặt mua NCC (Xưởng)']].map(([val, label]) => {
+                                            const on = (poFilters.loai_po || []).includes(val);
+                                            return (
+                                                <button key={val} onClick={() => togglePoFilter('loai_po', val)}
+                                                    className={`px-3 h-[30px] rounded-lg border text-[10px] font-black uppercase tracking-wider transition-all ${on ? 'ring-2 ring-indigo-400 text-indigo-700 border-indigo-200 bg-indigo-50' : 'text-slate-600 border-slate-200 bg-slate-50 opacity-70 hover:opacity-100'}`}>
+                                                    {label}
+                                                </button>
+                                            );
+                                        })}
+                                        <div className="h-6 w-px bg-slate-200 mx-1"></div>
+                                        {[['', 'Mọi trạng thái', null],
+                                          ['cho', 'Chờ duyệt', 'Chờ duyệt'],
+                                          ['duyet', 'Đã duyệt', 'Đã duyệt'],
+                                          ['nhan', 'Đã nhận hàng', 'Đã nhận hàng'],
+                                          ['huy', 'Đã huỷ', 'Đã huỷ']].map(([val, label, sumKey]) => {
+                                            const on = poFilters.status === val;
+                                            const cnt = sumKey && poSummary ? (poSummary.so_phieu?.[sumKey] || 0) : null;
+                                            const tone = val === 'cho' ? 'text-amber-600 border-amber-200 bg-amber-50'
+                                                       : val === 'duyet' ? 'text-emerald-600 border-emerald-200 bg-emerald-50'
+                                                       : val === 'nhan' ? 'text-sky-600 border-sky-200 bg-sky-50'
+                                                       : val === 'huy' ? 'text-rose-600 border-rose-200 bg-rose-50'
+                                                                       : 'text-slate-600 border-slate-200 bg-slate-50';
+                                            return (
+                                                <button key={val || 'all'} onClick={() => setPoFilters(p => ({ ...p, status: val }))}
+                                                    className={`px-3 h-[30px] rounded-lg border text-[10px] font-black uppercase tracking-wider transition-all ${on ? 'ring-2 ring-indigo-400 ' + tone : tone + ' opacity-70 hover:opacity-100'}`}>
+                                                    {label}{cnt !== null ? ` · ${cnt.toLocaleString()}` : ''}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    {/* Nói thẳng vì sao không có cột đối chiếu phiếu mua — để người xem khỏi
+                                        tưởng là thiếu sót, và khỏi ai đó "bổ sung" bằng một liên kết bịa. */}
+                                    <div className="text-[10px] font-bold text-slate-400">
+                                        Số đếm là <b>số phiếu PO</b>. Bảng này <b>không</b> đối chiếu sang phiếu nhập mua hàng: iPOS trên dữ liệu này không ghi liên kết PO → phiếu nhập (đã kiểm 7 khoá nối, không khoá nào đúng), nên mọi cột "đã mua chưa" đều sẽ là suy đoán.
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex-1 min-h-0 p-3 overflow-hidden bg-slate-50 flex flex-col relative">
+                                {poLoading && <div className="absolute inset-0 bg-white/40 z-50 flex flex-col items-center justify-center backdrop-blur-[2px] transition-all"><div className="bg-white p-6 rounded-3xl shadow-2xl flex flex-col items-center gap-4 border border-indigo-50"><Icon name="loader" size={48} className="animate-spin text-indigo-600"/><div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest animate-pulse">Đang tải danh sách PO...</div></div></div>}
+                                <div className="flex-1 min-h-0 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden flex flex-col mx-0">
+                                    <div className="flex-1 min-h-0 overflow-auto custom-scrollbar" ref={poScrollRef}>
+                                        <table className="w-max border-collapse" style={{ width: 'max-content', minWidth: '100%' }}>
+                                            <thead className="sticky top-0 bg-slate-50/95 backdrop-blur-md z-30 shadow-sm">
+                                                <tr className="text-slate-400 uppercase text-[9px] font-black tracking-widest text-center">
+                                                    <th className="border-r w-12">#</th>
+                                                    <SortableHeader field="DON_VI"     sort={poSort} onSort={f => setPoSort(s => cycleSort(s, f))} className="border-r w-16">ĐV</SortableHeader>
+                                                    <SortableHeader field="TEN_DON_VI" sort={poSort} onSort={f => setPoSort(s => cycleSort(s, f))} className="border-r w-44 px-3" align="left">Tên đơn vị</SortableHeader>
+                                                    <SortableHeader field="LOAI_PO"    sort={poSort} onSort={f => setPoSort(s => cycleSort(s, f))} className="border-r w-16">Loại</SortableHeader>
+                                                    <SortableHeader field="SO_PHIEU"   sort={poSort} onSort={f => setPoSort(s => cycleSort(s, f))} className="border-r w-40">Số phiếu PO</SortableHeader>
+                                                    <SortableHeader field="NGAY"       sort={poSort} onSort={f => setPoSort(s => cycleSort(s, f))} className="border-r w-24">Ngày lập</SortableHeader>
+                                                    <SortableHeader field="NGAY_GIAO"  sort={poSort} onSort={f => setPoSort(s => cycleSort(s, f))} className="border-r w-24">Ngày giao</SortableHeader>
+                                                    <SortableHeader field="KHO"        sort={poSort} onSort={f => setPoSort(s => cycleSort(s, f))} className="border-r w-28">Kho</SortableHeader>
+                                                    <SortableHeader field="MA_HANG"    sort={poSort} onSort={f => setPoSort(s => cycleSort(s, f))} className="border-r w-28 bg-indigo-50/40">Mã hàng</SortableHeader>
+                                                    <SortableHeader field="TEN_HANG"   sort={poSort} onSort={f => setPoSort(s => cycleSort(s, f))} className="border-r w-52 px-3 bg-indigo-50/40" align="left">Tên hàng</SortableHeader>
+                                                    <SortableHeader field="DVT"        sort={poSort} onSort={f => setPoSort(s => cycleSort(s, f))} className="border-r w-16 bg-indigo-50/40">ĐVT</SortableHeader>
+                                                    <SortableHeader field="SL_DAT"     sort={poSort} onSort={f => setPoSort(s => cycleSort(s, f))} className="border-r w-28 px-2 bg-indigo-50/40" align="right">SL đặt</SortableHeader>
+                                                    <SortableHeader field="DON_GIA"    sort={poSort} onSort={f => setPoSort(s => cycleSort(s, f))} className="border-r w-28 px-2" align="right">Đơn giá</SortableHeader>
+                                                    <SortableHeader field="THANH_TIEN" sort={poSort} onSort={f => setPoSort(s => cycleSort(s, f))} className="border-r w-32 px-2" align="right">Thành tiền</SortableHeader>
+                                                    <SortableHeader field="TONG_TIEN"  sort={poSort} onSort={f => setPoSort(s => cycleSort(s, f))} className="border-r w-32 px-2" align="right">Tổng tiền</SortableHeader>
+                                                    <SortableHeader field="TRANG_THAI" sort={poSort} onSort={f => setPoSort(s => cycleSort(s, f))} className="border-r w-32 px-2" align="left">Trạng thái</SortableHeader>
+                                                    <SortableHeader field="GHI_CHU"    sort={poSort} onSort={f => setPoSort(s => cycleSort(s, f))} className="w-80 px-3" align="left">Ghi chú</SortableHeader>
+                                                </tr>
+                                                <tr className="bg-indigo-50/60 border-b-2 border-indigo-200">
+                                                    {['','DON_VI','TEN_DON_VI','LOAI_PO','SO_PHIEU','','','KHO','MA_HANG','TEN_HANG','','','','','','',''].map((key, idx) => (
+                                                        <th key={idx} className="border-r px-1 py-1">
+                                                            {key ? <input
+                                                                type="text"
+                                                                value={poColSearch[key] || ''}
+                                                                onChange={e => setPoColSearch(p => ({...p, [key]: e.target.value}))}
+                                                                className="w-full bg-white border border-slate-200 rounded-md px-1.5 py-1 text-[10px] font-semibold text-slate-700 outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-200 focus:bg-indigo-50/30 transition-all placeholder:text-slate-300 placeholder:text-center"
+                                                            /> : null}
+                                                        </th>
+                                                    ))}
+                                                </tr>
+                                            </thead>
+                                            <tbody className="text-[11px] font-medium text-slate-700">
+                                                {poVS.topPadding > 0 && <tr><td colSpan={100} style={{ height: poVS.topPadding, padding: 0, border: 0 }}></td></tr>}
+                                                {poFlatData.slice(poVS.startIndex, poVS.endIndex + 1).map((row, i) => {
+                                                    const huy = row.TRANG_THAI === 'Đã huỷ';
+                                                    const cho = row.TRANG_THAI === 'Chờ duyệt';
+                                                    const nhan = row.TRANG_THAI === 'Đã nhận hàng';
+                                                    const rowBg = huy ? 'bg-rose-50/70' : cho ? 'bg-amber-50/70'
+                                                                : (row._grp ? 'bg-slate-50/60' : '');
+                                                    const num = (v, d = 2) => v == null ? '—' : Number(v).toLocaleString('en-US', { maximumFractionDigits: d });
+                                                    const topLine = row._first ? 'border-t-2 border-t-indigo-300' : '';
+                                                    return (
+                                                        <tr key={poVS.startIndex + i} className={`border-b hover:bg-indigo-50/40 text-center ${rowBg} ${topLine}`}>
+                                                            <td className="border-r text-slate-300 font-mono">{poVS.startIndex + i + 1}</td>
+                                                            <td className="border-r font-black text-slate-600">{row._first ? (row.DON_VI || '—') : ''}</td>
+                                                            <td className="border-r px-3 text-left">{row._first ? (row.TEN_DON_VI || '') : ''}</td>
+                                                            <td className="border-r font-mono font-bold text-violet-700">{row._first ? (row.LOAI_PO || '—') : ''}</td>
+                                                            <td className="border-r font-mono font-bold text-indigo-700">{row._first ? (row.SO_PHIEU || '—') : ''}</td>
+                                                            <td className="border-r">{row._first ? (row.NGAY || '—') : ''}</td>
+                                                            <td className="border-r">{row._first ? (row.NGAY_GIAO || '—') : ''}</td>
+                                                            <td className="border-r font-mono">{row.KHO || '—'}</td>
+                                                            <td className="border-r font-mono">{row.MA_HANG}</td>
+                                                            <td className="border-r px-3 text-left">{row.TEN_HANG}</td>
+                                                            <td className="border-r text-slate-400">{row.DVT}</td>
+                                                            <td className="border-r px-2 text-right font-mono font-bold">{num(row.SL_DAT)}</td>
+                                                            <td className="border-r px-2 text-right font-mono">{num(row.DON_GIA, 0)}</td>
+                                                            <td className="border-r px-2 text-right font-mono">{num(row.THANH_TIEN, 0)}</td>
+                                                            <td className="border-r px-2 text-right font-mono font-bold">{num(row.TONG_TIEN, 0)}</td>
+                                                            <td className={`border-r px-2 text-left font-black ${huy ? 'text-rose-600' : cho ? 'text-amber-600' : nhan ? 'text-sky-600' : 'text-emerald-600'}`}>{row.TRANG_THAI}</td>
+                                                            <td className="px-3 text-left text-slate-500">{row.GHI_CHU || ''}</td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                                {poVS.bottomPadding > 0 && <tr><td colSpan={100} style={{ height: poVS.bottomPadding, padding: 0, border: 0 }}></td></tr>}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div className="p-4 bg-white border-t flex justify-between items-center px-10 shrink-0 z-40 shadow-inner">
+                                        <div className="flex items-center gap-8">
+                                            <div className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic underline">iPOS Accounting Report</div>
+                                        </div>
+                                        <div className="flex items-center gap-6">
+                                            <div className="flex items-center gap-2">
+                                                <PageJumper page={poPagination.page} totalPages={poPagination.total_pages} onGoto={p => loadPoData(p)} />
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-col items-end">
+                                            <span className="text-[9px] font-black text-slate-300 uppercase tracking-tighter">PO · TX / TX1 / TX2</span>
+                                            <span className="text-[11px] font-black text-indigo-400 uppercase tracking-widest">
+                                                Trang {poPagination.page} / {poPagination.total_pages}
                                             </span>
                                         </div>
                                     </div>

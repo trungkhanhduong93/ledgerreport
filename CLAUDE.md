@@ -111,9 +111,10 @@ Trình duyệt (Chrome --app)  ──HTTP──>  Flask (server.py, cổng 5050)
 
 ### 1.1 Màn hình
 
-**8 tab dữ liệu thô** (đều virtual-scroll, lọc theo cột, xuất CSV stream):
+**10 tab dữ liệu thô** (đều virtual-scroll, lọc theo cột, xuất CSV stream):
 `ledger` (chứng từ tổng hợp) · `sale` · `purchase` · `warehouse` · `warehouse_balance` (tồn kho thực tế) ·
-`voucher` (chứng từ tiền) · `btp_reconcile` (đối chiếu xuất SX BTP – nhập TP) · `report`.
+`voucher` (chứng từ tiền) · `btp_reconcile` (đối chiếu xuất SX BTP – nhập TP) ·
+`dcnb_reconcile` (đối chiếu điều chuyển nội bộ) · `po_list` (danh sách PO) · `report`.
 
 > Tab `income_alloc` (doanh thu chờ phân bổ) đã **gỡ hẳn 16/08/2026** — nó vốn của LedgerStudio,
 > bị copy nhầm sang đây và chết hoàn toàn trên `IACC_CHULONG` vì cột `RECEIVE_DATE` không tồn tại.
@@ -145,6 +146,35 @@ liên quan` (chiều ngược — phiếu nhập không truy được về phi�
 ⚠️ Hiệu năng: truy vấn dựng lại toàn bộ CTE mỗi lần gọi (~6–8s cho kỳ 1 tháng). Nhánh phiếu nhập
 mồ côi **phải join một lượt**, đừng dùng `OUTER APPLY` tương quan — `SALE` 1 triệu dòng không có
 index trên `TRAN_NO`, bản đầu viết kiểu đó làm tab tụt xuống 22–34 giây.
+
+#### `dcnb_reconcile` — đối chiếu điều chuyển nội bộ `XDCNB` → `NDCNB` *(thêm 21/09/2026)*
+
+Cùng khuôn `btp_reconcile`: nối **CHỈ** bằng `PURCHASE.SALE_PR_KEY = SALE.PR_KEY`.
+Đo trên `IACC_CHULONG` 2026: **19.838 phiếu `NDCNB` → 19.828 nối được (99,95%), 10 mồ côi.**
+4 trạng thái: `Đã nhận đủ` · `Chưa nhận hàng` · `Lệch số lượng` · `Không tìm thấy phiếu xuất liên quan`.
+Phân bố 2026: khớp **133.348** · chưa nhận **4.603** · lệch **28**.
+
+**Ba điểm khác BTP — đừng bê nguyên:**
+1. **Xuất và nhập ở HAI ĐƠN VỊ KHÁC NHAU** (kho tổng `01` xuất → cửa hàng `35`/`71`/`32`… nhận).
+   Bảng có **cả hai cột đơn vị**. Bộ lọc Đơn vị áp cho phía **XUẤT** (chủ chứng từ, giống mọi tab
+   khác); phía nhận lọc bằng ô tìm `s_dv_nhap`. ⚠️ Nghĩa là tài khoản chỉ được xem đơn vị cửa hàng
+   sẽ **không thấy hàng chuyển đến mình** — nếu cần thì phải đổi sang lọc OR cả hai phía.
+2. ⛔ **`NDCNB` có `IS_SALE = 0`** ⇒ **KHÔNG nằm trong `PURCHASE_VIEW`** (Bẫy 15). Phải đọc thẳng
+   `dbo.PURCHASE`; đọc qua view là ra **0 dòng mà không báo lỗi**.
+3. **So thẳng `QUANTITY` là ĐÚNG** — hai phía cùng ĐVT cơ bản. **Không** dùng mẹo "mốc gần hơn"
+   của BTP (mẹo đó chỉ sinh ra vì `JOB_QTY` của BTP ghi bằng 1 trong 2 đơn vị tuỳ người gõ).
+   Tên đơn vị nhận để trống khi một phiếu xuất đi tới nhiều đơn vị (`DON_VI_NHAP` là chuỗi `35 + 71`).
+
+⚠️ Hiệu năng ~6–8,5s/tháng, tương đương BTP. Nhánh mồ côi cũng **phải join một lượt**.
+
+#### `po_list` — danh sách PO (yêu cầu mua hàng `TX` / `TX1` / `TX2`) *(thêm 21/09/2026)*
+
+Nguồn `dbo.PO` + `dbo.PO_DETAIL` (**không có view**). 2026: 4.217 phiếu / 3.384 dòng. ~0,2s, nhanh.
+`TX` = Yêu cầu mua hàng (PO) · `TX1` = PO Kho tổng · `TX2` = Đặt mua NCC (Kho Xưởng).
+(`KTX` "Yêu cầu **không** thường xuyên" đã `ACTIVE=0` ⇒ "thường xuyên" đúng là bộ TX.)
+⚠️ **Đừng đụng `dbo.PURCHASE_ORDER`** — bảng đó **trống 0 dòng**, là di sản.
+
+⛔ **CỐ Ý KHÔNG có cột "đã có phiếu mua hàng chưa"** — xem **Bẫy 20**.
 
 ### 1.2 Ma trận báo cáo — **BC001 → BC014**
 
@@ -468,6 +498,54 @@ phải ra **"No results"**.
 
 ⚠️ `ADMIN_DK_BOOTSTRAP` **không khôi phục được** — nó chỉ dùng một lần lúc `khoiTao()` sinh admin
 đầu tiên. Sheet đã có admin nên để nguyên chuỗi giữ chỗ là vô hại.
+
+### Bẫy 20 — iPOS **KHÔNG** ghi liên kết PO → phiếu nhập mua hàng *(đo 21/09/2026)*
+
+Ai được giao "đối chiếu PO với phiếu mua hàng" thì **đọc mục này trước, đừng đo lại** — đã đo
+**7 khoá** trên `IACC_CHULONG`, không khoá nào dùng được:
+
+| Khoá thử | Kết quả |
+|---|---|
+| `PURCHASE.SALE_PR_KEY` (khoá mà BTP và ĐCNB dùng) | **0 / 4.950** phiếu `NM` có |
+| `PURCHASE.ORIG_TRAN_NO` | **0** — chỉ 147 phiếu ghi `EXCEL` (nhập từ file) |
+| Cột nào đó trên `WAREHOUSE` | **không có cột nào** trỏ về PO |
+| `PURCHASE_DETAIL.PO_TRAN_NO` + `ORGANIZATION_ID` | duy nhất, 0 nổ dòng, **nhưng mã hàng chỉ khớp 3,3%** |
+| `PURCHASE_DETAIL.PO_TRAN_NO` không kèm đơn vị | mã hàng khớp 41,6% **nhưng 1 dòng nhập ghép với tới 50 phiếu PO** |
+| `PO_DETAIL.FR_KEY` → `PURCHASE.PR_KEY` | 766 dòng có, **mã hàng khớp 2,2%**; 5 PO khác đơn vị cùng trỏ về MỘT phiếu nhập ⇒ giá trị rác |
+| `PO_DETAIL.QUANTITY_RECEIVE` | **= 0 trên cả 3.383 dòng** — iPOS không ghi ngược SL đã nhận |
+
+**Ca soi tận nơi:** PO `POCH2026/0001/T01` của đơn vị `44` đặt `LY-NH600` **22.000 CÁI**; 12 dòng
+nhập ghi tham chiếu **đúng số PO đó** lại toàn mã `KEA-*` — không dính dáng gì.
+
+Hai gốc rễ:
+1. **Số phiếu PO trùng nặng** — `POCH2026/0001/T08` có **50 bản ở 50 đơn vị, cùng ngày**.
+   4.217 phiếu PO 2026 thì **1.924 trùng** theo `(TRAN_ID + TRAN_NO)`. Nối theo số phiếu là nổ dòng.
+2. **`PURCHASE_DETAIL` gần như trống**: phiếu `NM` có **11.434 dòng hàng ở `WAREHOUSE`** nhưng chỉ
+   **340 dòng** ở `PURCHASE_DETAIL` (3%). Bảng này còn **tắt hẳn T02→T06/2026** (0 dòng), mới bật
+   lại từ **T07/2026**. Mà `PO_TRAN_NO` **chỉ tồn tại trên `PURCHASE_DETAIL`**.
+
+⇒ Chiều ngược: **99/4.217 PO (2,3%)** truy được sang phiếu nhập; `TX2` = **0%**.
+➡️ **Đại Ca chốt 21/09/2026: BỎ hẳn cột "đã có phiếu mua hàng chưa".** Thêm vào là bịa liên kết
+và **đổ oan cho nhân viên** trong khi lỗi là iPOS không ghi. Muốn làm thì phải hỏi Chú Long / iPOS
+xem có nút "nhập hàng từ PO" không — đúng như luật BTP đã xác nhận trước đây.
+
+### Bẫy 21 — Không dùng được bí danh cột trong `ROW_NUMBER() OVER (ORDER BY …)` *(21/09/2026)*
+
+Phân trang của các tab dùng `ORDER BY` theo **tên cột đầu ra** (`DON_VI`, `NGAY`, `SO_PHIEU`…).
+Viết thẳng kiểu này là lỗi ngay:
+
+```sql
+SELECT DON_VI = PO.ORGANIZATION_ID, …,
+       RowNum = ROW_NUMBER() OVER (ORDER BY DON_VI)   -- ❌ Invalid column name 'DON_VI'
+FROM dbo.PO PO …
+```
+
+SQL Server **không** cho tham chiếu bí danh của chính câu `SELECT` đó bên trong `OVER (ORDER BY …)`.
+➡️ **Vật chất hoá qua CTE trước rồi mới `ORDER BY`** — đúng cách `btp_reconcile` / `dcnb_reconcile`
+đang làm (`WITH DC AS (…) SELECT … FROM DC ORDER BY …`). Tab `po_list` vấp đúng lỗi này lúc đầu
+vì viết phẳng không CTE; đã bọc `WITH POL AS (…)`.
+
+⚠️ Lỗi này **chỉ lộ ở nhánh phân trang**, còn `/count` vẫn chạy ⇒ đừng tin mỗi `/count` xanh là xong.
 
 ---
 

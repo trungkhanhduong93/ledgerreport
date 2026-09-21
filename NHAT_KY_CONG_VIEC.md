@@ -1127,3 +1127,85 @@ Trước khi bấm Deploy tôi dừng lại xin Đại Ca xác nhận, kèm bằ
 Trên EXE **v1.11.7**: đổi mật khẩu trong tab Phân quyền, hoặc dùng **ô tài khoản ở góc phải header**
 → *Đổi mật khẩu*. Cả hai đường giờ đều ăn thật.
 
+---
+
+## 21/09/2026 (tiếp) — Hai tab đối chiếu mới: điều chuyển nội bộ + danh sách PO
+
+Đại Ca giao thêm danh sách xuất/nhập điều chuyển nội bộ và danh sách PO (yêu cầu thường xuyên) +
+phiếu nhập mua hàng, **làm theo đúng nguyên tắc kiểm tra của tab đối chiếu BTP**.
+
+### Khảo sát trước, code sau — và đó là chỗ cứu được cả việc
+
+Không viết dòng code nào cho tới khi đo xong trên DB thật. Hai kết quả ngược hẳn nhau:
+
+| | Điều chuyển nội bộ | PO ↔ phiếu nhập mua |
+|---|---|---|
+| Khoá nối | `PURCHASE.SALE_PR_KEY = SALE.PR_KEY` — **y hệt BTP** | **không có khoá nào đúng** |
+| Độ phủ | 19.838 phiếu `NDCNB` → **19.828 nối được (99,95%)** | **99/4.217 PO = 2,3%**, `TX2` = **0%** |
+| Kết luận | làm được ngay | **iPOS không ghi liên kết** |
+
+**Đã thử 7 khoá cho PO, ghi đủ vào [CLAUDE.md](CLAUDE.md) Bẫy 20** để người sau khỏi đo lại.
+Ca quyết định: PO `POCH2026/0001/T01` của đơn vị 44 đặt `LY-NH600` 22.000 CÁI, nhưng 12 dòng nhập
+ghi tham chiếu **đúng số PO đó** lại toàn mã `KEA-*`. Hai gốc rễ: **số phiếu PO trùng 50 bản ở 50
+đơn vị cùng ngày**, và `PURCHASE_DETAIL` — bảng DUY NHẤT có cột `PO_TRAN_NO` — chỉ chứa **3%** số
+dòng hàng thật (phiếu `NM`: 11.434 dòng ở `WAREHOUSE` vs **340** ở `PURCHASE_DETAIL`), lại còn tắt
+hẳn T02→T06/2026.
+
+⚠️ **Suýt xây báo cáo trên khoá sai.** Khoá `PO_TRAN_NO + ORGANIZATION_ID` cho **669 khớp đúng 1,
+0 nổ dòng** — nhìn số là tưởng ngon. Chỉ tới lúc soi một ca cụ thể mới thấy mã hàng hai bên không
+liên quan gì. **Bài học: "khoá duy nhất" chưa chắc là "khoá đúng" — phải kiểm nội dung, không chỉ
+kiểm độ duy nhất.**
+
+➡️ Báo Đại Ca, Đại Ca chốt: **bỏ hẳn cột "đã có phiếu mua hàng chưa"**, chỉ làm danh sách PO đầy đủ.
+Trên màn hình có ghi rõ một dòng vì sao không có cột đó — để người xem khỏi tưởng thiếu sót, và khỏi
+ai đó "bổ sung" bằng một liên kết bịa.
+
+### Tab `dcnb_reconcile` — đối chiếu `XDCNB` → `NDCNB`
+
+Cùng khuôn `btp_reconcile`, nhưng **ba chỗ khác phải xử riêng**:
+
+1. **Xuất và nhập ở hai đơn vị khác nhau** (kho tổng `01` xuất → cửa hàng `35`/`71`/`32`… nhận) ⇒
+   bảng có **cả hai cột đơn vị**. BTP thì cùng đơn vị.
+2. **`NDCNB` có `IS_SALE = 0`** ⇒ dính đúng **Bẫy 15**: nó *không hề* nằm trong `PURCHASE_VIEW`.
+   Đọc qua view là ra 0 dòng mà không báo lỗi. Phải đọc thẳng `dbo.PURCHASE`.
+3. **So thẳng `QUANTITY` là đúng** — KHÔNG bê mẹo "mốc gần hơn" của BTP sang. Mẹo đó chỉ sinh ra vì
+   `JOB_QTY` của BTP ghi bằng 1 trong 2 đơn vị tuỳ người gõ; điều chuyển thì hai phía cùng ĐVT cơ bản.
+   Đã đo cả năm 2026: khớp **133.348** · chưa nhận **4.603** · lệch **28**.
+
+Nhánh phiếu nhập mồ côi giữ nguyên logic BTP và **bắt được việc thật**: tháng 5/2026 có 9 phiếu
+`NGHI NHẬN TRÙNG — phiếu xuất đã có phiếu nhập khác`.
+
+### Tab `po_list` — danh sách PO (`TX` / `TX1` / `TX2`)
+
+Nguồn `dbo.PO` + `dbo.PO_DETAIL`. 2026: 4.217 phiếu / 3.384 dòng, chạy **~0,2s**.
+Trạng thái dịch sang tiếng người (`APPROVED` → *Đã duyệt*…) theo đúng luật "thông báo phải nói
+tiếng người". ⚠️ `dbo.PURCHASE_ORDER` **trống 0 dòng** — di sản, đừng đụng.
+
+🔴 **Lỗi tự gây, ghi lại thành Bẫy 21:** viết câu PO phẳng không CTE nên
+`ROW_NUMBER() OVER (ORDER BY DON_VI)` tham chiếu bí danh của chính câu `SELECT` ⇒
+`Invalid column name 'DON_VI'`. Đáng chú ý: **`/count` vẫn xanh**, chỉ nhánh phân trang mới chết —
+nhìn mỗi `/count` là tưởng xong. Đã bọc `WITH POL AS (…)` như BTP/ĐCNB.
+
+### Verify — đạt M2, thêm một lớp M4 cho phần số liệu
+
+| Mức | Nội dung |
+|---|---|
+| M1 | `ast.parse` OK · `node check_babel.js` SUCCESSFUL · **không có hàm trùng tên** (Bẫy 2) |
+| Số cột | header / ô tìm kiếm / ô dữ liệu: **ĐCNB 19-19-19**, **PO 17-17-17** — khớp, cùng kiểu với BTP 21-21-21 |
+| **M2** | **13/13 phép thử qua `test_client` in-process** (không qua cổng 5050, Bẫy 6): nạp trang · lọc từng trạng thái · lọc loại PO · tìm theo số phiếu · sắp xếp · phân trang · `/count` · tạo job xuất CSV |
+| **Ép quyền** | **8/8 đúng** — không có quyền ⇒ 403; có `btp_reconcile` mà không có `dcnb_reconcile` ⇒ vẫn 403. Ép quyền **đơn vị**: tài khoản chỉ được xem đơn vị `99` ⇒ trả **0 dòng**, không lộ dữ liệu |
+| **M4 (phần số)** | Mọi con số trong tài liệu đều đo trên `IACC_CHULONG` thật, không ước lượng |
+
+⚠️ **Chưa đạt M4 đầy đủ**: chưa đối chiếu với form sổ sách/báo cáo gốc của iPOS, vì hai tab này là
+**danh sách đối chiếu nội bộ**, không có mẫu gốc để tie.
+
+### Điểm mù — phải biết trước khi dùng
+
+- **Bộ lọc Đơn vị của tab điều chuyển áp cho phía XUẤT**, giống mọi tab khác. Hệ quả: tài khoản chỉ
+  được xem đơn vị cửa hàng sẽ **không thấy hàng chuyển đến mình** (vì bên xuất là kho tổng `01`).
+  Đại Ca dùng tài khoản toàn quyền nên không vướng — nhưng mở cho cửa hàng thì phải đổi.
+- Hiệu năng tab điều chuyển **~6–8,5s/tháng**, ngang BTP. Kỳ dài sẽ chậm hơn.
+- `PO.EMPLOYEE_ID` **trống trên dữ liệu thật** ⇒ cột Người lập luôn rỗng. Giữ cột vì iPOS có thể ghi
+  về sau, không phải lỗi.
+- Tên đơn vị nhận để trống khi một phiếu xuất đi tới nhiều đơn vị (mã vẫn hiện đủ dạng `35 + 71`).
+

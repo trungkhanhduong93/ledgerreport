@@ -18,8 +18,8 @@
 ## 📌 VIỆC CẦN LÀM — *cập nhật 24/09/2026*
 
 > Gom hết việc còn treo về một chỗ. Nhận việc mới thì **đọc mục này trước**.
-> Trạng thái: `main` = **`1e5dee9`**, đã push, working tree sạch.
-> Bản phát hành **v1.12.0** đang là `Latest` trên GitHub Releases.
+> Trạng thái: **v1.12.1** đã build local và đạt M3, chờ push.
+> Bản đang là `Latest` trên GitHub Releases: **v1.12.0**.
 
 ### 🔴 Ưu tiên 1 — làm sớm, càng để lâu càng rủi ro
 
@@ -45,7 +45,8 @@
 | 8 | **Xoá file rác**: `phanquyen.json` (972 B, 4 tài khoản test) + `dist/phanquyen.json.cu` (1.002 B) | Vô dụng từ khi bỏ chế độ file 21/09. Cả hai đã `.gitignore` nên không lộ, chỉ là rác |
 | 9 | Màn đăng nhập **chưa bắt buộc** điền Tài khoản ứng dụng | Để trống thì phải chờ Google **4–7 giây** mới báo lỗi, thay vì chặn ngay tại chỗ |
 | 10 | Dropdown lọc **Đơn vị** vẫn hiện tên đơn vị ngoài quyền | Chọn vào ra 0 dòng — **lộ tên, không lộ số** |
-| 12 | 🐛 **Hàng chip tụt về 0 khi bấm chọn một chip** (tab điều chuyển **và** tab BTP) | `_dcnb_summary()` / `_btp_summary()` dùng chung `where_sql` vốn đã có `TRANG_THAI = ?`. Chọn một trạng thái là mọi chip khác về 0 — "Đã nhận đủ · 0" trông như cả tháng không ai nhận hàng. Tạm thời phải bấm chip **TẤT CẢ**. Sửa: cho phần tóm tắt **bỏ riêng bộ lọc trạng thái**, giữ nguyên các bộ lọc khác. Phát hiện 24/09/2026 |
+| 12 | ~~Hàng chip tụt về 0 khi bấm chọn một chip~~ ✅ **XONG 24/09/2026** | Sửa cả **ba** tab (`dcnb_reconcile`, `btp_reconcile`, **`po_list`** — tab này cũng dính, phát hiện lúc sửa). Cờ `bo_trang_thai` + `so_dong` tách theo trạng thái. Đối chứng trước/sau: **không chậm đi** |
+| 15 | 🐢 **Bấm chip chậm gấp ~4 lần** (7,8s → 29,2s) | **Có sẵn từ trước**, đã đối chứng bản git HEAD ra đúng con số. Mệnh đề `TRANG_THAI = ?` lọc trên cột `CASE` dựng trong CTE làm kế hoạch thực thi xấu đi. Hướng đào: đẩy điều kiện vào trong CTE, hoặc vật chất hoá CTE ra `#temp` rồi mới lọc. Ghi 24/09/2026 |
 | 13 | 🐛 **Phiếu `POSTED` mà không có dòng nào trong `WAREHOUSE` thì tab giấu hẳn** | `XNB00001/T09` ngày 03/09/2026 đơn vị `10`: `STATUS = POSTED`, có 1 dòng `SALE_DETAIL`, **0 dòng kho**. Nhánh `X` đọc `WAREHOUSE` nên phiếu không hiện ở bất kỳ nhóm nào. Cần **đo cả năm 2026** xem bao nhiêu ca rồi mới chốt hiển thị thế nào. Phát hiện 24/09/2026 |
 | 14 | Hai chip tên gần giống nhau: **KHÔNG THẤY PHIẾU NHẬP** / **KHÔNG THẤY PHIẾU XUẤT** | Chỉ khác một chữ, lại nằm cách xa nhau trên hàng chip. Đề xuất đưa hai cái cạnh nhau cho thấy rõ là một cặp hai chiều. Đại Ca chưa chốt |
 | 11 | **Nâng 3 GitHub Action lên bản chạy Node 24** | Kẹt vì token `gh` thiếu scope `workflow`. Đại Ca chạy `gh auth refresh -h github.com -s workflow` hoặc sửa thẳng trên web GitHub. Tiện tay thêm `paths-ignore` — [chi tiết](#-việc-còn-treo--nâng-3-action-lên-bản-chạy-node-24) |
@@ -1690,3 +1691,69 @@ digest **hiện tại** ngay lúc kiểm:
 gh release view v1.12.0 --json assets --jq '.assets[] | select(.name|endswith(".exe")) | .digest'
 ```
 Cho tới khi thêm được `paths-ignore`, con số ghi trong tài liệu chỉ đúng cho tới lần push kế tiếp.
+
+---
+
+## 24/09/2026 (cuối ngày) — Sửa lỗi hàng chip tụt về 0 · **v1.12.1**
+
+Đại Ca chốt: *"sửa lỗi chip tụt về 0 luôn đi"*.
+
+### Lúc sửa mới thấy: ba tab dính, không phải hai
+
+Tôi báo ban đầu là 2 tab (`dcnb_reconcile`, `btp_reconcile`). Đọc code để sửa thì thấy **`po_list`
+cũng dính** — bộ lọc trạng thái nằm ngay trong CTE `POL`, mà `_polist_summary()` cũng chạy trên
+chính CTE đó. Cùng một con bug thì sửa một lượt, để sót một tab là nửa vời.
+
+### Gốc bệnh
+
+Phần tóm tắt (hàng chip) và phần dữ liệu **dùng chung một `where_sql`**, mà `where_sql` đã kẹp sẵn
+`TRANG_THAI = ?`. Bấm một chip ⇒ `GROUP BY TRANG_THAI` chỉ còn đúng một nhóm ⇒ **mọi chip khác
+hiện 0**. Người dùng nhìn "Đã nhận đủ · 0" sẽ tưởng cả tháng không ai nhận hàng.
+
+### Đã sửa
+
+| Chỗ | Thay đổi |
+|---|---|
+| `_build_dcnb_where` · `_build_btp_where` · `_build_polist_where` | Thêm cờ **`bo_trang_thai=False`**. Bật lên thì bỏ riêng mệnh đề trạng thái, **giữ nguyên mọi bộ lọc khác** |
+| `_dcnb_summary` · `_btp_summary` · `_polist_summary` | Phơi thêm **`so_dong` tách theo từng trạng thái**. Câu SQL vốn đã `COUNT(*)` sẵn — trước giờ gộp hết vào `tong_dong` rồi vứt đi |
+| 3 endpoint | Tóm tắt dựng bằng WHERE **không có trạng thái**; số dòng phân trang lấy `so_dong[trạng thái đang chọn]` |
+
+⚠️ Nhờ `so_dong` mà **không tốn thêm câu SQL nào** — vẫn đúng một lượt quét như trước.
+
+⚠️ **Phải sửa cả `total_rows`, không chỉ hàng chip.** Bỏ trạng thái khỏi tóm tắt mà vẫn lấy
+`summary["tong_dong"]` làm số dòng phân trang thì **phân trang loạn ngay** (hiện tổng của cả kỳ
+trong khi bảng chỉ có một nhóm). Đây mới là chỗ dễ chết, không phải hàng chip.
+
+### Verify
+
+| Mức | Nội dung |
+|---|---|
+| M1 | `ast.parse` OK · không hàm trùng tên |
+| **Cấu trúc** (không cần DB) | **21 phép, đạt hết** trên 3 tab: có chọn → SQL **có** mệnh đề; `bo_trang_thai=True` → **không còn**, và cho ra kết quả **giống hệt** trường hợp không chọn trạng thái; `params` chỉ khác **đúng một phần tử**, mọi params khác **giữ nguyên thứ tự**; **số `?` = số params** trên cả 6 nhánh (Bẫy 5) |
+| **M2** (DB thật) | **14 phép, đạt hết** trên 3 tab: bấm chip thì **mọi chip giữ nguyên số** · `total_rows` khớp đúng nhóm đang chọn · dữ liệu trả về **chỉ có** trạng thái đã chọn · **bộ lọc khác vẫn ăn vào hàng chip** (lọc mã `COC` làm tổng tụt 14.215 → 376 và hàng chip đổi theo) |
+| **Đối chứng trước/sau** | Chạy **bản git HEAD** và bản mới cạnh nhau: không chọn chip **7,8s / 7,9s**, bấm chip **29,2s / 29,5s**, `total_rows` **12.630 y hệt** — chỉ khác đúng một chỗ: chip hiện **1** trạng thái (cũ) so với **5** (mới) |
+| **M3** | Build **v1.12.1** (14.716.141 B), EXE mới hơn cả 2 file nguồn, chạy tách hẳn: cổng 5050 LISTENING, **41,6 MB**, `check_update` trả `current 1.12.1` · `is_frozen True` |
+
+⛔ **Chưa đạt M4** cho chính phần chip: sửa nằm ở backend nên không kiểm được qua `index.html`,
+mà phiên đăng nhập của app nằm trong RAM, không gieo từ ngoài vào được. Đại Ca bấm thử trên giao
+diện là xong M4.
+
+### 🐢 Lộ ra một vấn đề CÓ SẴN, không phải do lần sửa này
+
+Bấm chip **chậm gấp ~4 lần** không chọn chip: **7,8s → 29,2s** (T09/2026, `page_size=200`).
+Đối chứng bản git HEAD ra **đúng con số đó** ⇒ có sẵn từ trước. Nguyên nhân: mệnh đề
+`TRANG_THAI = ?` lọc trên một cột **`CASE` dựng trong CTE**, làm kế hoạch thực thi xấu đi.
+Ghi thành việc số 15, chưa đào.
+
+### Bẫy nhỏ suýt báo động nhầm: đếm dấu `?` mà không bỏ comment
+
+Phép kiểm "số dấu `?` khớp số params" (Bẫy 5) báo **thừa 1** ở `dcnb` và `btp`. Không phải lỗi
+code — dấu `?` đó nằm trong **comment SQL tiếng Việt**: `-- Số chứng từ xuất ghi trên phiếu nhập
+giờ còn dẫn tới phiếu nào không?`. Phải bỏ dòng `--` trước khi đếm:
+
+```python
+re.sub(r"--.*$", "", dong)   # bỏ comment rồi mới .count("?")
+```
+
+⚠️ Các phiên trước có dùng phép đếm này mà **không bỏ comment**, nên con số ghi trong nhật ký cũ
+lệch 1 mà không ai để ý. Bản thân phép kiểm vẫn đúng hướng — chỉ là phải đếm cho sạch.

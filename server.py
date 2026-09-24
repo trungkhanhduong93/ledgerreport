@@ -3441,8 +3441,12 @@ def _btp_cte(inner_sql, inner_draft_sql, inner_orph_sql, inner_orph_wh_sql):
                      .replace("{tt_nhap_nhap}", BTP_TT_NHAP_NHAP)
 
 
-def _build_btp_where(request_args):
-    """Trả (cte_sql, outer_where, params) — params đúng thứ tự dấu ? (Bẫy 5: inner trước outer)."""
+def _build_btp_where(request_args, bo_trang_thai=False):
+    """Trả (cte_sql, outer_where, params) — params đúng thứ tự dấu ? (Bẫy 5: inner trước outer).
+
+    ⚠️ `bo_trang_thai=True` ⇒ bỏ riêng bộ lọc trạng thái — xem `_build_dcnb_where`,
+    cùng một con bug, sửa cùng một cách.
+    """
     f_date = request_args.get("from_date", "01/01/2026")
     t_date = request_args.get("to_date",  "31/12/2026")
     from_dt = datetime.strptime(f_date, "%d/%m/%Y").date()
@@ -3502,7 +3506,7 @@ def _build_btp_where(request_args):
 
     outer, oparams = [], []
     st = BTP_STATUS_MAP.get(request_args.get("status", "").strip())
-    if st:
+    if st and not bo_trang_thai:
         outer.append("TRANG_THAI = ?")
         oparams.append(st)
 
@@ -3555,10 +3559,11 @@ def _btp_summary(cursor, cte, where_sql, params):
         FROM DC WHERE {where_sql}
         GROUP BY TRANG_THAI
     """, params)
-    out = {"tong_dong": 0, "so_cap": {}, "so_phieu": {}, "tien": {}}
+    out = {"tong_dong": 0, "so_dong": {}, "so_cap": {}, "so_phieu": {}, "tien": {}}
     for tt, so_dong, so_phieu, so_cap, tien in cursor.fetchall():
         tt = (tt or "").strip()
         out["tong_dong"] += int(so_dong or 0)
+        out["so_dong"][tt] = int(so_dong or 0)
         out["so_cap"][tt] = int(so_cap or 0)
         out["so_phieu"][tt] = int(so_phieu or 0)
         out["tien"][tt] = float(tien or 0)
@@ -3594,8 +3599,10 @@ def get_btp_reconcile():
             if skip_count:
                 total_rows = int(known_total)
             else:
-                summary = _btp_summary(cursor, cte, where_sql, params)
-                total_rows = summary["tong_dong"]
+                _, w_tt, p_tt = _build_btp_where(request.args, bo_trang_thai=True)
+                summary = _btp_summary(cursor, cte, w_tt, p_tt)
+                _st = BTP_STATUS_MAP.get(request.args.get("status", "").strip())
+                total_rows = summary["so_dong"].get(_st, 0) if _st else summary["tong_dong"]
 
             offset = (page - 1) * page_size
             cursor.execute(f"""
@@ -3997,7 +4004,7 @@ def _dcnb_cte(inner, inner_draft, inner_orph, inner_orph_wh):
     )
 
 
-def _build_dcnb_where(request_args):
+def _build_dcnb_where(request_args, bo_trang_thai=False):
     """Trả (cte_sql, outer_where, params) — params đúng thứ tự dấu ? (Bẫy 5: inner trước outer).
 
     ⚠️ Bộ lọc Đơn vị áp cho phía XUẤT (W.ORGANIZATION_ID), giống mọi tab khác lấy đơn vị của
@@ -4054,7 +4061,10 @@ def _build_dcnb_where(request_args):
 
     outer, oparams = [], []
     st = DCNB_STATUS_MAP.get(request_args.get("status", "").strip())
-    if st:
+    if st and not bo_trang_thai:
+        # ⚠️ Bỏ riêng bộ lọc trạng thái khi dựng phần tóm tắt (hàng chip), giữ nguyên mọi bộ
+        # lọc khác. Kẹp TRANG_THAI vào đây là bấm một chip thì mọi chip còn lại về 0 — nhìn
+        # như cả kỳ không có dòng nào. Đã vấp thật 24/09/2026.
         outer.append("TRANG_THAI = ?")
         oparams.append(st)
 
@@ -4127,10 +4137,13 @@ def _dcnb_summary(cursor, cte, where_sql, params):
         FROM DC WHERE {where_sql}
         GROUP BY TRANG_THAI
     """, params)
-    out = {"tong_dong": 0, "so_phieu": {}, "tien": {}}
+    # so_dong tách theo từng trạng thái: nhờ nó mà biết số dòng của nhóm đang chọn ngay trong
+    # lượt quét này, khỏi phải chạy thêm một câu COUNT nữa.
+    out = {"tong_dong": 0, "so_dong": {}, "so_phieu": {}, "tien": {}}
     for tt, so_dong, so_phieu, tien in cursor.fetchall():
         tt = (tt or "").strip()
         out["tong_dong"] += int(so_dong or 0)
+        out["so_dong"][tt] = int(so_dong or 0)
         out["so_phieu"][tt] = int(so_phieu or 0)
         out["tien"][tt] = float(tien or 0)
     return out
@@ -4165,8 +4178,10 @@ def get_dcnb_reconcile():
             if skip_count:
                 total_rows = int(known_total)
             else:
-                summary = _dcnb_summary(cursor, cte, where_sql, params)
-                total_rows = summary["tong_dong"]
+                _, w_tt, p_tt = _build_dcnb_where(request.args, bo_trang_thai=True)
+                summary = _dcnb_summary(cursor, cte, w_tt, p_tt)
+                _st = DCNB_STATUS_MAP.get(request.args.get("status", "").strip())
+                total_rows = summary["so_dong"].get(_st, 0) if _st else summary["tong_dong"]
 
             offset = (page - 1) * page_size
             cursor.execute(f"""
@@ -4347,7 +4362,7 @@ _POLIST_SELECT = ", ".join([
 ])
 
 
-def _build_polist_where(request_args):
+def _build_polist_where(request_args, bo_trang_thai=False):
     """Trả (cte_sql, params). Mọi điều kiện nằm cùng một mệnh đề WHERE nên thứ tự params
     chính là thứ tự thêm vào đây (Bẫy 5)."""
     f_date = request_args.get("from_date", "01/01/2026")
@@ -4380,7 +4395,10 @@ def _build_polist_where(request_args):
             params.extend(vals)
 
     st = PO_STATUS_MAP.get(request_args.get("status", "").strip())
-    if st:
+    if st and not bo_trang_thai:
+    # ⚠️ Bỏ riêng bộ lọc trạng thái khi dựng phần tóm tắt (hàng chip), giữ nguyên mọi bộ
+    # lọc khác. Kẹp TRANG_THAI vào đây là bấm một chip thì mọi chip còn lại về 0 — nhìn
+    # như cả kỳ không có dòng nào. Đã vấp thật 24/09/2026.
         where.append(f"{PO_TT_MAP_SQL} = ?")
         params.append(st)
 
@@ -4428,10 +4446,11 @@ def _polist_summary(cursor, cte, params):
                TIEN     = SUM(TONG_TIEN)
         FROM POL GROUP BY TRANG_THAI
     """, params)
-    out = {"tong_dong": 0, "so_phieu": {}, "tien": {}}
+    out = {"tong_dong": 0, "so_dong": {}, "so_phieu": {}, "tien": {}}
     for tt, so_dong, so_phieu, tien in cursor.fetchall():
         tt = (tt or "").strip()
         out["tong_dong"] += int(so_dong or 0)
+        out["so_dong"][tt] = int(so_dong or 0)
         out["so_phieu"][tt] = int(so_phieu or 0)
         out["tien"][tt] = float(tien or 0)
     return out
@@ -4465,8 +4484,10 @@ def get_po_list():
             if skip_count:
                 total_rows = int(known_total)
             else:
-                summary = _polist_summary(cursor, cte, params)
-                total_rows = summary["tong_dong"]
+                cte_tt, p_tt = _build_polist_where(request.args, bo_trang_thai=True)
+                summary = _polist_summary(cursor, cte_tt, p_tt)
+                _st = PO_STATUS_MAP.get(request.args.get("status", "").strip())
+                total_rows = summary["so_dong"].get(_st, 0) if _st else summary["tong_dong"]
 
             offset = (page - 1) * page_size
             cursor.execute(f"""

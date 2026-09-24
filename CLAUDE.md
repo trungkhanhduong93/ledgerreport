@@ -2,7 +2,8 @@
 
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
-> Cập nhật gần nhất: **24/09/2026** · **Bản đã phát hành trên GitHub: `v1.12.0`** (24/09/2026)
+> Cập nhật gần nhất: **24/09/2026** · **Bản mới nhất: `v1.12.1`** (build local, đạt M3, chờ push)
+> · Bản đang là `Latest` trên GitHub: `v1.12.0`
 > · Release là `Latest` · EXE trên máy Đại Ca **là đúng file CI đã phát hành** (SHA256 khớp digest)
 > · Apps Script: **Version 5** (`ban 2026-09-21c`)
 > ⚠️ **Đừng ghi cứng digest/kích thước của asset vào tài liệu** — mỗi lần push (kể cả push mỗi
@@ -198,9 +199,21 @@ từng nằm trong `GHI_CHU` và chú thích chip, đã gỡ 24/09/2026.
 phiếu nằm ở nhóm khác** — một phiếu có mã đã nhận và mã chưa nhận sẽ hiện ở cả hai chip. Đó là lý
 do 11 phiếu chứ không phải 9. **Cộng các chip lại không ra tổng số phiếu.**
 
-🐛 **CÒN TREO — hàng chip tụt về 0 khi bấm chọn một chip.** `_dcnb_summary()` dùng chung `where_sql`
-đã có sẵn `TRANG_THAI = ?`, nên chọn một trạng thái là mọi chip khác về 0. Tab `btp_reconcile` dính
-y hệt. Muốn xem phân bố thật phải bấm chip **TẤT CẢ**. Đại Ca đã biết, chưa chốt sửa (24/09/2026).
+✅ **ĐÃ SỬA 24/09/2026 — hàng chip từng tụt về 0 khi bấm chọn một chip.** Phần tóm tắt dùng chung
+`where_sql` vốn đã có `TRANG_THAI = ?`, nên chọn một trạng thái là mọi chip khác về 0 — "Đã nhận
+đủ · 0" nhìn như cả tháng không ai nhận hàng. **Dính cả ba tab** `dcnb_reconcile`, `btp_reconcile`
+**và `po_list`**. Sửa: ba hàm dựng WHERE nhận thêm cờ **`bo_trang_thai=True`** (bỏ riêng mệnh đề
+trạng thái, giữ mọi bộ lọc khác); ba hàm tóm tắt phơi thêm **`so_dong` tách theo từng trạng thái**
+để endpoint lấy số dòng phân trang của nhóm đang chọn — **không tốn thêm câu SQL nào.**
+
+⛔ **Thêm bộ lọc mới cho các tab này thì đặt vào `outer`/`where` như cũ — ĐỪNG kẹp thêm điều kiện
+theo trạng thái ở bất cứ đâu khác**, không là bệnh quay lại mà không ai thấy (chip vẫn ra số, chỉ
+là số sai).
+
+🐢 **CÒN TREO — bấm chip chậm gấp ~4 lần.** Đo T09/2026, `page_size=200`: không chọn chip **7,8s**,
+bấm chip `Đã nhận đủ` **29,2s**. **Có sẵn từ trước, không phải do lần sửa trên** — đối chứng bản
+git HEAD cho đúng con số đó (29,2s cũ so với 29,5s mới). Chính mệnh đề `TRANG_THAI = ?` — lọc trên
+một cột `CASE` dựng trong CTE — làm kế hoạch thực thi xấu đi. Chưa đào.
 
 🐛 **CÒN TREO — phiếu `POSTED` mà không có dòng nào trong `WAREHOUSE` thì tab giấu hẳn.**
 Đo T09/2026: `XNB00001/T09` ngày 03/09 đơn vị `10` có `STATUS = POSTED`, 1 dòng `SALE_DETAIL`,

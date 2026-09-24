@@ -71,7 +71,7 @@
 |---|---|---|
 | 4 | **Tick 2 tab mới cho các chức vụ thật** (`KT`, `XSX`, `TM`…) | Cột `dcnb_reconcile` / `po_list` **đã có sẵn trên Sheet** (tạo 21/09). Chỉ cần vào tab Phân quyền tick là ăn. Chức vụ `ADMIN` khỏi cần — app tự tính đủ |
 | 5 | **Hỏi Chú Long / iPOS**: nhập mua hàng có bắt buộc bấm từ phiếu PO không? | Quyết định việc có làm được đối chiếu PO ↔ phiếu nhập hay không. Chi tiết 7 khoá đã đo: [Bẫy 20](CLAUDE.md) |
-| 6 | **Tắt `AUTO_SHRINK` + `AUTO_CLOSE`** trên SQL Server | Việc **rẻ nhất, hiệu quả nhất** còn treo ở phía máy chủ. `AUTO_CLOSE` đúng là triệu chứng "lúc nhanh lúc chậm". Script `Tat_AutoShrink_AutoClose.sql` trong skill `chulong-db-perf` |
+| 6 | ~~Tắt `AUTO_SHRINK` + `AUTO_CLOSE`~~ ⚠️ **KHÔNG PHẢI VIỆC — đã tắt sẵn từ lâu** | 🔴 Mục này **sai từ đầu**, để treo hơn một tháng. Chính repo đã ghi ngược lại ở **ba chỗ**: [TOI_UU_DB_16082026.sql:16](TOI_UU_DB_16082026.sql) (*"CẢ 3 DATABASE VÀ 'model' ĐÃ TẮT SẴN"*, đo **16/08/2026 trên chính máy chủ đó**) · [SU_CO_15082026.md:184](SU_CO_15082026.md) (*"kiểm rồi, không phải thủ phạm"*) · mục **5. Verify — đạt M4** trong file này. ⚠️ Chưa đo lại được hôm nay (24/09) vì truy vấn DB thật bị chặn quyền — Đại Ca chạy câu kiểm ở mục nhật ký 24/09 là xong. **Nút thắt thật là RAM: DB 10,6 GB / buffer pool 1.410 MB — trần cứng của SQL Express, không lệnh nào tắt được** |
 
 ### 🟢 Ưu tiên 3 — việc code, chưa chặn ai
 
@@ -155,10 +155,40 @@ chốt (*xoá đúng ô `password`, giữ `server`/`user`/`database` để lần
 dạng chữ thường trên đĩa. Không có dòng code nào trong repo đọc file này — `test.py` đọc một
 `config.json` **khác**, nằm ngoài repo, dùng khoá `uid`/`pwd`.
 
-⚠️ **Chưa xoá được:** thao tác ghi đè bị lớp kiểm duyệt quyền của Claude Code chặn
-(*Irreversible Local Destruction*). Cố ý **không** dùng đường vòng đọc file ra rồi sửa — làm vậy là
-mật khẩu lọt vào khung chat, đúng thứ mà cách làm `config.json` sinh ra để tránh. Đã đưa lệnh một
-dòng để Đại Ca tự bấm.
+✅ **Đã xoá** (Đại Ca bảo cứ xoá). File giữ nguyên 5 khoá, `password` để rỗng — lần sau chỉ phải
+điền một ô. Cố ý **không** dùng đường vòng đọc file ra rồi sửa: làm vậy là mật khẩu lọt vào khung
+chat, đúng thứ mà cách làm `config.json` sinh ra để tránh.
+
+### 🔴 Việc số 6 (`AUTO_SHRINK` / `AUTO_CLOSE`) là VIỆC MA — đã treo hơn một tháng
+
+Đại Ca hỏi *"auto shrink là gì, có liên quan gì tới `IACC_CHULONG` không"*. Đi tra thì lòi ra:
+**chính repo này đã ghi ngược lại ở ba chỗ**, mà mục việc treo vẫn nói đó là *"việc rẻ nhất, hiệu
+quả nhất còn treo"*:
+
+| Nguồn trong repo | Ghi gì |
+|---|---|
+| [TOI_UU_DB_16082026.sql:16](TOI_UU_DB_16082026.sql) — đo **16/08/2026 trên chính máy chủ đó** | *"Mục 1 (AUTO_SHRINK / AUTO_CLOSE): **CẢ 3 DATABASE VÀ 'model' ĐÃ TẮT SẴN** → chạy vào sẽ không đổi gì"* |
+| [SU_CO_15082026.md:184](SU_CO_15082026.md) | *"`AUTO_SHRINK` và `AUTO_CLOSE` **đã được tắt sẵn — kiểm rồi, không phải thủ phạm**"* |
+| Mục **5. Verify — đạt M4** trong file này | *"SQL Server 2025 Express, `compatibility_level = 170`, `AUTO_SHRINK`/`AUTO_CLOSE` **đã tắt sẵn**"* |
+
+➡️ Đã sửa **cả hai chỗ**: việc số 6 ở § VIỆC CẦN LÀM, và [CLAUDE.md § 6](CLAUDE.md).
+
+**Vì sao lọt:** mục việc treo nhặt **tên script** `Tat_AutoShrink_AutoClose.sql` rồi suy ra là
+"chưa tắt", trong khi **header của chính script đó** nói rõ đã tắt sẵn và script chỉ giữ làm **dây
+bẫy** phòng ai bật lại. **Bài học: thấy tên script kiểu `Tat_X.sql` thì đọc header đã, đừng suy ra
+là X đang bật.**
+
+⚠️ **Chưa đo lại được hôm nay** — truy vấn DB thật bị chặn quyền (*Production Reads*). Số liệu dựa
+trên phép đo 15–16/08/2026. Hai cờ này **theo từng database**, phục hồi từ `.bak` cũ hoặc tạo DB
+mới từ `model` bị bật là chúng quay lại, nên kiểm lại cho chắc:
+
+```sql
+SELECT name, is_auto_shrink_on AS [AUTO_SHRINK], is_auto_close_on AS [AUTO_CLOSE],
+       recovery_model_desc, compatibility_level
+FROM sys.databases ORDER BY database_id;
+```
+
+Cả hai cột phải là **0**. Ra `1` thì chạy `TOI_UU_DB_16082026.sql`.
 
 ### 📌 Đại Ca chốt luật ghi nhật ký — và tôi vừa vi phạm ngay trong phiên này
 

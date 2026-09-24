@@ -939,6 +939,12 @@ Nút thắt gốc **không nằm ở code**: DB 10,6 GB / buffer pool 1.410 MB (
 thêm INCLUDE dài cho `SALE_DETAIL` là lỗ; nâng cấu hình IIS không cứu được nghẽn SQL.
 Chi tiết đầy đủ ở skill `chulong-db-perf`.
 
-**Việc rẻ nhất và hiệu quả nhất hiện còn treo ở phía máy chủ:** tắt `AUTO_SHRINK` + `AUTO_CLOSE`
-(script `Tat_AutoShrink_AutoClose.sql` trong skill đó). `AUTO_CLOSE` khiến DB đóng lại khi hết kết nối,
-người vào sau phải chờ mở lại cả DB — đúng triệu chứng "lúc nhanh lúc chậm".
+⛔ **`AUTO_SHRINK` / `AUTO_CLOSE` KHÔNG phải việc còn treo — đã tắt sẵn, đừng đi tắt lại.**
+Đo **16/08/2026 trên chính máy chủ đó**: cả 3 database **và** `model` đều đã OFF
+([TOI_UU_DB_16082026.sql:16](TOI_UU_DB_16082026.sql)); [SU_CO_15082026.md:184](SU_CO_15082026.md)
+chốt *"kiểm rồi, không phải thủ phạm"*. Tài liệu từng ghi đây là "việc rẻ nhất, hiệu quả nhất còn
+treo" — **sai, đã sửa 24/09/2026.**
+
+Giữ `TOI_UU_DB_16082026.sql` lại làm **dây bẫy**: chạy vào mà không đổi gì nghĩa là vẫn OK; đổi gì
+đó nghĩa là có người bật lại. Hai cờ này **theo từng database** nên phục hồi từ `.bak` cũ hoặc tạo
+DB mới từ `model` bị bật là chúng quay lại — kiểm định kỳ, đừng coi là xong vĩnh viễn.

@@ -6,12 +6,26 @@
 > Phiên gần nhất: **24/09/2026** · ✅ Đã phát hành **v1.12.3** — `main` = `62af287`,
 > Actions `success`, Release là `Latest`. Cả ngày ra **bốn** bản: v1.12.0 → v1.12.1 → v1.12.2 → v1.12.3.
 > 🔑 Phiên này chốt được **luật nghiệp vụ gốc**: iPOS **tự sinh** phiếu nhập `NDCNB` khi phiếu xuất
-> `XDCNB` ghi sổ — đổi hẳn cách đọc tab đối chiếu điều chuyển. Xem mục 24/09 ở cuối file.
+> `XDCNB` ghi sổ — đổi hẳn cách đọc tab đối chiếu điều chuyển. Xem các mục 24/09.
 > 🔴 **Đã phát hành KHI CHƯA đủ tài khoản nhân viên trên Google Sheet** — Đại Ca chốt chấp nhận,
 > làm phân quyền sau. Đây là **rủi ro đang chạy**, xem việc số 3.
 > Apps Script trên Google: **Version 5** (21/09/2026 19:33), mã bản `2026-09-21c` — **đã triển khai**.
 >
 > 📌 **Việc còn treo gom ở ngay dưới: [§ VIỆC CẦN LÀM](#-việc-cần-làm--cập-nhật-21092026).**
+>
+> ---
+>
+> ## ⛔ LUẬT GHI NHẬT KÝ — ÁP CHO MỌI FILE NHẬT KÝ CỦA PROJECT
+>
+> **1. MỚI NHẤT Ở TRÊN.** Viết mục mới thì **chèn lên đầu phần nhật ký**, ⛔ **không `>>` nối
+> xuống cuối file**. Người đọc mở file ra phải thấy ngay việc gần nhất, không phải cuộn 2.000 dòng.
+>
+> **2. Trên cùng luôn là VIỆC TỒN ĐỌNG + NGUYÊN TẮC**, rồi mới tới các mục theo ngày. Thứ tự cố
+> định: *đầu file* → **§ VIỆC CẦN LÀM** → **luật/nguyên tắc** → **nhật ký mới → cũ**.
+>
+> ⚠️ **Hiện trạng file này:** mục mới nhất đã nằm đúng chỗ (ngay dưới § VIỆC CẦN LÀM), nhưng
+> **các mục cũ từ `## 0.` trở xuống vẫn xếp theo chiều cũ (cũ → mới)** — lật hết là đảo 2.000 dòng,
+> **đang chờ Đại Ca chốt**. Từ nay ai viết mục mới thì cứ chèn lên trên, đừng nối xuống cuối.
 
 ---
 
@@ -63,6 +77,81 @@
 | **Khởi động lại app là phải đăng nhập lại** | Kho phiên nằm trong RAM. Đổi lại là quay về [Bẫy 17](CLAUDE.md) — mật khẩu SQL nằm đọc được trong cookie |
 | Tab điều chuyển nội bộ **6–8,5 giây/tháng** | Dựng lại toàn bộ CTE mỗi lần gọi, ngang `btp_reconcile`. Nút thắt gốc là RAM của SQL Express, không phải code |
 | `PO.EMPLOYEE_ID` **trống** ⇒ cột Người lập luôn rỗng | iPOS không ghi. Giữ cột phòng sau này có |
+
+---
+
+---
+
+## 24/09/2026 (cuối phiên) — Rà lại việc treo: tài liệu đã lệch thực tế
+
+Không sửa code. Chỉ đi kiểm xem **tài liệu có còn đúng không** — và hoá ra không.
+
+### 🔴 Tài liệu nói "chờ push", thực tế đã phát hành xong từ 3 phút sau đó
+
+| Tài liệu ghi | Đo được lúc 17:45 |
+|---|---|
+| `v1.12.3` build local, **chờ push** | Đã push. `git ls-remote origin main` = `62af287` = đúng HEAD local, working tree sạch |
+| `Latest` trên GitHub là `v1.12.2` | **`v1.12.3` là `Latest`**, tạo `2026-09-24T10:37:06Z` (17:37 giờ VN) |
+| "Commit tài liệu **cố ý giữ ở local**" | Hai commit `.md` (`f862674`, `0a9df3f`) **đã nằm trên GitHub** |
+| Phiên gần nhất phát hành `v1.12.0`, `main = 1e5dee9` | Sau đó còn 3 bản nữa |
+
+Actions cả 3 lần gần nhất đều `success`.
+
+**Vì sao lệch:** câu "chờ push" nằm **trong chính commit `62af287`** (17:35) — viết trước khi push
+rồi push kèm luôn, không ai quay lại sửa. Đây là **cái bẫy cố hữu của việc ghi trạng thái phát hành
+vào file nằm trong chính lần phát hành đó.**
+
+➡️ **Rút kinh nghiệm: dòng trạng thái "đã push chưa / Latest là bản nào" chỉ được viết SAU khi push
+xong**, hoặc viết theo kiểu không tự mâu thuẫn (ghi "chuẩn bị phát hành" thay vì "chờ push").
+
+### ✅ Điểm sáng: bước đối chiếu EXE đã làm rồi và đang đúng
+
+```
+EXE local dist\iPOS_Accounting_Report.exe : d2dd506f…d012fc18  (13.104.424 B)
+digest GitHub công bố cho asset v1.12.3   : d2dd506f…d012fc18  (13.104.424 B)
+```
+
+Khớp tuyệt đối ⇒ EXE trên máy Đại Ca **là đúng file CI**. Mốc thời gian khớp với quy trình: build
+local 17:32 → sao lưu `.bak` → push 17:35 → Actions 17:36 → Release 17:37 → thay EXE 17:38.
+
+⚠️ **Hệ quả: từ đây đừng push file `.md` một mình** — Actions build lại, thay asset bằng binary khác
+SHA, và cái digest vừa khớp lệch ngay. Chính vì vậy **commit của phiên này giữ ở local**.
+
+### Việc treo — kiểm chứng được tại chỗ
+
+| # | Kết quả đo |
+|---|---|
+| 8 | ✅ **Đã xoá** 2 file rác (xem dòng việc số 8) |
+| 11 | ❌ **Vẫn kẹt đúng chỗ cũ.** Workflow còn `checkout@v4` (dòng 20), `setup-python@v5` (dòng 25), `action-gh-release@v2` (dòng 69), **chưa có `paths-ignore`**. `gh auth status` cho scope `gist, read:org, repo` — **vẫn thiếu `workflow`** |
+
+Các việc còn lại (1, 3, 4, 5, 6, 7, 9, 10) nằm trên Google Sheet / SQL Server / cần Đại Ca chốt,
+không kiểm được từ máy này.
+
+### 🆕 Phát hiện thêm: `config.json` còn mật khẩu SQL thật
+
+File còn nguyên `password` của user `ipchulong` — phiên trước đo xong nhưng chưa dọn theo luật đã
+chốt (*xoá đúng ô `password`, giữ `server`/`user`/`database` để lần sau chỉ phải điền một ô*).
+
+Đã kiểm: `.gitignore` chặn (dòng 33), git **không theo dõi** ⇒ **không lộ lên GitHub**, chỉ nằm
+dạng chữ thường trên đĩa. Không có dòng code nào trong repo đọc file này — `test.py` đọc một
+`config.json` **khác**, nằm ngoài repo, dùng khoá `uid`/`pwd`.
+
+⚠️ **Chưa xoá được:** thao tác ghi đè bị lớp kiểm duyệt quyền của Claude Code chặn
+(*Irreversible Local Destruction*). Cố ý **không** dùng đường vòng đọc file ra rồi sửa — làm vậy là
+mật khẩu lọt vào khung chat, đúng thứ mà cách làm `config.json` sinh ra để tránh. Đã đưa lệnh một
+dòng để Đại Ca tự bấm.
+
+### 📌 Đại Ca chốt luật ghi nhật ký — và tôi vừa vi phạm ngay trong phiên này
+
+Tôi ghi mục này bằng cách **`>>` nối xuống cuối file**. Đại Ca chốt ngay: **nhật ký phải mới nhất ở
+trên**, trên cùng là **việc tồn đọng + nguyên tắc**, và đây là **luật chung cho mọi file nhật ký
+của project**, không riêng file này.
+
+Đã sửa trong cùng phiên: cắt mục này lên **ngay dưới § VIỆC CẦN LÀM**, ghi luật vào **đầu file này**
+và thành **nguyên tắc số 9** ở [CLAUDE.md § 3](CLAUDE.md).
+
+⚠️ **Còn dở:** các mục cũ từ `## 0.` trở xuống **vẫn xếp chiều cũ → mới**. Lật hết là đảo ~2.000
+dòng — đúng loại việc mà [Bẫy 26](CLAUDE.md) cảnh báo, nên **chưa tự làm, chờ Đại Ca chốt**.
 
 ---
 
@@ -1943,64 +2032,3 @@ với 6 chuỗi lỗi ODBC thật. Đại Ca đăng nhập đúng tài khoản r
 
 ⚠️ Câu **tạm khoá / tài khoản bị khoá** chưa thử được vì phải cố tình gõ sai nhiều lần lên tài
 khoản thật. Đã chặn bằng điều kiện so khớp chính xác chuỗi, và có phép kiểm trong bộ M2.
-
----
-
-## 24/09/2026 (cuối phiên) — Rà lại việc treo: tài liệu đã lệch thực tế
-
-Không sửa code. Chỉ đi kiểm xem **tài liệu có còn đúng không** — và hoá ra không.
-
-### 🔴 Tài liệu nói "chờ push", thực tế đã phát hành xong từ 3 phút sau đó
-
-| Tài liệu ghi | Đo được lúc 17:45 |
-|---|---|
-| `v1.12.3` build local, **chờ push** | Đã push. `git ls-remote origin main` = `62af287` = đúng HEAD local, working tree sạch |
-| `Latest` trên GitHub là `v1.12.2` | **`v1.12.3` là `Latest`**, tạo `2026-09-24T10:37:06Z` (17:37 giờ VN) |
-| "Commit tài liệu **cố ý giữ ở local**" | Hai commit `.md` (`f862674`, `0a9df3f`) **đã nằm trên GitHub** |
-| Phiên gần nhất phát hành `v1.12.0`, `main = 1e5dee9` | Sau đó còn 3 bản nữa |
-
-Actions cả 3 lần gần nhất đều `success`.
-
-**Vì sao lệch:** câu "chờ push" nằm **trong chính commit `62af287`** (17:35) — viết trước khi push
-rồi push kèm luôn, không ai quay lại sửa. Đây là **cái bẫy cố hữu của việc ghi trạng thái phát hành
-vào file nằm trong chính lần phát hành đó.**
-
-➡️ **Rút kinh nghiệm: dòng trạng thái "đã push chưa / Latest là bản nào" chỉ được viết SAU khi push
-xong**, hoặc viết theo kiểu không tự mâu thuẫn (ghi "chuẩn bị phát hành" thay vì "chờ push").
-
-### ✅ Điểm sáng: bước đối chiếu EXE đã làm rồi và đang đúng
-
-```
-EXE local dist\iPOS_Accounting_Report.exe : d2dd506f…d012fc18  (13.104.424 B)
-digest GitHub công bố cho asset v1.12.3   : d2dd506f…d012fc18  (13.104.424 B)
-```
-
-Khớp tuyệt đối ⇒ EXE trên máy Đại Ca **là đúng file CI**. Mốc thời gian khớp với quy trình: build
-local 17:32 → sao lưu `.bak` → push 17:35 → Actions 17:36 → Release 17:37 → thay EXE 17:38.
-
-⚠️ **Hệ quả: từ đây đừng push file `.md` một mình** — Actions build lại, thay asset bằng binary khác
-SHA, và cái digest vừa khớp lệch ngay. Chính vì vậy **commit của phiên này giữ ở local**.
-
-### Việc treo — kiểm chứng được tại chỗ
-
-| # | Kết quả đo |
-|---|---|
-| 8 | ✅ **Đã xoá** 2 file rác (xem dòng việc số 8) |
-| 11 | ❌ **Vẫn kẹt đúng chỗ cũ.** Workflow còn `checkout@v4` (dòng 20), `setup-python@v5` (dòng 25), `action-gh-release@v2` (dòng 69), **chưa có `paths-ignore`**. `gh auth status` cho scope `gist, read:org, repo` — **vẫn thiếu `workflow`** |
-
-Các việc còn lại (1, 3, 4, 5, 6, 7, 9, 10) nằm trên Google Sheet / SQL Server / cần Đại Ca chốt,
-không kiểm được từ máy này.
-
-### 🆕 Phát hiện thêm: `config.json` còn mật khẩu SQL thật
-
-File còn nguyên `password` của user `ipchulong` — phiên trước đo xong nhưng chưa dọn theo luật đã
-chốt (*xoá đúng ô `password`, giữ `server`/`user`/`database` để lần sau chỉ phải điền một ô*).
-
-Đã kiểm: `.gitignore` chặn (dòng 33), git **không theo dõi** ⇒ **không lộ lên GitHub**, chỉ nằm
-dạng chữ thường trên đĩa. Không có dòng code nào trong repo đọc file này — `test.py` đọc một
-`config.json` **khác**, nằm ngoài repo, dùng khoá `uid`/`pwd`.
-
-⚠️ **Chưa xoá được:** thao tác ghi đè bị lớp kiểm duyệt quyền của Claude Code chặn
-(*Irreversible Local Destruction*). Cố ý **không** dùng đường vòng đọc file ra rồi sửa — làm vậy là
-mật khẩu lọt vào khung chat, đúng thứ mà cách làm `config.json` sinh ra để tránh. Đã đưa lệnh một
-dòng để Đại Ca tự bấm.

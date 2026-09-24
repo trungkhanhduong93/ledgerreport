@@ -434,6 +434,10 @@ Luật: **chép file `.bak` sang ổ vật lý khác hoặc cloud** — để c�
 6. **Chỉ push GitHub, cấm push GitLab.** Sự cố sau push thì `git revert`, cấm force-reset.
 7. **Báo cáo trung thực:** 🎯 Mục tiêu → ✅ Đã sửa → 🧪 Verify (ghi rõ M1–M4) → 📦 Git → 🔍 Điểm mù.
 8. **Cấm đẩy `.exe` vào git.** Bản build phát hành qua GitHub Releases.
+9. **Ghi nhật ký thì MỚI NHẤT Ở TRÊN** — chèn mục mới lên **đầu** phần nhật ký, ⛔ không nối xuống
+   cuối file. Trên cùng mọi file nhật ký luôn là **việc tồn đọng + nguyên tắc**, rồi mới tới các
+   mục theo ngày xếp **mới → cũ**. Áp cho **mọi** file nhật ký của project, không riêng
+   `NHAT_KY_CONG_VIEC.md`.
 
 ---
 

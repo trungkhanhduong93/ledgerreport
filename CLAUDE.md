@@ -6,7 +6,6 @@
 > · Bản đang là `Latest` trên GitHub: `v1.12.1`
 > · EXE trên máy Đại Ca **là đúng file CI đã phát hành** (SHA256 khớp digest, đổi 24/09/2026)
 > · Tab đối chiếu điều chuyển **đã đạt M4** — Đại Ca bấm thử trên giao diện, đúng
-> · Release là `Latest` · EXE trên máy Đại Ca **là đúng file CI đã phát hành** (SHA256 khớp digest)
 > · Apps Script: **Version 5** (`ban 2026-09-21c`)
 > ⚠️ **Đừng ghi cứng digest/kích thước của asset vào tài liệu** — mỗi lần push (kể cả push mỗi
 > file `.md`) là Actions build lại và **thay asset bằng binary khác SHA**. Xem việc treo số 11.
@@ -239,10 +238,19 @@ là lọc **cộng với** `ROW_NUMBER` + danh sách cột đầy đủ.
 ⚠️ **Chỉ `dcnb_reconcile` dùng `#dc`.** `btp_reconcile` không cần (bấm chip 7,5s, bằng lúc không
 bấm) và `po_list` chỉ 0,2s. Đừng bê sang khi chưa đo.
 
-🐛 **CÒN TREO — phiếu `POSTED` mà không có dòng nào trong `WAREHOUSE` thì tab giấu hẳn.**
-Đo T09/2026: `XNB00001/T09` ngày 03/09 đơn vị `10` có `STATUS = POSTED`, 1 dòng `SALE_DETAIL`,
-nhưng **0 dòng kho**. Nhánh `X` đọc `WAREHOUSE` nên phiếu này không hiện ở bất kỳ nhóm nào.
-Chưa đo cả năm, chưa chốt hiển thị thế nào.
+✅ **ĐÃ ĐÓNG 24/09/2026 — phiếu `POSTED` mà 0 dòng `WAREHOUSE` bị tab giấu là ĐÚNG, không phải lỗi.**
+Nhánh `X` đọc `WAREHOUSE` nên phiếu kiểu đó không hiện ở nhóm nào. Đo **cả năm 2026** trước khi kết luận:
+
+| Loại phiếu | POSTED | 0 dòng kho | Trong đó **SL > 0** |
+|---|---|---|---|
+| `XDCNB` | 20.089 | 5 (0,02%) | **0** |
+| `NDCNB` | 19.479 | 4 (0,02%) | **0** |
+| `XKHOSXBTP` | 21.848 | 2 (0,01%) | **0** |
+| `NSP` | 21.561 | 1 (0,00%) | **0** |
+
+**Cả 12 phiếu đều là phiếu rỗng** — có dòng chứng từ nhưng số lượng bằng 0. Phiếu rỗng thì không có
+gì để đối chiếu ⇒ giấu đi là đúng. **Đừng "sửa giúp" cho nó hiện ra.** (`XNB00001/T09` ngày 03/09
+đơn vị `10` là một trong 12 ca đó — dòng chứng từ có, `QUANTITY_WH` = 0.)
 
 **Kho nhập nay luôn có**, kể cả dòng chưa nhận: lấy theo 3 mức ưu tiên
 đã ghi sổ → bản nháp → `SALE.WAREHOUSE_ID_RECEIVE` ghi sẵn trên đầu phiếu xuất. Mức 3 đo cả năm

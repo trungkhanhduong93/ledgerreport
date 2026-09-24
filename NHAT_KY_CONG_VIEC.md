@@ -1636,7 +1636,7 @@ thật vừa bấm duyệt trên hệ thống**, không phải tôi làm lệch.
 |---|---|
 | Push | `aea3bb9..1e5dee9` — **2 commit** (của phiên này + `ec4cce8` phiên trước vốn chưa push) |
 | Actions | run `35957485959` · **`success`** |
-| Release | **v1.12.0** — `.exe` **13.101.382 B** (`c723e541…`) + `.zip` 12.898.355 B · là `Latest` |
+| Release | **v1.12.0** · là `Latest` · `.exe` + `.zip`. ⚠️ **Không ghi cứng digest ở đây** — xem mục dưới |
 
 Trước khi bấm đã kiểm đủ 4 điều kiện: remote đúng **GitHub**, tag `v1.12.0` **chưa tồn tại**
 (nên là Release mới thật), quét secret trên diff **sạch**, `config.json` **không nằm trong git**.
@@ -1645,8 +1645,8 @@ Trước khi bấm đã kiểm đủ 4 điều kiện: remote đúng **GitHub**,
 
 | | Kích thước | SHA256 |
 |---|---|---|
-| EXE trên máy (build local 11:43) | 14.715.374 B | `aa85a24a…` |
-| EXE trên Release (CI build) | 13.101.382 B | `c723e541…` |
+| EXE build local lúc 11:43 | 14.715.374 B | `aa85a24a…` |
+| EXE trên Release (CI build) | ~13,1 MB | đổi mỗi lần build — xem mục dưới |
 
 Khác byte, **cùng số hiệu `1.12.0`** — y hệt hình dạng cái bẫy ngày 21/09. **Nhưng khác bản chất:**
 lần đó bản local build từ mã **CŨ** (thiếu 2 trạng thái mới) nên Đại Ca kẹt lại bản thiếu tính năng.
@@ -1661,3 +1661,32 @@ Chỉ khi muốn **SHA256 khớp digest GitHub** thì mới phải tải bản C
 ➡️ **Cách phân biệt cho người sau:** thấy hai file cùng số hiệu thì đừng vội kết luận. Hỏi đúng một
 câu: *bản local có build SAU commit cuối cùng đụng vào `server.py` / `index.html` không?* Có thì
 vô hại, không thì đúng là bẫy 21/09.
+
+### ✅ Đã đổi EXE trên máy sang đúng file CI phát hành
+
+Đại Ca chốt lấy bản CI về cho khớp SHA256, chạy cùng một binary với nhân viên.
+
+| Bước | Kết quả |
+|---|---|
+| Sao lưu bản local | `dist\iPOS_Accounting_Report_v1.12.0_build_local.exe.bak` |
+| Tải asset từ Release | `gh release download v1.12.0` |
+| **Đối chiếu SHA256** | **khớp từng ký tự** với digest GitHub công bố |
+| Thay vào `dist\` + chạy lại | cổng 5050 LISTENING, **48,5 MB** (không phải ~10 MB của [Bẫy 13](CLAUDE.md)) |
+| Kiểm nội dung EXE | **5/5** — tên nhóm mới, điều kiện tô màu, 2 chú thích mới, **0 chỗ còn tên nhóm cũ** |
+| `check_update` | `current 1.12.0` · `latest v1.12.0` · `has_update False` · `is_frozen True` |
+
+### ⚠️ Vòng lặp tự gây: ghi digest vào tài liệu rồi push tài liệu là digest hết đúng
+
+Commit `1e5dee9` phát hành ra asset `c723e541…` (13.101.382 B). Push tiếp commit **docs**
+`8183dd9` — chỉ sửa 2 file `.md` — Actions **build lại toàn bộ** và **thay asset** thành
+`686fe061…` (13.101.994 B). Nghĩa là **chính commit ghi lại digest đã làm digest đó sai.**
+
+Gốc rễ là việc treo số 11: workflow **chưa có `paths-ignore`** nên push file `.md` cũng kích hoạt
+build EXE đầy đủ. Mỗi lần build ra một binary khác SHA (PyInstaller không tái lập bit-for-bit).
+
+➡️ **Luật rút ra:** **đừng ghi cứng digest / kích thước asset vào tài liệu.** Cần kiểm thì lấy
+digest **hiện tại** ngay lúc kiểm:
+```bash
+gh release view v1.12.0 --json assets --jq '.assets[] | select(.name|endswith(".exe")) | .digest'
+```
+Cho tới khi thêm được `paths-ignore`, con số ghi trong tài liệu chỉ đúng cho tới lần push kế tiếp.

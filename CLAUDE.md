@@ -2,9 +2,11 @@
 
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
-> Cập nhật gần nhất: **24/09/2026** · **Bản đã phát hành trên GitHub: `v1.12.0`** (24/09/2026 04:53 UTC)
-> · `main` = `1e5dee9` · Actions `success` · Release là `Latest`, kèm `.exe` (13.101.382 B) + `.zip`
+> Cập nhật gần nhất: **24/09/2026** · **Bản đã phát hành trên GitHub: `v1.12.0`** (24/09/2026)
+> · Release là `Latest` · EXE trên máy Đại Ca **là đúng file CI đã phát hành** (SHA256 khớp digest)
 > · Apps Script: **Version 5** (`ban 2026-09-21c`)
+> ⚠️ **Đừng ghi cứng digest/kích thước của asset vào tài liệu** — mỗi lần push (kể cả push mỗi
+> file `.md`) là Actions build lại và **thay asset bằng binary khác SHA**. Xem việc treo số 11.
 > 🔴 **Đã phát hành khi CHƯA đủ tài khoản nhân viên trên Google Sheet** — Đại Ca chốt làm sau.
 > Ai chưa có tài khoản mà bấm cập nhật là **đăng nhập không được**. Xem việc số 3 trong nhật ký.
 >

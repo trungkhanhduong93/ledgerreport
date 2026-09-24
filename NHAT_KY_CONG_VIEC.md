@@ -3,8 +3,8 @@
 > Toàn bộ những gì đã làm với **LedgerReport**, và **vì sao**. Đọc file này trước khi sửa tiếp.
 > Kiến trúc, ma trận báo cáo, phương án backup: [CLAUDE.md](CLAUDE.md).
 > Mổ xẻ sâu sự cố + 4 bài học: [SU_CO_15082026.md](SU_CO_15082026.md).
-> Phiên gần nhất: **24/09/2026 (chiều)** · Bản mới nhất: **v1.12.0** — build local, đạt M3, chờ push.
-> Release đang là `Latest` trên GitHub: **v1.11.9** (21/09/2026 22:26).
+> Phiên gần nhất: **24/09/2026 (chiều)** · ✅ Đã phát hành **v1.12.0** — `main` = `1e5dee9`,
+> Actions `success`, Release là `Latest`.
 > 🔑 Phiên này chốt được **luật nghiệp vụ gốc**: iPOS **tự sinh** phiếu nhập `NDCNB` khi phiếu xuất
 > `XDCNB` ghi sổ — đổi hẳn cách đọc tab đối chiếu điều chuyển. Xem mục 24/09 ở cuối file.
 > 🔴 **Đã phát hành KHI CHƯA đủ tài khoản nhân viên trên Google Sheet** — Đại Ca chốt chấp nhận,
@@ -18,8 +18,8 @@
 ## 📌 VIỆC CẦN LÀM — *cập nhật 24/09/2026*
 
 > Gom hết việc còn treo về một chỗ. Nhận việc mới thì **đọc mục này trước**.
-> Trạng thái: **v1.12.0** đã build local và đạt M3, chờ push để Actions phát hành.
-> Bản đang là `Latest` trên GitHub Releases vẫn là **v1.11.9**.
+> Trạng thái: `main` = **`1e5dee9`**, đã push, working tree sạch.
+> Bản phát hành **v1.12.0** đang là `Latest` trên GitHub Releases.
 
 ### 🔴 Ưu tiên 1 — làm sớm, càng để lâu càng rủi ro
 
@@ -1629,3 +1629,35 @@ thật vừa bấm duyệt trên hệ thống**, không phải tôi làm lệch.
   nhiều nhóm.
 - Nhóm `Không tìm thấy phiếu nhập` giờ đúng ở **mức dòng** (mã hàng này không có phiếu nhập), nhưng
   ở **mức phiếu** thì 3 ca loại 2 vẫn có phiếu nhập — chính vì thế mới phải thêm cột Ghi chú.
+
+### ✅ Đã phát hành — v1.12.0
+
+| Bước | Kết quả |
+|---|---|
+| Push | `aea3bb9..1e5dee9` — **2 commit** (của phiên này + `ec4cce8` phiên trước vốn chưa push) |
+| Actions | run `35957485959` · **`success`** |
+| Release | **v1.12.0** — `.exe` **13.101.382 B** (`c723e541…`) + `.zip` 12.898.355 B · là `Latest` |
+
+Trước khi bấm đã kiểm đủ 4 điều kiện: remote đúng **GitHub**, tag `v1.12.0` **chưa tồn tại**
+(nên là Release mới thật), quét secret trên diff **sạch**, `config.json` **không nằm trong git**.
+
+### ⚠️ Lại hai file cùng số hiệu — nhưng lần này VÔ HẠI, đừng nhầm với vụ 21/09
+
+| | Kích thước | SHA256 |
+|---|---|---|
+| EXE trên máy (build local 11:43) | 14.715.374 B | `aa85a24a…` |
+| EXE trên Release (CI build) | 13.101.382 B | `c723e541…` |
+
+Khác byte, **cùng số hiệu `1.12.0`** — y hệt hình dạng cái bẫy ngày 21/09. **Nhưng khác bản chất:**
+lần đó bản local build từ mã **CŨ** (thiếu 2 trạng thái mới) nên Đại Ca kẹt lại bản thiếu tính năng.
+Lần này **cả hai build từ ĐÚNG một commit `1e5dee9`** — `server.py` sửa lần cuối 11:41:15,
+`index.html` 11:36:45, build lúc 11:43:16, sau đó chỉ đụng file `.md`
+(**không** nằm trong `--add-data`). ⇒ **Nội dung giống hệt nhau, không thiếu gì.**
+
+Hệ quả thật sự: máy Đại Ca **sẽ không hiện nút cập nhật** cho `v1.12.0` (`1.12.0 > 1.12.0` là sai)
+— **không cần**, vì đang chạy đúng nội dung. Bản `v1.12.1` trở đi sẽ báo bình thường.
+Chỉ khi muốn **SHA256 khớp digest GitHub** thì mới phải tải bản CI về thay.
+
+➡️ **Cách phân biệt cho người sau:** thấy hai file cùng số hiệu thì đừng vội kết luận. Hỏi đúng một
+câu: *bản local có build SAU commit cuối cùng đụng vào `server.py` / `index.html` không?* Có thì
+vô hại, không thì đúng là bẫy 21/09.

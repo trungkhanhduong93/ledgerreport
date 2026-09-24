@@ -3,7 +3,9 @@
 > Toàn bộ những gì đã làm với **LedgerReport**, và **vì sao**. Đọc file này trước khi sửa tiếp.
 > Kiến trúc, ma trận báo cáo, phương án backup: [CLAUDE.md](CLAUDE.md).
 > Mổ xẻ sâu sự cố + 4 bài học: [SU_CO_15082026.md](SU_CO_15082026.md).
-> Phiên gần nhất: **24/09/2026** · ✅ Đã phát hành **v1.12.3** — `main` = `62af287`,
+> 🎨 **ĐANG LÀM (24–25/09/2026):** giao diện mới **PROOFTRAIL** + đăng nhập nhanh — nhánh
+> **`giaodien`**, **CHƯA push, một phần CHƯA commit**. Kế hoạch & tiến độ: § VIỆC CẦN LÀM → 🎨.
+> Phiên phát hành gần nhất: **24/09/2026** · ✅ **v1.12.3** — `main` = `62af287`,
 > Actions `success`, Release là `Latest`. Cả ngày ra **bốn** bản: v1.12.0 → v1.12.1 → v1.12.2 → v1.12.3.
 > 🔑 Phiên này chốt được **luật nghiệp vụ gốc**: iPOS **tự sinh** phiếu nhập `NDCNB` khi phiếu xuất
 > `XDCNB` ghi sổ — đổi hẳn cách đọc tab đối chiếu điều chuyển. Xem các mục 24/09.
@@ -32,7 +34,7 @@
 
 ---
 
-## 📌 VIỆC CẦN LÀM — *cập nhật 24/09/2026*
+## 📌 VIỆC CẦN LÀM — *cập nhật 25/09/2026*
 
 > Gom hết việc còn treo về một chỗ. Nhận việc mới thì **đọc mục này trước**.
 > Trạng thái: **v1.12.3 đã phát hành**, là `Latest` trên GitHub, và **EXE trên máy Đại Ca đã là
@@ -40,8 +42,9 @@
 >
 > ## 🚧 ĐANG CÓ COMMIT TÀI LIỆU GIỮ Ở LOCAL — **ĐỪNG PUSH RIÊNG**
 >
-> Tính tới 24/09/2026: **`main` đang `ahead 3`** so với `origin/main`, cả 3 đều là commit `.md`
-> (sửa trạng thái phát hành bị lệch · luật ghi nhật ký · lật toàn bộ nhật ký).
+> Tính tới 25/09/2026: **`main` đang `ahead 6`** so với `origin/main`, cả 6 đều là commit `.md`.
+> Thêm nhánh **`giaodien`** = `main` + **1 commit** `1dadaae` + **thay đổi CHƯA commit** ở
+> `server.py` và `index.html` (xem 🎨 ngay dưới). **Không nhánh nào đã push.**
 >
 > **Đại Ca chốt: gộp cùng lần sửa code tiếp theo rồi push một thể.** Lý do: push file `.md` một
 > mình cũng kích hoạt Actions build lại, **thay asset bằng binary khác SHA**, và cái digest vừa
@@ -56,6 +59,42 @@
 > nên `1.12.3 > 1.12.3` là sai ⇒ **mọi máy đang ở 1.12.3 kẹt lại vĩnh viễn, app im lặng không báo
 > gì**. Đúng vết xe đổ 21/09 — xem mục *"Sửa code mà BỎ QUA B4"* trong [CLAUDE.md § 5](CLAUDE.md).
 > Chạy `python build_exe.py` là nó tự tăng; bỏ qua bước build thì **tăng tay**.
+
+### 🎨 DỰ ÁN GIAO DIỆN MỚI — nhánh `giaodien` *(bắt đầu 24/09/2026)*
+
+> Phác thảo (ngoài repo): **https://claude.ai/artifact/7kiiWQ13PPR7eXN2AgPhtc** — 6 khung.
+> Đang chạy thử **local** trên cổng **5051** từ mã nguồn — Đại Ca chốt **KHÔNG build EXE**, xem local trước.
+> Nhật ký chi tiết: mục *24–25/09/2026 (đêm)* ngay dưới § này.
+
+**Đại Ca đã chốt:** font **Arial toàn bộ** · màu chủ đạo **navy `#1E3A8A`** (nền tối `#172554`) ·
+**giữ nguyên logo** `icon.svg` `#FF9D3D` · icon **SVG, cấm emoji** · tên hiển thị **`PROOFTRAIL`**,
+dòng phụ *"Minh bạch tới từng chứng từ"* · điều hướng **2 tầng** (cột icon navy = phân hệ, hàng tab
+ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
+
+| GĐ | Việc | Trạng thái |
+|---|---|---|
+| **0** | Nhánh `giaodien` + ghi mốc **164 hàm / 69 route** | ✅ Xong |
+| **1** | **Nền**: Arial · navy · nhãn 11px `#475569` · `tabular-nums` · **sửa lỗi font** | ✅ Xong — một phần ở commit `1dadaae`, **phần sửa font CHƯA commit** |
+| **2** | **Màn đăng nhập**: tấm navy trái, `PROOFTRAIL`, logo gốc, mục 01/02 | ✅ Xong — commit `1dadaae` |
+| ➕ | **Đăng nhập nhanh** (hướng A — Đại Ca chốt giữa chừng) | ✅ Xong, **Đại Ca đã thử thật: nhanh** — **CHƯA commit** |
+| **3** | **Điều hướng**: thanh icon navy + gom 9 màn hình vào 5 phân hệ | ⏳ Chưa làm |
+| **4** | **Trang chủ**: tải NGẦM từng ô số (mỗi ô là truy vấn 6–8s) | ⏳ Chưa làm |
+| **5** | **Đổi tên hiển thị** 4 chỗ: `APP_NAME`, `<title>`, `manifest.json`, `version_info.txt` | ⏳ Chưa làm. ⛔ **Giữ tên file `iPOS_Accounting_Report.exe`** — đổi là tự cập nhật đứt |
+
+**Việc còn chờ của dự án này:**
+
+| # | Việc | Ghi chú |
+|---|---|---|
+| 16 | **Đại Ca F5 xem lại màn danh sách** | Đặc biệt dòng *"TỔNG TOÀN BỘ TRUY VẤN"* — số `0.00` vừa đổi từ Consolas sang Arial, **tôi chưa nhìn được bằng mắt** |
+| 17 | **Nút `TRUY VẤN` đang chuyển màu navy → tím** | Lớp gradient `indigo → purple` cũ. Hỏi 2 lần, **chưa chốt** đưa về navy đặc |
+| 18 | **Chốt mốc commit** phần đăng nhập nhanh + sửa font | Đang chờ Đại Ca xem xong |
+| 19–21 | GĐ3 · GĐ4 · GĐ5 | Theo bảng trên |
+| 22 | **Hướng B**: bỏ `LockService` cho lệnh chỉ đọc trong `Code.gs` (dòng 487) | 5 người mở app cùng lúc thì người thứ 5 chờ gần 1 phút. **Phải triển khai lại Apps Script** — theo đúng `chuan_bi_deploy.py` (Bẫy 19, 23) |
+| 23 | **Bị đá ra (đăng nhập nhanh) không có câu báo lý do** | Người dùng chỉ thấy quay về màn đăng nhập. Đại Ca: *"tính sau"* |
+| 24 | **Biên dịch sẵn JSX lúc đóng gói** | Mở app trắng màn hình **~7–13 giây** (Babel dịch 723 KB mỗi lần mở). Đo: `domInteractive` 152ms / `DOMContentLoaded` 6.926ms |
+| 25 | **Nhúng 5 thư viện còn tải từ Internet** vào EXE | React, ReactDOM, Babel, Tailwind, xlsx. Google Fonts **đã gỡ** ở GĐ1. Fallback hiện tại là giả: React hỏng ⇒ **màn trắng câm** |
+| 26 | **BC015, BC016 chưa có trong ma trận báo cáo của `CLAUDE.md`** | Có thật trong `REPORT_TYPES` ([index.html](index.html)) — *Bán hàng theo nguồn đơn*, *Nhập xuất tồn nhà hàng* |
+| 27 | Muốn chữ tiêu đề bảng **> 10px** | Phải nới các cột hẹp `w-16` trước — 10,5px là `MÃ CT` gãy dòng (đã đo) |
 
 ### 🔴 Ưu tiên 1 — làm sớm, càng để lâu càng rủi ro
 
@@ -96,8 +135,138 @@
 | **Khởi động lại app là phải đăng nhập lại** | Kho phiên nằm trong RAM. Đổi lại là quay về [Bẫy 17](CLAUDE.md) — mật khẩu SQL nằm đọc được trong cookie |
 | Tab điều chuyển nội bộ **6–8,5 giây/tháng** | Dựng lại toàn bộ CTE mỗi lần gọi, ngang `btp_reconcile`. Nút thắt gốc là RAM của SQL Express, không phải code |
 | `PO.EMPLOYEE_ID` **trống** ⇒ cột Người lập luôn rỗng | iPOS không ghi. Giữ cột phòng sau này có |
+| **Tài khoản vừa bị khoá / xoá vẫn vào được 3–30 giây** *(từ 25/09, nhánh `giaodien`)* | Đánh đổi của **đăng nhập nhanh** — Đại Ca chốt. Google trả lời xong thì bị đá ra. Không làm thế thì mỗi lần đăng nhập chờ Google **~12–35 giây** |
+| Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 24–25/09/2026 (đêm) — Giao diện mới `PROOFTRAIL` + đăng nhập nhanh · nhánh `giaodien`, CHƯA push
+
+Đại Ca hỏi tư vấn giao diện. **Đo trước rồi mới tư vấn** — mở giao diện lên và thấy:
+
+| Đo được | Số |
+|---|---|
+| Mở app trắng màn hình | `domInteractive` **152ms** nhưng `DOMContentLoaded` **6.926ms** — Babel dịch **723.551 byte** JSX (8.125 dòng, 66 component) **mỗi lần mở** |
+| Tải từ Internet | **6 thư viện**: React, ReactDOM, Babel, Tailwind, xlsx, Google Fonts. Fallback giả `window.React = { createElement: () => null }` ⇒ mất mạng là **màn trắng câm** |
+| Nhãn ô nhập | 9px `#94a3b8` ⇒ tương phản **2,56 : 1** (chuẩn tối thiểu 4,5) |
+
+### Phác thảo — chốt hướng qua 12 vòng sửa
+
+Artifact **https://claude.ai/artifact/7kiiWQ13PPR7eXN2AgPhtc** (ngoài repo). Tham khảo
+`designprompts.dev` → style **Swiss Minimalist** (lấy đúng prompt 14.263 ký tự). Bám tinh thần lưới,
+chữ lớn, phẳng, không đổ bóng — nhưng **CỐ Ý trái prompt một chỗ**: Swiss thuần chỉ cho đen–trắng–đỏ,
+làm thế là **giết 6 màu trạng thái** mang nghĩa nghiệp vụ của các tab đối chiếu. Giữ lại màu trạng
+thái, chỉnh cho khác cả sắc lẫn độ sáng. "Lệch số lượng" đổi xanh dương → **tím** vì màu chủ đạo nay
+là navy — để nguyên là tưởng dòng đó đang được chọn.
+
+**Tên:** cân nhắc *Soát Sổ*, *LedgerLens*, *Proof*, *Trace*, *Vouch*… Đại Ca chọn **`PROOFTRAIL`**:
+*proof* (proof of cash — kiểm chứng số liệu) + *trail* (audit trail — dấu vết về chứng từ gốc).
+Hai bẫy đã tránh: **`ProofTrial`** — *trial* trong phần mềm bị đọc là *"bản dùng thử"*;
+**`TraceProof`** — hậu tố *-proof* nghĩa là *"chống"* (waterproof) ⇒ đọc ra *"chống lần vết"*.
+
+### GĐ1 — một chỗ sửa đổi màu cả app
+
+App có **403 lớp `indigo-*`**. Không sửa lớp nào: **ghi đè thang màu `indigo` trong `tailwind.config`**
+thành thang navy. Đổi tông lần sau cũng chỉ sửa đúng chỗ đó.
+
+### Sửa font — ba vòng, và **hai lần tôi báo "xong" sai**
+
+| Vòng | Đại Ca thấy | Nguyên nhân thật |
+|---|---|---|
+| **1** | Tab đang chọn tàng hình · chữ đậm nhoè | Tôi thay `#4f46e5` → navy **hàng loạt**, mà màu đó dùng **cả trên nền trắng lẫn header tối** · và `font-black` (900) ⇒ Windows lấy **Arial Black** |
+| **2** | Bảng BC001 **vẫn** lỗi dấu | ① `.report-table` **ghi cứng `font-family: 'Inter'`** — bảng không theo font chung, nên sửa `body` mấy lần cũng không ăn · ② **20 chỗ `fontWeight: isBold ? 800 : 300`** — vòng 1 tôi dò sót dạng biểu thức này, báo *"còn 0 chỗ"* là **sai** · ③ **11 tên chỉ tiêu KQKD gõ Unicode tổ hợp** |
+| **3** | Màn danh sách *"cấn cấn"* | Tiêu đề cột **9px** + `tracking-widest` + số dùng **`font-mono` (Consolas)** |
+
+**Bằng chứng gốc rễ** — đo bằng `fontTools` và **Chrome chạy ngầm trên chính máy này**:
+
+| | |
+|---|---|
+| Arial Black có bao nhiêu chữ Việt dấu chồng | **3/13** — thiếu `Ả Ấ Ễ Ố Ổ Ộ Ợ Ứ Ừ Ự`. Arial thường và Arial Bold: 13/13 |
+| Cùng một câu 20px | Arial 800 = **457px** = Arial 900 = Arial Black · **AppSans 800 = 421px** = Arial Bold |
+
+**Cách chặn tận gốc:** khai họ font riêng **`AppSans`** bằng `@font-face` + `local()`: độ đậm
+**600–900 chỉ trỏ về Arial Bold**. Arial Black hết cửa lọt vào — style inline, lớp Tailwind hay thẻ
+`<b>` đều không lọt. Mọi chỗ khai `font-family` phải để `AppSans` đứng đầu.
+
+**Vòng 3 — cỡ chữ tối thiểu.** Đo 5 phương án, đếm tiêu đề nào gãy dòng:
+
+| Cỡ + giãn chữ | Tiêu đề bị gãy dòng |
+|---|---|
+| 9px · 0,10em *(hiện trạng)* | `ĐVT KHO` *(gãy từ trước)* |
+| **10px · 0,06em** ✅ chọn | `ĐVT KHO` — **không thêm cái nào** |
+| 10,5px · 0,06em | `MÃ CT`, `ĐVT KHO` ❌ |
+| 10,5px · 0,03em | `MÃ CT`, `ĐVT KHO` ❌ |
+
+⇒ 8px → 9,5px, 9px → 10px, `tracking-widest` → 0,06em, `font-mono` → Arial (Arial vốn có chữ số
+rộng bằng nhau). Đúng ý Đại Ca: *font toàn bộ là Arial*.
+
+### Đăng nhập nhanh (hướng A) — chèn giữa chừng vì Đại Ca thấy *"đăng nhập lâu quá"*
+
+**Không phải do giao diện** — `git diff` lúc đó chỉ có `index.html`. Log server của chính lần Đại Ca bấm:
+
+```
+Goi Google that bai (lan 1/3): Google trả lỗi HTTP 404 — thu lai
+POST /api/login → xong  ·  GET /api/metadata → thêm 6 giây
+```
+
+Đo lệnh `ping` (lệnh **rỗng**, không đọc Sheet) **6 lần** lên Apps Script:
+
+| Lần | 1 | 2 | 3 | 4 | 5 | 6 |
+|---|---|---|---|---|---|---|
+| Giây | **15,1** | 3,4 | 10,2 | **27,4** | 20,8 | 13,2 |
+| Kết quả | ❌ 404 | ✅ | ✅ | ❌ 404 | ✅ | ✅ |
+
+**1/3 số lần hỏng, và hỏng SAU KHI đã bắt chờ 15–27 giây.** Đọc `doPost` trong `Code.gs`: `ping` chỉ
+kiểm token rồi trả lời ⇒ chậm nằm ở **hạ tầng Google**. Một lần đăng nhập gặp 404 ≈ **35 giây**.
+
+**Cách làm** (`server.py`, thêm 3 hàm `_quyen_khac` / `_huy_phien_nen` / `_kiem_lai_nen`): người đã
+đăng nhập thành công **trên chính máy đó** trong 7 ngày ⇒ kiểm mật khẩu bằng hash PBKDF2 trong
+cache **tại chỗ**, cho vào luôn, rồi **hỏi Google ở luồng nền**. Google nói khác ⇒ gỡ phiên khỏi
+`_phien_db` ⇒ request kế tiếp 401 ⇒ về màn đăng nhập.
+
+**Giữ nguyên 2 bảo đảm cũ:** sai mật khẩu so với cache thì **không từ chối tại chỗ** mà đi đường
+Google (nên không né được rate limit) · quyền trên Google khác cache ⇒ **đá ra** (không thì thu hồi
+quyền trễ thêm một lần đăng nhập). ⛔ **Đường nhanh KHÔNG được gia hạn cache** — chỉ luồng nền gia
+hạn sau khi Google xác nhận; không thế thì tài khoản đã khoá sống mãi mỗi khi Google chập chờn.
+Thêm `_cache_file_lock` vì luồng nền cũng ghi `phanquyen_cache.json`.
+
+**Đánh đổi Đại Ca chốt:** tài khoản vừa bị khoá vẫn vào được **3–30 giây** rồi mới bị đá ra.
+
+### 🧪 Verify
+
+| Mức | Kết quả |
+|---|---|
+| **M1** | `ast.parse` OK · **167 hàm** (164 + đúng 3 hàm mới) · **69 route** không đổi · không trùng tên · `check_babel.js` SUCCESSFUL · dấu tổ hợp còn **0** · chỗ **dùng** độ đậm 800/900 còn **0** |
+| **M2** | Đăng nhập nhanh **26/26**, đủ 8 tình huống, Google giả chậm 4s: đường nhanh **0,10s** · bị khoá ⇒ đá ra + xoá cache · bị thu hồi quyền ⇒ đá ra, đăng nhập lại có quyền mới · mất mạng ⇒ giữ phiên, **không** gia hạn cache · đổi mật khẩu máy khác · lần đầu · gõ sai ⇒ vẫn qua Google · quá hạn 7 ngày. File cache thật **SHA256 trước/sau y hệt** |
+| **M3** | Server thử cổng 5051 từ mã nguồn. **Đại Ca đăng nhập thật: xác nhận nhanh** |
+| **Nhìn tận mắt** | Dựng lại bảng BC001 và dòng tiêu đề tab danh sách bằng **CSS thật**, cho Chrome chạy ngầm chụp — trước/sau đã gửi Đại Ca |
+
+### 🔍 Điểm mù
+
+- ⚠️ **Trình duyệt trong Claude bị chặn `localhost`** ⇒ tôi **không nhìn được app đang chạy**. Mọi
+  "nhìn tận mắt" là ảnh **dựng lại** bằng CSS thật qua Chrome chạy ngầm — chứng minh cơ chế, không
+  thay được ảnh chụp app thật.
+- ⚠️ Dòng **"TỔNG TOÀN BỘ TRUY VẤN"** (số đổi sang Arial) **chưa nhìn được** — bản dựng lại không ra dòng đó.
+- ⚠️ Nút **`TRUY VẤN`** vẫn gradient navy → tím. Bị đá ra (đăng nhập nhanh) **không có câu báo**.
+
+### 📦 Git
+
+`main` ahead 6 (toàn `.md`), chưa push · nhánh `giaodien` = `main` + commit `1dadaae` (GĐ1 + GĐ2) +
+**chưa commit**: `server.py` (đăng nhập nhanh) và `index.html` (3 vòng sửa font). Lần push tới
+**bắt buộc tăng `version.txt`** (xem khối 🚧 ở § VIỆC CẦN LÀM).
+
+### 💡 Bài học — đáng giá hơn bản thân mấy lỗi
+
+1. **Thay một mã màu hàng loạt là nguy hiểm** khi màu đó dùng **cả trên nền sáng lẫn nền tối** —
+   navy trên trắng thì đẹp, trên header tối thì tàng hình. Thay xong phải rà **nền phía sau** từng chỗ.
+2. **Dò độ đậm phải dò cả dạng biểu thức** (`isBold ? 800 : 300`), không chỉ `fontWeight: 800`.
+   Dò hẹp rồi báo *"còn 0 chỗ"* là báo sai.
+3. **Một lớp CSS ghi cứng tên font** (`.report-table { font-family: 'Inter' }`) làm **mọi chỗ sửa ở
+   `body` vô hiệu** cho đúng vùng đó. Đổi font thì phải quét **mọi** `font-family`, không chỉ `body`.
+4. **"Đã sửa" phải kèm ảnh nhìn tận mắt.** Hai lần tôi báo xong dựa trên CSS đã tới trình duyệt, cả
+   hai lần Đại Ca vẫn thấy lỗi. Từ vòng 2 trở đi mới dựng lại bằng CSS thật rồi chụp ra xem.
 
 ---
 

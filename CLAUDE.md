@@ -4,6 +4,8 @@
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
 > Cập nhật gần nhất: **24/09/2026** · **Bản mới nhất: `v1.12.3`** — đã push, Actions `success`,
 > **là `Latest` trên GitHub** (`main` = `62af287`)
+> · 🎨 **Đang làm (25/09/2026): giao diện mới `PROOFTRAIL` + đăng nhập nhanh** trên nhánh
+> **`giaodien`** — chưa push, một phần chưa commit. Kế hoạch & tiến độ: **NHAT_KY_CONG_VIEC.md → § VIỆC CẦN LÀM → 🎨**
 > · EXE trên máy Đại Ca **là đúng file CI đã phát hành** (SHA256 khớp digest, đổi 24/09/2026)
 > · Tab đối chiếu điều chuyển **đã đạt M4** — Đại Ca bấm thử trên giao diện, đúng
 > · Apps Script: **Version 5** (`ban 2026-09-21c`)
@@ -799,6 +801,38 @@ rồi đối chiếu lại **162 hàm / 69 route** đúng như trước.
 ➡️ **Luật:** sửa `server.py` thì **khớp nguyên khối bằng chuỗi và `assert count == 1`**, tuyệt đối
 không dùng chỉ số dòng. Và **commit trước khi làm việc lớn** — đó là thứ duy nhất cứu được.
 Sau mỗi lần sửa lớn, đếm lại hàm + route (đoạn script ở mục 2.3) trước khi chạy tiếp.
+
+### Bẫy 27 — Arial + độ đậm 800/900 ⇒ **Arial Black** ⇒ mất chữ tiếng Việt *(25/09/2026, nhánh `giaodien`)*
+
+Arial chỉ có 400 và 700. Xin **800/900** thì Windows (DirectWrite) lấy **Arial Black** — font đó
+**thiếu 10/13 chữ Việt có dấu chồng** (`Ả Ấ Ễ Ố Ổ Ộ Ợ Ứ Ừ Ự`, đo bằng `fontTools`). Trình duyệt vá
+từng chữ thiếu bằng font khác ⇒ **một chữ trộn hai font, dấu lệch, trông như nhoè**. Không báo lỗi gì.
+
+Đo bằng Chrome chạy ngầm trên máy thật, cùng một câu 20px: Arial 800 = **457px** = Arial Black ·
+Arial Bold = **421px**.
+
+➡️ **Đã chặn tận gốc** bằng họ font riêng **`AppSans`** (`@font-face` + `local()` trong `index.html`):
+độ đậm **600–900 chỉ trỏ về Arial Bold**. Chặn được cả style inline, lớp Tailwind lẫn thẻ `<b>`.
+⛔ **Mọi chỗ khai `font-family` phải để `AppSans` đứng đầu** — một chỗ quên là lọt lưới.
+
+⚠️ **Đã vấp thật, hai lần báo "xong" sai:**
+- `.report-table { font-family: 'Inter' }` **ghi cứng tên font** ⇒ bảng báo cáo không theo font chung,
+  sửa `body` mấy lần cũng không ăn. Đổi font thì **quét MỌI `font-family`**, không chỉ `body`.
+- Dò độ đậm chỉ tìm `fontWeight: 800` ⇒ **sót 20 chỗ `fontWeight: isBold ? 800 : 300`**. Phải dò cả
+  dạng biểu thức: `(font-weight|fontWeight)[^;,}\n]{0,30}?\b[89]00\b`.
+
+⚠️ Arial nhỏ hơn 10px ở chữ HOA thì dấu chồng chỉ còn 1–2 điểm ảnh. Đã nâng tối thiểu 9px → 10px;
+**10px là cỡ lớn nhất không làm gãy dòng tiêu đề** — 10,5px là `MÃ CT` gãy trong cột `w-16`.
+
+### Bẫy 28 — Thay **một mã màu hàng loạt** trong khi màu đó nằm trên **cả nền sáng lẫn nền tối** *(25/09/2026)*
+
+Đổi tông chàm → navy bằng cách thay `#4f46e5` → `#1e3a8a` ở mọi chỗ. Trên nền trắng thì đẹp hơn,
+nhưng `.tab-btn.active` nằm trên **header tối** ⇒ **navy trên nền tối = tàng hình**. Tab đang chọn
+biến mất mà không có lỗi nào.
+
+➡️ Thay màu xong phải **rà NỀN PHÍA SAU từng chỗ**. Đổi tông cả app thì **đừng thay mã màu hàng
+loạt** — ghi đè thang màu trong `tailwind.config` (403 lớp `indigo-*` đổi theo mà không sửa lớp nào),
+còn các mã ghi thẳng thì duyệt tay từng chỗ.
 
 ---
 

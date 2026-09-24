@@ -514,17 +514,23 @@ def _cache_doc_file():
     except Exception:
         return {}
 
+# Luồng nền của đường đăng nhập nhanh cũng ghi file này ⇒ phải khoá, không thì hai
+# lần đăng nhập sát nhau đọc–ghi chồng lên nhau và mất một mục.
+_cache_file_lock = threading.Lock()
+
 def _cache_ghi(uid, mat_khau, thongtin):
     """Lưu lại để lần sau mất mạng vẫn đăng nhập được."""
     try:
-        d = _cache_doc_file()
-        d[uid.lower()] = {
-            'pw': _pbkdf2_hash(mat_khau),
-            'ttin': thongtin,
-            'luc': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-        }
-        with open(_cache_path(), 'w', encoding='utf-8') as f:
-            _json.dump(d, f, ensure_ascii=False, indent=1)
+        pw = _pbkdf2_hash(mat_khau)      # 200.000 vòng — băm NGOÀI khoá cho khỏi giữ lâu
+        with _cache_file_lock:
+            d = _cache_doc_file()
+            d[uid.lower()] = {
+                'pw': pw,
+                'ttin': thongtin,
+                'luc': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            }
+            with open(_cache_path(), 'w', encoding='utf-8') as f:
+                _json.dump(d, f, ensure_ascii=False, indent=1)
     except Exception as e:
         logger.warning('Khong ghi duoc cache quyen: %s', e)
 
@@ -532,11 +538,12 @@ def _xoa_cache_uid(uid):
     """Xoá một mục khỏi bản cache offline trên MÁY NÀY.
     Gọi sau khi đổi mật khẩu — không thì mất mạng vẫn vào được bằng mật khẩu cũ."""
     try:
-        c = _cache_doc_file()
-        if c.pop((uid or '').lower(), None) is not None:
-            with open(_cache_path(), 'w', encoding='utf-8') as f:
-                _json.dump(c, f, ensure_ascii=False, indent=1)
-            logger.info('Da xoa cache offline cua tai khoan sau khi doi mat khau')
+        with _cache_file_lock:
+            c = _cache_doc_file()
+            if c.pop((uid or '').lower(), None) is not None:
+                with open(_cache_path(), 'w', encoding='utf-8') as f:
+                    _json.dump(c, f, ensure_ascii=False, indent=1)
+                logger.info('Da xoa cache offline cua tai khoan sau khi doi mat khau')
     except Exception as e:
         logger.warning('Khong xoa duoc cache sau khi doi mat khau: %s', e)
 
@@ -563,6 +570,68 @@ def _cache_kiem(uid, mat_khau):
         # Cùng một câu với đường online — người dùng không cần biết lúc đó có mạng hay không.
         return None, _LOI_SAI_TAI_KHOAN, True
     return m.get('ttin') or {}, luc.strftime('%d/%m/%Y %H:%M'), False
+
+# ===================================================================
+# ĐĂNG NHẬP NHANH — cache trước, Google kiểm lại ở luồng nền (Đại Ca chốt 24/09/2026)
+#
+# Vì sao: đo 6 lần lệnh `ping` (lệnh RỖNG, không đọc Sheet) từ máy này lên Apps Script:
+#   2/6 trả HTTP 404 sau 15–27 giây · 4/6 thành công mất 3,4–20,8 giây (trung bình 11,9).
+#   Một lần đăng nhập gặp 404 ở lượt đầu ≈ 35 giây. Chậm nằm ở HẠ TẦNG Google — doPost
+#   trong Code.gs với `ping` chỉ kiểm token rồi trả lời.
+#
+# Cách làm: người ĐÃ đăng nhập thành công trên máy này trong _CACHE_HAN_NGAY ngày ⇒ kiểm
+#   mật khẩu bằng hash PBKDF2 trong cache (<1 giây), cho vào luôn, rồi gọi Google ở nền.
+#   Google nói khác ⇒ HUỶ PHIÊN, request kế tiếp nhận 401, frontend đẩy về màn đăng nhập.
+#
+# GIỮ NGUYÊN hai bảo đảm của thiết kế cũ:
+#   - Sai mật khẩu so với cache ⇒ KHÔNG từ chối tại chỗ, đi đường Google như cũ (có thể
+#     người đó vừa đổi mật khẩu ở máy khác) — nên đường nhanh KHÔNG né được rate limit.
+#   - "Thu hồi quyền có hiệu lực khi đăng nhập lại": quyền trên Google khác cache ⇒ huỷ
+#     phiên, lần đăng nhập sau lấy quyền mới. Không huỷ thì thu hồi trễ thêm MỘT lần.
+#
+# ⚠️ ĐÁNH ĐỔI ĐÃ CHỐT: tài khoản vừa bị khoá / vừa bị xoá vẫn vào được trong lúc chờ
+#   Google trả lời (3–30 giây), rồi mới bị đá ra.
+# ⛔ Đường nhanh KHÔNG được gọi _cache_ghi: làm thế là gia hạn 7 ngày cho bản cache mà
+#   chưa ai xác nhận — tài khoản đã bị khoá cứ thế sống mãi khi Google chập chờn.
+# ===================================================================
+def _quyen_khac(a, b):
+    """Hai bộ thông tin tài khoản có khác nhau ở phần QUYỀN không."""
+    def khoa(u):
+        u = u or {}
+        items = sorted(x for x in (u.get('items') or []) if x in PERM_ALL_ITEMS)
+        dv = u.get('don_vi')
+        dv = sorted(str(x) for x in dv) if isinstance(dv, list) else None
+        return ((u.get('id') or '').lower(), u.get('chuc_vu') or '', items, dv)
+    return khoa(a) != khoa(b)
+
+def _huy_phien_nen(sid, app_user, ly_do):
+    """Huỷ phiên từ luồng nền. Không đụng được cookie (không có request), nên chỉ gỡ sid
+    khỏi kho — request kế tiếp của trình duyệt đó _db_cfg() ra None ⇒ 401."""
+    with _phien_lock:
+        con = _phien_db.pop(sid, None) is not None
+    if con:
+        logger.warning('Dang nhap nhanh: HUY phien cua "%s" — %s', app_user, ly_do)
+
+def _kiem_lai_nen(sid, app_user, app_password, ttin_cu):
+    """Luồng nền của đường nhanh: hỏi lại Google rồi quyết giữ hay huỷ phiên."""
+    try:
+        kq = _gs_goi('dang_nhap', user=app_user,
+                     mat_khau=_dan_xuat_dk(app_user, app_password))
+    except _GSOffline as e:
+        # Mất mạng thì GIỮ phiên — đúng như chế độ offline vốn có.
+        logger.info('Dang nhap nhanh: khong noi duoc Google (%s) — giu phien', e)
+        return
+    except Exception as e:
+        logger.warning('Dang nhap nhanh: kiem lai loi (%s) — giu phien', e)
+        return
+    if not kq.get('ok'):
+        _huy_phien_nen(sid, app_user, 'Google tu choi: %s' % (kq.get('loi') or '?'))
+        _xoa_cache_uid(app_user)    # lần sau buộc đi đường Google, hiện đúng câu báo lỗi
+        return
+    u = kq.get('user') or {}
+    _cache_ghi(u.get('id') or app_user, app_password, u)   # chỉ gia hạn khi Google xác nhận
+    if _quyen_khac(ttin_cu, u):
+        _huy_phien_nen(sid, app_user, 'quyen tren Google da doi so voi ban luu')
 
 # ===== GZIP COMPRESSION =====
 # JSON nén rất tốt (5–10× nhỏ hơn) → giảm bandwidth + parse time cho payload 500k dòng
@@ -867,22 +936,31 @@ def login():
         ho_ten = None
         canh_bao = None
 
-        try:
-            # Gửi CHUỖI ĐÃ BĂM, không gửi mật khẩu gốc (xem _dan_xuat_dk).
-            kq = _gs_goi('dang_nhap', user=app_user,
-                         mat_khau=_dan_xuat_dk(app_user, app_password))
-        except _GSOffline as _e_gs:
-            # CHỈ khi mất mạng mới được rơi về bản lưu trên máy.
-            ttin, ly_do, sai_mat_khau = _cache_kiem(app_user, app_password)
-            if not ttin:
-                thong_diep = ly_do if sai_mat_khau else (
-                    'Không kết nối được tới Google (nơi lưu danh sách tài khoản), và %s\n'
-                    'Kiểm tra mạng rồi thử lại.' % ly_do)
-                return jsonify({"status": "error", "message": thong_diep,
-                                "chi_tiet": str(_e_gs)}), 401
-            kq = {"ok": True, "user": ttin}
-            canh_bao = ('Không nối được Google — đang dùng bản quyền lưu trên máy '
-                        '(đồng bộ lần cuối %s). Quyền mới cấp/thu hồi chưa có hiệu lực.' % ly_do)
+        # (1a) ĐƯỜNG NHANH — xem khối ghi chú "ĐĂNG NHẬP NHANH" phía trên.
+        #      Khớp cache ⇒ vào luôn, Google kiểm lại ở nền. Không khớp (chưa từng đăng
+        #      nhập máy này / quá hạn / SAI mật khẩu so với cache) ⇒ đường Google như cũ.
+        ttin_nhanh, _, _ = _cache_kiem(app_user, app_password)
+        kiem_nen = bool(ttin_nhanh)
+        if kiem_nen:
+            kq = {"ok": True, "user": ttin_nhanh}
+            app_nguon = 'cache'
+        else:
+            try:
+                # Gửi CHUỖI ĐÃ BĂM, không gửi mật khẩu gốc (xem _dan_xuat_dk).
+                kq = _gs_goi('dang_nhap', user=app_user,
+                             mat_khau=_dan_xuat_dk(app_user, app_password))
+            except _GSOffline as _e_gs:
+                # CHỈ khi mất mạng mới được rơi về bản lưu trên máy.
+                ttin, ly_do, sai_mat_khau = _cache_kiem(app_user, app_password)
+                if not ttin:
+                    thong_diep = ly_do if sai_mat_khau else (
+                        'Không kết nối được tới Google (nơi lưu danh sách tài khoản), và %s\n'
+                        'Kiểm tra mạng rồi thử lại.' % ly_do)
+                    return jsonify({"status": "error", "message": thong_diep,
+                                    "chi_tiet": str(_e_gs)}), 401
+                kq = {"ok": True, "user": ttin}
+                canh_bao = ('Không nối được Google — đang dùng bản quyền lưu trên máy '
+                            '(đồng bộ lần cuối %s). Quyền mới cấp/thu hồi chưa có hiệu lực.' % ly_do)
         if not kq.get('ok'):
             # ⚠️ CHỈ đổi chữ cho đúng ca "gõ sai tài khoản/mật khẩu". Lệnh `dang_nhap` của
             #    Google còn trả về "Tài khoản đã bị khóa" và "tạm khoá N giây do gõ sai nhiều
@@ -898,7 +976,8 @@ def login():
         app_group = u.get('chuc_vu') or ''
         app_items = [x for x in (u.get('items') or []) if x in PERM_ALL_ITEMS]
         app_orgs = u.get('don_vi') if isinstance(u.get('don_vi'), list) else None
-        if not canh_bao:
+        if not canh_bao and not kiem_nen:
+            # ⛔ Đường nhanh KHÔNG ghi ở đây — luồng nền chỉ ghi SAU KHI Google xác nhận.
             _cache_ghi(real_uid, app_password, u)   # để lần sau mất mạng vẫn vào được
 
         # (2) Kết nối SQL (như cũ). data giờ chỉ còn field SQL.
@@ -910,7 +989,7 @@ def login():
         with _pool_lock:
             _conn_pool[key] = conn
 
-        _dat_db_cfg(data)
+        sid_moi = _dat_db_cfg(data)
         session['app_user'] = real_uid
         session['app_group'] = app_group
         session['app_nguon'] = app_nguon
@@ -920,6 +999,10 @@ def login():
         session['app_orgs'] = app_orgs
         _meta_cache.pop(data.get('database'), None)
         _tran_usage_cache.pop(data.get('database'), None)
+        if kiem_nen:
+            # Khởi động SAU CÙNG — phiên phải dựng xong đủ thì luồng nền mới có cái để huỷ.
+            threading.Thread(target=_kiem_lai_nen, name='kiem-lai-google', daemon=True,
+                             args=(sid_moi, app_user, app_password, ttin_nhanh)).start()
         return jsonify({"status": "ok", "message": "Đăng nhập thành công!",
                         "app_user": real_uid, "group": app_group,
                         "name": ho_ten, "canh_bao": canh_bao})

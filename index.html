@@ -32,11 +32,11 @@ window.showConnectionLost = function() {
     if (document.getElementById("conn-lost")) return;   // chỉ hiện 1 lần dù nhiều request cùng fail
     var d = document.createElement("div");
     d.id = "conn-lost";
-    d.style = "position:fixed; inset:0; z-index:999999; background:rgba(15,23,42,.92); color:#fff; display:flex; align-items:center; justify-content:center; font-family:system-ui,Segoe UI,sans-serif;";
+    d.style = "position:fixed; inset:0; z-index:999999; background:rgba(15,23,42,.92); color:#fff; display:flex; align-items:center; justify-content:center; font-family:AppSans, Arial, Helvetica, sans-serif;";
     d.innerHTML =
         '<div style="max-width:520px; text-align:center; padding:32px">' +
         '<div style="font-size:44px; margin-bottom:12px">⚠️</div>' +
-        '<div style="font-size:20px; font-weight:800; letter-spacing:.5px; margin-bottom:10px">MẤT KẾT NỐI TỚI MÁY CHỦ</div>' +
+        '<div style="font-size:20px; font-weight:700; letter-spacing:.5px; margin-bottom:10px">MẤT KẾT NỐI TỚI MÁY CHỦ</div>' +
         '<div style="font-size:14px; line-height:1.7; color:#cbd5e1">Ứng dụng không gọi được server (cổng 5050).<br>Thường do <b>đã tắt ứng dụng</b> nhưng cửa sổ này còn mở, hoặc server <b>chưa khởi động xong</b>.<br>Hãy bấm Thử lại, hoặc đóng cửa sổ này rồi mở lại ứng dụng.</div>' +
         '<button id="conn-lost-retry" style="margin-top:20px; padding:10px 22px; border:0; border-radius:10px; background:#1e3a8a; color:#fff; font-weight:700; cursor:pointer">Thử lại</button>' +
         '</div>';
@@ -66,7 +66,7 @@ window.showConnectionLost = function() {
         window.ReactDOM = window.ReactDOM || { createRoot: () => ({render: () => {}}), createPortal: () => null };
         if (typeof tailwind !== 'undefined') {
             tailwind.config = { theme: { extend: {
-                fontFamily: { sans: ['Arial', 'Helvetica', 'sans-serif'] },
+                fontFamily: { sans: ['AppSans', 'Arial', 'Helvetica', 'sans-serif'] },
                 colors: {
                     primary: '#1e3a8a',
                     /* Ghi de ca thang mau indigo -> XANH NAVY.
@@ -82,16 +82,46 @@ window.showConnectionLost = function() {
         }
     </script>
     <style>
-        body { background-color: #f1f5f9; font-family: Arial, Helvetica, sans-serif; font-size: 11px; height: 100vh; overflow: hidden; color: #334155; font-variant-numeric: tabular-nums; }
+        /* ===== HỌ FONT "AppSans" — chặn Arial Black (24/09/2026) =====
+           Arial chỉ có 400 và 700. Xin 800/900 thì Windows lấy "Arial Black" — font đó
+           THIẾU 10/13 chữ tiếng Việt có dấu chồng (Ả Ấ Ễ Ố Ổ Ộ Ợ Ứ Ừ Ự, đo bằng fontTools),
+           trình duyệt vá từng chữ bằng font khác ⇒ một chữ trộn hai font, dấu lệch.
+           Họ này ép MỌI độ đậm 600–900 về Arial Bold. Đo bằng Chrome trên máy thật:
+           Arial 800 = 457px (Arial Black) · AppSans 800 = 421px = Arial Bold.
+           Chặn được cả style inline, lớp Tailwind lẫn thẻ <b> — không cần đi dò từng chỗ.
+           ⛔ Mọi chỗ khai font-family phải dùng AppSans ĐỨNG ĐẦU, không thì lọt lưới. */
+        @font-face { font-family: 'AppSans'; src: local('Arial'), local('ArialMT'); font-weight: 100 500; font-style: normal; }
+        @font-face { font-family: 'AppSans'; src: local('Arial Bold'), local('Arial-BoldMT'); font-weight: 600 900; font-style: normal; }
+        @font-face { font-family: 'AppSans'; src: local('Arial Italic'), local('Arial-ItalicMT'); font-weight: 100 500; font-style: italic; }
+        @font-face { font-family: 'AppSans'; src: local('Arial Bold Italic'), local('Arial-BoldItalicMT'); font-weight: 600 900; font-style: italic; }
+        body { background-color: #f1f5f9; font-family: AppSans, Arial, Helvetica, sans-serif; font-size: 11px; height: 100vh; overflow: hidden; color: #334155; font-variant-numeric: tabular-nums; }
         .filter-control { width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 2px 12px; background: white; height: 32px; transition: all 0.2s; outline: none; display: flex; align-items: center; font-size: 11px; font-weight: 700; cursor: pointer; }
         .filter-control:hover { border-color: #1e3a8a; background: #fcfcfc; }
         .filter-control.active { border-color: #1e3a8a; background: #eff6ff; color: #1d4ed8; }
+        /* Arial CHỈ có 400 và 700. Xin 800/900 (font-black: 305 chỗ) thì Windows lấy
+           "Arial Black" — font đó THIẾU 10/13 chữ tiếng Việt có dấu chồng
+           (Ả Ấ Ễ Ố Ổ Ộ Ợ Ứ Ừ Ự — đo bằng fontTools 24/09/2026), trình duyệt vá từng chữ
+           bằng font khác ⇒ một chữ trộn hai font, dấu lệch, trông như nhoè.
+           ⛔ Còn dùng Arial thì ĐỪNG gỡ dòng này. */
+        .font-black, .font-extrabold { font-weight: 700 !important; }
+        /* ===== CỠ CHỮ TỐI THIỂU cho Arial (25/09/2026) =====
+           Tiêu đề bảng 9px + giãn chữ 0,1em: Inter chịu được, Arial thì dấu chồng
+           (Ộ Ổ Ị Ế) chỉ còn 1–2 điểm ảnh, nhìn "cấn". Đo 5 phương án trên Chrome thật:
+           10px + 0,06em là cỡ LỚN NHẤT không làm gãy thêm tiêu đề nào — lên 10,5px thì
+           "MÃ CT" gãy xuống hai dòng trong cột w-16.
+           ⛔ Đừng nâng quá 10px khi chưa nới các cột hẹp (w-16). */
+        .text-\[8px\]  { font-size: 9.5px !important; }
+        .text-\[9px\]  { font-size: 10px !important; }
+        .tracking-widest { letter-spacing: 0.06em !important; }
+        /* Font chữ toàn bộ là Arial (Đại Ca chốt) — kể cả chỗ trước dùng font-mono (Consolas).
+           Arial vốn có chữ số rộng bằng nhau nên cột số vẫn thẳng hàng. */
+        .font-mono { font-family: AppSans, Arial, Helvetica, sans-serif !important; font-variant-numeric: tabular-nums; }
         .label-text { font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 0.08em; padding-left: 2px; }
         .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; transition: background 0.2s; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; border: 2px solid transparent; background-clip: padding-box; }
-        th { background: #f8fafc; border-bottom: 1.5px solid #1e293b; padding: 8px !important; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #000; }
+        th { background: #f8fafc; border-bottom: 1.5px solid #1e293b; padding: 8px !important; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #000; }
         .sortable-th { cursor: pointer; user-select: none; transition: background-color 0.15s ease, color 0.15s ease; }
         .sortable-th:hover { background: #eff6ff !important; color: #1e3a8a !important; }
         .sortable-th .sort-icon { opacity: 0.25; transition: opacity 0.15s ease; }
@@ -99,20 +129,20 @@ window.showConnectionLost = function() {
         .sortable-th.is-sorted { background: #dbeafe !important; color: #172554 !important; }
         .sortable-th.is-sorted .sort-icon { opacity: 1; color: #1e3a8a; }
         .sticky-footer { position: sticky; bottom: 0; background: #ffffff; border-top: 2px solid #1e3a8a; z-index: 40; box-shadow: 0 -4px 15px rgba(0,0,0,0.05); }
-        .tab-btn { padding: 10px 24px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; transition: all 0.3s; position: relative; }
-        .tab-btn.active { color: #1e3a8a; }
-        .tab-btn.active::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 3px; background: #1e3a8a; border-radius: 3px 3px 0 0; }
+        .tab-btn { padding: 10px 24px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; transition: all 0.3s; position: relative; }
+        .tab-btn.active { color: #ffffff; }
+        .tab-btn.active::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 3px; background: #FF9D3D; border-radius: 3px 3px 0 0; }
         
         .paper-landscape { width: 297mm !important; min-width: 297mm !important; max-width: 297mm !important; }
         .paper-portrait  { width: 210mm !important; min-width: 210mm !important; max-width: 210mm !important; }
         .report-table tbody tr { content-visibility: auto; contain-intrinsic-size: 1px 24px; }
         .report-paper { background: white; width: max-content; min-width: 210mm; max-width: calc(100vw - 64px); min-height: 297mm; padding: 20mm; margin: 30px auto; box-shadow: 0 20px 60px -10px rgba(0,0,0,0.15), 0 10px 30px -10px rgba(0,0,0,0.05); border-radius: 2px; color: #000; border: 1px solid rgba(0,0,0,0.05); transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
         
-        .report-table { width: max-content; min-width: 100%; border-collapse: collapse; border: 1px solid #000; table-layout: fixed; margin-right: 2px; font-family: 'Inter', sans-serif; }
+        .report-table { width: max-content; min-width: 100%; border-collapse: collapse; border: 1px solid #000; table-layout: fixed; margin-right: 2px; font-family: AppSans, Arial, Helvetica, sans-serif; }
         .report-table th, .report-table td { border: 1px solid #000; padding: 8px 12px; font-size: 10.5px; line-height: 1.4; color: #000; }
         .report-table th:last-child, .report-table td:last-child { border-right: 2px solid #000 !important; }
-        .report-table th { background: #f1f5f9; font-weight: 800; text-align: center; text-transform: uppercase; letter-spacing: 0.02em; }
-        .row-group { background: #f8fafc; font-weight: 800; }
+        .report-table th { background: #f1f5f9; font-weight: 700; text-align: center; text-transform: uppercase; letter-spacing: 0.02em; }
+        .row-group { background: #f8fafc; font-weight: 700; }
         .row-name { white-space: normal; word-break: break-word; }
         .row-sub { padding-left: 24px !important; }
         .row-sub2 { padding-left: 48px !important; font-style: italic; color: #475569; }
@@ -121,7 +151,7 @@ window.showConnectionLost = function() {
         .col-name { width: 310px; }
         .col-value { text-align: right; width: 130px; }
         .col-rate { text-align: center; width: 55px; color: #1e293b; background: #f1f5f9/30; }
-        .force-bold { font-weight: 800 !important; }
+        .force-bold { font-weight: 700 !important; }
         .force-normal { font-weight: 300 !important; }
 
         .glass-login { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.3); }
@@ -171,7 +201,7 @@ window.showConnectionLost = function() {
             
             /* Giữ nguyên định dạng in đậm */
             .row-group { background-color: #f8fafc !important; }
-            .force-bold { font-weight: 800 !important; }
+            .force-bold { font-weight: 700 !important; }
             .force-normal { font-weight: normal !important; }
             .row-name { white-space: normal !important; word-break: break-word; }
         }
@@ -659,7 +689,7 @@ window.showConnectionLost = function() {
                         <Icon name="calendar" size={10} className={`${isOpen ? 'text-indigo-600' : 'text-slate-400'}`} />
                     </button>
                     {isOpen && createPortal(
-                        <div ref={calendarRef} style={{ position: 'fixed', top: pos.top, left: pos.left, zIndex: 999999, width: 300, background: '#fff', borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.18), 0 0 0 0.5px rgba(0,0,0,0.06)', overflow: 'hidden', fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif' }}>
+                        <div ref={calendarRef} style={{ position: 'fixed', top: pos.top, left: pos.left, zIndex: 999999, width: 300, background: '#fff', borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.18), 0 0 0 0.5px rgba(0,0,0,0.06)', overflow: 'hidden', fontFamily: 'AppSans, Arial, Helvetica, sans-serif' }}>
                             <div style={{ background: '#f2f2f7', borderBottom: '1px solid rgba(0,0,0,0.08)', padding: '12px 12px 10px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}>
                                     <button onClick={() => setDisplayDate(new Date(displayDate.getFullYear(), displayDate.getMonth() - 1, 1))} style={{ padding: '4px 8px', borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: '#1e3a8a' }}><Icon name="chevron-left" size={16}/></button>
@@ -1307,8 +1337,8 @@ window.showConnectionLost = function() {
 
             let indicators = [
                 { id: '01', note: '', type: 'group', name: '1. DOANH THU BÁN HÀNG VÀ CUNG CẤP DỊCH VỤ' },
-                { id: '011', note: '', type: 'sub', name: '- Tổng doanh thu - Cà phê' },
-                { id: '012', note: '', type: 'sub', name: '- Tổng doanh thu - Trà / Thức uống khác / Túi' },
+                { id: '011', note: '', type: 'sub', name: '- Tổng doanh thu - Cà phê' },
+                { id: '012', note: '', type: 'sub', name: '- Tổng doanh thu - Trà / Thức uống khác / Túi' },
                 { id: '013', note: '', type: 'sub', name: '- Tổng doanh thu - Food' },
                 { id: '014', note: '', type: 'sub', name: '- Tổng doanh thu - Cheap Meal Dishes..' },
                 { id: '015', note: '', type: 'sub', name: '- Tổng doanh thu - MERCHANDISE' },
@@ -1317,15 +1347,15 @@ window.showConnectionLost = function() {
                 { id: '018', note: '', type: 'sub', name: '- Tổng doanh thu - Combo' },
                 { id: '019', note: '', type: 'sub', name: '- Tổng doanh thu - Khác' },
                 { id: '02', note: '', type: 'group', name: '2. CÁC KHOẢN GIẢM TRỪ DOANH THU' },
-                { id: '020', note: '', type: 'sub', name: '2.1 Giảm giá' },
-                { id: '03', note: '', type: 'group', name: '3. Doanh thu thuần về bán hàng và cung cấp dịch vụ' },
+                { id: '020', note: '', type: 'sub', name: '2.1 Giảm giá' },
+                { id: '03', note: '', type: 'group', name: '3. Doanh thu thuần về bán hàng và cung cấp dịch vụ' },
                 { id: '04', note: '', type: 'group', name: '4. Giá vốn hàng bán' },
-                { id: '05', note: '', type: 'group', name: '5. Lợi nhuận gộp về bán hàng và cung cấp dịch vụ' },
+                { id: '05', note: '', type: 'group', name: '5. Lợi nhuận gộp về bán hàng và cung cấp dịch vụ' },
                 { id: '06', note: '', type: 'group', name: '6. Doanh thu hoạt động tài chính' },
-                { id: '061', note: '', type: 'sub', name: '- Doanh thu hoạt động tài chính' },
+                { id: '061', note: '', type: 'sub', name: '- Doanh thu hoạt động tài chính' },
                 { id: '07', note: '', type: 'group', name: '7. Chi phí tài chính' },
                 { id: '071', note: '', type: 'sub', name: '- Trong đó: Chi phí lãi vay' },
-                { id: '08', note: '', type: 'group', name: '8. Chi phí bán hàng + Chi quản lý doanh nghiệp' },
+                { id: '08', note: '', type: 'group', name: '8. Chi phí bán hàng + Chi quản lý doanh nghiệp' },
                 { id: '081', note: '', type: 'sub', name: '* Chi phí thương hiệu & tiếp thị' },
                 { id: '08101', note: 'THTT.BST', type: 'sub2', name: '- Chi phí quảng cáo Bộ sưu tập mới/Sự kiện cty' },
                 { id: '08102', note: 'THTT.CFB', type: 'sub2', name: '- Chi phí chụp hình feedback' },
@@ -1349,14 +1379,14 @@ window.showConnectionLost = function() {
                 { id: '08205', note: 'TTTM.SPTD', type: 'sub2', name: '- Chi phí sản phẩm trao đổi/tài trợ' },
                 { id: '083', note: '', type: 'sub', name: '* Chi phí Tiếp thị tăng trưởng' },
                 { id: '08301', note: 'TTTT.GOI', type: 'sub2', name: '- Chi phí quảng cáo mua theo gói' },
-                { id: '08302', note: 'TTTT.NS', type: 'sub2', name: '- Chi phí quảng cáo nội sàn' },
+                { id: '08302', note: 'TTTT.NS', type: 'sub2', name: '- Chi phí quảng cáo nội sàn' },
                 { id: '08303', note: 'TTTT.QC', type: 'sub2', name: '- Chi phí quảng cáo trên kênh Social' },
                 { id: '08304', note: 'TTTT.SMS', type: 'sub2', name: '- Chi phí gửi SMS bán hàng, CSKH' },
                 { id: '08305', note: 'TTTT.ZALO', type: 'sub2', name: '- Chi phí gửi Zalo bán hàng, CSKH' },
                 { id: '08306', note: 'TTTT.TTRI', type: 'sub2', name: '- Chi phí trang trí cửa hàng' },
                 { id: '084', note: '', type: 'sub', name: '* Chi phí vận hành' },
                 { id: '08401', note: 'VH.DTAC', type: 'sub2', name: '- Chi phí chiết khấu trả cho kênh đối tác' },
-                { id: '08402', note: 'VH.PTDHT', type: 'sub2', name: '- Phí thúc đẩy hiển thị' },
+                { id: '08402', note: 'VH.PTDHT', type: 'sub2', name: '- Phí thúc đẩy hiển thị' },
                 { id: '08403', note: 'VH.RENT', type: 'sub2', name: '- Phí thuê mặt bằng' },
                 { id: '08404', note: 'VH.WATER', type: 'sub2', name: '- Phí nước' },
                 { id: '08405', note: 'VH.ELETRIC', type: 'sub2', name: '- Phí điện' },
@@ -1364,10 +1394,10 @@ window.showConnectionLost = function() {
                 { id: '08407', note: 'VH.PQC', type: 'sub2', name: '- Phí quảng cáo' },
                 { id: '08408', note: 'VH.INTERNET', type: 'sub2', name: '- Phí Internet' },
                 { id: '084081', note: 'VH.PHH', type: 'sub2', name: '- Phí hoa hồng cho đối tác' },
-                { id: '08409', note: 'VH.TELEPHONE', type: 'sub2', name: '- Phí điện thoại' },
+                { id: '08409', note: 'VH.TELEPHONE', type: 'sub2', name: '- Phí điện thoại' },
                 { id: '08410', note: 'VH.LBV', type: 'sub2', name: '- Chi phí lương- Bảo vệ' },
                 { id: '08411', note: 'VH.PVC', type: 'sub2', name: '- Chi phí vận chuyển' },
-                { id: '08412', note: 'VH.PRT', type: 'sub2', name: '- Phí rút tiền' },
+                { id: '08412', note: 'VH.PRT', type: 'sub2', name: '- Phí rút tiền' },
                 { id: '084121', note: 'VH.SCDP', type: 'sub2', name: '- Phí cọc thuê mặt bằng/ Security Deposit' },
                 { id: '08413', note: 'VH.CPIN', type: 'sub2', name: '- Chi phí in ấn, photo' },
                 { id: '085', note: '', type: 'sub', name: '* Chi phí Lương' },
@@ -2378,7 +2408,7 @@ const exportJournalCsv = (mode) => {
                                             {trialBalanceData.map((row, idx) => {
                                                 const isBC013 = reportType === 'BC013';
                                                 const isBold = isBC013 ? false : (row.is_parent || row.id.length <= 3);
-                                                const fw = isBold ? 800 : 400;
+                                                const fw = isBold ? 700 : 400;
                                                 const labelFw = isBC013 ? 700 : fw;   // BC013: in đậm Mã + Tên đối tượng
                                                 return (
                                                     <tr key={idx} className={isBold ? 'bg-slate-50' : ''}>
@@ -2692,10 +2722,10 @@ const exportJournalCsv = (mode) => {
                                                 const indent = isSub ? ' row-sub2' : (row.type === 'item' ? ' row-sub' : '');
                                                 return (
                                                     <tr key={idx} className={isSection ? 'row-group' : (isGroup ? 'row-group' : '')}>
-                                                        <td className={`row-name col-name${indent}`} style={{ fontWeight: isBold ? 800 : 300 }}>{row.name}</td>
-                                                        <td className="col-code" style={{ fontWeight: isBold ? 800 : 300 }}>{row.id}</td>
-                                                        <td className="col-value" style={{ fontWeight: isBold ? 800 : 300 }}>{formatNum(closing)}</td>
-                                                        <td className="col-value" style={{ fontWeight: isBold ? 800 : 300 }}>{row.id === '421A' ? '' : formatNum(opening)}</td>
+                                                        <td className={`row-name col-name${indent}`} style={{ fontWeight: isBold ? 700 : 300 }}>{row.name}</td>
+                                                        <td className="col-code" style={{ fontWeight: isBold ? 700 : 300 }}>{row.id}</td>
+                                                        <td className="col-value" style={{ fontWeight: isBold ? 700 : 300 }}>{formatNum(closing)}</td>
+                                                        <td className="col-value" style={{ fontWeight: isBold ? 700 : 300 }}>{row.id === '421A' ? '' : formatNum(opening)}</td>
                                                     </tr>
                                                 );
                                             })}
@@ -2720,9 +2750,9 @@ const exportJournalCsv = (mode) => {
                                                 const val = row.id ? (reportData[row.id] || 0) : null;
                                                 return (
                                                     <tr key={idx} className={isSection ? 'row-group' : (isTotal ? 'row-group' : '')}>
-                                                        <td className={`row-name col-name${row.type === 'item' ? ' row-sub' : ''}`} style={{ fontWeight: isBold ? 800 : (isPlain ? 700 : 300) }}>{row.name}</td>
-                                                        <td className="col-code" style={{ fontWeight: isBold ? 800 : 300 }}>{row.id}</td>
-                                                        <td className="col-value" style={{ fontWeight: isBold ? 800 : 300 }}>{row.id ? formatNum(val) : ''}</td>
+                                                        <td className={`row-name col-name${row.type === 'item' ? ' row-sub' : ''}`} style={{ fontWeight: isBold ? 700 : (isPlain ? 700 : 300) }}>{row.name}</td>
+                                                        <td className="col-code" style={{ fontWeight: isBold ? 700 : 300 }}>{row.id}</td>
+                                                        <td className="col-value" style={{ fontWeight: isBold ? 700 : 300 }}>{row.id ? formatNum(val) : ''}</td>
                                                     </tr>
                                                 );
                                             })}
@@ -2768,18 +2798,18 @@ const exportJournalCsv = (mode) => {
                                                 const isBold = (row.id === '011') ? false : (row.type === 'group' || (row.name && row.name.trim().startsWith('*')));
                                                 const mainRow = (
                                                     <tr key={idx} className={isBold ? 'row-group' : ''}>
-                                                        <td className="col-code" style={{ fontWeight: isBold ? 800 : 300 }}>{row.id === '084-VH.PHH' ? 'VH.PHH' : row.id === '084-VH.PQC' ? 'VH.PQC' : row.id}</td>
-                                                        <td className={`row-name col-name ${row.type === 'sub' ? 'row-sub' : row.type === 'sub2' ? 'row-sub2' : ''}`} style={{ fontWeight: isBold ? 800 : 300 }}>{row.name}</td>
-                                                        <td className="col-value" style={{ fontWeight: isBold ? 800 : 300 }}>{formatNum(val)}</td>
-                                                        <td className="col-rate" style={{ fontWeight: isBold ? 800 : 300 }}>{calcRate(val, reportData)}</td>
+                                                        <td className="col-code" style={{ fontWeight: isBold ? 700 : 300 }}>{row.id === '084-VH.PHH' ? 'VH.PHH' : row.id === '084-VH.PQC' ? 'VH.PQC' : row.id}</td>
+                                                        <td className={`row-name col-name ${row.type === 'sub' ? 'row-sub' : row.type === 'sub2' ? 'row-sub2' : ''}`} style={{ fontWeight: isBold ? 700 : 300 }}>{row.name}</td>
+                                                        <td className="col-value" style={{ fontWeight: isBold ? 700 : 300 }}>{formatNum(val)}</td>
+                                                        <td className="col-rate" style={{ fontWeight: isBold ? 700 : 300 }}>{calcRate(val, reportData)}</td>
                                                         {monthList.map((m, i) => {
                                                             const mKey = `${m.month}_${m.year}`;
                                                             const mData = monthlyData[mKey] || {};
                                                             const mVal = mData[row.id] || 0;
                                                             return (
                                                                 <React.Fragment key={i}>
-                                                                    <td className="col-value" style={{ fontWeight: isBold ? 800 : 300 }}>{formatNum(mVal)}</td>
-                                                                    <td className="col-rate" style={{ fontWeight: isBold ? 800 : 300 }}>{calcRate(mVal, mData)}</td>
+                                                                    <td className="col-value" style={{ fontWeight: isBold ? 700 : 300 }}>{formatNum(mVal)}</td>
+                                                                    <td className="col-rate" style={{ fontWeight: isBold ? 700 : 300 }}>{calcRate(mVal, mData)}</td>
                                                                 </React.Fragment>
                                                             );
                                                         })}
@@ -2870,17 +2900,17 @@ const exportJournalCsv = (mode) => {
                                                 const isBold = (row.id === '011') ? false : (row.type === 'group' || (row.name && row.name.trim().startsWith('*')));
                                                 const mainRow = (
                                                     <tr key={idx} className={isBold ? 'row-group' : ''}>
-                                                        <td className="col-code" style={{ fontWeight: isBold ? 800 : 300 }}>{row.id === '084-VH.PHH' ? 'VH.PHH' : row.id === '084-VH.PQC' ? 'VH.PQC' : row.id}</td>
-                                                        <td className={`row-name col-name ${row.type === 'sub' ? 'row-sub' : row.type === 'sub2' ? 'row-sub2' : ''}`} style={{ fontWeight: isBold ? 800 : 300 }}>{row.name}</td>
-                                                        <td className="col-value" style={{ fontWeight: isBold ? 800 : 300 }}>{formatNum(val)}</td>
-                                                        <td className="col-rate" style={{ fontWeight: isBold ? 800 : 300 }}>{calcRate(val, reportData)}</td>
+                                                        <td className="col-code" style={{ fontWeight: isBold ? 700 : 300 }}>{row.id === '084-VH.PHH' ? 'VH.PHH' : row.id === '084-VH.PQC' ? 'VH.PQC' : row.id}</td>
+                                                        <td className={`row-name col-name ${row.type === 'sub' ? 'row-sub' : row.type === 'sub2' ? 'row-sub2' : ''}`} style={{ fontWeight: isBold ? 700 : 300 }}>{row.name}</td>
+                                                        <td className="col-value" style={{ fontWeight: isBold ? 700 : 300 }}>{formatNum(val)}</td>
+                                                        <td className="col-rate" style={{ fontWeight: isBold ? 700 : 300 }}>{calcRate(val, reportData)}</td>
                                                         {jobList.map((j, i) => {
                                                             const jData = jobData[j.id] || {};
                                                             const jVal = jData[row.id] || 0;
                                                             return (
                                                                 <React.Fragment key={i}>
-                                                                    <td className="col-value" style={{ fontWeight: isBold ? 800 : 300 }}>{formatNum(jVal)}</td>
-                                                                    <td className="col-rate" style={{ fontWeight: isBold ? 800 : 300 }}>{calcRate(jVal, jData)}</td>
+                                                                    <td className="col-value" style={{ fontWeight: isBold ? 700 : 300 }}>{formatNum(jVal)}</td>
+                                                                    <td className="col-rate" style={{ fontWeight: isBold ? 700 : 300 }}>{calcRate(jVal, jData)}</td>
                                                                 </React.Fragment>
                                                             );
                                                         })}

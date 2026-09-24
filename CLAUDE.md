@@ -2,9 +2,11 @@
 
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
-> Cập nhật gần nhất: **21/09/2026** · Bản EXE trên máy: **v1.11.9** (nhánh `phanquyen`, **đã push
-> GitHub 21/09/2026** — Actions không chạy vì workflow chỉ kích hoạt trên `main`)
-> · Bản đã phát hành trên GitHub: **v1.10.7** · Apps Script: **Version 5** (`ban 2026-09-21c`)
+> Cập nhật gần nhất: **24/09/2026** · **Bản đã phát hành trên GitHub: `v1.11.9`** (21/09/2026 22:26)
+> · `main` = `phanquyen` = `aea3bb9` · EXE trên máy Đại Ca **đã đổi sang đúng bản phát hành**
+> (SHA256 khớp digest GitHub) · Apps Script: **Version 5** (`ban 2026-09-21c`)
+> 🔴 **Đã phát hành khi CHƯA đủ tài khoản nhân viên trên Google Sheet** — Đại Ca chốt làm sau.
+> Ai chưa có tài khoản mà bấm cập nhật là **đăng nhập không được**. Xem việc số 3 trong nhật ký.
 >
 > 📌 **VIỆC CẦN LÀM đang treo: [NHAT_KY_CONG_VIEC.md § Việc cần làm](NHAT_KY_CONG_VIEC.md#-việc-cần-làm--cập-nhật-21092026)** — đọc trước khi nhận việc mới.
 
@@ -691,6 +693,32 @@ powershell -File Sync-And-Backup.ps1 -Commit -Message "fix: ..."
 
 `build_exe.py` chọn tên EXE **theo thư mục đang đứng**: đường dẫn chứa `ledgerreport` →
 `iPOS_Accounting_Report`, ngược lại → `iPOS_Ledger_Studio`. **Chạy sai thư mục là ra sai tên EXE.**
+
+### 🔴 Sửa code mà BỎ QUA B4 thì phải TĂNG `version.txt` BẰNG TAY *(vấp thật 21/09/2026)*
+
+`version.txt` **chỉ** được tăng khi chạy `build_exe.py` ở máy. Bỏ qua bước B4 (hay gặp: Đại Ca
+đang dùng app nên không được build đè — Bẫy 10) rồi gộp thẳng `main` ⇒ **nội dung đổi mà số hiệu
+đứng yên**, và Actions phát hành một EXE mang **đúng số hiệu cũ**.
+
+Hậu quả đo thật: máy có sẵn EXE `1.11.9` build local (14.712.220 B, `21ef4e6f…`) so với bản phát
+hành `1.11.9` do CI build (13.100.698 B, `b3ad2a60…`) — **hai file khác hẳn nhau, cùng số hiệu.**
+`check_github_update()` chốt bằng `has_update = latest > current` (**lớn hơn hẳn**), nên
+`1.11.9 > 1.11.9` là sai ⇒ **app im lặng, máy đó kẹt lại bản cũ vĩnh viễn.**
+
+⚠️ Triệu chứng cực khó thấy: app chạy bình thường, không báo lỗi gì, **chỉ là thiếu tính năng**.
+Người dùng sẽ báo *"sao máy tôi không có cái đó"* chứ không ai nghĩ tới chuyện phiên bản.
+
+➡️ Trước khi gộp `main`: mở `version.txt`, **tăng số bằng tay**. Kiểm nhanh bản đang chạy có đúng
+bản phát hành không bằng **SHA256** — đối chiếu với `digest` mà GitHub công bố cho asset, đừng tin
+mỗi số hiệu:
+```powershell
+(Get-FileHash "dist\iPOS_Accounting_Report.exe" -Algorithm SHA256).Hash.ToLower()
+& "C:\Program Files\GitHub CLI\gh.exe" release view v1.11.9 --json assets
+```
+
+⚠️ **Mở EXE để thử thì phải chạy TÁCH HẲN.** Gọi qua `Start-Process` trong một lệnh PowerShell thì
+tiến trình con bị kết thúc theo lệnh cha: cổng 5050 lên rồi tắt trong vòng một phút, nhìn tưởng
+app crash. Đã vấp 24/09/2026.
 
 CI: [.github/workflows/release.yml](.github/workflows/release.yml) — push `main` là build EXE trên
 `windows-latest` rồi tạo Release theo `version.txt`.

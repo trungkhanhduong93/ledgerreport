@@ -3,30 +3,30 @@
 > Toàn bộ những gì đã làm với **LedgerReport**, và **vì sao**. Đọc file này trước khi sửa tiếp.
 > Kiến trúc, ma trận báo cáo, phương án backup: [CLAUDE.md](CLAUDE.md).
 > Mổ xẻ sâu sự cố + 4 bài học: [SU_CO_15082026.md](SU_CO_15082026.md).
-> Phiên gần nhất: **21/09/2026** · Bản phát hành trên GitHub: **v1.10.7**
-> ⚠️ Nhánh `phanquyen` (bản local **v1.11.9**) **đã push lên GitHub 21/09/2026**, tới `3dae340`.
-> Actions **không** chạy và **không** có Release mới — workflow chỉ kích hoạt trên `main` + tag `v*`.
-> ⛔ **Gộp `main` mới là bước nguy hiểm** — xem việc số 3 ngay dưới.
+> Phiên gần nhất: **24/09/2026** · Bản phát hành trên GitHub: **v1.11.9** (21/09/2026 22:26)
+> ✅ `main` = `phanquyen` = `aea3bb9`. Đã gộp `main` và **phát hành thật** — Actions chạy 1m18s,
+> Release `v1.11.9` kèm `.exe` + `.zip`. Máy nhân viên đang ở v1.10.7 sẽ thấy nút cập nhật.
+> 🔴 **Đã phát hành KHI CHƯA đủ tài khoản nhân viên trên Google Sheet** — Đại Ca chốt chấp nhận,
+> làm phân quyền sau. Đây là **rủi ro đang chạy**, xem việc số 3.
 > Apps Script trên Google: **Version 5** (21/09/2026 19:33), mã bản `2026-09-21c` — **đã triển khai**.
 >
 > 📌 **Việc còn treo gom ở ngay dưới: [§ VIỆC CẦN LÀM](#-việc-cần-làm--cập-nhật-21092026).**
 
 ---
 
-## 📌 VIỆC CẦN LÀM — *cập nhật 21/09/2026*
+## 📌 VIỆC CẦN LÀM — *cập nhật 24/09/2026*
 
 > Gom hết việc còn treo về một chỗ. Nhận việc mới thì **đọc mục này trước**.
-> Trạng thái nhánh: `phanquyen`, build local **v1.11.9**, **5 commit CHƯA push**
-> (`88bf8ca` → `a964739` → `937d3a2` → `d05b3ef` → `79e42a5`).
-> **Đại Ca đang test, chưa cho push** — đừng tự ý đẩy lên GitHub.
+> Trạng thái: `main` = `phanquyen` = **`aea3bb9`**, đã push, working tree sạch.
+> Bản phát hành **v1.11.9** đang là `Latest` trên GitHub Releases.
 
 ### 🔴 Ưu tiên 1 — làm sớm, càng để lâu càng rủi ro
 
 | # | Việc | Vì sao gấp |
 |---|---|---|
 | 1 | **Đổi mật khẩu tài khoản `admin`** | Đã lộ trong khung chat ngày 21/09 để chạy phép thử cuối. Đổi ngay trong tab Phân quyền → ô tài khoản → Đổi mật khẩu |
-| 2 | ~~Push commit lên GitHub~~ ✅ **XONG 21/09/2026** | Đã đẩy nhánh `phanquyen` lên GitHub (7 commit, tới `3dae340`). Đã kiểm: `origin/main` **không đụng tới**, và **Actions không chạy lần nào** (lần gần nhất vẫn là 15/09) vì workflow chỉ kích hoạt trên `main` + tag `v*`. Tầng 1 backup nay **đã có**; tầng 2 (Release EXE) vẫn trống cho việc 19→21/09 — chỉ có khi gộp `main` |
-| 3 | ⛔ **Chốt chặn TRƯỚC khi gộp `main`** | Đã bỏ hẳn chế độ file ⇒ **ai chưa có tài khoản trên Google Sheet là KHÔNG đăng nhập được nữa**. Gộp `main` là Actions tạo Release, app mọi người tự hỏi cập nhật. Phải đủ tài khoản nhân viên trên Sheet rồi mới gộp |
+| 2 | ~~Push + phát hành~~ ✅ **XONG 21/09/2026** | Đã push `phanquyen`, gộp `main` (fast-forward, 8 commit), Actions chạy **1m18s** → Release **v1.11.9**. **Tầng 1 và tầng 2 của [backup 4 tầng](#2--phương-án-backup--phục-hồi) nay đều đã có** |
+| 3 | 🔴 **TẠO TÀI KHOẢN NHÂN VIÊN TRÊN GOOGLE SHEET — rủi ro ĐANG CHẠY** | Mục này trước đây là *chốt chặn trước khi gộp `main`*. **Đã gộp và phát hành ngày 21/09 khi chưa đủ tài khoản** — Đại Ca được báo trước và chốt "phân quyền sau". Hệ quả **đang có hiệu lực ngay bây giờ**: máy nhân viên ở v1.10.7 mở app là hiện nút cập nhật; bấm xong thì bản v1.11.9 **bỏ hẳn chế độ file**, không có tài khoản trên Sheet là **đăng nhập không được**. Đo 21/09: Sheet mới có **2 tài khoản**. Lùi lại phải tự tải EXE cũ từ trang Releases. ⇒ Càng để lâu càng nhiều người vấp |
 
 ### 🟡 Ưu tiên 2 — Đại Ca tự làm được trên giao diện
 
@@ -1466,3 +1466,78 @@ tắt/build lại khi Đại Ca đang dùng (đã gây "Failed to fetch" thật 
 - `SALE.WAREHOUSE_ID_RECEIVE` có **1 ca lệch** với kho nhận thật trong cả năm 2026. Dòng đã nhận
   vẫn lấy kho thật nên ca đó không bị ảnh hưởng; chỉ dòng **chưa** nhận mới dùng kho dự kiến.
 - **Bộ lọc Đơn vị vẫn áp cho phía XUẤT** — việc còn treo số 7 ở mục VIỆC CẦN LÀM, chưa động tới.
+
+---
+
+## 21/09/2026 (cuối ngày) — Phát hành **v1.11.9**, và cái bẫy số hiệu trùng nhau
+
+### Đã phát hành thật
+
+Đại Ca chốt *"phát hành luôn"* sau khi được báo rõ rủi ro tài khoản Google Sheet.
+
+| Bước | Kết quả |
+|---|---|
+| Đẩy nhánh `phanquyen` | `origin/phanquyen` = `aea3bb9`, 8 commit. **Actions KHÔNG chạy** — workflow chỉ kích hoạt trên `main` + tag `v*` |
+| Gộp `main` | **fast-forward sạch** (`4cc22af..aea3bb9`), không xung đột |
+| Actions | `success` trong **1m18s** |
+| Release | **v1.11.9** — `iPOS_Accounting_Report.exe` 13.100.698 B + bản `.zip` 12.898.119 B |
+
+Trước khi bấm đã kiểm đủ 3 điều kiện an toàn: remote đúng **GitHub** (không phải GitLab),
+tag `v1.11.9` **chưa tồn tại** (nên là Release mới thật, không đè bản cũ), và quét secret trên
+bản đã stage — **sạch**.
+
+### 🔴 Bẫy tự gây: hai file khác nhau mang CÙNG số hiệu `1.11.9`
+
+Phát hành xong mới lòi ra: **máy Đại Ca sẽ không bao giờ nhận được bản mới.**
+
+| | Số hiệu | Kích thước | SHA256 |
+|---|---|---|---|
+| EXE trên máy Đại Ca (build local 16:16) | **1.11.9** | 14.712.220 B | `21ef4e6f…` |
+| EXE trên GitHub Release (CI build 22:26) | **1.11.9** | 13.100.698 B | `b3ad2a60…` |
+
+App so phiên bản bằng **`has_update = latest > current`** (`server.py`, hàm `check_github_update`)
+— **lớn hơn hẳn** mới báo. `1.11.9` không lớn hơn `1.11.9` ⇒ app im lặng, Đại Ca chạy mãi bản cũ
+thiếu 2 trạng thái mới, mà **không có dấu hiệu gì báo là đang chạy bản cũ**.
+
+**Gốc rễ:** `version.txt` chỉ được tăng khi chạy `build_exe.py` ở máy. Phiên này sửa code nhưng
+**không build local** (Đại Ca đang dùng app, luật cấm build đè) ⇒ số hiệu đứng yên trong khi nội
+dung đã đổi. Máy nhân viên không dính vì họ ở **v1.10.7**, thấp hơn thật nên vẫn được báo.
+
+➡️ **Luật rút ra — ghi để lần sau khỏi vấp:** *sửa code mà không build local thì phải TĂNG
+`version.txt` bằng tay trước khi gộp `main`.* Không thì mọi máy đang ở đúng số hiệu đó sẽ kẹt lại
+bản cũ vĩnh viễn. Triệu chứng rất khó thấy: app chạy bình thường, chỉ là thiếu tính năng.
+
+---
+
+## 24/09/2026 — Đưa máy Đại Ca về đúng bản đã phát hành, đạt **M3**
+
+Đại Ca chọn phương án **lấy đúng file đã phát hành về** (thay vì tăng số rồi build lại) — chạy
+cùng một binary với nhân viên, không sinh thêm số hiệu lạ.
+
+| Bước | Kết quả |
+|---|---|
+| Sao lưu bản cũ | `dist\iPOS_Accounting_Report_v1.11.9_build_local_2109.exe.bak` |
+| Tải bản phát hành | `gh release download v1.11.9` |
+| **Đối chiếu SHA256** | `b3ad2a60…` — **khớp từng ký tự** với digest GitHub công bố ⇒ đúng file nhân viên nhận |
+| Chạy thử | cổng 5050 LISTENING, **48 MB RAM** (không phải ~10 MB của bootloader bị chặn ở [Bẫy 13](CLAUDE.md)) |
+| **Kiểm nội dung EXE** | **11/11 xanh** — đủ 2 trạng thái mới, mã lọc `nhap_chua_gs`/`xuat_chua_gs`, dropdown Kho nhập, `wh_nhap_ids`, ô tìm `s_dvt`/`s_sl_xuat`, cột `TEN_KHO_NHAP`, và **câu giải thích cũ đã bị thay** |
+| gzip | 730.575 ký tự → **109.916 byte** trên đường truyền |
+| `check_update` | đang chạy `1.11.9` · mới nhất `v1.11.9` · **`has_update: False`** — đúng như phân tích ở trên |
+
+⇒ **Đạt M3**: chạy đúng EXE đã phát hành, gọi API thật, nội dung đúng.
+
+⚠️ **Mẹo vận hành:** mở EXE bằng `Start-Process` trong một lệnh PowerShell thì **app tự tắt ngay
+khi lệnh kết thúc** (tiến trình con bị kết thúc theo). Cổng 5050 lên rồi tắt trong vòng một phút,
+nhìn tưởng app crash. Phải chạy ở **chế độ nền tách hẳn** thì mới sống qua nhiều lượt.
+
+### Còn thiếu để đạt M4
+
+Chưa đăng nhập được vào app đang chạy — mật khẩu SQL và mật khẩu tài khoản ứng dụng đều do Đại Ca
+giữ (`config.json` đã xoá ngay sau khi đo xong 21/09). Đại Ca đăng nhập rồi vào
+**Danh sách → Đối chiếu điều chuyển nội bộ**, kỳ **2026 – Tháng 9**, đối chiếu hàng chip với số đã đo:
+
+**Chưa nhận hàng 7** · **Phiếu nhập chưa ghi sổ 211** · **Phiếu xuất chưa ghi sổ 13** ·
+Lệch số lượng 3 · Đã nhận đủ 1.502.
+
+(Con số cũ 219 tách thành 7 + 211 = 218; chênh 1 phiếu là do bộ lọc đơn vị loại đơn vị ngoài
+cây `'00'` — phép đo bằng SQL thô không có bộ lọc đó.)

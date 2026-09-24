@@ -37,9 +37,25 @@
 > Gom hết việc còn treo về một chỗ. Nhận việc mới thì **đọc mục này trước**.
 > Trạng thái: **v1.12.3 đã phát hành**, là `Latest` trên GitHub, và **EXE trên máy Đại Ca đã là
 > đúng file CI** (SHA256 khớp digest — kiểm lại 24/09 lúc 17:50).
-> ⚠️ **Commit tài liệu từ đây trở đi giữ ở local, đừng push một mình** — push file `.md` là Actions
-> build lại, thay asset bằng binary khác SHA, và cái digest vừa khớp xong lệch ngay. Gộp kèm lần
-> sửa code tiếp theo. Muốn thoát hẳn vòng lặp này thì làm việc số 11 (`paths-ignore`).
+>
+> ## 🚧 ĐANG CÓ COMMIT TÀI LIỆU GIỮ Ở LOCAL — **ĐỪNG PUSH RIÊNG**
+>
+> Tính tới 24/09/2026: **`main` đang `ahead 3`** so với `origin/main`, cả 3 đều là commit `.md`
+> (sửa trạng thái phát hành bị lệch · luật ghi nhật ký · lật toàn bộ nhật ký).
+>
+> **Đại Ca chốt: gộp cùng lần sửa code tiếp theo rồi push một thể.** Lý do: push file `.md` một
+> mình cũng kích hoạt Actions build lại, **thay asset bằng binary khác SHA**, và cái digest vừa
+> khớp với EXE trên máy Đại Ca sẽ lệch ngay — lại phải tải về đổi lần nữa. Muốn thoát hẳn vòng lặp
+> này thì làm **việc số 11** (thêm `paths-ignore`).
+>
+> ⛔ **Thấy `ahead N` thì đừng "push cho sạch"** — đó là trạng thái cố ý, không phải quên push.
+>
+> 🔴 **CÁI BẪY ĐI KÈM — lần push tới BẮT BUỘC tăng `version.txt`.** Hiện `version.txt` = `1.12.3`,
+> mà **`v1.12.3` đã phát hành rồi**. Push mà không tăng số thì `action-gh-release` **ghi đè Release
+> cũ bằng binary mới** dưới **đúng tag cũ** ⇒ `check_github_update()` chốt bằng `latest > current`
+> nên `1.12.3 > 1.12.3` là sai ⇒ **mọi máy đang ở 1.12.3 kẹt lại vĩnh viễn, app im lặng không báo
+> gì**. Đúng vết xe đổ 21/09 — xem mục *"Sửa code mà BỎ QUA B4"* trong [CLAUDE.md § 5](CLAUDE.md).
+> Chạy `python build_exe.py` là nó tự tăng; bỏ qua bước build thì **tăng tay**.
 
 ### 🔴 Ưu tiên 1 — làm sớm, càng để lâu càng rủi ro
 

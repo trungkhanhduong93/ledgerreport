@@ -3,8 +3,8 @@
 > Toàn bộ những gì đã làm với **LedgerReport**, và **vì sao**. Đọc file này trước khi sửa tiếp.
 > Kiến trúc, ma trận báo cáo, phương án backup: [CLAUDE.md](CLAUDE.md).
 > Mổ xẻ sâu sự cố + 4 bài học: [SU_CO_15082026.md](SU_CO_15082026.md).
-> Phiên gần nhất: **24/09/2026 (chiều)** · ✅ Đã phát hành **v1.12.0** — `main` = `1e5dee9`,
-> Actions `success`, Release là `Latest`.
+> Phiên gần nhất: **24/09/2026** · ✅ Đã phát hành **v1.12.3** — `main` = `62af287`,
+> Actions `success`, Release là `Latest`. Cả ngày ra **bốn** bản: v1.12.0 → v1.12.1 → v1.12.2 → v1.12.3.
 > 🔑 Phiên này chốt được **luật nghiệp vụ gốc**: iPOS **tự sinh** phiếu nhập `NDCNB` khi phiếu xuất
 > `XDCNB` ghi sổ — đổi hẳn cách đọc tab đối chiếu điều chuyển. Xem mục 24/09 ở cuối file.
 > 🔴 **Đã phát hành KHI CHƯA đủ tài khoản nhân viên trên Google Sheet** — Đại Ca chốt chấp nhận,
@@ -18,9 +18,11 @@
 ## 📌 VIỆC CẦN LÀM — *cập nhật 24/09/2026*
 
 > Gom hết việc còn treo về một chỗ. Nhận việc mới thì **đọc mục này trước**.
-> Trạng thái: **v1.12.3** đã build local, đạt M3, chờ push. Trên GitHub `Latest` là **v1.12.2**.
-> ⚠️ Commit tài liệu sau đó **cố ý giữ ở local** — push file `.md` là Actions build lại, thay asset,
-> và SHA256 của EXE trên máy Đại Ca vừa khớp xong sẽ lệch ngay. Gộp kèm lần sửa code tiếp theo.
+> Trạng thái: **v1.12.3 đã phát hành**, là `Latest` trên GitHub, và **EXE trên máy Đại Ca đã là
+> đúng file CI** (SHA256 khớp digest — kiểm lại 24/09 lúc 17:50).
+> ⚠️ **Commit tài liệu từ đây trở đi giữ ở local, đừng push một mình** — push file `.md` là Actions
+> build lại, thay asset bằng binary khác SHA, và cái digest vừa khớp xong lệch ngay. Gộp kèm lần
+> sửa code tiếp theo. Muốn thoát hẳn vòng lặp này thì làm việc số 11 (`paths-ignore`).
 
 ### 🔴 Ưu tiên 1 — làm sớm, càng để lâu càng rủi ro
 
@@ -43,7 +45,7 @@
 | # | Việc | Ghi chú |
 |---|---|---|
 | 7 | **Bộ lọc Đơn vị của tab điều chuyển nội bộ** áp cho phía **XUẤT** | Hệ quả: tài khoản chỉ được xem đơn vị cửa hàng **không thấy hàng chuyển đến mình** (bên xuất là kho tổng `01`). Đại Ca dùng tài khoản toàn quyền nên chưa vướng. Mở cho cửa hàng thì phải đổi sang lọc OR cả hai phía — **cần Đại Ca chốt** |
-| 8 | **Xoá file rác**: `phanquyen.json` (972 B, 4 tài khoản test) + `dist/phanquyen.json.cu` (1.002 B) | Vô dụng từ khi bỏ chế độ file 21/09. Cả hai đã `.gitignore` nên không lộ, chỉ là rác |
+| 8 | ~~Xoá file rác~~ ✅ **XONG 24/09/2026** | Đã xoá `phanquyen.json` (972 B) + `dist/phanquyen.json.cu` (1.002 B). Kiểm trước khi xoá: cả hai đều ghi `"note": "FILE TEST - mat khau tam, khong phai ban that"`, và `server.py` **chỉ nhắc chúng trong comment**, không còn dòng code nào đọc. Cả hai vốn đã `.gitignore` + git không theo dõi ⇒ không lộ |
 | 9 | Màn đăng nhập **chưa bắt buộc** điền Tài khoản ứng dụng | Để trống thì phải chờ Google **4–7 giây** mới báo lỗi, thay vì chặn ngay tại chỗ |
 | 10 | Dropdown lọc **Đơn vị** vẫn hiện tên đơn vị ngoài quyền | Chọn vào ra 0 dòng — **lộ tên, không lộ số** |
 | 12 | ~~Hàng chip tụt về 0 khi bấm chọn một chip~~ ✅ **XONG 24/09/2026** | Sửa cả **ba** tab (`dcnb_reconcile`, `btp_reconcile`, **`po_list`** — tab này cũng dính, phát hiện lúc sửa). Cờ `bo_trang_thai` + `so_dong` tách theo trạng thái. Đối chứng trước/sau: **không chậm đi** |
@@ -1941,3 +1943,64 @@ với 6 chuỗi lỗi ODBC thật. Đại Ca đăng nhập đúng tài khoản r
 
 ⚠️ Câu **tạm khoá / tài khoản bị khoá** chưa thử được vì phải cố tình gõ sai nhiều lần lên tài
 khoản thật. Đã chặn bằng điều kiện so khớp chính xác chuỗi, và có phép kiểm trong bộ M2.
+
+---
+
+## 24/09/2026 (cuối phiên) — Rà lại việc treo: tài liệu đã lệch thực tế
+
+Không sửa code. Chỉ đi kiểm xem **tài liệu có còn đúng không** — và hoá ra không.
+
+### 🔴 Tài liệu nói "chờ push", thực tế đã phát hành xong từ 3 phút sau đó
+
+| Tài liệu ghi | Đo được lúc 17:45 |
+|---|---|
+| `v1.12.3` build local, **chờ push** | Đã push. `git ls-remote origin main` = `62af287` = đúng HEAD local, working tree sạch |
+| `Latest` trên GitHub là `v1.12.2` | **`v1.12.3` là `Latest`**, tạo `2026-09-24T10:37:06Z` (17:37 giờ VN) |
+| "Commit tài liệu **cố ý giữ ở local**" | Hai commit `.md` (`f862674`, `0a9df3f`) **đã nằm trên GitHub** |
+| Phiên gần nhất phát hành `v1.12.0`, `main = 1e5dee9` | Sau đó còn 3 bản nữa |
+
+Actions cả 3 lần gần nhất đều `success`.
+
+**Vì sao lệch:** câu "chờ push" nằm **trong chính commit `62af287`** (17:35) — viết trước khi push
+rồi push kèm luôn, không ai quay lại sửa. Đây là **cái bẫy cố hữu của việc ghi trạng thái phát hành
+vào file nằm trong chính lần phát hành đó.**
+
+➡️ **Rút kinh nghiệm: dòng trạng thái "đã push chưa / Latest là bản nào" chỉ được viết SAU khi push
+xong**, hoặc viết theo kiểu không tự mâu thuẫn (ghi "chuẩn bị phát hành" thay vì "chờ push").
+
+### ✅ Điểm sáng: bước đối chiếu EXE đã làm rồi và đang đúng
+
+```
+EXE local dist\iPOS_Accounting_Report.exe : d2dd506f…d012fc18  (13.104.424 B)
+digest GitHub công bố cho asset v1.12.3   : d2dd506f…d012fc18  (13.104.424 B)
+```
+
+Khớp tuyệt đối ⇒ EXE trên máy Đại Ca **là đúng file CI**. Mốc thời gian khớp với quy trình: build
+local 17:32 → sao lưu `.bak` → push 17:35 → Actions 17:36 → Release 17:37 → thay EXE 17:38.
+
+⚠️ **Hệ quả: từ đây đừng push file `.md` một mình** — Actions build lại, thay asset bằng binary khác
+SHA, và cái digest vừa khớp lệch ngay. Chính vì vậy **commit của phiên này giữ ở local**.
+
+### Việc treo — kiểm chứng được tại chỗ
+
+| # | Kết quả đo |
+|---|---|
+| 8 | ✅ **Đã xoá** 2 file rác (xem dòng việc số 8) |
+| 11 | ❌ **Vẫn kẹt đúng chỗ cũ.** Workflow còn `checkout@v4` (dòng 20), `setup-python@v5` (dòng 25), `action-gh-release@v2` (dòng 69), **chưa có `paths-ignore`**. `gh auth status` cho scope `gist, read:org, repo` — **vẫn thiếu `workflow`** |
+
+Các việc còn lại (1, 3, 4, 5, 6, 7, 9, 10) nằm trên Google Sheet / SQL Server / cần Đại Ca chốt,
+không kiểm được từ máy này.
+
+### 🆕 Phát hiện thêm: `config.json` còn mật khẩu SQL thật
+
+File còn nguyên `password` của user `ipchulong` — phiên trước đo xong nhưng chưa dọn theo luật đã
+chốt (*xoá đúng ô `password`, giữ `server`/`user`/`database` để lần sau chỉ phải điền một ô*).
+
+Đã kiểm: `.gitignore` chặn (dòng 33), git **không theo dõi** ⇒ **không lộ lên GitHub**, chỉ nằm
+dạng chữ thường trên đĩa. Không có dòng code nào trong repo đọc file này — `test.py` đọc một
+`config.json` **khác**, nằm ngoài repo, dùng khoá `uid`/`pwd`.
+
+⚠️ **Chưa xoá được:** thao tác ghi đè bị lớp kiểm duyệt quyền của Claude Code chặn
+(*Irreversible Local Destruction*). Cố ý **không** dùng đường vòng đọc file ra rồi sửa — làm vậy là
+mật khẩu lọt vào khung chat, đúng thứ mà cách làm `config.json` sinh ra để tránh. Đã đưa lệnh một
+dòng để Đại Ca tự bấm.

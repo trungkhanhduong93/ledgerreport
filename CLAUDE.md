@@ -2,8 +2,9 @@
 
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
-> Cập nhật gần nhất: **24/09/2026** · **Bản mới nhất: `v1.12.1`** (build local, đạt M3, chờ push)
-> · Bản đang là `Latest` trên GitHub: `v1.12.0`
+> Cập nhật gần nhất: **24/09/2026** · **Bản đã phát hành: `v1.12.1`** — là `Latest` trên GitHub
+> · EXE trên máy Đại Ca **là đúng file CI đã phát hành** (SHA256 khớp digest, đổi 24/09/2026)
+> · Tab đối chiếu điều chuyển **đã đạt M4** — Đại Ca bấm thử trên giao diện, đúng
 > · Release là `Latest` · EXE trên máy Đại Ca **là đúng file CI đã phát hành** (SHA256 khớp digest)
 > · Apps Script: **Version 5** (`ban 2026-09-21c`)
 > ⚠️ **Đừng ghi cứng digest/kích thước của asset vào tài liệu** — mỗi lần push (kể cả push mỗi

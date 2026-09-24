@@ -18,8 +18,9 @@
 ## 📌 VIỆC CẦN LÀM — *cập nhật 24/09/2026*
 
 > Gom hết việc còn treo về một chỗ. Nhận việc mới thì **đọc mục này trước**.
-> Trạng thái: **v1.12.1** đã build local và đạt M3, chờ push.
-> Bản đang là `Latest` trên GitHub Releases: **v1.12.0**.
+> Trạng thái: **v1.12.1** đã phát hành, là `Latest`. `main` = `2a7e7fb`.
+> ⚠️ Commit tài liệu sau đó **cố ý giữ ở local** — push file `.md` là Actions build lại, thay asset,
+> và SHA256 của EXE trên máy Đại Ca vừa khớp xong sẽ lệch ngay. Gộp kèm lần sửa code tiếp theo.
 
 ### 🔴 Ưu tiên 1 — làm sớm, càng để lâu càng rủi ro
 
@@ -1734,9 +1735,10 @@ trong khi bảng chỉ có một nhóm). Đây mới là chỗ dễ chết, khô
 | **Đối chứng trước/sau** | Chạy **bản git HEAD** và bản mới cạnh nhau: không chọn chip **7,8s / 7,9s**, bấm chip **29,2s / 29,5s**, `total_rows` **12.630 y hệt** — chỉ khác đúng một chỗ: chip hiện **1** trạng thái (cũ) so với **5** (mới) |
 | **M3** | Build **v1.12.1** (14.716.141 B), EXE mới hơn cả 2 file nguồn, chạy tách hẳn: cổng 5050 LISTENING, **41,6 MB**, `check_update` trả `current 1.12.1` · `is_frozen True` |
 
-⛔ **Chưa đạt M4** cho chính phần chip: sửa nằm ở backend nên không kiểm được qua `index.html`,
-mà phiên đăng nhập của app nằm trong RAM, không gieo từ ngoài vào được. Đại Ca bấm thử trên giao
-diện là xong M4.
+✅ **M4 — Đại Ca bấm thử trên giao diện ngày 24/09/2026, xác nhận đúng.** Phần sửa nằm ở backend
+nên không kiểm được qua `index.html`, mà phiên đăng nhập của app nằm trong RAM nên không gieo từ
+ngoài vào được — chỉ Đại Ca mới đóng được mức này. Kiểm trên **đúng binary đã phát hành**
+(SHA256 khớp digest GitHub), không phải bản build local.
 
 ### 🐢 Lộ ra một vấn đề CÓ SẴN, không phải do lần sửa này
 
@@ -1757,3 +1759,14 @@ re.sub(r"--.*$", "", dong)   # bỏ comment rồi mới .count("?")
 
 ⚠️ Các phiên trước có dùng phép đếm này mà **không bỏ comment**, nên con số ghi trong nhật ký cũ
 lệch 1 mà không ai để ý. Bản thân phép kiểm vẫn đúng hướng — chỉ là phải đếm cho sạch.
+
+### ✅ Đã phát hành v1.12.1 + đổi EXE trên máy sang bản CI
+
+Push `8183dd9..2a7e7fb` (2 commit) · Actions run `35962369740` **`success`** · Release **v1.12.1**
+là `Latest`. Sau đó đổi EXE trên máy sang đúng asset CI: sao lưu bản local thành
+`dist\iPOS_Accounting_Report_v1.12.1_build_local.exe.bak`, tải về, **SHA256 khớp từng ký tự** với
+digest GitHub, chạy lại — cổng 5050 LISTENING, **48,2 MB**, nội dung **5/5**, `check_update` trả
+`current 1.12.1` · `latest v1.12.1` · `has_update False` · `is_frozen True`.
+
+⚠️ **Commit tài liệu ghi lại việc này CỐ Ý giữ ở local.** Push nó là Actions build lại, thay asset,
+SHA vừa khớp xong lại lệch — đúng vòng lặp đã mô tả ở mục trên. Gộp kèm lần sửa code tiếp theo.

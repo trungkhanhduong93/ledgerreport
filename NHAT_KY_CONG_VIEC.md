@@ -18,7 +18,7 @@
 ## 📌 VIỆC CẦN LÀM — *cập nhật 24/09/2026*
 
 > Gom hết việc còn treo về một chỗ. Nhận việc mới thì **đọc mục này trước**.
-> Trạng thái: **v1.12.2** đã build local, đạt M3, chờ push. Trên GitHub `Latest` là **v1.12.1**.
+> Trạng thái: **v1.12.2** đã phát hành, là `Latest` trên GitHub. `main` = `f862674`.
 > ⚠️ Commit tài liệu sau đó **cố ý giữ ở local** — push file `.md` là Actions build lại, thay asset,
 > và SHA256 của EXE trên máy Đại Ca vừa khớp xong sẽ lệch ngay. Gộp kèm lần sửa code tiếp theo.
 
@@ -1865,3 +1865,31 @@ Lợi thêm: hết batch `#dc` tự biến mất, không phải dọn.
 ⚠️ Phép kiểm thứ tự chip lúc đầu báo SAI — **lỗi của phép đo**: nó bắt nhầm khối chip của tab BTP
 nằm trước trong file. Phải neo bằng chuỗi **chỉ có ở tab DCNB** (`'chua', 'Không thấy phiếu nhập'`).
 Cùng họ với Bẫy 26: **tìm chuỗi mà không kiểm tính duy nhất.**
+
+### ✅ Đã phát hành v1.12.2
+
+Trước khi push còn dọn **hai chỗ sót trong `CLAUDE.md`** — bắt được nhờ đọc lại file đầu phiên:
+một dòng bị lặp ở header, và mục "phiếu `POSTED` mà 0 dòng `WAREHOUSE`" vẫn ghi *"chưa đo cả năm,
+chưa chốt"* trong khi việc đó đã đo xong và đóng. **Tài liệu sai còn nguy hơn code sai** — người
+sau đọc rồi đi đo lại từ đầu.
+
+| Bước | Kết quả |
+|---|---|
+| Push | `2a7e7fb..f862674` — **3 commit** (sửa chip · `#dc` + việc 13/14/15 · dọn tài liệu) |
+| Actions | run `35986947776` · **`success`** |
+| Release | **v1.12.2** · là `Latest` · `.exe` + `.zip` |
+
+Kiểm đủ 4 điều kiện trước khi bấm: remote **GitHub**, tag `v1.12.2` **chưa tồn tại**, quét secret
+**sạch**, `config.json` **không nằm trong git**.
+
+### Tổng kết ngày 24/09/2026 — ba lần phát hành
+
+| Bản | Nội dung |
+|---|---|
+| **v1.12.0** | Đóng M4 tab điều chuyển · luật iPOS **tự sinh** phiếu nhập · đổi tên nhóm thành `Không tìm thấy phiếu nhập` · ghi chú "CÓ nhưng thiếu mã hàng này" |
+| **v1.12.1** | Hàng chip không còn tụt về 0 — sửa **cả ba tab** |
+| **v1.12.2** | `#dc` làm bấm chip **nhanh 5–7 lần** · đóng việc 13 bằng phép đo · hai chip "Không thấy…" nằm cạnh nhau |
+
+Phát hiện có giá trị nhất trong ngày **không phải dòng code nào**, mà là câu Đại Ca nói giữa
+chừng: *phiếu nhập tự sinh khi phiếu xuất ghi sổ*. Nó lật ngược ý nghĩa của cả một tab đang chạy,
+và lôi ra **3 ca hàng rời kho mà không vào đâu cả** — thứ mà không ai biết là đang mất.

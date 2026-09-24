@@ -560,7 +560,8 @@ def _cache_kiem(uid, mat_khau):
         return None, ('bản quyền lưu trên máy đã quá %d ngày (đồng bộ lần cuối %s) nên không '
                       'dùng tạm được nữa.' % (_CACHE_HAN_NGAY, luc.strftime('%d/%m/%Y'))), False
     if not _pbkdf2_verify(mat_khau, m.get('pw', '')):
-        return None, 'Sai tài khoản hoặc mật khẩu ứng dụng.', True
+        # Cùng một câu với đường online — người dùng không cần biết lúc đó có mạng hay không.
+        return None, _LOI_SAI_TAI_KHOAN, True
     return m.get('ttin') or {}, luc.strftime('%d/%m/%Y %H:%M'), False
 
 # ===== GZIP COMPRESSION =====
@@ -776,6 +777,13 @@ def install_driver():
     success, message = install_odbc_driver()
     return jsonify({"success": success, "message": message})
 
+# Hai câu này là TIÊU ĐỀ lỗi đăng nhập. Màn hình đăng nhập có hai nhóm ô khác hẳn nhau —
+# thông tin SQL Server và tài khoản ứng dụng — nên người dùng chỉ cần liếc dòng đầu là biết
+# phải sửa ô nào. Hướng dẫn chi tiết nằm ở dòng dưới, nguyên văn lỗi nằm sau nút "Chi tiết".
+_LOI_SAI_TAI_KHOAN = 'Mật khẩu hoặc tài khoản không đúng'
+_LOI_KET_NOI = 'Lỗi kết nối máy chủ'
+
+
 def _loi_ket_noi_de_hieu(e, cau_hinh=None):
     """Đổi lỗi ODBC thô thành câu người dùng đọc được.
 
@@ -793,6 +801,18 @@ def _loi_ket_noi_de_hieu(e, cau_hinh=None):
     csdl = c.get('database') or 'database'
     nguoi_dung = c.get('user') or 'tài khoản'
 
+    def _tra(huong_dan):
+        """Dòng đầu LUÔN là `_LOI_KET_NOI`, hướng dẫn cụ thể xuống dòng dưới.
+
+        ⛔ Đừng bỏ phần hướng dẫn để cho gọn. Nó sinh ra sau sự cố 20/09/2026: báo sai
+        hướng là người dùng ngồi chờ thay vì đi bật VPN.
+        """
+        return (_LOI_KET_NOI + '\n' + huong_dan, goc)
+
+    _CHUA_TOI = ('Không tới được máy chủ %s. Kiểm tra lần lượt: đã bật VPN / vào đúng mạng '
+                 'nội bộ chưa · địa chỉ và cổng có gõ đúng không · máy chủ SQL có đang bật '
+                 'không.' % may_chu)
+
     # ⚠️ THỨ TỰ XÉT RẤT QUAN TRỌNG, và phải xét "không tới được máy chủ" TRƯỚC "hết giờ chờ".
     #    ODBC Driver 17 khi không tới được máy chủ sẽ trả VỀ CẢ HAI:
     #      "Login timeout expired" + "Server is not found or not accessible"
@@ -805,26 +825,23 @@ def _loi_ket_noi_de_hieu(e, cau_hinh=None):
                       or 'tcp provider' in t
                       or 'named pipes provider' in t)
     if khong_toi_duoc:
-        return ('Không kết nối được tới máy chủ %s.\n'
-                'Kiểm tra lần lượt: đã bật VPN / vào đúng mạng nội bộ chưa · địa chỉ và cổng '
-                'có gõ đúng không · máy chủ SQL có đang bật không.' % may_chu, goc)
+        return _tra(_CHUA_TOI)
     # Tới đây mới là "gọi được máy chủ nhưng nó trả lời chậm quá".
     if 'timeout expired' in t or 'hyt00' in t:
-        return ('Máy chủ có trả lời nhưng quá chậm nên phải bỏ cuộc. Mạng đang chậm, hoặc '
-                'máy chủ SQL đang quá tải. Thử lại sau ít phút.', goc)
+        return _tra('Máy chủ có trả lời nhưng quá chậm nên phải bỏ cuộc. Mạng đang chậm, hoặc '
+                    'máy chủ SQL đang quá tải. Thử lại sau ít phút.')
     if 'login failed for user' in t or '28000' in t:
-        return ('Sai User ID hoặc Password của SQL Server (không phải mật khẩu ứng dụng).', goc)
+        return _tra('Sai User ID hoặc Password của SQL Server — đây là nhóm ô thông tin máy '
+                    'chủ, KHÔNG phải ô tài khoản ứng dụng.')
     if 'cannot open database' in t:
-        return ('Không mở được database "%s". Kiểm tra tên database, hoặc tài khoản "%s" '
-                'chưa được cấp quyền vào database này.' % (csdl, nguoi_dung), goc)
+        return _tra('Không mở được database "%s". Kiểm tra tên database, hoặc tài khoản "%s" '
+                    'chưa được cấp quyền vào database này.' % (csdl, nguoi_dung))
     if 'data source name not found' in t or 'im002' in t:
-        return ('Máy này chưa cài driver ODBC cho SQL Server. Bấm nút cài driver ở màn hình '
-                'đăng nhập rồi thử lại.', goc)
+        return _tra('Máy này chưa cài driver ODBC cho SQL Server. Bấm nút cài driver ở màn hình '
+                    'đăng nhập rồi thử lại.')
     if '08001' in t or '08s01' in t:
-        return ('Không kết nối được tới máy chủ %s.\n'
-                'Kiểm tra lần lượt: đã bật VPN / vào đúng mạng nội bộ chưa · địa chỉ và cổng '
-                'có gõ đúng không · máy chủ SQL có đang bật không.' % may_chu, goc)
-    return ('Không kết nối được tới máy chủ %s.' % may_chu, goc)
+        return _tra(_CHUA_TOI)
+    return _tra('Không tới được máy chủ %s.' % may_chu)
 
 @app.route("/api/login", methods=["POST"])
 def login():
@@ -867,8 +884,14 @@ def login():
             canh_bao = ('Không nối được Google — đang dùng bản quyền lưu trên máy '
                         '(đồng bộ lần cuối %s). Quyền mới cấp/thu hồi chưa có hiệu lực.' % ly_do)
         if not kq.get('ok'):
-            return jsonify({"status": "error",
-                            "message": kq.get('loi') or 'Sai tài khoản hoặc mật khẩu'}), 401
+            # ⚠️ CHỈ đổi chữ cho đúng ca "gõ sai tài khoản/mật khẩu". Lệnh `dang_nhap` của
+            #    Google còn trả về "Tài khoản đã bị khóa" và "tạm khoá N giây do gõ sai nhiều
+            #    lần" — gộp hết thành "sai mật khẩu" là người đang bị khoá cứ gõ lại, càng
+            #    khoá lâu mà không hiểu vì sao. Giữ nguyên hai câu đó.
+            _loi_gs = (kq.get('loi') or '').strip()
+            if not _loi_gs or _loi_gs == 'Sai tài khoản hoặc mật khẩu':
+                _loi_gs = _LOI_SAI_TAI_KHOAN
+            return jsonify({"status": "error", "message": _loi_gs}), 401
         u = kq.get('user') or {}
         real_uid = u.get('id') or app_user
         ho_ten = u.get('ho_ten')

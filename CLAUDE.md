@@ -2,7 +2,8 @@
 
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
-> Cập nhật gần nhất: **24/09/2026** · **Bản đã phát hành: `v1.12.2`** — là `Latest` trên GitHub
+> Cập nhật gần nhất: **24/09/2026** · **Bản mới nhất: `v1.12.3`** (build local, đạt M3, chờ push)
+> · Bản đang là `Latest` trên GitHub: `v1.12.2`
 > · EXE trên máy Đại Ca **là đúng file CI đã phát hành** (SHA256 khớp digest, đổi 24/09/2026)
 > · Tab đối chiếu điều chuyển **đã đạt M4** — Đại Ca bấm thử trên giao diện, đúng
 > · Apps Script: **Version 5** (`ban 2026-09-21c`)
@@ -116,6 +117,29 @@ Trình duyệt (Chrome --app)  ──HTTP──>  Flask (server.py, cổng 5050)
 - **Đóng gói** — PyInstaller one-file no-console qua [build_exe.py](build_exe.py) → `dist\iPOS_Accounting_Report.exe`.
   `index.html`, `version.txt`, `icon`, `manifest.json` được nhúng vào EXE bằng `--add-data`.
 - **Phiên đăng nhập** — chỉ lưu `session['db_config']`. **KHÔNG có khoá `session['logged_in']`** (xem Bẫy 1).
+
+#### 🗣️ Thông báo lỗi đăng nhập — **đúng HAI tiêu đề, đừng trộn** *(chốt 24/09/2026)*
+
+Màn hình đăng nhập có **hai nhóm ô khác hẳn nhau**: thông tin SQL Server, và tài khoản ứng dụng.
+Người dùng phải liếc **dòng đầu** là biết phải sửa nhóm nào:
+
+| Hỏng ở đâu | Dòng đầu (hằng trong `server.py`) |
+|---|---|
+| Tài khoản / mật khẩu **ứng dụng** | **`Mật khẩu hoặc tài khoản không đúng`** — `_LOI_SAI_TAI_KHOAN` |
+| Thông tin **SQL Server** | **`Lỗi kết nối máy chủ`** — `_LOI_KET_NOI` |
+
+Hướng dẫn cụ thể nằm ở **dòng thứ hai**, nguyên văn lỗi ODBC nằm sau nút **"Chi tiết"**.
+
+⛔ **Đừng bỏ dòng hướng dẫn để cho gọn.** Nó sinh ra sau sự cố 20/09/2026: báo sai hướng là người
+dùng ngồi chờ thay vì đi bật VPN. Tiêu đề ngắn **thêm vào trước**, không thay thế.
+
+⛔ **Đừng gộp mọi lỗi tài khoản thành "sai mật khẩu".** Lệnh `dang_nhap` của Google trả về **ba**
+loại: sai mật khẩu · **tạm khoá N giây** do gõ sai nhiều lần · **tài khoản đã bị khoá**. Chỉ ca
+đầu mới đổi chữ — nói "sai mật khẩu" với người đang bị khoá là họ gõ lại tiếp, càng khoá lâu.
+Xem nhánh `if not kq.get('ok')` trong `login()`.
+
+Hai đường online (Google) và offline (bản cache trên máy) **dùng chung một câu** — người dùng
+không cần biết lúc đó có mạng hay không.
 - **Cache** — `_meta_cache[db_name]` giữ danh mục (đơn vị, TK, hàng hoá, MCP, công việc…) để khỏi JOIN bảng dimension.
 
 ### 1.1 Màn hình

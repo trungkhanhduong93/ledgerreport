@@ -18,7 +18,7 @@
 ## 📌 VIỆC CẦN LÀM — *cập nhật 24/09/2026*
 
 > Gom hết việc còn treo về một chỗ. Nhận việc mới thì **đọc mục này trước**.
-> Trạng thái: **v1.12.2** đã phát hành, là `Latest` trên GitHub. `main` = `f862674`.
+> Trạng thái: **v1.12.3** đã build local, đạt M3, chờ push. Trên GitHub `Latest` là **v1.12.2**.
 > ⚠️ Commit tài liệu sau đó **cố ý giữ ở local** — push file `.md` là Actions build lại, thay asset,
 > và SHA256 của EXE trên máy Đại Ca vừa khớp xong sẽ lệch ngay. Gộp kèm lần sửa code tiếp theo.
 
@@ -1893,3 +1893,51 @@ Kiểm đủ 4 điều kiện trước khi bấm: remote **GitHub**, tag `v1.12.
 Phát hiện có giá trị nhất trong ngày **không phải dòng code nào**, mà là câu Đại Ca nói giữa
 chừng: *phiếu nhập tự sinh khi phiếu xuất ghi sổ*. Nó lật ngược ý nghĩa của cả một tab đang chạy,
 và lôi ra **3 ca hàng rời kho mà không vào đâu cả** — thứ mà không ai biết là đang mất.
+
+---
+
+## 24/09/2026 (tiếp) — Thông báo lỗi đăng nhập: hai tiêu đề ngắn · **v1.12.3**
+
+Đại Ca chốt: sai tài khoản ứng dụng thì ghi **"Mật khẩu hoặc tài khoản không đúng"**, sai thông
+tin SQL thì ghi **"Lỗi kết nối máy chủ"**.
+
+Lý do rất thực tế: màn hình đăng nhập có **hai nhóm ô khác hẳn nhau**, mà trước đây thông báo lại
+không cho biết phải sửa nhóm nào. Lỗi SQL thì ra một đoạn dài 2–3 dòng, lỗi tài khoản thì ra câu
+tuỳ Google trả về — người dùng đọc xong vẫn không biết gõ lại ô nào.
+
+### Đã làm
+
+| Chỗ | Thay đổi |
+|---|---|
+| `_LOI_SAI_TAI_KHOAN` / `_LOI_KET_NOI` | Hai hằng mới, đặt ngay trên `_loi_ket_noi_de_hieu` |
+| `_loi_ket_noi_de_hieu` | Mọi nhánh trả về nay đi qua `_tra()` — **dòng đầu luôn là `Lỗi kết nối máy chủ`**, hướng dẫn cụ thể xuống dòng dưới |
+| `login()` nhánh Google | Chỉ đổi chữ cho ca "sai tài khoản/mật khẩu" |
+| `_cache_kiem` (offline) | Dùng **chung một hằng** với đường online |
+
+### ⛔ Hai chỗ CỐ Ý không làm — đừng "dọn gọn" sau này
+
+1. **Không bỏ dòng hướng dẫn.** Tiêu đề ngắn **thêm vào trước**, không thay thế. Đoạn
+   *"đã bật VPN / vào đúng mạng nội bộ chưa · địa chỉ và cổng có gõ đúng không"* sinh ra sau sự cố
+   20/09/2026 — báo sai hướng là người dùng ngồi chờ thay vì đi bật VPN.
+2. **Không gộp mọi lỗi tài khoản thành "sai mật khẩu".** Lệnh `dang_nhap` của Google trả **ba**
+   loại: sai mật khẩu · **tạm khoá N giây** · **tài khoản đã bị khoá**. Gộp hết là người đang bị
+   khoá cứ gõ lại, càng khoá lâu mà không hiểu vì sao. Chỉ ca đầu mới đổi chữ — điều kiện
+   `_loi_gs == 'Sai tài khoản hoặc mật khẩu'`.
+
+### Verify
+
+| Mức | Nội dung |
+|---|---|
+| M1 | `ast.parse` OK · không hàm trùng tên · **164 hàm / 69 route** không đổi |
+| **M2** | **21 phép, đạt hết.** 6 loại lỗi ODBC (không tới được máy chủ · hết giờ chờ · sai user/pass SQL · không mở được database · thiếu driver · lỗi lạ) — **cả 6 đều có dòng đầu đúng bằng `Lỗi kết nối máy chủ`**, vẫn giữ dòng hướng dẫn, vẫn gửi kèm nguyên văn. Gọi **thật lên Google** với tài khoản không tồn tại → trả đúng `Mật khẩu hoặc tài khoản không đúng`, HTTP 401, **không lộ thông tin SQL** trong thông báo |
+| **M3** | Build **v1.12.3**, chạy EXE thật, `POST /api/login` qua cổng 5050 với tài khoản sai → trả đúng câu mới. `current_version 1.12.3` · `is_frozen True` |
+
+### Điểm mù
+
+⚠️ **Nhánh "sai thông tin SQL" chưa chạy được qua EXE thật.** `login()` xác thực tài khoản ứng
+dụng **trước**, rồi mới kết nối SQL — muốn tới được nhánh SQL thì phải có mật khẩu ứng dụng đúng,
+mà mật khẩu đó Đại Ca giữ. Nhánh này được kiểm ở **M2** bằng cách gọi thẳng `_loi_ket_noi_de_hieu`
+với 6 chuỗi lỗi ODBC thật. Đại Ca đăng nhập đúng tài khoản rồi cố tình gõ sai IP máy chủ là ra M3.
+
+⚠️ Câu **tạm khoá / tài khoản bị khoá** chưa thử được vì phải cố tình gõ sai nhiều lần lên tài
+khoản thật. Đã chặn bằng điều kiện so khớp chính xác chuỗi, và có phép kiểm trong bộ M2.

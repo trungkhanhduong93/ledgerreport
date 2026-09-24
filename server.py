@@ -4127,26 +4127,53 @@ def _dcnb_fmt_rows(columns, raw_rows):
     return rows
 
 
-def _dcnb_summary(cursor, cte, where_sql, params):
-    """Thống kê theo trạng thái — dùng luôn làm COUNT, khỏi quét bảng thêm lần nữa."""
-    cursor.execute(f"""
-        {cte}
-        SELECT TRANG_THAI, SO_DONG = COUNT(*),
+# Câu thống kê theo trạng thái. Tách riêng vì dùng ở HAI đường: chạy thẳng trên CTE (các
+# endpoint khác) và đọc từ bảng tạm #dc (đường phân trang — xem `get_dcnb_reconcile`).
+_DCNB_SUMMARY_COLS = """SELECT TRANG_THAI, SO_DONG = COUNT(*),
                SO_PHIEU = COUNT(DISTINCT CAST(PR_KEY_XUAT AS varchar(30))),
-               TIEN_XUAT = SUM(TIEN_XUAT)
-        FROM DC WHERE {where_sql}
-        GROUP BY TRANG_THAI
-    """, params)
-    # so_dong tách theo từng trạng thái: nhờ nó mà biết số dòng của nhóm đang chọn ngay trong
-    # lượt quét này, khỏi phải chạy thêm một câu COUNT nữa.
+               TIEN_XUAT = SUM(TIEN_XUAT)"""
+
+
+def _dcnb_summary_tu_dong(rows):
+    """Dựng phần tóm tắt từ các dòng ĐÃ đọc sẵn — không tự chạy SQL.
+
+    so_dong tách theo từng trạng thái: nhờ nó mà biết số dòng của nhóm đang chọn ngay
+    trong lượt quét này, khỏi phải chạy thêm một câu COUNT nữa.
+    """
     out = {"tong_dong": 0, "so_dong": {}, "so_phieu": {}, "tien": {}}
-    for tt, so_dong, so_phieu, tien in cursor.fetchall():
+    for tt, so_dong, so_phieu, tien in rows:
         tt = (tt or "").strip()
         out["tong_dong"] += int(so_dong or 0)
         out["so_dong"][tt] = int(so_dong or 0)
         out["so_phieu"][tt] = int(so_phieu or 0)
         out["tien"][tt] = float(tien or 0)
     return out
+
+
+def _doc_ket_qua_ke_tiep(cursor):
+    """Nhảy tới result set kế tiếp CÓ dữ liệu trong một batch nhiều câu lệnh.
+
+    `SELECT ... INTO` không sinh result set nên phải bỏ qua, không thì `cursor.description`
+    là None và `fetchall()` ném lỗi.
+    """
+    while cursor.description is None:
+        if not cursor.nextset():
+            return [], []
+    cols = [c[0] for c in cursor.description]
+    rows = cursor.fetchall()
+    cursor.nextset()
+    return cols, rows
+
+
+def _dcnb_summary(cursor, cte, where_sql, params):
+    """Thống kê theo trạng thái — dùng luôn làm COUNT, khỏi quét bảng thêm lần nữa."""
+    cursor.execute(f"""
+        {cte}
+        {_DCNB_SUMMARY_COLS}
+        FROM DC WHERE {where_sql}
+        GROUP BY TRANG_THAI
+    """, params)
+    return _dcnb_summary_tu_dong(cursor.fetchall())
 
 
 @app.route("/api/dcnb_reconcile")
@@ -4175,25 +4202,43 @@ def get_dcnb_reconcile():
             raw_rows = cursor.fetchall()
             total_rows = len(raw_rows)
         else:
+            # Dựng DC ra bảng tạm #dc MỘT lần rồi đọc hai lượt từ đó (tóm tắt + phân trang).
+            #
+            # Vì sao: kẹp TRANG_THAI = ? thẳng vào CTE làm kế hoạch thực thi xấu hẳn. Đo
+            # T09/2026, chip "Đã nhận đủ", trang 1 x 200 dòng: tóm tắt 4,1s + phân trang
+            # 29,0s = 33,1s; cùng hai câu đó đọc từ #dc chỉ còn 12,1s — nhanh 2,7 lần.
+            # Chi phí của riêng bộ lọc chỉ +1,9s (COUNT 2,0s -> 4,0s); chỗ đắt là lọc CỘNG
+            # VỚI ROW_NUMBER + danh sách cột đầy đủ. Đã thử OFFSET/FETCH (31,9s) và
+            # OPTION (RECOMPILE) (28,8s) — cả hai KHÔNG ăn thua, đừng thử lại.
+            #
+            # PHẢI gộp vào MỘT batch: pyodbc chạy câu CÓ THAM SỐ qua sp_executesql, bảng tạm
+            # tạo trong đó chết ngay khi câu lệnh kết thúc, tách ra là lỗi "Invalid object
+            # name '#dc'". Cũng nhờ thế mà KHÔNG phải dọn #dc — hết batch là nó tự biến mất,
+            # lần gọi sau luôn có bảng sạch.
+            _, w_tt, p_tt = _build_dcnb_where(request.args, bo_trang_thai=True)
+            _st = DCNB_STATUS_MAP.get(request.args.get("status", "").strip())
+            offset = (page - 1) * page_size
+
+            # Các câu cách nhau bằng ";" nên nối bằng dấu cách là đủ.
+            phan = [f"{cte} SELECT {_DCNB_SELECT} INTO #dc FROM DC WHERE {w_tt};"]
+            ps = list(p_tt)
+            if not skip_count:
+                phan.append(f"{_DCNB_SUMMARY_COLS} FROM #dc GROUP BY TRANG_THAI;")
+            loc_tt = " WHERE TRANG_THAI = ?" if _st else ""
+            phan.append(f"SELECT * FROM (SELECT *, ROW_NUMBER() OVER (ORDER BY {order_by_sql})"
+                        f" AS RowNum FROM #dc{loc_tt}) AS T WHERE RowNum > ? AND RowNum <= ?;")
+            if _st:
+                ps.append(_st)
+            ps += [offset, offset + page_size]
+            cursor.execute(" ".join(phan), ps)
+
             if skip_count:
                 total_rows = int(known_total)
             else:
-                _, w_tt, p_tt = _build_dcnb_where(request.args, bo_trang_thai=True)
-                summary = _dcnb_summary(cursor, cte, w_tt, p_tt)
-                _st = DCNB_STATUS_MAP.get(request.args.get("status", "").strip())
+                _, tom_tat = _doc_ket_qua_ke_tiep(cursor)
+                summary = _dcnb_summary_tu_dong(tom_tat)
                 total_rows = summary["so_dong"].get(_st, 0) if _st else summary["tong_dong"]
-
-            offset = (page - 1) * page_size
-            cursor.execute(f"""
-                {cte}
-                SELECT * FROM (
-                    SELECT {_DCNB_SELECT},
-                           ROW_NUMBER() OVER (ORDER BY {order_by_sql}) AS RowNum
-                    FROM DC WHERE {where_sql}
-                ) AS T WHERE RowNum > ? AND RowNum <= ?
-            """, params + [offset, offset + page_size])
-            columns  = [c[0] for c in cursor.description]
-            raw_rows = cursor.fetchall()
+            columns, raw_rows = _doc_ket_qua_ke_tiep(cursor)
 
         return jsonify({
             "status": "ok",

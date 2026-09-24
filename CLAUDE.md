@@ -2,7 +2,8 @@
 
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
-> Cập nhật gần nhất: **24/09/2026** · **Bản đã phát hành: `v1.12.1`** — là `Latest` trên GitHub
+> Cập nhật gần nhất: **24/09/2026** · **Bản mới nhất: `v1.12.2`** (build local, đạt M3, chờ push)
+> · Bản đang là `Latest` trên GitHub: `v1.12.1`
 > · EXE trên máy Đại Ca **là đúng file CI đã phát hành** (SHA256 khớp digest, đổi 24/09/2026)
 > · Tab đối chiếu điều chuyển **đã đạt M4** — Đại Ca bấm thử trên giao diện, đúng
 > · Release là `Latest` · EXE trên máy Đại Ca **là đúng file CI đã phát hành** (SHA256 khớp digest)
@@ -211,10 +212,32 @@ trạng thái, giữ mọi bộ lọc khác); ba hàm tóm tắt phơi thêm **`
 theo trạng thái ở bất cứ đâu khác**, không là bệnh quay lại mà không ai thấy (chip vẫn ra số, chỉ
 là số sai).
 
-🐢 **CÒN TREO — bấm chip chậm gấp ~4 lần.** Đo T09/2026, `page_size=200`: không chọn chip **7,8s**,
-bấm chip `Đã nhận đủ` **29,2s**. **Có sẵn từ trước, không phải do lần sửa trên** — đối chứng bản
-git HEAD cho đúng con số đó (29,2s cũ so với 29,5s mới). Chính mệnh đề `TRANG_THAI = ?` — lọc trên
-một cột `CASE` dựng trong CTE — làm kế hoạch thực thi xấu đi. Chưa đào.
+📐 **Thứ tự chip cố ý:** `Tất cả` · **`Không thấy phiếu nhập`** · **`Không thấy phiếu xuất`** ·
+`Phiếu nhập chưa ghi sổ` · `Phiếu xuất chưa ghi sổ` · `Lệch số lượng` · `Đã nhận đủ`. Hai chip
+"Không thấy…" để **cạnh nhau** vì tên chỉ khác một chữ và là hai chiều ngược của cùng một việc —
+tách xa nhau là bấm nhầm. Đừng sắp lại theo thứ tự bảng chữ cái.
+
+⚡ **ĐÃ SỬA 24/09/2026 — bấm chip từng chậm gấp 4–7 lần.** Kẹp `TRANG_THAI = ?` thẳng vào CTE
+làm kế hoạch thực thi xấu hẳn. Nay `get_dcnb_reconcile` **dựng `DC` ra bảng tạm `#dc` MỘT lần**
+rồi đọc cả tóm tắt lẫn phân trang từ đó. Đo T08/2026, `page_size=50`:
+
+| Thao tác | Trước | Sau |
+|---|---|---|
+| Không chọn chip | 9,7s | **6,6s** |
+| Chip `Đã nhận đủ` | 42,9s | **7,9s** |
+| Sang **trang 2** | 50,1s | **6,6s** |
+| Đổi **cột sắp xếp** | 45,9s | **7,3s** |
+| Ô tìm **mã hàng** | 7,8s | 9,5s ⚠️ |
+
+⚠️ **Đánh đổi có thật:** ô tìm mã hàng **chậm thêm ~2s** vì điều kiện đó vốn đẩy sâu xuống được
+bảng gốc, `SELECT INTO` chặn mất. Đổi 2s đó lấy 35–43s ở chip là đáng — nhưng phải biết.
+
+⛔ **Đã thử và KHÔNG ăn thua, đừng thử lại:** `ORDER BY … OFFSET/FETCH` (31,9s) ·
+`OPTION (RECOMPILE)` (28,8s). Chi phí của riêng bộ lọc chỉ **+1,9s** (COUNT 2,0s → 4,0s) — chỗ đắt
+là lọc **cộng với** `ROW_NUMBER` + danh sách cột đầy đủ.
+
+⚠️ **Chỉ `dcnb_reconcile` dùng `#dc`.** `btp_reconcile` không cần (bấm chip 7,5s, bằng lúc không
+bấm) và `po_list` chỉ 0,2s. Đừng bê sang khi chưa đo.
 
 🐛 **CÒN TREO — phiếu `POSTED` mà không có dòng nào trong `WAREHOUSE` thì tab giấu hẳn.**
 Đo T09/2026: `XNB00001/T09` ngày 03/09 đơn vị `10` có `STATUS = POSTED`, 1 dòng `SALE_DETAIL`,
@@ -711,6 +734,36 @@ bảng: với `NDCNB` và `NSP` thì độ phủ là **100% mọi tháng 2026**,
 💡 **Cách kiểm một nhánh chưa có dữ liệu thật:** chạy đúng công thức của nhánh đó lên phiếu **đã
 ghi sổ** rồi bắt nó phải trùng với nhánh cũ. Nhờ mẹo này mà nhánh nháp của tab BTP được kiểm
 thật (10.094/10.094 và 4.149/4.149) dù `XKHOSXBTP`/`NSP` **chưa từng có phiếu nháp nào**.
+
+### Bẫy 25 — Bảng tạm `#temp` **chết ngay** khi câu lệnh có tham số kết thúc *(24/09/2026)*
+
+pyodbc chạy câu lệnh **có tham số** qua `sp_executesql`. Bảng tạm tạo bên trong đó nằm trong
+**scope con**, nên hết câu lệnh là biến mất. Tách làm hai lượt `cursor.execute` là lỗi ngay:
+
+```python
+cur.execute("WITH X AS (...) SELECT ... INTO #dc FROM DC WHERE ...", params)
+cur.execute("SELECT * FROM #dc")     # ❌ Invalid object name '#dc'
+```
+
+⚠️ Câu **không có tham số** thì lại chạy được — nên thử nhanh bằng `SELECT 1 INTO #t` sẽ thấy
+"bảng tạm sống bình thường" rồi kết luận sai. Đã vấp thật.
+
+➡️ **Gộp tất cả vào MỘT `cursor.execute`**, các câu cách nhau bằng `;`, rồi duyệt result set bằng
+`cursor.nextset()`. Xem `_doc_ket_qua_ke_tiep()` và `get_dcnb_reconcile()`.
+Lợi thêm: hết batch là `#dc` **tự biến mất**, không phải dọn, lần gọi sau luôn có bảng sạch.
+
+### Bẫy 26 — Sửa file 9.000 dòng bằng cách **dò số dòng** là xoá nhầm cả vùng *(24/09/2026)*
+
+Tôi tìm dòng bắt đầu bằng `sql = f"{cte} SELECT` để thay một khối trong `get_dcnb_reconcile`.
+Chuỗi đó **cũng có ở endpoint BTP nằm phía trên**, còn mốc kết thúc thì khớp ở dcnb ⇒ vùng thay
+trải từ BTP sang tận dcnb, **xoá mất 574 dòng** mà vẫn ghi file ra bình thường.
+
+Cứu được **chỉ vì** working tree đã commit sạch trước đó: `git checkout -- server.py` là xong,
+rồi đối chiếu lại **162 hàm / 69 route** đúng như trước.
+
+➡️ **Luật:** sửa `server.py` thì **khớp nguyên khối bằng chuỗi và `assert count == 1`**, tuyệt đối
+không dùng chỉ số dòng. Và **commit trước khi làm việc lớn** — đó là thứ duy nhất cứu được.
+Sau mỗi lần sửa lớn, đếm lại hàm + route (đoạn script ở mục 2.3) trước khi chạy tiếp.
 
 ---
 

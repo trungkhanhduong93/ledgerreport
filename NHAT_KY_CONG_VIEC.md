@@ -18,7 +18,7 @@
 ## 📌 VIỆC CẦN LÀM — *cập nhật 24/09/2026*
 
 > Gom hết việc còn treo về một chỗ. Nhận việc mới thì **đọc mục này trước**.
-> Trạng thái: **v1.12.1** đã phát hành, là `Latest`. `main` = `2a7e7fb`.
+> Trạng thái: **v1.12.2** đã build local, đạt M3, chờ push. Trên GitHub `Latest` là **v1.12.1**.
 > ⚠️ Commit tài liệu sau đó **cố ý giữ ở local** — push file `.md` là Actions build lại, thay asset,
 > và SHA256 của EXE trên máy Đại Ca vừa khớp xong sẽ lệch ngay. Gộp kèm lần sửa code tiếp theo.
 
@@ -47,9 +47,9 @@
 | 9 | Màn đăng nhập **chưa bắt buộc** điền Tài khoản ứng dụng | Để trống thì phải chờ Google **4–7 giây** mới báo lỗi, thay vì chặn ngay tại chỗ |
 | 10 | Dropdown lọc **Đơn vị** vẫn hiện tên đơn vị ngoài quyền | Chọn vào ra 0 dòng — **lộ tên, không lộ số** |
 | 12 | ~~Hàng chip tụt về 0 khi bấm chọn một chip~~ ✅ **XONG 24/09/2026** | Sửa cả **ba** tab (`dcnb_reconcile`, `btp_reconcile`, **`po_list`** — tab này cũng dính, phát hiện lúc sửa). Cờ `bo_trang_thai` + `so_dong` tách theo trạng thái. Đối chứng trước/sau: **không chậm đi** |
-| 15 | 🐢 **Bấm chip chậm gấp ~4 lần** (7,8s → 29,2s) | **Có sẵn từ trước**, đã đối chứng bản git HEAD ra đúng con số. Mệnh đề `TRANG_THAI = ?` lọc trên cột `CASE` dựng trong CTE làm kế hoạch thực thi xấu đi. Hướng đào: đẩy điều kiện vào trong CTE, hoặc vật chất hoá CTE ra `#temp` rồi mới lọc. Ghi 24/09/2026 |
-| 13 | 🐛 **Phiếu `POSTED` mà không có dòng nào trong `WAREHOUSE` thì tab giấu hẳn** | `XNB00001/T09` ngày 03/09/2026 đơn vị `10`: `STATUS = POSTED`, có 1 dòng `SALE_DETAIL`, **0 dòng kho**. Nhánh `X` đọc `WAREHOUSE` nên phiếu không hiện ở bất kỳ nhóm nào. Cần **đo cả năm 2026** xem bao nhiêu ca rồi mới chốt hiển thị thế nào. Phát hiện 24/09/2026 |
-| 14 | Hai chip tên gần giống nhau: **KHÔNG THẤY PHIẾU NHẬP** / **KHÔNG THẤY PHIẾU XUẤT** | Chỉ khác một chữ, lại nằm cách xa nhau trên hàng chip. Đề xuất đưa hai cái cạnh nhau cho thấy rõ là một cặp hai chiều. Đại Ca chưa chốt |
+| 15 | ~~Bấm chip chậm gấp ~4 lần~~ ✅ **XONG 24/09/2026** | Dựng `DC` ra bảng tạm `#dc` một lần. Chip `Đã nhận đủ` **42,9s → 7,9s**, trang 2 **50,1s → 6,6s**, đổi cột sắp xếp **45,9s → 7,3s**. Đánh đổi: ô tìm mã hàng chậm thêm ~2s |
+| 13 | ~~Phiếu `POSTED` mà 0 dòng `WAREHOUSE` bị tab giấu~~ ✅ **ĐÓNG 24/09/2026 — KHÔNG phải lỗi** | Đo cả năm 2026: chỉ **5/20.089** `XDCNB` · **4/19.479** `NDCNB` · **2/21.848** `XKHOSXBTP` · **1/21.561** `NSP` (≤0,02%), và **cả 12 phiếu đều có số lượng = 0** — phiếu rỗng. Phiếu rỗng thì không có gì để đối chiếu ⇒ giấu đi là **đúng**. Không sửa dòng code nào |
+| 14 | ~~Hai chip tên gần giống nhau nằm cách xa~~ ✅ **XONG 24/09/2026** | Đã đưa `Không thấy phiếu xuất` lên ngay sau `Không thấy phiếu nhập` — hai chiều ngược của cùng một việc thì để cạnh nhau |
 | 11 | **Nâng 3 GitHub Action lên bản chạy Node 24** | Kẹt vì token `gh` thiếu scope `workflow`. Đại Ca chạy `gh auth refresh -h github.com -s workflow` hoặc sửa thẳng trên web GitHub. Tiện tay thêm `paths-ignore` — [chi tiết](#-việc-còn-treo--nâng-3-action-lên-bản-chạy-node-24) |
 
 ### ⚠️ Giới hạn thiết kế — KHÔNG phải lỗi, đừng "sửa giúp"
@@ -1770,3 +1770,98 @@ digest GitHub, chạy lại — cổng 5050 LISTENING, **48,2 MB**, nội dung *
 
 ⚠️ **Commit tài liệu ghi lại việc này CỐ Ý giữ ở local.** Push nó là Actions build lại, thay asset,
 SHA vừa khớp xong lại lệch — đúng vòng lặp đã mô tả ở mục trên. Gộp kèm lần sửa code tiếp theo.
+
+---
+
+## 24/09/2026 (tối) — Dọn nốt 3 việc treo: 13, 14, 15 · **v1.12.2**
+
+Đại Ca chốt *"làm luôn đi"*. Việc 11 (nâng GitHub Action + `paths-ignore`) vẫn kẹt vì cần sửa
+trên web GitHub, việc 7 cần Đại Ca quyết — nên phiên này làm 13, 14, 15.
+
+### Việc 13 — hoá ra KHÔNG phải lỗi, đóng bằng phép đo
+
+Nghi phiếu `POSTED` mà không có dòng nào trong `WAREHOUSE` đang bị tab giấu mất. Đo cả năm 2026:
+
+| Loại phiếu | POSTED | Không dòng kho | Trong đó **SL > 0** |
+|---|---|---|---|
+| `XDCNB` | 20.089 | 5 (0,02%) | **0** |
+| `NDCNB` | 19.479 | 4 (0,02%) | **0** |
+| `XKHOSXBTP` | 21.848 | 2 (0,01%) | **0** |
+| `NSP` | 21.561 | 1 (0,00%) | **0** |
+
+**Cả 12 phiếu đều là phiếu rỗng** — có dòng chứng từ nhưng số lượng bằng 0. Phiếu rỗng thì không
+có gì để đối chiếu ⇒ tab giấu đi là **đúng**. Không sửa dòng code nào. Đây là kết cục tốt nhất
+của một việc treo: **đóng nó bằng số liệu, không phải bằng code.**
+
+### Việc 15 — đào ra gốc, sửa được 5–7 lần
+
+Đo tách từng phần mới thấy nghi ngờ ban đầu ("mệnh đề lọc đắt") là **sai**:
+
+| Phép đo | Thời gian |
+|---|---|
+| CTE + `COUNT(*)`, **không** lọc | 2,0s |
+| CTE + `COUNT(*)`, **có** lọc | 4,0s → **bộ lọc chỉ tốn +1,9s** |
+| CTE + phân trang, **không** lọc | 3,6s |
+| CTE + phân trang, **có** lọc | 27,1s → **+23,5s** |
+
+⇒ Chỗ đắt không phải bộ lọc, mà là **lọc CỘNG VỚI `ROW_NUMBER` + danh sách cột đầy đủ**.
+
+Thử `ORDER BY … OFFSET/FETCH` (31,9s) và `OPTION (RECOMPILE)` (28,8s) — **cả hai không ăn thua**.
+Cách ăn thua: **dựng `DC` ra bảng tạm `#dc` một lần**, rồi cả tóm tắt lẫn phân trang đọc từ đó.
+
+Đo T08/2026, `page_size=50`:
+
+| Thao tác | Trước | Sau | |
+|---|---|---|---|
+| Không chọn chip | 9,7s | **6,6s** | |
+| Chip `Không thấy phiếu nhập` | 31,5s | **7,8s** | 4,0× |
+| Chip `Đã nhận đủ` | 42,9s | **7,9s** | 5,4× |
+| **Trang 2** | 50,1s | **6,6s** | 7,6× |
+| **Đổi cột sắp xếp** | 45,9s | **7,3s** | 6,3× |
+| Lọc kho nhập | 8,1s | **5,8s** | |
+| **Ô tìm mã hàng** | 7,8s | **9,5s** | ⚠️ chậm đi |
+
+⚠️ **Đánh đổi có thật, không giấu:** ô tìm mã hàng **chậm thêm ~2s** — điều kiện đó vốn đẩy sâu
+xuống bảng gốc được, `SELECT INTO` chặn mất. Đo 3 lần mỗi bên để chắc không phải nhiễu.
+
+⚠️ **Chỉ `dcnb_reconcile` dùng `#dc`.** `btp_reconcile` bấm chip 7,5s (bằng lúc không bấm) và
+`po_list` 0,2s — không có bệnh thì không sửa.
+
+### Việc 14 — hai chip "Không thấy…" nay nằm cạnh nhau
+
+`Tất cả` · **`Không thấy phiếu nhập`** · **`Không thấy phiếu xuất`** · `Phiếu nhập chưa ghi sổ` ·
+`Phiếu xuất chưa ghi sổ` · `Lệch số lượng` · `Đã nhận đủ`.
+
+### 🔴 Tôi làm hỏng `server.py` — và cách bắt được
+
+Để thay một khối trong `get_dcnb_reconcile`, tôi dò **theo số dòng**: tìm dòng bắt đầu bằng
+`sql = f"{cte} SELECT`. Chuỗi đó **cũng có ở endpoint BTP phía trên**, còn mốc kết thúc lại khớp
+ở dcnb ⇒ vùng thay trải từ BTP sang dcnb, **xoá mất 574 dòng** mà script vẫn báo "đã viết" bình thường.
+
+Bắt được ngay vì `ast.parse` fail. Cứu được **chỉ vì** đã commit sạch trước đó:
+`git checkout -- server.py` → đếm lại **162 hàm / 69 route**, đúng nguyên. Không mất gì.
+
+➡️ Ghi thành **Bẫy 26**: sửa `server.py` phải **khớp nguyên khối bằng chuỗi + `assert count == 1`**,
+tuyệt đối không dùng chỉ số dòng; và **commit trước khi làm việc lớn**.
+
+### Bẫy 25 — bảng tạm chết ngay khi câu lệnh có tham số kết thúc
+
+pyodbc chạy câu **có tham số** qua `sp_executesql` ⇒ `#dc` tạo trong scope con, hết câu lệnh là
+mất. Tách hai lượt `execute` là `Invalid object name '#dc'`.
+
+⚠️ Thử nhanh bằng câu **không tham số** (`SELECT 1 INTO #t`) thì thấy bảng tạm sống bình thường —
+suýt kết luận sai. Phải gộp tất cả vào **một** `execute`, duyệt bằng `cursor.nextset()`.
+Lợi thêm: hết batch `#dc` tự biến mất, không phải dọn.
+
+### Verify
+
+| Mức | Nội dung |
+|---|---|
+| M1 | `ast.parse` OK · Babel SUCCESSFUL · không hàm trùng tên · **164 hàm** (162 + 2 hàm mới) · **69 route** không đổi |
+| **M2 — đối chứng trước/sau** | Chạy bản git HEAD và bản mới trên **10 tổ hợp** (không lọc · 4 chip khác nhau · trang 2 · ô tìm mã hàng · ô tìm + chip · đổi cột sắp xếp · lọc kho nhập), kỳ **T08/2026** đã đóng nên dữ liệu không trôi: **`data` + `summary` + `pagination` giống HỆT nhau 10/10** |
+| M2 | Bộ 14 phép của lần trước chạy lại trên code cuối: **đạt hết** trên cả 3 tab |
+| **M3** | Build **v1.12.2** (14.718.356 B), EXE mới hơn cả 2 file nguồn, chạy tách hẳn: cổng 5050 LISTENING, **41,7 MB**, `current_version 1.12.2` · `is_frozen True`, thứ tự chip trong EXE **đúng** |
+
+⚠️ Phép kiểm thứ tự chip lúc đầu báo SAI — **lỗi của phép đo**: nó bắt nhầm khối chip của tab BTP
+nằm trước trong file. Phải neo bằng chuỗi **chỉ có ở tab DCNB** (`'chua', 'Không thấy phiếu nhập'`).
+Cùng họ với Bẫy 26: **tìm chuỗi mà không kiểm tính duy nhất.**

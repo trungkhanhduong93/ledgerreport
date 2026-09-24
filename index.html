@@ -7825,12 +7825,15 @@ const exportJournalCsv = (mode) => {
                                         <PremiumDropdown label="Hàng hoá" items={meta.items} selectedItems={filters.item_ids} onSelect={id => toggleFilter('item_ids', id)} isActive={activeDropdown === 'Hàng hoá'} onToggle={setActiveDropdown} />
                                     </div>}
                                     <div className="flex items-center gap-2 flex-wrap">
+                                        {/* Hai chip "Không thấy ..." để CẠNH NHAU: chúng là hai chiều ngược
+                                            của cùng một việc (thiếu phiếu nhập / thiếu phiếu xuất) và tên chỉ
+                                            khác đúng một chữ. Tách xa nhau là người đọc bấm nhầm. */}
                                         {[['', 'Tất cả', null],
                                           ['chua', 'Không thấy phiếu nhập', 'Không tìm thấy phiếu nhập'],
+                                          ['khonggoc', 'Không thấy phiếu xuất', 'Không tìm thấy phiếu xuất liên quan'],
                                           ['nhap_chua_gs', 'Phiếu nhập chưa ghi sổ', 'Phiếu nhập chưa ghi sổ'],
                                           ['xuat_chua_gs', 'Phiếu xuất chưa ghi sổ', 'Phiếu xuất chưa ghi sổ'],
                                           ['lech', 'Lệch số lượng', 'Lệch số lượng'],
-                                          ['khonggoc', 'Không thấy phiếu xuất', 'Không tìm thấy phiếu xuất liên quan'],
                                           ['du', 'Đã nhận đủ', 'Đã nhận đủ']].map(([val, label, sumKey]) => {
                                             const on = dcnbFilters.status === val;
                                             const cnt = sumKey && dcnbSummary ? (dcnbSummary.so_phieu?.[sumKey] || 0) : null;

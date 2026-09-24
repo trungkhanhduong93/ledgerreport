@@ -3692,7 +3692,7 @@ def get_btp_reconcile_stream_csv():
 #   khớp 133.348 · chưa nhận 4.603 · lệch 28. KHÔNG cần mẹo "mốc gần hơn" như BTP
 #   (mẹo đó sinh ra vì JOB_QTY của BTP ghi bằng 1 trong 2 đơn vị tuỳ người gõ).
 DCNB_TT_DU   = "Đã nhận đủ"
-DCNB_TT_CHUA = "Chưa nhận hàng"
+DCNB_TT_CHUA = "Không tìm thấy phiếu nhập"
 DCNB_TT_LECH = "Lệch số lượng"
 DCNB_TT_KHONGGOC = "Không tìm thấy phiếu xuất liên quan"
 
@@ -3779,10 +3779,20 @@ N AS (
            SL_NHAN       = SUM(SL)
     FROM N0 GROUP BY SALE_PR_KEY, ITEM_ID
 ),
+NP AS (
+    -- Phiếu nhập có tồn tại ở MỨC PHIẾU không (bất kể mã hàng) — dùng để tách hai loại
+    -- trong nhóm "Không tìm thấy phiếu nhập": mất hẳn phiếu, hay có phiếu mà thiếu mã.
+    -- Đo T09/2026: 8 phiếu mất hẳn, 3 phiếu có phiếu nhập nhưng thiếu đúng một mã hàng
+    -- (vd XNB00373/T09 xuất 13 mã, NNB0009/T09 đã ghi sổ chỉ có 12 — thiếu COC 2.000 G).
+    -- Lấy lại từ CTE P nên KHÔNG quét thêm bảng PURCHASE lần nữa.
+    SELECT SALE_PR_KEY, SO_PHIEU = MAX(TRAN_NO) FROM P GROUP BY SALE_PR_KEY
+),
 ND AS (
-    -- Phiếu NHẬP chưa ghi sổ — bên nhận ĐÃ lập phiếu, chỉ chưa bấm ghi sổ.
-    -- Đây mới là gốc thật của nhóm "Chưa nhận hàng": đo T09/2026 thì 211/218 phiếu (96,8%)
-    -- rơi vào đây, cả năm 2026 là 605/631 (95,9%). Không tách ra là đổ oan cho cửa hàng.
+    -- Phiếu NHẬP chưa duyệt ghi sổ. ⚠️ iPOS TỰ SINH phiếu nhập khi phiếu xuất ghi sổ —
+    -- bên nhận KHÔNG tự lập, họ chỉ kiểm rồi bấm duyệt. Đo T09/2026: 1.906/1.915 phiếu xuất
+    -- đã ghi sổ có phiếu nhập trỏ về (99,53%). Đừng ghi chữ "bên nhận đã lập phiếu" — sai người.
+    -- Tách khỏi nhóm "Không tìm thấy phiếu nhập" vì hai việc khác hẳn nhau: ở đây phiếu đã
+    -- có sẵn, bấm duyệt là xong, không mất hàng. Đo T09/2026: 187 phiếu nằm ở nhóm này.
     -- Cùng luật với XD: nối FR_KEY, lấy QUANTITY_WH (khớp WAREHOUSE 11.013/11.013).
     -- Không lọc theo ngày, giống CTE P ở trên — phiếu nhập có thể sang tháng khác.
     SELECT P2.SALE_PR_KEY, PD.ITEM_ID,
@@ -3904,13 +3914,20 @@ DC AS (
                              WHEN N.SL_NHAN IS NOT NULL      THEN N'{tt_lech}'
                              WHEN ND.SL_NHAN IS NOT NULL     THEN N'{tt_nhap_nhap}'
                              ELSE                                 N'{tt_chua}' END,
-        GHI_CHU       = CASE WHEN N.SL_NHAN IS NULL AND ND.SL_NHAN IS NOT NULL
-                             THEN N'Bên nhận ĐÃ lập phiếu nhập ' + ND.SO_PHIEU_NHAP
-                                  + N' nhưng chưa bấm ghi sổ — hàng chưa vào kho bên nhận'
+        GHI_CHU       = CASE
+                             WHEN N.SL_NHAN IS NULL AND ND.SL_NHAN IS NOT NULL
+                                  THEN N'Phiếu nhập ' + ND.SO_PHIEU_NHAP + N' chưa duyệt ghi sổ'
+                             -- Không khớp mã hàng nào, NHƯNG phiếu nhập vẫn tồn tại ⇒ hàng ra
+                             -- khỏi kho mà bị bỏ sót đúng mã này. Không nói rõ thì người đọc đi
+                             -- tìm phiếu nhập, thấy có, rồi tưởng báo cáo sai.
+                             WHEN N.SL_NHAN IS NULL AND ND.SL_NHAN IS NULL
+                                  AND NP.SO_PHIEU IS NOT NULL
+                                  THEN N'Phiếu nhập ' + NP.SO_PHIEU + N' CÓ nhưng thiếu mã hàng này'
                              ELSE CAST(NULL AS nvarchar(200)) END
     FROM X
     LEFT JOIN N  ON N.SALE_PR_KEY  = X.PR_KEY AND N.ITEM_ID  = X.ITEM_ID
     LEFT JOIN ND ON ND.SALE_PR_KEY = X.PR_KEY AND ND.ITEM_ID = X.ITEM_ID
+    LEFT JOIN NP ON NP.SALE_PR_KEY = X.PR_KEY
     -- Đầu phiếu xuất: chỉ lấy WAREHOUSE_ID_RECEIVE (kho đến). PR_KEY là khoá chính của SALE.
     LEFT JOIN dbo.SALE            XS  WITH (NOLOCK) ON XS.PR_KEY = X.PR_KEY
     LEFT JOIN dbo.DM_ITEM         DI  WITH (NOLOCK) ON DI.ITEM_ID = X.ITEM_ID

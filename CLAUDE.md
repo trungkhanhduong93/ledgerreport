@@ -2,9 +2,10 @@
 
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
-> Cập nhật gần nhất: **24/09/2026** · **Bản đã phát hành trên GitHub: `v1.11.9`** (21/09/2026 22:26)
-> · `main` = `phanquyen` = `aea3bb9` · EXE trên máy Đại Ca **đã đổi sang đúng bản phát hành**
-> (SHA256 khớp digest GitHub) · Apps Script: **Version 5** (`ban 2026-09-21c`)
+> Cập nhật gần nhất: **24/09/2026** · **Bản mới nhất: `v1.12.0`** — đã build local, đạt M3
+> (10/10 nội dung EXE, `current_version 1.12.0`), **chờ push để Actions phát hành**.
+> Bản đang là `Latest` trên GitHub Releases vẫn là `v1.11.9` (21/09/2026 22:26).
+> · Apps Script: **Version 5** (`ban 2026-09-21c`)
 > 🔴 **Đã phát hành khi CHƯA đủ tài khoản nhân viên trên Google Sheet** — Đại Ca chốt làm sau.
 > Ai chưa có tài khoản mà bấm cập nhật là **đăng nhập không được**. Xem việc số 3 trong nhật ký.
 >
@@ -164,14 +165,46 @@ index trên `TRAN_NO`, bản đầu viết kiểu đó làm tab tụt xuống 22
 
 Cùng khuôn `btp_reconcile`: nối **CHỈ** bằng `PURCHASE.SALE_PR_KEY = SALE.PR_KEY`.
 Đo trên `IACC_CHULONG` 2026: **19.838 phiếu `NDCNB` → 19.828 nối được (99,95%), 10 mồ côi.**
-**6 trạng thái** (thêm 2 ngày 21/09/2026 — xem **Bẫy 24**): `Đã nhận đủ` · `Chưa nhận hàng` ·
-**`Phiếu nhập chưa ghi sổ`** · **`Phiếu xuất chưa ghi sổ`** · `Lệch số lượng` ·
-`Không tìm thấy phiếu xuất liên quan`.
+**6 trạng thái**: `Đã nhận đủ` · **`Không tìm thấy phiếu nhập`** *(đổi tên 24/09/2026, trước là
+"Chưa nhận hàng")* · **`Phiếu nhập chưa ghi sổ`** · **`Phiếu xuất chưa ghi sổ`** · `Lệch số lượng` ·
+`Không tìm thấy phiếu xuất liên quan`. Bốn mã lọc trên URL **không đổi** (`du`, `chua`,
+`nhap_chua_gs`, `xuat_chua_gs`, `lech`, `khonggoc`) — `chua` vẫn là nhóm đã đổi tên.
 
-⚠️ **Nhóm "Chưa nhận hàng" trước 21/09 là con số đổ oan.** Đo T09/2026: trong 218 phiếu thì
-**211 (96,8%) bên nhận ĐÃ lập phiếu nhập rồi, chỉ chưa bấm ghi sổ**; cả năm 2026 là 605/631
-(95,9%). Sau khi tách, T09 còn **7 phiếu** thật sự chưa ai lập phiếu — đó mới là việc phải đi đòi.
-Tổng không đổi: 7 + 211 = 218 đúng bằng con số cũ (đã đối chứng với bản git HEAD).
+🔑 **LUẬT NGHIỆP VỤ GỐC — Chú Long xác nhận 24/09/2026: iPOS TỰ SINH phiếu nhập `NDCNB` (trạng
+thái `DRAFT`) ngay khi phiếu xuất `XDCNB` được ghi sổ.** Bên nhận **không lập phiếu**, họ chỉ kiểm
+rồi bấm duyệt ghi sổ. Đo T09/2026 xác nhận: **1.906/1.915 phiếu xuất đã ghi sổ có phiếu nhập trỏ
+về = 99,53%**.
+
+Hệ quả phải hiểu cho đúng, nếu không là **đọc ngược ý nghĩa cả tab**:
+
+| Nhóm | Thực tế | Việc phải làm |
+|---|---|---|
+| `Phiếu nhập chưa ghi sổ` | Phiếu **tự sinh sẵn rồi**, đang chờ duyệt | Nhắc bấm duyệt. **Không mất hàng** — đây là hàng đợi bình thường của quy trình |
+| `Không tìm thấy phiếu nhập` | Hàng **đã trừ kho** bên xuất mà **không phiếu nào ghi nhận vào kho** | 🔴 Lệch kho thật, phải đi truy |
+
+⛔ **Đừng ghi "bên nhận đã lập phiếu" ở bất cứ đâu** — sai người, và đổ oan cho cửa hàng. Câu đó
+từng nằm trong `GHI_CHU` và chú thích chip, đã gỡ 24/09/2026.
+
+⚠️ **Nhóm `Không tìm thấy phiếu nhập` trộn HAI loại khác hẳn nhau** (đo T09/2026: 11 phiếu/15 dòng):
+- **8 phiếu / 12 dòng** — không có phiếu nhập nào. Phiếu tự sinh bị xoá, hoặc chưa từng sinh.
+- **3 phiếu / 3 dòng** — **CÓ phiếu nhập, đã ghi sổ hẳn hoi, nhưng thiếu đúng một mã hàng.**
+  Loại này nguy hiểm hơn vì bên nhận nhìn thấy phiếu "đã xong". Ví dụ `XNB00373/T09` xuất 13 mã,
+  `NNB0009/T09` đã ghi sổ chỉ có 12 — thiếu `COC` (Trái cóc) **2.000 G**. Cột **Ghi chú** nay nói
+  thẳng *"Phiếu nhập NNB0009/T09 CÓ nhưng thiếu mã hàng này"* (CTE `NP`, dùng lại CTE `P` nên
+  không quét thêm bảng).
+
+⚠️ **App ghép cặp theo PHIẾU × MÃ HÀNG**, nên `COUNT(DISTINCT PR_KEY_XUAT)` của một nhóm **đếm cả
+phiếu nằm ở nhóm khác** — một phiếu có mã đã nhận và mã chưa nhận sẽ hiện ở cả hai chip. Đó là lý
+do 11 phiếu chứ không phải 9. **Cộng các chip lại không ra tổng số phiếu.**
+
+🐛 **CÒN TREO — hàng chip tụt về 0 khi bấm chọn một chip.** `_dcnb_summary()` dùng chung `where_sql`
+đã có sẵn `TRANG_THAI = ?`, nên chọn một trạng thái là mọi chip khác về 0. Tab `btp_reconcile` dính
+y hệt. Muốn xem phân bố thật phải bấm chip **TẤT CẢ**. Đại Ca đã biết, chưa chốt sửa (24/09/2026).
+
+🐛 **CÒN TREO — phiếu `POSTED` mà không có dòng nào trong `WAREHOUSE` thì tab giấu hẳn.**
+Đo T09/2026: `XNB00001/T09` ngày 03/09 đơn vị `10` có `STATUS = POSTED`, 1 dòng `SALE_DETAIL`,
+nhưng **0 dòng kho**. Nhánh `X` đọc `WAREHOUSE` nên phiếu này không hiện ở bất kỳ nhóm nào.
+Chưa đo cả năm, chưa chốt hiển thị thế nào.
 
 **Kho nhập nay luôn có**, kể cả dòng chưa nhận: lấy theo 3 mức ưu tiên
 đã ghi sổ → bản nháp → `SALE.WAREHOUSE_ID_RECEIVE` ghi sẵn trên đầu phiếu xuất. Mức 3 đo cả năm

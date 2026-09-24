@@ -3,9 +3,10 @@
 > Toàn bộ những gì đã làm với **LedgerReport**, và **vì sao**. Đọc file này trước khi sửa tiếp.
 > Kiến trúc, ma trận báo cáo, phương án backup: [CLAUDE.md](CLAUDE.md).
 > Mổ xẻ sâu sự cố + 4 bài học: [SU_CO_15082026.md](SU_CO_15082026.md).
-> Phiên gần nhất: **24/09/2026** · Bản phát hành trên GitHub: **v1.11.9** (21/09/2026 22:26)
-> ✅ `main` = `phanquyen` = `aea3bb9`. Đã gộp `main` và **phát hành thật** — Actions chạy 1m18s,
-> Release `v1.11.9` kèm `.exe` + `.zip`. Máy nhân viên đang ở v1.10.7 sẽ thấy nút cập nhật.
+> Phiên gần nhất: **24/09/2026 (chiều)** · Bản mới nhất: **v1.12.0** — build local, đạt M3, chờ push.
+> Release đang là `Latest` trên GitHub: **v1.11.9** (21/09/2026 22:26).
+> 🔑 Phiên này chốt được **luật nghiệp vụ gốc**: iPOS **tự sinh** phiếu nhập `NDCNB` khi phiếu xuất
+> `XDCNB` ghi sổ — đổi hẳn cách đọc tab đối chiếu điều chuyển. Xem mục 24/09 ở cuối file.
 > 🔴 **Đã phát hành KHI CHƯA đủ tài khoản nhân viên trên Google Sheet** — Đại Ca chốt chấp nhận,
 > làm phân quyền sau. Đây là **rủi ro đang chạy**, xem việc số 3.
 > Apps Script trên Google: **Version 5** (21/09/2026 19:33), mã bản `2026-09-21c` — **đã triển khai**.
@@ -17,8 +18,8 @@
 ## 📌 VIỆC CẦN LÀM — *cập nhật 24/09/2026*
 
 > Gom hết việc còn treo về một chỗ. Nhận việc mới thì **đọc mục này trước**.
-> Trạng thái: `main` = `phanquyen` = **`aea3bb9`**, đã push, working tree sạch.
-> Bản phát hành **v1.11.9** đang là `Latest` trên GitHub Releases.
+> Trạng thái: **v1.12.0** đã build local và đạt M3, chờ push để Actions phát hành.
+> Bản đang là `Latest` trên GitHub Releases vẫn là **v1.11.9**.
 
 ### 🔴 Ưu tiên 1 — làm sớm, càng để lâu càng rủi ro
 
@@ -44,6 +45,9 @@
 | 8 | **Xoá file rác**: `phanquyen.json` (972 B, 4 tài khoản test) + `dist/phanquyen.json.cu` (1.002 B) | Vô dụng từ khi bỏ chế độ file 21/09. Cả hai đã `.gitignore` nên không lộ, chỉ là rác |
 | 9 | Màn đăng nhập **chưa bắt buộc** điền Tài khoản ứng dụng | Để trống thì phải chờ Google **4–7 giây** mới báo lỗi, thay vì chặn ngay tại chỗ |
 | 10 | Dropdown lọc **Đơn vị** vẫn hiện tên đơn vị ngoài quyền | Chọn vào ra 0 dòng — **lộ tên, không lộ số** |
+| 12 | 🐛 **Hàng chip tụt về 0 khi bấm chọn một chip** (tab điều chuyển **và** tab BTP) | `_dcnb_summary()` / `_btp_summary()` dùng chung `where_sql` vốn đã có `TRANG_THAI = ?`. Chọn một trạng thái là mọi chip khác về 0 — "Đã nhận đủ · 0" trông như cả tháng không ai nhận hàng. Tạm thời phải bấm chip **TẤT CẢ**. Sửa: cho phần tóm tắt **bỏ riêng bộ lọc trạng thái**, giữ nguyên các bộ lọc khác. Phát hiện 24/09/2026 |
+| 13 | 🐛 **Phiếu `POSTED` mà không có dòng nào trong `WAREHOUSE` thì tab giấu hẳn** | `XNB00001/T09` ngày 03/09/2026 đơn vị `10`: `STATUS = POSTED`, có 1 dòng `SALE_DETAIL`, **0 dòng kho**. Nhánh `X` đọc `WAREHOUSE` nên phiếu không hiện ở bất kỳ nhóm nào. Cần **đo cả năm 2026** xem bao nhiêu ca rồi mới chốt hiển thị thế nào. Phát hiện 24/09/2026 |
+| 14 | Hai chip tên gần giống nhau: **KHÔNG THẤY PHIẾU NHẬP** / **KHÔNG THẤY PHIẾU XUẤT** | Chỉ khác một chữ, lại nằm cách xa nhau trên hàng chip. Đề xuất đưa hai cái cạnh nhau cho thấy rõ là một cặp hai chiều. Đại Ca chưa chốt |
 | 11 | **Nâng 3 GitHub Action lên bản chạy Node 24** | Kẹt vì token `gh` thiếu scope `workflow`. Đại Ca chạy `gh auth refresh -h github.com -s workflow` hoặc sửa thẳng trên web GitHub. Tiện tay thêm `paths-ignore` — [chi tiết](#-việc-còn-treo--nâng-3-action-lên-bản-chạy-node-24) |
 
 ### ⚠️ Giới hạn thiết kế — KHÔNG phải lỗi, đừng "sửa giúp"
@@ -1541,3 +1545,87 @@ Lệch số lượng 3 · Đã nhận đủ 1.502.
 
 (Con số cũ 219 tách thành 7 + 211 = 218; chênh 1 phiếu là do bộ lọc đơn vị loại đơn vị ngoài
 cây `'00'` — phép đo bằng SQL thô không có bộ lọc đó.)
+
+---
+
+## 24/09/2026 (chiều) — Luật nghiệp vụ gốc lộ ra, tab đối chiếu điều chuyển đổi hẳn cách đọc · **v1.12.0**
+
+Việc nhận ban đầu chỉ là đóng nốt **M4** cho tab điều chuyển (Đại Ca đã đăng nhập). Đóng xong,
+nhưng thứ đáng giá lại nằm ở một câu Đại Ca nói giữa chừng.
+
+### 🔑 Câu nói đổi hết mọi thứ
+
+> *"Khi phiếu xuất điều chuyển ghi sổ, thì phiếu nhập điều chuyển **tự động sinh ra** và ở trạng
+> thái chưa ghi sổ, người dùng cần phải kiểm tra để duyệt ghi sổ để nhập vào kho."*
+
+Trước đó tab ghi trong cột Ghi chú: *"**Bên nhận ĐÃ lập phiếu nhập** NNB.../T09 nhưng chưa bấm ghi
+sổ"*. **Sai người** — bên nhận không lập gì cả, máy tự sinh. Cùng một con số, hai cách đọc ngược nhau.
+
+Đo lại trên DB thật để xác nhận, không tin mỗi lời kể. **Đúng: 1.906/1.915 phiếu xuất đã ghi sổ
+T09/2026 có phiếu nhập trỏ về — 99,53%.**
+
+### Giả thuyết của tôi sai — và nói thẳng ra là sai
+
+Tôi nghi phiếu tự sinh mà chưa ai mở thì `QUANTITY_WH = 0`, bị điều kiện lọc của app vứt mất, nên
+rơi nhầm xuống nhóm "Chưa nhận hàng". Đo: **187/187 phiếu `DRAFT` đều có dòng hàng với
+`QUANTITY_WH > 0`.** App thấy hết, không sót phiếu nào. Điều kiện lọc không có lỗi.
+
+Bác xong giả thuyết thì nhóm 11 phiếu kia mới lộ ra là **bất thường thật**, chứ không phải lỗi app.
+
+### Tách được hai loại trong cùng một nhóm
+
+Màn hình hiện **11 phiếu** mà SQL đếm **9**. Nguyên nhân: app ghép cặp theo **phiếu × mã hàng**,
+nên một phiếu có mã đã nhận và mã chưa nhận sẽ nằm ở cả hai nhóm. Tách ra:
+
+| Loại | Phiếu | Dòng | Bản chất |
+|---|---|---|---|
+| Không có phiếu nhập nào | **8** | 12 | Phiếu tự sinh bị xoá, hoặc chưa từng sinh |
+| **Có phiếu nhập, ĐÃ ghi sổ, nhưng thiếu đúng một mã hàng** | **3** | 3 | 🔴 Nguy hiểm hơn — bên nhận nhìn thấy phiếu "đã xong" |
+
+**Ca soi tận nơi:** `XNB00373/T09` ngày 08/09, Kho Tổng xuất **13 mã** cho ĐV `04`. Phiếu nhập
+`NNB0009/T09` **đã ghi sổ**, có **12 mã, khớp từng mã từng số một**. Riêng **`COC` (Trái cóc)
+2.000 G không có trên phiếu nhập** — hàng rời Kho Tổng, không vào kho nào, không ai biết.
+Hai ca còn lại y hệt: `XNB00941/T09` thiếu Nước Cốt Dừa 9.600 G · `XNB01050/T09` thiếu Chanh tươi 500 G.
+
+### Đã sửa
+
+| # | Việc | Chỗ |
+|---|---|---|
+| 1 | Câu Ghi chú: bỏ *"Bên nhận ĐÃ lập phiếu nhập… nhưng chưa bấm ghi sổ"* → **"Phiếu nhập NNB0009/T09 chưa duyệt ghi sổ"** | `server.py` `GHI_CHU` |
+| 2 | Chú thích chip: *"bên nhận đã lập phiếu rồi"* → **"phiếu nhập đã tự sinh, chưa duyệt ghi sổ"** | `index.html` |
+| 3 | **Đổi tên nhóm** `Chưa nhận hàng` → **`Không tìm thấy phiếu nhập`** (Đại Ca chốt) — 4 chỗ: hằng, nhãn chip, chú thích, **điều kiện tô màu dòng** | cả hai file |
+| 4 | **Ghi chú mới cho loại "thiếu mã hàng"**: *"Phiếu nhập NNB0009/T09 CÓ nhưng thiếu mã hàng này"* — CTE `NP` dùng lại CTE `P`, **không quét thêm bảng** | `server.py` |
+
+⚠️ Mã lọc trên URL **giữ nguyên** (`chua`) — đổi mã là gãy link cũ và gãy cả bộ lọc đang lưu.
+Chỉ đổi chuỗi hiển thị. Nhớ sửa **cả điều kiện tô màu** `row.TRANG_THAI === …`, quên là dòng đỏ mất màu.
+
+### Verify
+
+| Mức | Nội dung |
+|---|---|
+| M1 | `ast.parse` OK · `node check_babel.js` SUCCESSFUL · không có hàm trùng tên · **0 chỗ còn sót chữ cũ** trong cả 2 file |
+| M2 | `test_client` in-process (Bẫy 6): phân bố T09 đúng · `status=chua` trỏ đúng nhóm đã đổi tên · **3 dòng có ghi chú mới / 12 dòng không** đúng như đo bằng SQL thô · ghi chú cũ còn nguyên · **xuất CSV chạy tới file thật**, job `done` 15/15, mở file đọc lại đủ 15 dòng |
+| **M3** | Build **v1.12.0** (14.715.374 B), EXE mới hơn cả `server.py` lẫn `index.html` (Bẫy 10), chạy **tách hẳn** bằng `Win32_Process.Create`, cổng 5050 LISTENING, 41 MB (không phải ~10 MB của Bẫy 13), lấy `index.html` từ chính server đang chạy: **10/10 xanh**, `check_update` trả `current_version 1.12.0` · `is_frozen true` |
+| **M4** | **11 phiếu / 15 dòng** — khớp **ba chiều**: màn hình EXE Đại Ca chụp · SQL thô chạy độc lập · code in-process. Thêm `Phiếu nhập chưa ghi sổ` = **187** khớp đúng số phiếu `NDCNB STATUS='DRAFT'`, `Phiếu xuất chưa ghi sổ` = **12** khớp `XDCNB DRAFT` |
+
+⚠️ Giữa hai lần đo, số dịch 2 phiếu (Đã nhận đủ 1.719→1.721, chưa ghi sổ 187→185) — **người dùng
+thật vừa bấm duyệt trên hệ thống**, không phải tôi làm lệch. Tổng dòng đứng yên 14.110.
+
+### Hai việc phát hiện thêm — CHƯA sửa, Đại Ca chưa chốt
+
+1. 🐛 **Hàng chip tụt về 0 khi bấm chọn một chip.** `_dcnb_summary()` dùng chung `where_sql` vốn đã
+   có `TRANG_THAI = ?`, nên chọn một trạng thái là mọi chip khác về 0 — "Đã nhận đủ · 0" trông như
+   cả tháng không ai nhận hàng. **Tab BTP dính y hệt.** Tạm thời: bấm chip **TẤT CẢ** mới ra phân bố thật.
+2. 🐛 **Phiếu `POSTED` mà không có dòng nào trong `WAREHOUSE` thì tab giấu hẳn.** `XNB00001/T09`
+   ngày 03/09 đơn vị `10`: `STATUS = POSTED`, có 1 dòng `SALE_DETAIL`, **0 dòng kho**. Nhánh `X` đọc
+   `WAREHOUSE` nên phiếu này không hiện ở bất kỳ nhóm nào. Đây là lý do SQL đếm 9 mà tab ra 8.
+   Chưa đo cả năm.
+
+### Điểm mù
+
+- Hai chip nay tên gần giống nhau: **KHÔNG THẤY PHIẾU NHẬP** và **KHÔNG THẤY PHIẾU XUẤT**, chỉ khác
+  một chữ và nằm cách xa nhau trên hàng chip. Đã đề xuất đưa cạnh nhau, Đại Ca chưa chốt.
+- **Cộng các chip lại KHÔNG ra tổng số phiếu** — ghép cặp theo phiếu × mã hàng nên một phiếu đếm ở
+  nhiều nhóm.
+- Nhóm `Không tìm thấy phiếu nhập` giờ đúng ở **mức dòng** (mã hàng này không có phiếu nhập), nhưng
+  ở **mức phiếu** thì 3 ca loại 2 vẫn có phiếu nhập — chính vì thế mới phải thêm cột Ghi chú.

@@ -7826,7 +7826,7 @@ const exportJournalCsv = (mode) => {
                                     </div>}
                                     <div className="flex items-center gap-2 flex-wrap">
                                         {[['', 'Tất cả', null],
-                                          ['chua', 'Chưa nhận hàng', 'Chưa nhận hàng'],
+                                          ['chua', 'Không thấy phiếu nhập', 'Không tìm thấy phiếu nhập'],
                                           ['nhap_chua_gs', 'Phiếu nhập chưa ghi sổ', 'Phiếu nhập chưa ghi sổ'],
                                           ['xuat_chua_gs', 'Phiếu xuất chưa ghi sổ', 'Phiếu xuất chưa ghi sổ'],
                                           ['lech', 'Lệch số lượng', 'Lệch số lượng'],
@@ -7849,7 +7849,7 @@ const exportJournalCsv = (mode) => {
                                             );
                                         })}
                                         {dcnbSummary && <span className="text-[10px] font-bold text-slate-400 ml-2">
-                                            Số đếm là <b>số phiếu xuất</b> · <b className="text-rose-500">Chưa nhận hàng</b> = bên nhận chưa hề lập phiếu — đây mới là việc phải đi đòi · <b className="text-sky-500">Phiếu nhập chưa ghi sổ</b> = bên nhận đã lập phiếu rồi, chỉ cần bấm ghi sổ · <b className="text-orange-500">Phiếu xuất chưa ghi sổ</b> = hàng chưa trừ kho, chưa có gì để nhận · nhóm <b>Không thấy phiếu xuất</b> là chiều ngược: phiếu nhập không truy được về phiếu xuất
+                                            Số đếm là <b>số phiếu xuất</b> · <b className="text-rose-500">Không thấy phiếu nhập</b> = hàng ĐÃ trừ kho bên xuất nhưng không có phiếu nhập nào ghi nhận — phải đi truy · <b className="text-sky-500">Phiếu nhập chưa ghi sổ</b> = phiếu nhập đã tự sinh, chưa duyệt ghi sổ · <b className="text-orange-500">Phiếu xuất chưa ghi sổ</b> = hàng chưa trừ kho, chưa có gì để nhận · nhóm <b>Không thấy phiếu xuất</b> là chiều ngược: phiếu nhập không truy được về phiếu xuất
                                         </span>}
                                     </div>
                                 </div>
@@ -7897,7 +7897,7 @@ const exportJournalCsv = (mode) => {
                                             <tbody className="text-[11px] font-medium text-slate-700">
                                                 {dcnbVS.topPadding > 0 && <tr><td colSpan={100} style={{ height: dcnbVS.topPadding, padding: 0, border: 0 }}></td></tr>}
                                                 {dcnbFlatData.slice(dcnbVS.startIndex, dcnbVS.endIndex + 1).map((row, i) => {
-                                                    const bad  = row.TRANG_THAI === 'Chưa nhận hàng';
+                                                    const bad  = row.TRANG_THAI === 'Không tìm thấy phiếu nhập';
                                                     const warn = row.TRANG_THAI === 'Lệch số lượng';
                                                     const nogoc = row.TRANG_THAI === 'Không tìm thấy phiếu xuất liên quan';
                                                     const nnhap = row.TRANG_THAI === 'Phiếu nhập chưa ghi sổ';

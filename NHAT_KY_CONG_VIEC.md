@@ -16,8 +16,9 @@
 > Actions `success`, Release là `Latest`. Cả ngày ra **bốn** bản: v1.12.0 → v1.12.1 → v1.12.2 → v1.12.3.
 > 🔑 Phiên này chốt được **luật nghiệp vụ gốc**: iPOS **tự sinh** phiếu nhập `NDCNB` khi phiếu xuất
 > `XDCNB` ghi sổ — đổi hẳn cách đọc tab đối chiếu điều chuyển. Xem các mục 24/09.
-> 🔴 **Đã phát hành KHI CHƯA đủ tài khoản nhân viên trên Google Sheet** — Đại Ca chốt chấp nhận,
-> làm phân quyền sau. Đây là **rủi ro đang chạy**, xem việc số 3.
+> ✅ **Tài khoản nhân viên trên Google Sheet: Đại Ca báo đã tạo xong 25/09/2026** (cùng đổi mật khẩu
+> `admin` và tick quyền 2 tab mới — việc 1, 3, 4).
+> 🟡 **Việc 7 — lọc 2 chiều tab điều chuyển: xong ở mã nguồn 25/09, chờ Đại Ca thử với số liệu thật.**
 > Apps Script trên Google: **Version 5** (21/09/2026 19:33), mã bản `2026-09-21c` — **đã triển khai**.
 >
 > 📌 **Việc còn treo gom ở ngay dưới: [§ VIỆC CẦN LÀM](#-việc-cần-làm--cập-nhật-21092026).**
@@ -51,8 +52,8 @@
 >
 > Tính tới 25/09/2026 (sáng): **`main` đang `ahead 7`** so với `origin/main` = 6 commit `.md` +
 > **commit vá việc 31 `784d227`** (1 dòng `index.html`, chưa build).
-> Nhánh **`giaodien`** tách từ `main` **trước** commit vá: `main` cũ + **3 commit** (`1dadaae` GĐ1+GĐ2 ·
-> `c64540a` đăng nhập nhanh + sửa font · **commit GĐ3** ngày 25/09 — xem `git log giaodien`).
+> Nhánh **`giaodien`** tách từ `main` **trước** commit vá: tới tối 25/09 đã **hơn `origin/main` 15 commit**
+> (GĐ1 → GĐ5, tab Phân quyền, thanh lọc, cột bảng — xem `git log giaodien`), **chưa có** commit vá `784d227`.
 > **Không nhánh nào đã push.**
 >
 > ⚠️ **Gộp `main` vào `giaodien` sẽ ĐỤNG ĐÚNG MỘT CHỖ** — ô Số chứng từ BC012: `main` sửa ở chỗ cũ,
@@ -119,15 +120,15 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 
 | # | Việc | Vì sao gấp |
 |---|---|---|
-| 1 | **Đổi mật khẩu tài khoản `admin`** | Đã lộ trong khung chat ngày 21/09 để chạy phép thử cuối. Đổi ngay trong tab Phân quyền → ô tài khoản → Đổi mật khẩu |
+| 1 | ~~Đổi mật khẩu tài khoản `admin`~~ ✅ **Đại Ca báo đã làm 25/09/2026** | Đã lộ trong khung chat ngày 21/09 để chạy phép thử cuối |
 | 2 | ~~Push + phát hành~~ ✅ **XONG 21/09/2026** | Đã push `phanquyen`, gộp `main` (fast-forward, 8 commit), Actions chạy **1m18s** → Release **v1.11.9**. **Tầng 1 và tầng 2 của [backup 4 tầng](#2--phương-án-backup--phục-hồi) nay đều đã có** |
-| 3 | 🔴 **TẠO TÀI KHOẢN NHÂN VIÊN TRÊN GOOGLE SHEET — rủi ro ĐANG CHẠY** | Mục này trước đây là *chốt chặn trước khi gộp `main`*. **Đã gộp và phát hành ngày 21/09 khi chưa đủ tài khoản** — Đại Ca được báo trước và chốt "phân quyền sau". Hệ quả **đang có hiệu lực ngay bây giờ**: máy nhân viên ở v1.10.7 mở app là hiện nút cập nhật; bấm xong thì bản v1.11.9 **bỏ hẳn chế độ file**, không có tài khoản trên Sheet là **đăng nhập không được**. Đo 21/09: Sheet mới có **2 tài khoản**. Lùi lại phải tự tải EXE cũ từ trang Releases. ⇒ Càng để lâu càng nhiều người vấp |
+| 3 | ~~TẠO TÀI KHOẢN NHÂN VIÊN TRÊN GOOGLE SHEET~~ ✅ **Đại Ca báo đã làm 25/09/2026** | Mục này trước đây là *chốt chặn trước khi gộp `main`*. **Đã gộp và phát hành ngày 21/09 khi chưa đủ tài khoản** — Đại Ca được báo trước và chốt "phân quyền sau". Hệ quả **đang có hiệu lực ngay bây giờ**: máy nhân viên ở v1.10.7 mở app là hiện nút cập nhật; bấm xong thì bản v1.11.9 **bỏ hẳn chế độ file**, không có tài khoản trên Sheet là **đăng nhập không được**. Đo 21/09: Sheet mới có **2 tài khoản**. Lùi lại phải tự tải EXE cũ từ trang Releases. ⇒ Càng để lâu càng nhiều người vấp |
 
 ### 🟡 Ưu tiên 2 — Đại Ca tự làm được trên giao diện
 
 | # | Việc | Ghi chú |
 |---|---|---|
-| 4 | **Tick 2 tab mới cho các chức vụ thật** (`KT`, `XSX`, `TM`…) | Cột `dcnb_reconcile` / `po_list` **đã có sẵn trên Sheet** (tạo 21/09). Chỉ cần vào tab Phân quyền tick là ăn. Chức vụ `ADMIN` khỏi cần — app tự tính đủ |
+| 4 | ~~Tick 2 tab mới cho các chức vụ thật~~ ✅ **Đại Ca báo đã làm 25/09/2026** | Cột `dcnb_reconcile` / `po_list` **đã có sẵn trên Sheet** (tạo 21/09). Chỉ cần vào tab Phân quyền tick là ăn. Chức vụ `ADMIN` khỏi cần — app tự tính đủ |
 | 5 | **Hỏi Chú Long / iPOS**: nhập mua hàng có bắt buộc bấm từ phiếu PO không? | Quyết định việc có làm được đối chiếu PO ↔ phiếu nhập hay không. Chi tiết 7 khoá đã đo: [Bẫy 20](CLAUDE.md) |
 | 6 | ⏸️ **`AUTO_SHRINK` / `AUTO_CLOSE` — ĐANG TREO CHỜ ĐẠI CA HỎI LẠI** (24/09/2026). Theo mọi bằng chứng trong repo thì **đã tắt sẵn từ lâu**, nhưng **chưa đóng mục này** cho tới khi Đại Ca xác nhận | 🔴 Mục này **sai từ đầu**, để treo hơn một tháng. Chính repo đã ghi ngược lại ở **ba chỗ**: [TOI_UU_DB_16082026.sql:16](TOI_UU_DB_16082026.sql) (*"CẢ 3 DATABASE VÀ 'model' ĐÃ TẮT SẴN"*, đo **16/08/2026 trên chính máy chủ đó**) · [SU_CO_15082026.md:184](SU_CO_15082026.md) (*"kiểm rồi, không phải thủ phạm"*) · mục **5. Verify — đạt M4** trong file này. ⚠️ Chưa đo lại được hôm nay (24/09) vì truy vấn DB thật bị chặn quyền — Đại Ca chạy câu kiểm ở mục nhật ký 24/09 là xong. **Nút thắt thật là RAM: DB 10,6 GB / buffer pool 1.410 MB — trần cứng của SQL Express, không lệnh nào tắt được** |
 
@@ -135,7 +136,7 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 
 | # | Việc | Ghi chú |
 |---|---|---|
-| 7 | **Bộ lọc Đơn vị của tab điều chuyển nội bộ** áp cho phía **XUẤT** | Hệ quả: tài khoản chỉ được xem đơn vị cửa hàng **không thấy hàng chuyển đến mình** (bên xuất là kho tổng `01`). Đại Ca dùng tài khoản toàn quyền nên chưa vướng. Mở cho cửa hàng thì phải đổi sang lọc OR cả hai phía — **cần Đại Ca chốt** |
+| 7 | ~~Bộ lọc Đơn vị của tab điều chuyển nội bộ áp cho phía XUẤT~~ ✅ **XONG ở mã nguồn 25/09 (nhánh `giaodien`) — chờ thử số liệu thật** | Đại Ca chốt: thanh lọc có **Kho xuất** + **Kho nhận**; tài khoản bị giới hạn thấy dòng mà **một trong hai phía** thuộc quyền. Chi tiết: mục nhật ký *25/09/2026 (khuya)* |
 | 8 | ~~Xoá file rác~~ ✅ **XONG 24/09/2026** | Đã xoá `phanquyen.json` (972 B) + `dist/phanquyen.json.cu` (1.002 B). Kiểm trước khi xoá: cả hai đều ghi `"note": "FILE TEST - mat khau tam, khong phai ban that"`, và `server.py` **chỉ nhắc chúng trong comment**, không còn dòng code nào đọc. Cả hai vốn đã `.gitignore` + git không theo dõi ⇒ không lộ |
 | 9 | Màn đăng nhập **chưa bắt buộc** điền Tài khoản ứng dụng | Để trống thì phải chờ Google **4–7 giây** mới báo lỗi, thay vì chặn ngay tại chỗ |
 | 10 | Dropdown lọc **Đơn vị** vẫn hiện tên đơn vị ngoài quyền | Chọn vào ra 0 dòng — **lộ tên, không lộ số** |
@@ -158,6 +159,43 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 | Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 25/09/2026 (khuya) — Việc 7: tab điều chuyển lọc 2 chiều (Kho xuất / Kho nhận) + quyền "một trong hai phía" · nhánh `giaodien`
+
+Đại Ca báo **đã làm xong việc gấp** (1 đổi mật khẩu `admin`, 3 tạo tài khoản nhân viên, 4 tick quyền 2 tab
+mới), rồi chốt việc 7: *"tách 2 ô, 1 bộ lọc kho xuất, 1 bộ lọc kho nhận"* và về quyền: *"lọc được cả phiếu nhập
+và xuất liên quan đến kho mình — mình chuyển đi thì lọc ở kho xuất, người ta chuyển cho mình thì là kho nhận"*.
+
+### Đã làm
+
+- **`index.html`** — `oLocDs('dcnb_reconcile')` đổi thứ tự: **Kho xuất · Kho nhận** (trước là *Kho nhập*) đứng
+  ngoài; *Đơn vị xuất* + *Hàng hoá* vào Bộ lọc nâng cao. Hai ô kho vốn đã có từ trước, chỉ là ô Kho nhập bị
+  giấu trong bảng nâng cao nên nhìn như chỉ có một ô.
+- **`server.py` `_build_dcnb_where`** — tài khoản **bị giới hạn đơn vị**: quyền thành
+  `(DON_VI_XUAT IN quyền OR DON_VI_NHAP IN quyền)` ở WHERE ngoài, áp cả phần tóm tắt (chip). Nhánh phiếu nhập
+  mồ côi (chỉ có phía nhận) vẫn đẩy quyền xuống CTE. Ô *Đơn vị xuất* lúc này **không giao với quyền** — cửa
+  hàng chọn `01` vẫn thấy hàng `01` chuyển tới mình. Tài khoản **không giới hạn**: nhánh cũ nguyên vẹn.
+
+### 🧪 Verify
+
+| Kiểm | Kết quả |
+|---|---|
+| **M1** | `server.py` **168 hàm / 69 route**, không trùng · Babel SUCCESSFUL |
+| **M2** (dựng câu SQL in-process, 7 ca × có/không bỏ trạng thái) | Số dấu `?` = số tham số ở **cả 14 lượt**. ADMIN: câu SQL **y như trước** (`NOT IN ('66')` ở 3 nhánh) · cửa hàng 35: `(DON_VI_XUAT IN (?) OR DON_VI_NHAP IN (?))` · tài khoản không được xem đơn vị nào: `1=0` |
+| Giao diện (server thử 5052, 1366px) | Hàng lọc: *Thời gian · Kho xuất · Kho nhận · phễu · Lọc*. Chọn Kho nhận `KCH35` ⇒ yêu cầu gửi `wh_nhap_ids=KCH35`. Bộ lọc nâng cao có *Đơn vị xuất*, *Hàng hoá* |
+
+💡 Bắt được khi đếm: `_DCNB_CTE` có một dấu `?` **trong chú thích SQL** (`-- …không?`). Code cũ vẫn chạy vì
+driver bỏ qua chú thích — nhưng script đếm `?` phải bỏ chú thích trước, không thì báo lệch giả.
+
+### 🔍 Điểm mù
+
+- **Chưa chạy với DB thật** (`config.json` không có mật khẩu) ⇒ chưa đo tốc độ cho tài khoản bị giới hạn (dự
+  kiến ngang tài khoản xem toàn công ty, 6–8s/tháng) và chưa nhìn số liệu thật của một tài khoản cửa hàng.
+- `DON_VI_NHAP` dùng `IN` vì đo 2026 không nhóm nào đi tới nhiều kho. Nếu sau này có phiếu chia cho 2 cửa hàng
+  (`35 + 71`) thì hai cửa hàng đó **không thấy dòng đó** — sẽ không lộ, chỉ thiếu.
+- Máy nào đã tự đổi cấu hình ô lọc của tab này (`lr_loc_ngoai_ds_dcnb_reconcile`) thì vẫn giữ thứ tự cũ.
 
 ---
 

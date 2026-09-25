@@ -7269,8 +7269,11 @@ const exportJournalCsv = (mode) => {
                     case 'warehouse_balance': return [donVi(), kho('Kho', warehouseBalanceFilters, toggleWarehouseBalanceFilter, setWarehouseBalanceFilters), hh(), tk];
                     case 'btp_reconcile': return [donVi(), kho('Kho xuất', btpFilters, toggleBtpFilter, setBtpFilters), hh('Nguyên liệu'),
                         ds('btp', 'Bán thành phẩm', meta.products, btpFilters.btp_ids, v => toggleBtpFilter('btp_ids', v), () => setBtpFilters(p => ({ ...p, btp_ids: [] })))];
-                    case 'dcnb_reconcile': return [donVi('Đơn vị xuất'), kho('Kho xuất', dcnbFilters, toggleDcnbFilter, setDcnbFilters),
-                        kho('Kho nhập', dcnbFilters, toggleDcnbFilter, setDcnbFilters, 'wh_nhap_ids'), hh('Hàng hoá')];
+                    // Kho xuất + Kho nhận đứng ngoài (Đại Ca chốt 25/09): hàng mình chuyển đi ⇒ lọc Kho xuất,
+                    // người ta chuyển cho mình ⇒ lọc Kho nhận. Tài khoản bị giới hạn đơn vị thấy cả hai chiều
+                    // (quyền "một trong hai phía" ở _build_dcnb_where).
+                    case 'dcnb_reconcile': return [kho('Kho xuất', dcnbFilters, toggleDcnbFilter, setDcnbFilters),
+                        kho('Kho nhận', dcnbFilters, toggleDcnbFilter, setDcnbFilters, 'wh_nhap_ids'), donVi('Đơn vị xuất'), hh('Hàng hoá')];
                     case 'po_list':  return [donVi(), kho('Kho', poFilters, togglePoFilter, setPoFilters), hh('Hàng hoá')];
                     default: return [];
                 }

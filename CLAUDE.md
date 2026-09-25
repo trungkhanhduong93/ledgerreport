@@ -5,7 +5,8 @@
 > Cập nhật gần nhất: **24/09/2026** · **Bản mới nhất: `v1.12.3`** — đã push, Actions `success`,
 > **là `Latest` trên GitHub** (`main` = `62af287`)
 > · 🎨 **Đang làm (25/09/2026): giao diện mới `PROOFTRAIL` + đăng nhập nhanh** trên nhánh
-> **`giaodien`** — chưa push. **GĐ0–GĐ3 đã commit** (GĐ3 Đại Ca chốt OK 25/09), kế tiếp GĐ4 Trang chủ.
+> **`giaodien`** — chưa push. **GĐ0–GĐ5 đã commit** (GĐ3, GĐ4, tab Phân quyền Đại Ca chốt OK 25/09;
+> GĐ5 + thanh lọc 9 màn + cột bảng + lọc 2 chiều tab điều chuyển **chờ Đại Ca xem**).
 > Kế hoạch & tiến độ: **NHAT_KY_CONG_VIEC.md → § VIỆC CẦN LÀM → 🎨**
 > · 🩹 **`main` local có bản vá việc 31 (`784d227`) — CHƯA build, CHƯA push.** Đại Ca chốt build một lần cùng đợt sau
 > (25/09/2026). `version.txt` vẫn `1.12.3` ⇒ **build bằng `build_exe.py` để nó tự lên `1.12.4`**, đừng push trần
@@ -14,8 +15,8 @@
 > · Apps Script: **Version 5** (`ban 2026-09-21c`)
 > ⚠️ **Đừng ghi cứng digest/kích thước của asset vào tài liệu** — mỗi lần push (kể cả push mỗi
 > file `.md`) là Actions build lại và **thay asset bằng binary khác SHA**. Xem việc treo số 11.
-> 🔴 **Đã phát hành khi CHƯA đủ tài khoản nhân viên trên Google Sheet** — Đại Ca chốt làm sau.
-> Ai chưa có tài khoản mà bấm cập nhật là **đăng nhập không được**. Xem việc số 3 trong nhật ký.
+> ✅ Tài khoản nhân viên trên Google Sheet + đổi mật khẩu `admin` + tick quyền 2 tab mới: **Đại Ca
+> báo đã làm xong 25/09/2026** (việc 1, 3, 4 trong nhật ký).
 >
 > 📌 **VIỆC CẦN LÀM đang treo: [NHAT_KY_CONG_VIEC.md § Việc cần làm](NHAT_KY_CONG_VIEC.md#-việc-cần-làm--cập-nhật-21092026)** — đọc trước khi nhận việc mới.
 
@@ -367,9 +368,16 @@ Phân bố 2026 (đo trước khi tách nhóm): khớp **133.348** · chưa nh�
 
 **Ba điểm khác BTP — đừng bê nguyên:**
 1. **Xuất và nhập ở HAI ĐƠN VỊ KHÁC NHAU** (kho tổng `01` xuất → cửa hàng `35`/`71`/`32`… nhận).
-   Bảng có **cả hai cột đơn vị**. Bộ lọc Đơn vị áp cho phía **XUẤT** (chủ chứng từ, giống mọi tab
-   khác); phía nhận lọc bằng ô tìm `s_dv_nhap`. ⚠️ Nghĩa là tài khoản chỉ được xem đơn vị cửa hàng
-   sẽ **không thấy hàng chuyển đến mình** — nếu cần thì phải đổi sang lọc OR cả hai phía.
+   Bảng có **cả hai cột đơn vị**. Thanh lọc *(Đại Ca chốt 25/09/2026, nhánh `giaodien`)*: **Kho xuất**
+   + **Kho nhận** đứng ngoài — hàng mình chuyển đi thì lọc Kho xuất, người ta chuyển cho mình thì lọc
+   Kho nhận; *Đơn vị xuất* + *Hàng hoá* nằm trong Bộ lọc nâng cao.
+   🔑 **Quyền đơn vị của tab này KHÁC mọi tab khác:** tài khoản bị giới hạn thấy dòng mà **MỘT TRONG
+   HAI phía** thuộc quyền — `(DON_VI_XUAT IN quyền OR DON_VI_NHAP IN quyền)` ở WHERE ngoài của
+   `_build_dcnb_where`. Trước đó quyền chỉ cắt phía xuất ⇒ cửa hàng **không bao giờ thấy hàng chuyển
+   đến mình**. Tài khoản **không giới hạn** thì chạy y như cũ (`_org_filter_sql`, loại đơn vị ngoài cây).
+   ⚠️ Đánh đổi: với tài khoản bị giới hạn, phía xuất không đẩy xuống CTE được nữa ⇒ tốc độ ngang tài
+   khoản xem toàn công ty. ⛔ Quyền phải áp **cả ở phần tóm tắt** (`bo_trang_thai=True`) — thiếu là
+   chip đếm lộ dòng ngoài quyền.
 2. ⛔ **`NDCNB` có `IS_SALE = 0`** ⇒ **KHÔNG nằm trong `PURCHASE_VIEW`** (Bẫy 15). Phải đọc thẳng
    `dbo.PURCHASE`; đọc qua view là ra **0 dòng mà không báo lỗi**.
 3. **So thẳng `QUANTITY` là ĐÚNG** — hai phía cùng ĐVT cơ bản. **Không** dùng mẹo "mốc gần hơn"

@@ -4136,6 +4136,11 @@ def _build_dcnb_where(request_args, bo_trang_thai=False):
     ⚠️ Bộ lọc Đơn vị áp cho phía XUẤT (W.ORGANIZATION_ID), giống mọi tab khác lấy đơn vị của
     chính chứng từ. Nhánh phiếu nhập mồ côi không có phía xuất nên áp cho đơn vị NHẬN.
     Muốn lọc theo đơn vị nhận ở nhánh thường thì dùng ô tìm "s_dv_nhap" ở WHERE ngoài.
+
+    🔑 QUYỀN ĐƠN VỊ của tab này KHÁC mọi tab khác (Đại Ca chốt 25/09/2026): tài khoản bị giới
+    hạn thấy dòng mà MỘT TRONG HAI phía thuộc quyền — hàng mình chuyển đi (lọc Kho xuất) VÀ
+    hàng người ta chuyển cho mình (lọc Kho nhận). Trước đó quyền chỉ cắt phía xuất ⇒ cửa
+    hàng không bao giờ thấy hàng kho tổng chuyển đến mình.
     """
     f_date = request_args.get("from_date", "01/01/2026")
     t_date = request_args.get("to_date",  "31/12/2026")
@@ -4150,15 +4155,43 @@ def _build_dcnb_where(request_args, bo_trang_thai=False):
     orph    = ["P2.TRAN_DATE >= ?", "P2.TRAN_DATE <= ?"]      # mức phiếu nhập
     oiparams = [d1, d2]
     orph_wh, owparams = [], []                                 # mức dòng (mã hàng)
+    quyen_sql, quyen_params = None, []                         # quyền "một trong hai phía"
 
     for field, ofield, dfield, arg in [
             ("W.ORGANIZATION_ID", "P2.ORGANIZATION_ID", "S.ORGANIZATION_ID", "org_ids"),
             ("W.WAREHOUSE_ID",    None,                 "S.WAREHOUSE_ID",    "wh_ids"),
             ("W.ITEM_ID",         "WN2.ITEM_ID",        "SD.ITEM_ID",        "item_ids")]:
         vals = [v for v in request_args.get(arg, "").split(",") if v]
+        if arg == "org_ids" and _current_allowed_orgs() is not None:
+            # Tài khoản bị giới hạn đơn vị ⇒ quyền = MỘT TRONG HAI phía, đặt ở WHERE ngoài vì
+            # cần DON_VI_NHAP (cột dựng trong CTE từ 3 nguồn). Phía xuất vì thế KHÔNG đẩy xuống
+            # CTE được nữa ⇒ tốc độ ngang tài khoản xem toàn công ty (~6–8s/tháng) — cố ý.
+            # Ô "Đơn vị xuất" lúc này chỉ là lựa chọn, KHÔNG giao với quyền: cửa hàng chọn 01
+            # vẫn thấy hàng 01 chuyển tới mình. Quyền luôn được ép ở WHERE ngoài bên dưới.
+            # DON_VI_NHAP dùng IN được vì đo 2026: 0/133.607 nhóm đi tới nhiều kho ⇒ luôn là
+            # một mã đơn, không phải chuỗi gộp "35 + 71".
+            allowed = sorted(_current_allowed_orgs())
+            if vals:
+                ph = ','.join(['?'] * len(vals))
+                inner.append(f"{field} IN ({ph})")
+                iparams.extend(vals)
+                draft.append(f"{dfield} IN ({ph})")
+                dparams.extend(vals)
+                orph.append(f"{ofield} IN ({ph})")
+                oiparams.extend(vals)
+            if not allowed:
+                quyen_sql = "1=0"                    # tài khoản không được xem đơn vị nào
+            else:
+                pq = ','.join(['?'] * len(allowed))
+                # Nhánh mồ côi chỉ có phía nhận ⇒ quyền đẩy xuống được, đỡ quét.
+                orph.append(f"{ofield} IN ({pq})")
+                oiparams.extend(allowed)
+                quyen_sql = f"(DON_VI_XUAT IN ({pq}) OR DON_VI_NHAP IN ({pq}))"
+                quyen_params = allowed + allowed
+            continue
         if arg == "org_ids":
-            # Đi qua _org_filter_sql cho CẢ 3 nhánh ⇒ ép quyền đơn vị theo tài khoản.
-            # Thiếu nhánh nào là nhánh đó lộ dữ liệu ngoài quyền.
+            # Không giới hạn đơn vị: đi qua _org_filter_sql cho CẢ 3 nhánh như mọi tab (mặc định
+            # loại đơn vị ngoài cây '00'). Thiếu nhánh nào là nhánh đó lộ dữ liệu ngoài quyền.
             _oc, _op = _org_filter_sql(vals, field)
             if _oc:
                 inner.append(_oc)
@@ -4186,6 +4219,10 @@ def _build_dcnb_where(request_args, bo_trang_thai=False):
                 orph.append("1 = 0")
 
     outer, oparams = [], []
+    if quyen_sql:
+        # ⛔ Luôn áp, KỂ CẢ phần tóm tắt (bo_trang_thai=True) — thiếu là chip đếm lộ dòng ngoài quyền.
+        outer.append(quyen_sql)
+        oparams.extend(quyen_params)
     st = DCNB_STATUS_MAP.get(request_args.get("status", "").strip())
     if st and not bo_trang_thai:
         # ⚠️ Bỏ riêng bộ lọc trạng thái khi dựng phần tóm tắt (hàng chip), giữ nguyên mọi bộ

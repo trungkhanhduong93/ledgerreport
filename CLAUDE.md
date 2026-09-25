@@ -165,6 +165,14 @@ Tổng hợp (`ledger`) · Tiền (`voucher`) · Mua & bán (`sale`, `purchase`,
 Kho (`warehouse`, `warehouse_balance`, `btp_reconcile`, `dcnb_reconcile`) · **Báo cáo TC**.
 Phân quyền + ô tài khoản (có Đăng xuất) nằm ở đáy cột.
 
+**Trang chủ** *(GĐ4, 25/09/2026)* — nút **đầu** cột, `activeTab = 'home'`, component `TrangChu`. Mở app hoặc
+đăng nhập xong là vào đây. Hiện **chỉ lời chào + thẻ phân hệ** — Đại Ca chốt *"tạm thời lên mẫu, chưa lấy
+số liệu"* ⇒ trang này **không gọi truy vấn SQL nào**. Thẻ = đúng các phân hệ người đó thấy ở cột trái
+(+ Phân quyền nếu có quyền); số trên thẻ đếm từ `PHAN_HE` / `REPORT_TYPES` theo quyền. Mô tả + màu thẻ
+khai ở `PHAN_HE` (`mo_ta`, `mau`, `ten_day`) — thêm phân hệ mới thì điền luôn, thiếu thì thẻ ra màu xám.
+⏭️ Khi thêm khối số liệu ("Việc cần xử lý" trong phác thảo): **kỳ = tháng hiện tại** (Đại Ca chốt), mỗi ô
+là truy vấn 6–8 giây ⇒ **tải ngầm**, đừng bắt trang chờ.
+
 **Báo cáo TC — KHÔNG chia nhóm** (Đại Ca chốt 25/09/2026, theo mẫu iPOS Inventory): vào là thấy
 **trang liệt kê 16 thẻ** (`DanhSachBaoCao`, mỗi thẻ = mã + `ten` + `mo_ta` trong `REPORT_TYPES`).
 Đang xem mà muốn đổi thì bấm **ô chọn ở đầu hàng điều kiện** (`ChonBaoCao`, có ô tìm, gõ không dấu

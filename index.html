@@ -624,6 +624,7 @@ window.showConnectionLost = function() {
                 "grid": '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
                 "filter": '<path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>',
                 "grip": '<path d="M4 8h16"/><path d="M4 12h16"/><path d="M4 16h16"/>',
+                "home": '<path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V20h14V9.5"/>',   // Trang chủ (GĐ4) — nét từ phác thảo
                 "x": '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>'
             };
             return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} dangerouslySetInnerHTML={{ __html: icons[name] || '' }} />;
@@ -4052,17 +4053,26 @@ const exportJournalCsv = (mode) => {
         // ⛔ Thêm tab danh sách mới thì gắn nó vào một phân hệ ở đây. Quên cũng KHÔNG mất tab: tab
         //    chưa gắn tự rơi vào phân hệ "Khác". Cùng bài học Bẫy 22 (Google nuốt mã quyền trong im
         //    lặng): thứ chưa khai báo phải LỘ RA, không được biến mất.
+        // `mo_ta` + `mau` (nền / màu icon) chỉ dùng cho thẻ trên Trang chủ (GĐ4). `ten_day` = tên trên thẻ
+        // khi tên ở cột phân hệ phải viết tắt cho vừa 64px.
         const PHAN_HE = (() => {
             const ds = [
-                { id: 'tonghop', ten: 'Tổng hợp',   icon: 'book',       tabs: ['ledger'] },
-                { id: 'tien',    ten: 'Tiền',       icon: 'banknote',   tabs: ['voucher'] },
-                { id: 'muaban',  ten: 'Mua & bán',  icon: 'cart',       tabs: ['sale', 'purchase', 'po_list'] },
-                { id: 'kho',     ten: 'Kho',        icon: 'archive',    tabs: ['warehouse', 'warehouse_balance', 'btp_reconcile', 'dcnb_reconcile'] },
-                { id: 'baocao',  ten: 'Báo cáo TC', icon: 'chart-line', tabs: null },   // trang liệt kê thẻ, xem DanhSachBaoCao
+                { id: 'tonghop', ten: 'Tổng hợp',   icon: 'book',       tabs: ['ledger'],
+                  mo_ta: 'Sổ gốc — toàn bộ chứng từ, lọc theo loại và tài khoản', mau: { nen: '#eff6ff', chu: '#1e3a8a' } },
+                { id: 'tien',    ten: 'Tiền',       icon: 'banknote',   tabs: ['voucher'],
+                  mo_ta: 'Chứng từ thu chi, tiền mặt và tiền gửi ngân hàng', mau: { nen: '#ecfdf5', chu: '#047857' } },
+                { id: 'muaban',  ten: 'Mua & bán',  icon: 'cart',       tabs: ['sale', 'purchase', 'po_list'],
+                  mo_ta: 'Chứng từ bán hàng, nhập kho và danh sách PO', mau: { nen: '#fff7ed', chu: '#c2410c' } },
+                { id: 'kho',     ten: 'Kho',        icon: 'archive',    tabs: ['warehouse', 'warehouse_balance', 'btp_reconcile', 'dcnb_reconcile'],
+                  mo_ta: 'Chứng từ kho, tồn thực tế và hai bảng đối chiếu xuất – nhập', mau: { nen: '#ecfeff', chu: '#0e7490' } },
+                { id: 'baocao',  ten: 'Báo cáo TC', icon: 'chart-line', tabs: null,   // trang liệt kê thẻ, xem DanhSachBaoCao
+                  ten_day: 'Báo cáo tài chính',
+                  mo_ta: 'KQKD, cân đối kế toán, lưu chuyển tiền tệ, công nợ, thuế', mau: { nen: '#f5f3ff', chu: '#6d28d9' } },
             ];
             const daGan = new Set(ds.flatMap(p => p.tabs || []));
             const conLai = DOC_TABS.map(t => t.id).filter(id => !daGan.has(id));
-            if (conLai.length) ds.splice(ds.length - 1, 0, { id: 'khac', ten: 'Khác', icon: 'grid', tabs: conLai });
+            if (conLai.length) ds.splice(ds.length - 1, 0, { id: 'khac', ten: 'Khác', icon: 'grid', tabs: conLai,
+                mo_ta: 'Màn hình chưa gắn vào phân hệ nào', mau: { nen: '#f1f5f9', chu: '#475569' } });
             return ds;
         })();
 
@@ -4088,6 +4098,50 @@ const exportJournalCsv = (mode) => {
             </div>
         );
 
+        // ===== TRANG CHỦ — GĐ4 giao diện PROOFTRAIL (Đại Ca chốt 25/09/2026) =====
+        // Mở app / đăng nhập xong là vào đây. Đại Ca chốt "tạm thời lên mẫu, chưa lấy số liệu" ⇒ trang
+        // này KHÔNG gọi truy vấn SQL nào: chỉ lời chào + thẻ phân hệ. Số trên thẻ (số màn hình, số báo
+        // cáo) đếm từ PHAN_HE / REPORT_TYPES theo QUYỀN của người đang đăng nhập — không đụng DB.
+        // ⏭️ Lúc thêm khối số liệu ("Việc cần xử lý" trong phác thảo): kỳ = THÁNG HIỆN TẠI (Đại Ca chốt);
+        //    mỗi ô là truy vấn 6–8 giây ⇒ phải tải NGẦM, đừng bắt trang chờ.
+        const THU_TRONG_TUAN = ['Chủ nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+        const TrangChu = ({ the, nguoiDung, onMo }) => {
+            const now = new Date();
+            const gio = now.getHours();
+            const buoi = gio < 11 ? 'buổi sáng' : gio < 13 ? 'buổi trưa' : gio < 18 ? 'buổi chiều' : 'buổi tối';
+            const ngay = `${THU_TRONG_TUAN[now.getDay()]}, ${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+            const ten = (nguoiDung && (nguoiDung.name || nguoiDung.app_user)) || '';
+            return (
+                <div className="flex-1 overflow-auto bg-slate-50">
+                    <div className="px-8 py-7">{/* không giới hạn bề ngang: màn 2048px của Đại Ca bị trống nửa phải (25/09) */}
+                        <h1 className="text-[28px] font-bold text-slate-900 leading-tight" style={{ letterSpacing: '-0.02em' }}>
+                            Chào {buoi}{ten ? <>, <span style={{ color: '#1e3a8a' }}>{ten}</span></> : null}
+                        </h1>
+                        <div className="text-[13px] text-slate-500 mt-1.5 tabular-nums">{ngay} &middot; chọn phân hệ để bắt đầu</div>
+                        <h2 className="text-[15px] font-bold text-slate-900 mt-7 mb-3">Phân hệ</h2>
+                        <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
+                            {the.map(t => (
+                                <button key={t.id} type="button" onClick={() => onMo(t.id)}
+                                    className="group flex items-start gap-3.5 p-4 bg-white border border-slate-200 rounded-xl text-left transition-colors hover:border-indigo-400">
+                                    <span className="w-[38px] h-[38px] shrink-0 rounded-lg flex items-center justify-center" style={{ background: t.mau.nen, color: t.mau.chu }}>
+                                        <Icon name={t.icon} size={19} strokeWidth="1.8" />
+                                    </span>
+                                    <span className="flex-1 min-w-0">
+                                        <span className="flex items-center gap-2.5">
+                                            <span className="text-[14px] font-bold text-slate-900">{t.ten}</span>
+                                            <span className="flex-1"></span>
+                                            <span className="shrink-0 text-[11px] font-bold rounded-full px-2.5 py-0.5 bg-slate-100 text-slate-600 tabular-nums">{t.nhan}</span>
+                                        </span>
+                                        <span className="block text-[12px] text-slate-500 mt-1 leading-snug">{t.mo_ta}</span>
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         // Một nút trên cột phân hệ: icon + chữ 10px bên dưới (10px là cỡ tối thiểu — Bẫy 27).
         // ⚠️ Rê chuột CHỈ đổi màu chữ, KHÔNG tô nền: nền white/5 trên navy tối trông gần y hệt
         //    nền #1e3a8a của mục đang chọn ⇒ rê qua "Kho" là tưởng đang ở Kho (đã thấy khi chụp thử).
@@ -4102,12 +4156,13 @@ const exportJournalCsv = (mode) => {
 
         // Cột phân hệ, rộng 64px (Đại Ca chốt — cột bảng vốn đã hẹp, không lấy 84px như phác thảo).
         // Đáy cột: Phân quyền (chỉ ai có quyền mới thấy) rồi tới ô tài khoản.
-        const ThanhPhanHe = ({ dsPhanHe, phanHeDangMo, onChon, coPhanQuyen, dangOPhanQuyen, onPhanQuyen, taiKhoan }) => (
+        const ThanhPhanHe = ({ dsPhanHe, phanHeDangMo, onChon, dangOTrangChu, onTrangChu, coPhanQuyen, dangOPhanQuyen, onPhanQuyen, taiKhoan }) => (
             <nav aria-label="Phân hệ" className="shrink-0 flex flex-col items-center gap-1 py-3 overflow-y-auto" style={{ width: 64, background: '#172554', borderRight: '1px solid #1e3a8a' }}>
                 <svg viewBox="0 0 200 200" className="w-8 h-8 shrink-0 mb-3" role="img" aria-label="PROOFTRAIL">
                     <rect width="200" height="200" rx="45" fill="#FF9D3D"/>
                     <rect x="40" y="40" width="120" height="120" rx="30" fill="none" stroke="white" strokeWidth="20"/>
                 </svg>
+                <NutPhanHe icon="home" ten="Trang chủ" dangChon={dangOTrangChu} onClick={onTrangChu} />
                 {dsPhanHe.map(p => (
                     <NutPhanHe key={p.id} icon={p.icon} ten={p.ten} dangChon={phanHeDangMo === p.id} onClick={() => onChon(p.id)} />
                 ))}
@@ -4709,7 +4764,7 @@ const exportJournalCsv = (mode) => {
             // nhưng frontend chỉ lấy mỗi 'items' rồi vứt phần còn lại.
             const [nguoiDung, setNguoiDung] = useState(null);
             const [hienDoiMatKhau, setHienDoiMatKhau] = useState(false);
-            const [activeTab, setActiveTab] = useState('ledger');
+            const [activeTab, setActiveTab] = useState('home');   // 'home' = Trang chủ (GĐ4) — mở app là vào đây
             const [data, setData] = useState([]);
             const [reportData, setReportData] = useState({});
             const [monthList, setMonthList] = useState([]);
@@ -4879,7 +4934,19 @@ const exportJournalCsv = (mode) => {
                 setDaMoBaoCao(true);
             };
             const baoCaoDangMo = REPORT_TYPES.find(r => r.id === reportType);
-            const tabHangNgang = activeTab === 'perm_admin'
+            // Thẻ trên Trang chủ = đúng các phân hệ người này thấy ở cột trái (+ Phân quyền nếu có quyền).
+            const theTrangChu = dsPhanHe.map(p => ({
+                id: p.id, ten: p.ten_day || p.ten, icon: p.icon, mo_ta: p.mo_ta,
+                mau: p.mau || { nen: '#f1f5f9', chu: '#475569' },
+                nhan: p.tabs ? `${p.tabs.filter(canSee).length} màn hình` : `${REPORT_TYPES.filter(r => canSee(r.id)).length} báo cáo`,
+            })).concat(canSee('perm_admin') ? [{
+                id: 'perm_admin', ten: 'Phân quyền', icon: 'lock', mo_ta: 'Tài khoản, chức vụ và quyền xem theo từng đơn vị',
+                mau: { nen: '#f1f5f9', chu: '#475569' }, nhan: 'Quản trị',
+            }] : []);
+            const moTuTrangChu = (id) => { if (id === 'perm_admin') setActiveTab('perm_admin'); else chonPhanHe(id); };
+            const tabHangNgang = activeTab === 'home'
+                ? [{ id: 'home', ten: 'Trang chủ', icon: 'home' }]
+                : activeTab === 'perm_admin'
                 ? [{ id: 'perm_admin', ten: 'Phân quyền', icon: 'lock' }]
                 : activeTab === 'report'
                     ? [{ id: 'ds_bao_cao', ten: 'Tất cả báo cáo', icon: 'grid' }].concat(
@@ -4927,6 +4994,7 @@ const exportJournalCsv = (mode) => {
                         localStorage.setItem("iacc_db", loginData.database);
                         localStorage.setItem("iacc_driver", loginData.driver);   // nhớ driver cho lần sau
                         await loadPerms();                 // nạp quyền TRƯỚC khi vào app → menu + tab mặc định đúng ngay
+                        setActiveTab('home');              // đăng nhập xong luôn về Trang chủ, kể cả khi trước đó đăng xuất ở màn khác
                         setIsLoggedIn(true);
                         const metaRes = await fetch('/api/metadata').then(r => r.json());
                         setMeta(metaRes);
@@ -7067,6 +7135,8 @@ const exportJournalCsv = (mode) => {
                         dsPhanHe={dsPhanHe}
                         phanHeDangMo={phanHeDangMo}
                         onChon={chonPhanHe}
+                        dangOTrangChu={activeTab === 'home'}
+                        onTrangChu={() => setActiveTab('home')}
                         coPhanQuyen={canSee('perm_admin')}
                         dangOPhanQuyen={activeTab === 'perm_admin'}
                         onPhanQuyen={() => setActiveTab('perm_admin')}
@@ -7094,6 +7164,8 @@ const exportJournalCsv = (mode) => {
                             </button>
                         </>}
                     />
+
+                    {activeTab === 'home' && <TrangChu the={theTrangChu} nguoiDung={nguoiDung} onMo={moTuTrangChu} />}
 
                     {activeTab === 'ledger' && (
                         <>

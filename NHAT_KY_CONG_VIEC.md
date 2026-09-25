@@ -5,7 +5,9 @@
 > Mổ xẻ sâu sự cố + 4 bài học: [SU_CO_15082026.md](SU_CO_15082026.md).
 > 🎨 **ĐANG LÀM (24–25/09/2026):** giao diện mới **PROOFTRAIL** + đăng nhập nhanh — nhánh
 > **`giaodien`**, **CHƯA push**. Kế hoạch & tiến độ: § VIỆC CẦN LÀM → 🎨.
-> ✅ **GĐ3 (điều hướng + Báo cáo TC): Đại Ca xem và chốt OK sáng 25/09 — đã commit.** Kế tiếp: **GĐ4 Trang chủ**.
+> ✅ **GĐ3 (điều hướng + Báo cáo TC): Đại Ca xem và chốt OK sáng 25/09 — đã commit `fed091f`.**
+> ✅ **GĐ4 Trang chủ (khung, chưa số liệu): Đại Ca xem và chốt OK 25/09 — đã commit.**
+> 🎨 **Tab Phân quyền — giao diện mới: đã PHÁC THẢO 3 khung (mục 05 trong bản phác thảo), chờ Đại Ca chốt** (việc 32).
 > 🩹 **Việc 31 (lỗi trong bản đang phát hành) ĐÃ VÁ trên `main` — commit `784d227`, CHƯA build, CHƯA push.**
 > Đại Ca chốt 25/09: *"vá trước nhưng chưa build, để build 1 lần luôn"*.
 > Phiên phát hành gần nhất: **24/09/2026** · ✅ **v1.12.3** — `main` = `62af287`,
@@ -87,7 +89,7 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 | **2** | **Màn đăng nhập**: tấm navy trái, `PROOFTRAIL`, logo gốc, mục 01/02 | ✅ Xong — commit `1dadaae` |
 | ➕ | **Đăng nhập nhanh** (hướng A — Đại Ca chốt giữa chừng) | ✅ Xong, **Đại Ca đã thử thật: nhanh** — commit `c64540a` |
 | **3** | **Điều hướng**: cột phân hệ 64px + hàng tab ngang, 9 màn hình vào 5 phân hệ. **Báo cáo TC: trang liệt kê 16 thẻ + ô chọn có tìm kiếm, ô lọc dời phải, ô Thời gian gộp, Bộ lọc nâng cao** (Đại Ca đổi ý: bỏ 5 tab nhóm) | ✅ Xong — **Đại Ca xem và chốt OK 25/09**, đã commit (local, chưa push) |
-| **4** | **Trang chủ**: tải NGẦM từng ô số (mỗi ô là truy vấn 6–8s) | ⏳ Chưa làm |
+| **4** | **Trang chủ** — Đại Ca chốt 25/09: **chỉ khung + thẻ phân hệ, CHƯA lấy số liệu**; kỳ sau này = tháng hiện tại | ✅ **Khung xong — Đại Ca chốt OK 25/09** (sau khi cho lưới thẻ trải hết bề ngang), đã commit (local, chưa push). Khối số liệu (tải NGẦM, mỗi ô 6–8s) để sau |
 | **5** | **Đổi tên hiển thị** 4 chỗ: `APP_NAME`, `<title>`, `manifest.json`, `version_info.txt` | ⏳ Chưa làm. ⛔ **Giữ tên file `iPOS_Accounting_Report.exe`** — đổi là tự cập nhật đứt |
 
 **Việc còn chờ của dự án này:**
@@ -98,6 +100,7 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 | 17 | **Nút `TRUY VẤN` đang chuyển màu navy → tím** | Lớp gradient `indigo → purple` cũ. Hỏi 2 lần, **chưa chốt** đưa về navy đặc |
 | 18 | ~~Chốt mốc commit phần đăng nhập nhanh + sửa font~~ ✅ **commit `c64540a`** | Local, chưa push |
 | 19 | ~~Đại Ca xem GĐ3 rồi chốt commit~~ ✅ **Đại Ca chốt OK sáng 25/09** (*"cái đó thì ok rồi"*) ⇒ đã commit GĐ3 | ⚠️ Đại Ca chốt chung, **không nói rõ đã thử từng mục dưới đây chưa** — lần đầu dùng số liệu thật thì để ý. Danh sách cần xem ở mục *"Việc Đại Ca xem sáng 25/09"* trong nhật ký 25/09 (tiếp 3), ngay dưới § này. Ba việc tôi **không** tự thử được: hộp *"Chuyển mẫu báo cáo?"* khi có số liệu thật · menu **Xuất Excel / Xuất PDF** khi có số liệu (chưa có số liệu thì nút tắt) · kéo thả thứ tự ô lọc bằng chuột thật. Và **đọc lại mô tả 16 thẻ** — tôi tự viết |
+| 32 | 🎨 **Giao diện mới cho tab Phân quyền** — ⏳ **chờ Đại Ca chốt phác thảo** | Đại Ca yêu cầu 25/09. Phác thảo 3 khung ở mục **05 — PHÂN QUYỀN** của bản phác thảo: Tài khoản (bảng + khung sửa bên phải) · Chức vụ (**ma trận** chức vụ × 26 mục) · Mở khoá. Dữ liệu trong khung là **minh hoạ**. Chưa sửa dòng mã nào |
 | 31 | 🩹 **Ô Số chứng từ của BC012 hỏng trong bản ĐANG PHÁT HÀNH v1.12.3** — ✅ **ĐÃ VÁ trên `main` 25/09 (`784d227`), ⏳ CHƯA build/push** | Gõ từng chữ `P` → `T` thì thành `P,PT` và lọc ra 0 dòng (`toggleFilter` coi `tran_no` là mảng). Sửa cả hai nhánh: `giaodien` (chưa commit) và `main`. Đại Ca chốt **build một lần** cùng đợt sau. Người dùng **vẫn gặp lỗi tới khi phát hành**. Dán nguyên số phiếu một lần thì chạy |
 | 30 | 🆕 **Áp Bộ lọc nâng cao + ô Thời gian gộp sang 9 màn danh sách** | Đại Ca chốt: *"làm báo cáo trước, có logic rồi làm danh sách sau"*. Ở đó nó thay nút "Bộ lọc" đang mở hàng lọc thứ 2. Màn danh sách nhiều ô hơn hẳn (Chứng từ tổng hợp: 11 ô) |
 | 29 | ~~Nút Excel / PDF của BC003, BC004 sáng sẵn khi chưa có số liệu~~ ✅ **XONG 25/09/2026** | Sửa luôn khi gộp 2 nút thành nút tải xuống: điều kiện xét `initialReportData`. Đã thử: BC001/003/004/012/016 chưa tải số liệu ⇒ nút tắt, tooltip *"Chưa có số liệu — bấm Xem trước rồi mới xuất"* |
@@ -153,6 +156,69 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 | Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 25/09/2026 (trưa) — GĐ4: khung Trang chủ + thẻ phân hệ (đã commit) · phác thảo tab Phân quyền · nhánh `giaodien`
+
+Đại Ca chốt GĐ3 OK ⇒ commit **`fed091f`**, rồi làm GĐ4. Bản phác thảo (khung *TrangChu*) có 4 khối; hỏi trước:
+
+| Câu hỏi | Đại Ca chốt |
+|---|---|
+| Hiện khối nào | **Chỉ thẻ phân hệ** — bỏ "Việc cần xử lý", thống kê cả năm, "Báo cáo chạy lâu nhất" |
+| Số liệu nặng tải lúc nào | *"Tạm thời lên mẫu, chưa lấy số liệu"* |
+| Kỳ của số liệu (cho sau này) | **Tháng hiện tại** |
+
+### Đã làm (`index.html`, không đụng `server.py`)
+
+- **`TrangChu`**: *"Chào buổi sáng/trưa/chiều/tối, <tên>"* · thứ + ngày · lưới thẻ phân hệ (3 cột ở ≥1280px). Mỗi thẻ: icon màu · tên · nhãn đếm (*"4 màn hình"*, *"16 báo cáo"*) · một dòng mô tả. Bấm thẻ = mở phân hệ đó.
+- Thẻ = **đúng các phân hệ người đó thấy ở cột trái** + thẻ Phân quyền nếu có quyền `perm_admin`. Nhãn đếm theo quyền. Nhãn thẻ Phân quyền là *"Quản trị"*, không phải *"Chỉ admin"* như phác thảo: quyền `perm_admin` tick được cho chức vụ khác, ghi "chỉ admin" là sai.
+- Nút **Trang chủ** đứng đầu cột phân hệ (icon nhà, nét lấy từ phác thảo). `activeTab` mặc định `'home'`; **đăng nhập xong luôn về Trang chủ**.
+- `PHAN_HE` thêm `mo_ta`, `mau`, `ten_day` (thẻ ghi *"Báo cáo tài chính"*, cột trái vẫn *"Báo cáo TC"*). Kho đổi sang màu **xanh ngọc** thay cho **đỏ** của phác thảo: đỏ ở phác thảo đi kèm nhãn *"25 cần truy"*, không có số liệu mà để đỏ là báo động giả.
+- Không thêm độ đậm 800/900 nào (Bẫy 27).
+
+### 🧪 Verify (server thử 5052 chạy đúng working tree, phiên giả, không DB)
+
+| Kiểm | Kết quả |
+|---|---|
+| **M1** | `check_babel.js` SUCCESSFUL · `server.py` không đổi |
+| Bấm 5 thẻ (trừ Phân quyền) | Mỗi thẻ mở đúng phân hệ + đúng tab đầu (Tổng hợp → *Chứng từ tổng hợp* … Báo cáo → *Tất cả báo cáo*); nút Trang chủ về lại đúng |
+| Nhớ chỗ đang dở | Kho → *Đối chiếu điều chuyển* → Trang chủ → thẻ Kho ⇒ về đúng *Đối chiếu điều chuyển*. Mở BC005 → Trang chủ → thẻ Báo cáo ⇒ vẫn BC005 |
+| **Không truy vấn SQL** | API gọi từ lúc mở tới hết lượt thử: chỉ `version`, `check_driver`, `metadata`, `my_perms`, `check_update` — đều là lệnh khởi động có sẵn |
+| Tài khoản hạn chế (2 tab kho + BC005, BC013) | Chỉ 2 thẻ: *Kho [2 màn hình]*, *Báo cáo tài chính [2 báo cáo]*; không có thẻ/nút Phân quyền |
+| 1280px | 3 cột × 376px, mép phải thẻ cuối 860px, **không cuộn ngang** |
+| Console | Chỉ ghi chú Babel >500 KB có sẵn |
+
+### 🔍 Điểm mù
+
+- **Không bấm thẻ Phân quyền** trên server thử (gọi Google bằng tài khoản giả). Nó chỉ `setActiveTab('perm_admin')`, đúng lệnh mà nút Phân quyền ở cột trái vẫn dùng.
+- **Chưa thử đăng nhập thật** ⇒ dòng *"đăng nhập xong về Trang chủ"* mới đọc mã (một lệnh `setActiveTab('home')` trước `setIsLoggedIn(true)`).
+- ~~Máy 2048px: lưới giữ tối đa 1.280px, dồn trái, bên phải trống~~ ⇒ Đại Ca thấy đúng vậy, xem ngay dưới.
+
+### Đại Ca xem: *"giao diện thì ok rồi, bên phải hơi trống nên cân cho đều"*
+
+Bỏ giới hạn 1.280px, lưới thẻ trải hết bề ngang. Đo lại ở **2048px** (máy Đại Ca): lề trái **32px** =
+lề phải **32px**, mỗi thẻ 632px, không cuộn ngang. Chốt OK ⇒ **commit GĐ4**.
+
+### 🎨 Phác thảo giao diện mới cho tab Phân quyền (việc 32)
+
+Đại Ca: *"muốn chỉnh sửa luôn giao diện của tab phân quyền, phác thảo luôn cho t xem"*. Đọc hết
+`PermAdminPanel` (~365 dòng) để phác thảo **giữ đủ chức năng đang có**, rồi vẽ 3 khung vào mục **05 — PHÂN
+QUYỀN** của bản phác thảo (https://claude.ai/artifact/7kiiWQ13PPR7eXN2AgPhtc):
+
+| Khung | Khác bản đang chạy |
+|---|---|
+| **Tài khoản** | Hai tab con lên **hàng tab ngang** (đúng điều hướng 2 tầng) · bảng thêm cột **Chức vụ** và **tên đơn vị** (bản cũ chỉ ghi *"N mục · N đơn vị"*) · ô tìm + lọc theo chức vụ / đang khoá · sửa ở **khung bên phải** thay hộp thoại giữa màn · danh sách đơn vị có ô tìm, đơn vị đã chọn nổi lên đầu |
+| **Chức vụ** | **Ma trận** chức vụ × 26 mục, tick thẳng trên bảng, thanh vàng *"N thay đổi chưa lưu"* rồi mới Lưu. Cột ADMIN **khoá** (app vốn tự tính đủ). Tab mới chưa cấp cho ai lộ ra ngay — đúng việc 4 |
+| **Mở khoá** | Cùng nội dung màn nhập mật khẩu quản trị, đổi sang kiểu chữ/màu mới |
+
+⚠️ Tài khoản, chức vụ, đơn vị trong khung là **MINH HOẠ** — chưa đọc Google Sheet thật (ghi rõ trên bản phác thảo).
+⚠️ Ma trận lưu **từng chức vụ một**, mỗi chức vụ vẫn 4–7 giây qua Google; lưới an toàn *"Google bỏ sót mã"*
+(`kiemMucBiVutBo`) phải chạy cho **từng** chức vụ khi làm thật.
+
+💡 **Vấp khi đăng phác thảo:** lệnh publish từ chối file trong scratchpad khi đường dẫn viết tắt
+`C:\Users\QUANG~1.TRA\…` (báo *"blocked by a Read permission rule"*), dùng đường dẫn đầy đủ
+`C:\Users\quang.tran\…` thì qua.
 
 ---
 

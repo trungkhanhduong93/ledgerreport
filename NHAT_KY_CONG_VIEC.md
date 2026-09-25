@@ -141,6 +141,20 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 
 ---
 
+## 26/09/2026 — Phát hành v2.0.1 (thông báo có bản mới kiểu mới)
+
+Đại Ca: *"chơi luôn đi"*.
+
+- M1: parse OK, **175 hàm / 71 route**, so `origin/main` mất 0 hàm / 0 route (mới: `_doc_co_gi_moi`, `_tach_co_gi_moi`) · Babel OK ·
+  quét secret sạch · `CO_GI_MOI.md` có mục `## v2.0.1` (`- Cập nhật hệ thống`).
+- Build `build_exe.py iPOS_Accounting_Report` ⇒ tự lên **2.0.1** (EXE mới hơn mọi file nguồn).
+- M3 chạy EXE thật: cổng 5050 lên sau 1s · `/api/version` 2.0.1 · trang có `HopThoaiCapNhat` + chu kỳ 2 giờ · `check_update` thấy GitHub
+  đang v2.0.0 ⇒ không báo (đúng) · tắt EXE thử.
+- Cất file CI v2.0.0 thành `dist\iPOS_Accounting_Report_v2.0.0.exe.bak` để **thử cập nhật THẬT 2.0.0 → 2.0.1** sau khi Actions xong.
+- Kết quả Actions + phép thử cập nhật thật: ghi tiếp ở dưới (commit local, không push).
+
+---
+
 ## 26/09/2026 — Thông báo có bản mới: hộp thoại + nút cam + thẻ nhắc (việc 37, phương án B + C)
 
 Đại Ca: *"t muốn làm lại cái màn hình thông báo cho dễ thấy hơn"* → xem 3 phương án ở mục **07** bản phác thảo → chọn **B + C**.

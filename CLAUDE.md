@@ -589,7 +589,9 @@ chép HTML nên `<colgroup>` không còn ảnh hưởng. Giữ mục này để 
 `exportReportXls()` đọc `.report-table` ĐANG HIỆN (chữ, gộp ô, đậm/nghiêng, màu chữ/nền kể cả nền tô cả dòng,
 căn lề, cỡ chữ, độ rộng cột, chiều cao dòng) + khối tiêu đề / chữ ký ⇒ gửi **mô hình** cho
 `/api/xuat_xlsx_bieu_mau` ⇒ `xlsxwriter` ghi file vào thư mục xuất ⇒ trình duyệt tải qua `/api/tai_file_xuat`.
-Luật nhận dạng số giữ nguyên bản `.xls` đã đạt M4. ⛔ Đừng quay lại ghi HTML đuôi `.xls` — Excel hỏi
+Luật nhận dạng số giữ nguyên bản `.xls` đã đạt M4. **Cỡ chữ: 1px màn hình = 1pt Excel** (thân bảng 11pt — Đại Ca chốt
+25/09/2026, cả BC016); ⛔ độ rộng cột + chiều cao dòng phải phóng **cùng tỉ lệ** (`PHONG`), không là số tràn ô `#####`.
+⛔ Đừng quay lại ghi HTML đuôi `.xls` — Excel hỏi
 *"định dạng và phần mở rộng không khớp"* mỗi lần mở. ⚠️ Máy chủ bật `constant_memory` ⇒ **cấm `merge_range()`
 cho vùng gộp nhiều dòng** (đẩy mất dòng đang ghi dở) — xem chú thích `_ghi_xlsx_bieu_mau`.
 

@@ -103,6 +103,7 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 | 17 | ~~Nút `TRUY VẤN` đang chuyển màu navy → tím~~ ✅ **XONG 25/09** | Đại Ca chốt: chữ **"Lọc"**, navy đặc, như mẫu iPOS. Nằm trong thanh lọc mới của 9 màn danh sách |
 | 18 | ~~Chốt mốc commit phần đăng nhập nhanh + sửa font~~ ✅ **commit `c64540a`** | Local, chưa push |
 | 19 | ~~Đại Ca xem GĐ3 rồi chốt commit~~ ✅ **Đại Ca chốt OK sáng 25/09** (*"cái đó thì ok rồi"*) ⇒ đã commit GĐ3 | ⚠️ Đại Ca chốt chung, **không nói rõ đã thử từng mục dưới đây chưa** — lần đầu dùng số liệu thật thì để ý. Danh sách cần xem ở mục *"Việc Đại Ca xem sáng 25/09"* trong nhật ký 25/09 (tiếp 3), ngay dưới § này. Ba việc tôi **không** tự thử được: hộp *"Chuyển mẫu báo cáo?"* khi có số liệu thật · menu **Xuất Excel / Xuất PDF** khi có số liệu (chưa có số liệu thì nút tắt) · kéo thả thứ tự ô lọc bằng chuột thật. Và **đọc lại mô tả 16 thẻ** — tôi tự viết |
+| 36 | ~~Chữ trong file Excel Báo cáo TC nhỏ (8,5pt)~~ ✅ **XONG 25/09 — thân bảng 11pt, cột/dòng nới cùng tỉ lệ** (Đại Ca chọn từ 4 file mẫu) | Chi tiết: mục nhật ký *25/09 (khuya, tiếp 4)*. Chờ Đại Ca F5 trên 5051 rồi xuất thử với số liệu thật |
 | 35 | ~~Báo cáo TC xuất Excel ra `.xls` (HTML), không phải `.xlsx` thật~~ ✅ **XONG 25/09 — nay `.xlsx` thật, giữ y biểu mẫu** (Đại Ca: *"luôn luôn xuất xlsx, y chang biểu mẫu đang xem"*) | Chi tiết: mục nhật ký *25/09 (khuya, tiếp 3)*. Chờ Đại Ca thử với số liệu thật trên 5051. `/api/export_excel_backend` (BC007/BC008, không ai gọi) vẫn để nguyên |
 | 34 | ~~Lỗi cuộn ảo (Bẫy 29) có trong bản ĐANG PHÁT HÀNH v1.12.3~~ ✅ **Đã vá lên `main` 25/09 (`6907d78`), CHƯA build/push** — Đại Ca đồng ý | Vá trong worktree tạm (không đụng thư mục 5051 đang phục vụ); chỉ thay khi hàm trên `main` giống hệt bản `giaodien` trước khi sửa (so sau khi bỏ khác biệt xuống dòng). Gộp thử `main` → `giaodien`: chỉ 1 xung đột, đúng chỗ việc 31 đã biết |
 | 33 | ~~Cột phân hệ navy bên trái~~ ✅ **XONG 25/09 — kiểu 06C** (Đại Ca chọn, navy nhạt hơn 1 bậc) | Phác thảo = mục **06** của canvas. Chờ Đại Ca xem trên 5051 |
@@ -162,6 +163,52 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 | Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 25/09/2026 (khuya, tiếp 4) — Excel Báo cáo TC: chữ thân bảng 8,5pt → **11pt** (việc 36)
+
+Đại Ca gửi ảnh BC006 mở trong Excel: *"chữ nó 9 à, hơi nhỏ"*.
+
+### 1. Ảnh là FILE CŨ — không phải bản `.xlsx` mới
+
+File trong ảnh = `Downloads\BC006_Bang_Can_Doi_Phat_Sinh_2026_Thang7.xls`, **bản `.xls` HTML xuất 15/08/2026** bằng EXE cũ
+(đọc nguồn file: `font-size:11px`, `text-align:start`, không khai font). Hôm đó máy chưa xuất file nào mới. Ba lỗi khác thấy
+trong ảnh — số không phân cách `58861945`, tên TK dạt phải (Excel không hiểu `start`), font Aptos Narrow — **là của bản
+`.xls` cũ; bản `.xlsx` (việc 35) đã hết**: Arial, số thật `#,##0`, căn trái.
+
+### 2. Nhưng bản `.xlsx` mới còn NHỎ HƠN 9
+
+Đo thật trên server thử 5052 (BC006, số giả): màn hình thân bảng **11px**, tiêu đề cột **10px** ⇒ file ra **8,5pt / 7,5pt**,
+dòng đơn vị + *(Ký, họ tên)* **7pt**. Gốc: quy đổi đúng vật lý px × 0,75 — chữ app vốn nhỏ gọn nên sang Excel thành nhỏ.
+
+### 3. Đại Ca chốt: **11pt** + **BC016 theo luật chung** (xem 4 file mẫu 8,5 · 10 · 11 · 12pt trước khi chọn)
+
+`exportReportXls` trong [index.html](index.html): `PT_MOI_PX = 1` (1px màn hình = 1pt Excel) và **`PHONG = 4/3` nhân cho cả
+độ rộng cột lẫn chiều cao dòng** — phóng chữ mà quên cột/dòng là số to tràn ô `#####`. Cùng tỉ lệ ⇒ bố cục, chỗ xuống dòng
+giữ y màn hình. Bỏ luật riêng *BC016 ép 8pt* (khi in BC016 vẫn co vừa 1 trang ngang ⇒ bản in không đổi).
+**Không đụng `server.py`** ⇒ 5051 chỉ cần F5.
+
+| Chỗ | Trước | Sau |
+|---|---|---|
+| Thân bảng | 8,5pt | **11pt** |
+| Tiêu đề cột | 7,5pt | **10pt** |
+| Tên báo cáo | 11,5pt | **15pt** |
+| Dòng đơn vị, *(Ký, họ tên)* | 7pt | **9pt** |
+
+### 🧪 Verify
+
+- **M1**: Babel SUCCESSFUL.
+- **Bấm thật trên giao diện** (5052, BC006, API giả) → đọc file bằng `openpyxl`: Arial **11 / 10 / 15 / 9pt** đúng bảng trên ·
+  cột A/B/C–H = 116/323/142px (×4/3) · dòng thân 32,25pt · 19 vùng gộp · số vẫn `#,##0`, số âm `(#,##0)`.
+- File thử đã dời ra thư mục nháp, không để trong `Downloads`.
+
+### 🔍 Điểm mù
+
+- **Chưa mở trong Excel thật** (chỉ đọc ngược bằng `openpyxl`) và **chưa thử với số liệu thật** — nhất là BC016 (59 cột) và
+  các báo cáo KQKD nhiều cột.
+- **In A4 dọc**: BC006 **vốn đã tràn 2 trang ngang** (965px > ~660px khổ in); sau khi phóng rộng ~1.295px, vẫn 2 trang. Muốn
+  1 trang ngang thì phải co khi in ⇒ chữ in nhỏ lại — chưa làm, chờ Đại Ca cần.
 
 ---
 

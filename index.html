@@ -2195,10 +2195,15 @@ window.showConnectionLost = function() {
                     const tron = (x) => Math.round(x * a + 255 * (1 - a));   // màu mờ ⇒ trộn với nền trắng như trên màn hình
                     return '#' + [0, 1, 2].map(i => Math.min(255, Math.max(0, tron(p[i]))).toString(16).padStart(2, '0')).join('');
                 };
-                const pt = (px) => Math.max(7, Math.round(parseFloat(px) * 0.75 * 2) / 2);
-                const CANH = { left: 'left', start: 'left', right: 'right', end: 'right', center: 'center', justify: 'justify', '-webkit-center': 'center' };
+                // Cỡ chữ Excel (Đại Ca chốt 25/09/2026: thân bảng 11pt, cả BC016): 1px màn hình = 1pt Excel, tức PHÓNG
+                // ×4/3 so với quy đổi vật lý (0,75) — quy đổi vật lý ra thân bảng 8,5pt, tiêu đề cột 7,5pt, quá nhỏ.
+                // ⛔ Phóng chữ thì PHẢI phóng độ rộng cột + chiều cao dòng cùng tỉ lệ (PHONG) — quên là số to tràn ô
+                //    thành "#####", chữ bị cắt. Cùng tỉ lệ thì bố cục, chỗ xuống dòng giữ y màn hình.
+                const PT_MOI_PX = 1;
+                const PHONG = PT_MOI_PX / 0.75;
+                const pt = (px) => Math.max(7, Math.round(parseFloat(px) * PT_MOI_PX * 2) / 2);
+                const CANH ={ left: 'left', start: 'left', right: 'right', end: 'right', center: 'center', justify: 'justify', '-webkit-center': 'center' };
                 const VIEN = { border: 1, border_color: '#000000' };      // như bản .xls: ô trong bảng kẻ viền đen mảnh
-                const coChuRieng = reportType === 'BC016' ? 8 : null;     // BC016 51–59 cột: chữ 8pt như bản .xls cũ
                 const SO_DONG_DO_RONG = 300;                              // đo độ rộng cột trên 300 dòng đầu là đủ
 
                 // ── 1. BẢNG: xếp từng ô vào lưới (tính cả gộp ngang / dọc) ──
@@ -2229,7 +2234,7 @@ window.showConnectionLost = function() {
                             bold: (parseInt(st.fontWeight, 10) || 400) >= 600 || undefined,
                             italic: st.fontStyle === 'italic' || undefined,
                             underline: /underline/.test(st.textDecorationLine || '') ? 1 : undefined,
-                            font_size: coChuRieng || pt(st.fontSize),
+                            font_size: pt(st.fontSize),
                             font_color: hex(st.color),
                             bg_color: hex(st.backgroundColor) || nenDong,
                             align: CANH[st.textAlign],
@@ -2271,7 +2276,7 @@ window.showConnectionLost = function() {
                         c += nGop;
                     }
                     soCot = Math.max(soCot, c);
-                    const dong = { h: Math.round(tr.getBoundingClientRect().height) || null, c: oDong };
+                    const dong = { h: Math.round(tr.getBoundingClientRect().height * PHONG) || null, c: oDong };
                     (tr.parentElement && tr.parentElement.tagName === 'THEAD' ? dauBang : thanBang).push(dong);
                 });
                 const maxCols = soCot || 8;
@@ -2354,8 +2359,8 @@ window.showConnectionLost = function() {
 
                 const kChu = (o) => layKieu({ font_size: pt(o.px || 11), bold: o.b || undefined, italic: o.i || undefined,
                     underline: o.u ? 1 : undefined, font_color: o.mau, align: o.canh || 'left', text_wrap: o.xd || undefined });
-                const dong1 = (text, o, h) => ({ h: h || null, c: [[0, text, kChu(o), maxCols, 1, 's']] });
-                const dongTrong = (h) => ({ h: h || null, c: [] });
+                const dong1 = (text, o, h) => ({ h: h ? Math.round(h * PHONG) : null, c: [[0, text, kChu(o), maxCols, 1, 's']] });
+                const dongTrong = (h) => ({ h: h ? Math.round(h * PHONG) : null, c: [] });
                 const cot1 = Math.max(1, maxCols - 2);
                 const khoiDau = [
                     { h: null, c: [[0, companyName, kChu({ b: 1, px: 11 }), cot1, 1, 's']].concat(maxCols > cot1
@@ -2391,7 +2396,7 @@ window.showConnectionLost = function() {
                     landscape: reportType === 'BC015' || reportType === 'BC016',
                     fit_width: reportType === 'BC016',     // BC016 rất nhiều cột: co vừa 1 trang bề ngang khi in
                     lap_dong: dauBang.length ? [khoiDau.length, khoiDau.length + dauBang.length - 1] : null,
-                    col_widths: Array.from({ length: maxCols }, (_, i) => Math.round(rongCot[i] || 0)),
+                    col_widths: Array.from({ length: maxCols }, (_, i) => Math.round((rongCot[i] || 0) * PHONG)),
                     styles: kieu,
                     head: khoiDau.concat(dauBang),
                     body: thanBang,

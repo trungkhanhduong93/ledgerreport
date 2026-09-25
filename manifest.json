@@ -1,13 +1,13 @@
 {
-  "name": "iPOS Ledger Studio",
-  "short_name": "Ledger Studio",
-  "description": "Báo cáo sổ sách - Sổ cái, Nhập kho, Kho",
+  "name": "PROOFTRAIL",
+  "short_name": "PROOFTRAIL",
+  "description": "Minh bạch tới từng chứng từ — báo cáo kế toán iPOS",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "landscape",
-  "background_color": "#0f172a",
-  "theme_color": "#4f46e5",
+  "background_color": "#172554",
+  "theme_color": "#1e3a8a",
   "lang": "vi-VN",
   "icons": [
     {

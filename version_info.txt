@@ -15,11 +15,11 @@ VSVersionInfo(
       StringTable(
         '040904B0',
         [StringStruct('CompanyName', 'iPOS.vn'),
-        StringStruct('FileDescription', 'iPOS_Accounting_Report'),
+        StringStruct('FileDescription', 'PROOFTRAIL'),
         StringStruct('FileVersion', '1.12.3'),
         StringStruct('InternalName', 'iPOS_Accounting_Report'),
         StringStruct('OriginalFilename', 'iPOS_Accounting_Report.exe'),
-        StringStruct('ProductName', 'iPOS_Accounting_Report'),
+        StringStruct('ProductName', 'PROOFTRAIL'),
         StringStruct('ProductVersion', '1.12.3')])
       ]), 
     VarFileInfo([VarStruct('Translation', [1033, 1200])])

@@ -14,6 +14,9 @@ import subprocess
 # Không truyền gì thì vẫn đoán như cũ nhưng IN CẢNH BÁO to.
 # ---------------------------------------------------------------------------
 VALID_APP_NAMES = ('iPOS_Accounting_Report', 'iPOS_Ledger_Studio')
+# Ten HIEN THI trong Properties cua file EXE (FileDescription / ProductName). Ten FILE van la APP_NAME:
+# bo tu cap nhat tai asset theo dung ten file, doi la moi may dang chay mat duong cap nhat (GD5, 25/09/2026).
+DISPLAY_NAMES = {'iPOS_Accounting_Report': 'PROOFTRAIL', 'iPOS_Ledger_Studio': 'iPOS_Ledger_Studio'}
 
 if len(sys.argv) > 1 and sys.argv[1].strip():
     APP_NAME = sys.argv[1].strip()
@@ -102,11 +105,11 @@ version_info = f"""VSVersionInfo(
       StringTable(
         '040904B0',
         [StringStruct('CompanyName', 'iPOS.vn'),
-        StringStruct('FileDescription', '{APP_NAME}'),
+        StringStruct('FileDescription', '{DISPLAY_NAMES[APP_NAME]}'),
         StringStruct('FileVersion', '{new_version}'),
         StringStruct('InternalName', '{APP_NAME}'),
         StringStruct('OriginalFilename', '{APP_NAME}.exe'),
-        StringStruct('ProductName', '{APP_NAME}'),
+        StringStruct('ProductName', '{DISPLAY_NAMES[APP_NAME]}'),
         StringStruct('ProductVersion', '{new_version}')])
       ]), 
     VarFileInfo([VarStruct('Translation', [1033, 1200])])

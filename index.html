@@ -1932,7 +1932,7 @@ window.showConnectionLost = function() {
             );
         };
 
-        const ReportTab = ({ filters, setFilters, period, setPeriod, meta, onToggleFilter, activeDropdown, setActiveDropdown, reportData: initialReportData, loadReportData, loading, monthList, monthlyData: initialMonthlyData, jobList, jobData: initialJobData, reportType, setReportType, setPendingReportType, setShowClearModal, trialBalanceData, trialBalanceTotal, cashBookData, vatSalesTotals, vatSalesMode, setVatSalesMode, saleSourceTotals, saleSourceMode, setSaleSourceMode, nxtData, nxtGroupBy, setNxtGroupBy, journalViewMode, setJournalViewMode, onExportSuccess, allowedReports = REPORT_TYPES }) => {
+        const ReportTab = ({ filters, setFilters, period, setPeriod, meta, onToggleFilter, activeDropdown, setActiveDropdown, reportData: initialReportData, loadReportData, loading, monthList, monthlyData: initialMonthlyData, jobList, jobData: initialJobData, reportType, setReportType, setPendingReportType, setShowClearModal, trialBalanceData, trialBalanceTotal, cashBookData, vatSalesTotals, vatSalesMode, setVatSalesMode, saleSourceTotals, saleSourceMode, setSaleSourceMode, nxtData, nxtGroupBy, setNxtGroupBy, journalViewMode, setJournalViewMode, onExportSuccess, allowedReports = REPORT_TYPES, orgsLoc }) => {
             const paperScrollRef = React.useRef(null);
             const [showJournalExport, setShowJournalExport] = React.useState(false);
             const [exportModal, setExportModal] = React.useState(null); // { open: true, progress: 0-100, status: 'exporting'|'done', path: '', filename: '' }
@@ -1964,7 +1964,8 @@ window.showConnectionLost = function() {
             const soDangLocTrong = cfgLoc.thuTu.filter(id => !cfgLoc.ngoai.includes(id) && oCoGiaTri(id)).length;
             // "Xoá tất cả" = bỏ giá trị MỌI ô lọc của báo cáo này (cả ngoài lẫn trong), trừ Thời gian.
             const xoaTatCaOLoc = () => setFilters(p => { const m = { ...p }; oLocCo.forEach(o => { m[o.khoa] = o.khoa === 'tran_no' ? '' : []; }); return m; });
-            const nguonOLoc = { donvi: meta.orgs, tk: meta.accounts, cv: meta.jobs, doituong: meta.pr_details, tkdu: meta.accounts };
+            // orgsLoc = đơn vị trong quyền (việc 10); không truyền thì đủ danh sách như cũ
+            const nguonOLoc = { donvi: orgsLoc || meta.orgs, tk: meta.accounts, cv: meta.jobs, doituong: meta.pr_details, tkdu: meta.accounts };
             // Một ô lọc — dùng chung cho hàng ngoài (có mức sàn) lẫn lưới trong Bộ lọc nâng cao.
             const veOLoc = (id, trongBang, canhPhai) => {
                 const o = O_LOC_BAO_CAO.find(x => x.id === id);
@@ -5182,6 +5183,14 @@ const exportJournalCsv = (mode) => {
             // Nguyên văn lỗi ODBC — giấu sau nút "Chi tiết", chỉ mở khi cần chẩn đoán.
             const [loginErrorChiTiet, setLoginErrorChiTiet] = useState("");
             const [hienChiTietLoi, setHienChiTietLoi] = useState(false);
+            // Việc 23: bị đá ra (đăng nhập nhanh — Google kiểm lại ở nền thấy mật khẩu đổi / tài khoản bị khoá / quyền đổi)
+            // thì màn đăng nhập NÓI VÌ SAO, thay vì chỉ quay về trong im lặng. Máy chủ trả lý do một lần rồi xoá.
+            useEffect(() => {
+                if (isLoggedIn) return;
+                fetch('/api/ly_do_dang_xuat').then(r => r.json())
+                    .then(j => { if (j && j.ly_do) { setLoginError(j.ly_do); setLoginErrorChiTiet(""); } })
+                    .catch(() => {});
+            }, [isLoggedIn]);
             // Mất mạng lúc đăng nhập → server trả "canh_bao". Phải nói rõ cho người dùng biết
             // họ đang chạy bằng bản quyền lưu trên máy, không phải bản mới nhất trên Google Sheet.
             const [canhBaoOffline, setCanhBaoOffline] = useState("");
@@ -5386,10 +5395,16 @@ const exportJournalCsv = (mode) => {
 
             const handleLogin = async (e) => {
                 e.preventDefault();
-                setLoginLoading(true);
-                setLoginError("");
                 setLoginErrorChiTiet("");
                 setHienChiTietLoi(false);
+                // Việc 9: thiếu tài khoản ứng dụng thì báo ngay tại chỗ, khỏi chờ Google 4–7 giây. Dòng đầu giữ đúng
+                // tiêu đề nhóm "tài khoản ứng dụng" (CLAUDE.md — thông báo lỗi đăng nhập: đúng HAI tiêu đề).
+                if (!(loginData.app_user || '').trim() || !loginData.app_password) {
+                    setLoginError("Mật khẩu hoặc tài khoản không đúng\nChưa nhập đủ Tài khoản và Mật khẩu ở mục 02 — Tài khoản ứng dụng.");
+                    return;
+                }
+                setLoginLoading(true);
+                setLoginError("");
                 try {
                     const r = await fetch('/api/login', {
                         method: 'POST',
@@ -7408,15 +7423,22 @@ const exportJournalCsv = (mode) => {
                     document.removeEventListener('dblclick', dup, true); document.removeEventListener('dragstart', keoTha, true);
                 };
             }, []);
+            // Ô lọc Đơn vị chỉ liệt kê đơn vị TRONG QUYỀN (việc 10, 26/09/2026). Máy chủ vốn đã cắt dòng theo quyền
+            // (_current_allowed_orgs) ⇒ chọn đơn vị ngoài quyền chỉ ra 0 dòng, lại lộ tên đơn vị người đó không được xem.
+            // ⛔ meta.orgs GIỮ ĐỦ, chỉ lọc ở ô chọn: tên công ty / địa chỉ trên tiêu đề báo cáo và file xuất vẫn cần đơn vị '00'.
+            const aoQuyen = nguoiDung && Array.isArray(nguoiDung.allowed_orgs) ? nguoiDung.allowed_orgs.map(x => String(x).trim()) : null;
+            const orgsTrongQuyen = aoQuyen ? (meta.orgs || []).filter(o => aoQuyen.includes(String(o.id || '').trim())) : meta.orgs;
             const oLocDs = (tab) => {
                 const ds = (id, ten, nguon, gt, chon, xoa) => ({ id, ten, loai: 'ds', nguon: nguon || [], gt: gt || [], chon, xoa });
+                // Tab điều chuyển: ô "Đơn vị xuất" GIỮ ĐỦ danh sách — tài khoản bị giới hạn vẫn thấy hàng đơn vị KHÁC
+                // chuyển tới mình (quyền "một trong hai phía"), lọc theo đơn vị xuất đó là hợp lệ. Xem orgsTrongQuyen.
                 const chung = (id, ten, khoa, nguon) => ds(id, ten, nguon, filters[khoa], v => toggleFilter(khoa, v), () => setFilters(p => ({ ...p, [khoa]: [] })));
                 const soCt = (st, setSt) => ({ id: 'soct', ten: 'Số chứng từ', loai: 'go', gt: st.tran_no_search || '',
                     dat: v => setSt(p => ({ ...p, tran_no_search: v })), xoa: () => setSt(p => ({ ...p, tran_no_search: '' })) });
                 const kho = (ten, st, toggle, setSt, khoa = 'wh_ids') => ds(khoa === 'wh_ids' ? 'kho' : 'kho_nhap', ten, meta.warehouses, st[khoa],
                     v => toggle(khoa, v), () => setSt(p => ({ ...p, [khoa]: [] })));
                 const loaiCt = chung('loaict', 'Loại CT', 'tran_ids', tranItemsFor(tab));
-                const donVi = (ten = 'Đơn vị') => chung('donvi', ten, 'org_ids', meta.orgs);
+                const donVi = (ten = 'Đơn vị', nguon = orgsTrongQuyen) => chung('donvi', ten, 'org_ids', nguon);
                 const tk = chung('tk', 'Tài khoản', 'acc_ids', meta.accounts);
                 const dt = chung('dt', 'Đối tượng', 'pr_detail_ids', meta.pr_details);
                 const cv = chung('cv', 'Công việc', 'job_ids', meta.jobs);
@@ -7436,7 +7458,7 @@ const exportJournalCsv = (mode) => {
                     // người ta chuyển cho mình ⇒ lọc Kho nhận. Tài khoản bị giới hạn đơn vị thấy cả hai chiều
                     // (quyền "một trong hai phía" ở _build_dcnb_where).
                     case 'dcnb_reconcile': return [kho('Kho xuất', dcnbFilters, toggleDcnbFilter, setDcnbFilters),
-                        kho('Kho nhận', dcnbFilters, toggleDcnbFilter, setDcnbFilters, 'wh_nhap_ids'), donVi('Đơn vị xuất'), hh('Hàng hoá')];
+                        kho('Kho nhận', dcnbFilters, toggleDcnbFilter, setDcnbFilters, 'wh_nhap_ids'), donVi('Đơn vị xuất', meta.orgs), hh('Hàng hoá')];
                     case 'po_list':  return [donVi(), kho('Kho', poFilters, togglePoFilter, setPoFilters), hh('Hàng hoá')];
                     default: return [];
                 }
@@ -9094,6 +9116,7 @@ const exportJournalCsv = (mode) => {
                             {loading && <div className="absolute inset-0 bg-white/60 z-50 flex flex-col items-center justify-center backdrop-blur-[4px] transition-all"><div className="bg-white p-8 rounded-[40px] shadow-[0_30px_100px_rgba(0,0,0,0.2)] flex flex-col items-center gap-6 border border-indigo-50 scale-110"><div className="relative"><div className="w-16 h-16 border-4 border-indigo-100 rounded-full"></div><div className="w-16 h-16 border-4 border-indigo-600 rounded-full border-t-transparent animate-spin absolute top-0 left-0"></div><Icon name="file-text" size={24} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-indigo-600"/></div><div className="flex flex-col items-center gap-1"><div className="text-[12px] font-black text-indigo-900 uppercase tracking-widest">Đang kết xuất báo cáo</div><div className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter italic">Vui lòng chờ trong giây lát...</div></div></div></div>}
                             <ReportTab
                                 allowedReports={REPORT_TYPES.filter(r => canSee(r.id))}
+                                orgsLoc={orgsTrongQuyen}
                                 filters={filters}
                                 setFilters={setFilters}
                                 period={period}

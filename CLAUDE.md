@@ -417,7 +417,7 @@ Nguồn `dbo.PO` + `dbo.PO_DETAIL` (**không có view**). 2026: 4.217 phiếu / 
 
 ⛔ **CỐ Ý KHÔNG có cột "đã có phiếu mua hàng chưa"** — xem **Bẫy 20**.
 
-### 1.2 Ma trận báo cáo — **BC001 → BC014**
+### 1.2 Ma trận báo cáo — **BC001 → BC016**
 
 | Mã | Tên | Endpoint | Nguồn |
 |---|---|---|---|
@@ -435,6 +435,8 @@ Nguồn `dbo.PO` + `dbo.PO_DETAIL` (**không có view**). 2026: 4.217 phiếu / 
 | BC012 | Sổ tiền mặt & tiền ngân hàng | `/api/cash_book` | VOUCHER_VIEW |
 | BC013 | **Tổng hợp phát sinh công nợ** | `/api/debt_summary` | BALANCE_VIEW + LEDGER |
 | BC014 | 6.2 — Bảng kê hoá đơn bán ra | `/api/vat_sales_report` | VAT_TRANSACTION_VIEW (`DEBIT_CREDIT='CRD'`) |
+| BC015 | Bán hàng theo nguồn đơn | `/api/sale_by_source` | SALE_VIEW (`STATUS='POSTED'`) ⋈ DM_EXTRA_2 (nguồn đơn = `EXTRA_ID_2`) ⋈ DM_ORGANIZATION; `mode=summary`/`detail` (thêm dòng theo ngày) |
+| BC016 | Nhập xuất tồn nhà hàng | `/api/nxt` | WAREHOUSE_VIEW + DM_ITEM / DM_WAREHOUSE / DM_ITEM_CLASS / SYS_TRAN; nhập–xuất trong kỳ là **cột động theo `TRAN_ID`**; `group_by=class`/`warehouse` |
 
 Engine dùng chung — **sửa một chỗ, ảnh hưởng nhiều báo cáo**:
 - `_calc_results()` — phân loại chỉ tiêu KQKD. Dùng bởi BC001–BC004, **và cả BC009/BC010/BC011** (lấy `r['13']` LN trước thuế, `r['07']` chi phí lãi vay). Chỉ được có **MỘT** định nghĩa trong file.
@@ -978,6 +980,27 @@ có sẵn từ commit đầu tiên — bản đang phát hành cũng bị.**
 ⚠️ **Thử lại lỗi cuộn trong trình duyệt tích hợp khi khung đang ẩn:** trình duyệt **không bắn sự kiện `scroll`**
 khi trang không được vẽ ⇒ gán `scrollTop` xong phải tự `dispatchEvent(new Event('scroll'))`, không thì phép thử
 báo "trắng" giả. Đã vấp khi dựng lại lỗi này.
+
+---
+
+### Bẫy 30 — Thêm route `/api` mà quên khai báo quyền ⇒ **nhân viên thường bị 403, quản trị thì không** *(26/09/2026)*
+
+`_perm_guard` chặn mọi route `/api` **chưa có** trong `PERM_PUBLIC` / `PERM_ROUTE_STATIC` — trừ tài khoản có `perm_admin`.
+⇒ **Tự thử bằng tài khoản quản trị sẽ KHÔNG BAO GIỜ thấy lỗi.** Đã vấp thật: 2 route xuất Excel Báo cáo TC
+(`/api/xuat_xlsx_bieu_mau`, `/api/tai_file_xuat`, việc 35) nằm trong **v2.0.0 và v2.0.1** mà chưa khai báo — Đại Ca (ADMIN) xuất
+bình thường, nhân viên bấm xuất là *"Không xuất được file Excel: Route chưa khai báo quyền"*. Phát hiện tình cờ khi thêm route
+`/api/ly_do_dang_xuat` và bị chính guard này chặn trong lúc thử bằng tài khoản thường.
+
+➡️ **Thêm route `/api` là khai báo quyền NGAY** (public nếu không đọc thêm dữ liệu; theo mục nếu có). Và **luôn thử một lần
+bằng tài khoản KHÔNG phải quản trị** (`app_group` khác `ADMIN`, `app_items` giới hạn — cách gieo phiên ở skill/memory).
+Quét nhanh trước khi phát hành (phải ra `[]`):
+```python
+python -c "import ast,re;s=open('server.py',encoding='utf-8').read();t=ast.parse(s);ns={}
+[exec(compile(ast.Module([n],[]),'s','exec'),ns) for n in t.body if isinstance(n,ast.Assign) and getattr(n.targets[0],'id','') in ('PERM_PUBLIC','PERM_ROUTE_STATIC')]
+r={d.args[0].value for n in ast.walk(t) if isinstance(n,ast.FunctionDef) for d in n.decorator_list if isinstance(d,ast.Call) and getattr(d.func,'attr','')=='route' and d.args}
+dong={'/api/report','/api/report_by_job','/api/cash_flow','/api/export_excel_backend','/api/report_export_csv'}
+print(sorted(x for x in r if x.startswith('/api/') and '<' not in x and x not in ns['PERM_PUBLIC'] and x not in ns['PERM_ROUTE_STATIC'] and x not in dong))"
+```
 
 ---
 

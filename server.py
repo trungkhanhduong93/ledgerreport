@@ -259,6 +259,11 @@ PERM_PUBLIC = {
     '/api/metadata', '/api/metadata/refresh', '/api/export/status', '/api/export/cancel',
     '/api/save_export', '/api/open_file', '/api/open_folder',
     '/api/check_update', '/api/update_progress', '/api/apply_update', '/api/my_perms',
+    # Xuất Excel Báo cáo TC (việc 35): ghi LẠI bảng người dùng ĐANG XEM (đã qua quyền của báo cáo đó) + tải file
+    # trong thư mục xuất — không đọc thêm dữ liệu nào. ⚠️ Quên khai báo 2 route này là lỗi có thật trong v2.0.0–v2.0.1:
+    # tài khoản quản trị qua được nên không ai thấy, nhân viên thường bấm xuất là 403 (Bẫy 30).
+    '/api/xuat_xlsx_bieu_mau', '/api/tai_file_xuat',
+    '/api/ly_do_dang_xuat',          # việc 23: màn đăng nhập hỏi lý do bị đăng xuất
     # Tự đổi mật khẩu: ai cũng gọi được. Endpoint TỰ kiểm mật khẩu cũ hoặc tài khoản
     # quản trị rồi mới cho đổi — ĐỪNG đổi thành 'perm_admin', người thường sẽ kẹt.
     '/api/perm/password',
@@ -604,11 +609,21 @@ def _quyen_khac(a, b):
         return ((u.get('id') or '').lower(), u.get('chuc_vu') or '', items, dv)
     return khoa(a) != khoa(b)
 
-def _huy_phien_nen(sid, app_user, ly_do):
+# Việc 23 (26/09/2026): bị đá ra thì màn đăng nhập phải NÓI VÌ SAO — trước đây người dùng chỉ thấy quay về màn
+# đăng nhập, không một chữ. Luồng nền không đụng được cookie nên ghi lý do theo sid; màn đăng nhập hỏi
+# /api/ly_do_dang_xuat MỘT lần (hỏi xong là xoá — F5 không hiện lại).
+_phien_bi_huy = {}                  # sid -> (câu cho người dùng, lúc huỷ)
+
+def _huy_phien_nen(sid, app_user, ly_do, cau_nguoi_dung=None):
     """Huỷ phiên từ luồng nền. Không đụng được cookie (không có request), nên chỉ gỡ sid
     khỏi kho — request kế tiếp của trình duyệt đó _db_cfg() ra None ⇒ 401."""
     with _phien_lock:
         con = _phien_db.pop(sid, None) is not None
+        if con and cau_nguoi_dung:
+            _phien_bi_huy[sid] = (cau_nguoi_dung, datetime.now())
+            if len(_phien_bi_huy) > 200:          # app chạy local, vài phiên — chỉ phòng phình
+                for k in sorted(_phien_bi_huy, key=lambda k: _phien_bi_huy[k][1])[:100]:
+                    _phien_bi_huy.pop(k, None)
     if con:
         logger.warning('Dang nhap nhanh: HUY phien cua "%s" — %s', app_user, ly_do)
 
@@ -625,13 +640,22 @@ def _kiem_lai_nen(sid, app_user, app_password, ttin_cu):
         logger.warning('Dang nhap nhanh: kiem lai loi (%s) — giu phien', e)
         return
     if not kq.get('ok'):
-        _huy_phien_nen(sid, app_user, 'Google tu choi: %s' % (kq.get('loi') or '?'))
+        loi = (kq.get('loi') or '').strip()
+        # Giữ luật hai tiêu đề: ca "sai mật khẩu" ⇒ dòng đầu _LOI_SAI_TAI_KHOAN; ca khoá tài khoản ⇒ giữ nguyên câu
+        # của Google (gộp thành "sai mật khẩu" là người bị khoá cứ gõ lại — xem nhánh tương tự trong login()).
+        if not loi or loi == 'Sai tài khoản hoặc mật khẩu':
+            cau = (_LOI_SAI_TAI_KHOAN + '\nMật khẩu tài khoản ứng dụng vừa được đổi, hoặc tài khoản không còn dùng được '
+                   '— nên phiên đang dùng đã bị đăng xuất. Đăng nhập lại bằng mật khẩu mới.')
+        else:
+            cau = loi + '\nPhiên đang dùng đã bị đăng xuất.'
+        _huy_phien_nen(sid, app_user, 'Google tu choi: %s' % (loi or '?'), cau)
         _xoa_cache_uid(app_user)    # lần sau buộc đi đường Google, hiện đúng câu báo lỗi
         return
     u = kq.get('user') or {}
     _cache_ghi(u.get('id') or app_user, app_password, u)   # chỉ gia hạn khi Google xác nhận
     if _quyen_khac(ttin_cu, u):
-        _huy_phien_nen(sid, app_user, 'quyen tren Google da doi so voi ban luu')
+        _huy_phien_nen(sid, app_user, 'quyen tren Google da doi so voi ban luu',
+                       'Quyền của tài khoản vừa được thay đổi\nĐăng nhập lại để dùng quyền mới.')
 
 # ===== GZIP COMPRESSION =====
 # JSON nén rất tốt (5–10× nhỏ hơn) → giảm bandwidth + parse time cho payload 500k dòng
@@ -920,6 +944,11 @@ def login():
         # Tách credential ỨNG DỤNG khỏi db_config — mật khẩu tool KHÔNG được lưu vào session/cookie.
         app_user = (data.pop('app_user', '') or '').strip()
         app_password = data.pop('app_password', '') or ''
+        # Việc 9 (26/09/2026): để trống thì báo NGAY — trước đây vẫn gửi lên Google, chờ 4–7 giây mới biết.
+        # Trình duyệt cũng chặn trước khi gửi; chốt ở đây cho chắc (gọi API thẳng, bản giao diện cũ).
+        if not app_user or not app_password:
+            return jsonify({"status": "error", "message": _LOI_SAI_TAI_KHOAN + '\nChưa nhập đủ Tài khoản và Mật khẩu '
+                            'ở mục 02 — Tài khoản ứng dụng.'}), 401
 
         # (1) Xác thực tài khoản ứng dụng — **Google Sheet là nguồn DUY NHẤT**.
         #     Thiếu cấu hình là chặn ngay. Trước 21/09/2026 nhánh này rơi về
@@ -1027,6 +1056,20 @@ def logout():
         _meta_cache.pop(db_name, None)
         _tran_usage_cache.pop(db_name, None)
     return jsonify({"status": "ok"})
+
+@app.route("/api/ly_do_dang_xuat")
+def ly_do_dang_xuat():
+    """Màn đăng nhập hỏi: phiên của trình duyệt này có bị luồng nền huỷ không, vì sao (việc 23).
+    Hỏi một lần là xoá, kèm bỏ sid chết khỏi cookie."""
+    sid = session.get('sid')
+    ly_do = None
+    if sid:
+        with _phien_lock:
+            m = _phien_bi_huy.pop(sid, None)
+        if m:
+            ly_do = m[0]
+            session.pop('sid', None)
+    return jsonify({"status": "ok", "ly_do": ly_do})
 
 @app.route("/api/my_perms")
 def my_perms():

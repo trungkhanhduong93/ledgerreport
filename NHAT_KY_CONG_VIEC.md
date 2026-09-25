@@ -89,10 +89,10 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 | 20–21 | GĐ4 · GĐ5 | Theo bảng trên |
 | 28 | ~~Cột bảng hẹp~~ ✅ **XONG 25/09** — Đại Ca chốt **kéo giãn cột + nhớ**. Tiêu đề không gãy dòng nữa; kèm **ẩn/hiện cột** và **Excel xuất đúng cột đang hiện** · số đo cũ để tham khảo: | Số đo 25/09 cho lúc sửa: hàng lọc 5 màn danh sách **cần 1.393px** để mọi ô đủ rộng, màn 1366 chỉ có **1.254px** (bản cũ trước GĐ3: cần 1.473 / có 1.318 — **vốn đã bị ép co từ trước**). Ở 1280px tiêu đề **`MÃ CT` gãy 2 dòng**. Cột phân hệ ăn thêm 64px chiều ngang |
 | 22 | **Hướng B**: bỏ `LockService` cho lệnh chỉ đọc trong `Code.gs` (dòng 487) | 5 người mở app cùng lúc thì người thứ 5 chờ gần 1 phút. **Phải triển khai lại Apps Script** — theo đúng `chuan_bi_deploy.py` (Bẫy 19, 23) |
-| 23 | **Bị đá ra (đăng nhập nhanh) không có câu báo lý do** | Người dùng chỉ thấy quay về màn đăng nhập. Đại Ca: *"tính sau"* |
+| 23 | ~~Bị đá ra (đăng nhập nhanh) không có câu báo lý do~~ ✅ **XONG 26/09** | Màn đăng nhập hiện lý do: đổi mật khẩu / bị khoá / đổi quyền (`/api/ly_do_dang_xuat`). Mục nhật ký *26/09 — việc 9, 10, 23, 26* |
 | 24 | **Biên dịch sẵn JSX lúc đóng gói** | Mở app trắng màn hình **~7–13 giây** (Babel dịch 723 KB mỗi lần mở). Đo: `domInteractive` 152ms / `DOMContentLoaded` 6.926ms |
 | 25 | **Nhúng 5 thư viện còn tải từ Internet** vào EXE | React, ReactDOM, Babel, Tailwind, xlsx. Google Fonts **đã gỡ** ở GĐ1. Fallback hiện tại là giả: React hỏng ⇒ **màn trắng câm** |
-| 26 | **BC015, BC016 chưa có trong ma trận báo cáo của `CLAUDE.md`** | Có thật trong `REPORT_TYPES` ([index.html](index.html)) — *Bán hàng theo nguồn đơn*, *Nhập xuất tồn nhà hàng* |
+| 26 | ~~BC015, BC016 chưa có trong ma trận báo cáo của `CLAUDE.md`~~ ✅ **XONG 26/09** | Đã thêm, kèm endpoint + nguồn đọc từ code |
 | 27 | Muốn chữ tiêu đề bảng **> 10px** | Phải nới các cột hẹp `w-16` trước — 10,5px là `MÃ CT` gãy dòng (đã đo) |
 
 ### 🔴 Ưu tiên 1 — làm sớm, càng để lâu càng rủi ro
@@ -117,8 +117,8 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 |---|---|---|
 | 7 | ~~Bộ lọc Đơn vị của tab điều chuyển nội bộ áp cho phía XUẤT~~ ✅ **XONG ở mã nguồn 25/09 (nhánh `giaodien`) — chờ thử số liệu thật** | Đại Ca chốt: thanh lọc có **Kho xuất** + **Kho nhận**; tài khoản bị giới hạn thấy dòng mà **một trong hai phía** thuộc quyền. Chi tiết: mục nhật ký *25/09/2026 (khuya)* |
 | 8 | ~~Xoá file rác~~ ✅ **XONG 24/09/2026** | Đã xoá `phanquyen.json` (972 B) + `dist/phanquyen.json.cu` (1.002 B). Kiểm trước khi xoá: cả hai đều ghi `"note": "FILE TEST - mat khau tam, khong phai ban that"`, và `server.py` **chỉ nhắc chúng trong comment**, không còn dòng code nào đọc. Cả hai vốn đã `.gitignore` + git không theo dõi ⇒ không lộ |
-| 9 | Màn đăng nhập **chưa bắt buộc** điền Tài khoản ứng dụng | Để trống thì phải chờ Google **4–7 giây** mới báo lỗi, thay vì chặn ngay tại chỗ |
-| 10 | Dropdown lọc **Đơn vị** vẫn hiện tên đơn vị ngoài quyền | Chọn vào ra 0 dòng — **lộ tên, không lộ số** |
+| 9 | ~~Màn đăng nhập chưa bắt buộc điền Tài khoản ứng dụng~~ ✅ **XONG 26/09** | Chặn ở cả trình duyệt lẫn máy chủ: báo ngay, không gọi Google |
+| 10 | ~~Dropdown lọc Đơn vị vẫn hiện tên đơn vị ngoài quyền~~ ✅ **XONG 26/09** | 9 màn danh sách + Báo cáo TC chỉ liệt kê đơn vị trong quyền; tab điều chuyển ("Đơn vị xuất") **cố ý giữ đủ**. ⚠️ Ô **Kho** vẫn liệt kê kho mọi đơn vị (chưa làm) |
 | 12 | ~~Hàng chip tụt về 0 khi bấm chọn một chip~~ ✅ **XONG 24/09/2026** | Sửa cả **ba** tab (`dcnb_reconcile`, `btp_reconcile`, **`po_list`** — tab này cũng dính, phát hiện lúc sửa). Cờ `bo_trang_thai` + `so_dong` tách theo trạng thái. Đối chứng trước/sau: **không chậm đi** |
 | 15 | ~~Bấm chip chậm gấp ~4 lần~~ ✅ **XONG 24/09/2026** | Dựng `DC` ra bảng tạm `#dc` một lần. Chip `Đã nhận đủ` **42,9s → 7,9s**, trang 2 **50,1s → 6,6s**, đổi cột sắp xếp **45,9s → 7,3s**. Đánh đổi: ô tìm mã hàng chậm thêm ~2s |
 | 13 | ~~Phiếu `POSTED` mà 0 dòng `WAREHOUSE` bị tab giấu~~ ✅ **ĐÓNG 24/09/2026 — KHÔNG phải lỗi** | Đo cả năm 2026: chỉ **5/20.089** `XDCNB` · **4/19.479** `NDCNB` · **2/21.848** `XKHOSXBTP` · **1/21.561** `NSP` (≤0,02%), và **cả 12 phiếu đều có số lượng = 0** — phiếu rỗng. Phiếu rỗng thì không có gì để đối chiếu ⇒ giấu đi là **đúng**. Không sửa dòng code nào |
@@ -138,6 +138,39 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 | Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 26/09/2026 — Việc 9, 10, 23, 26 + 🔴 phát hiện lỗi xuất Excel của nhân viên trong bản đang phát hành
+
+Đại Ca: *"làm đi m"* → chọn *"Việc code còn treo"*.
+
+### Đã làm
+
+- **Việc 9** — bỏ trống Tài khoản/Mật khẩu ứng dụng ⇒ báo ngay (trình duyệt chặn trước khi gửi; máy chủ chốt thêm ở `login()`).
+  Dòng đầu giữ tiêu đề nhóm `Mật khẩu hoặc tài khoản không đúng`, dòng hai *"Chưa nhập đủ … ở mục 02"*.
+- **Việc 23** — `_huy_phien_nen` ghi lý do theo sid (`_phien_bi_huy`); màn đăng nhập gọi `/api/ly_do_dang_xuat` một lần.
+  Ba câu: đổi mật khẩu (dòng đầu `_LOI_SAI_TAI_KHOAN`) · bị khoá (giữ nguyên câu Google) · đổi quyền.
+- **Việc 10** — `orgsTrongQuyen` (lọc `meta.orgs` theo `allowed_orgs`) cho ô Đơn vị của 9 màn danh sách + Báo cáo TC.
+  `meta.orgs` giữ đủ (tiêu đề báo cáo / file xuất cần đơn vị `00`); tab điều chuyển "Đơn vị xuất" giữ đủ (quyền hai phía).
+- **Việc 26** — BC015 (`/api/sale_by_source`) + BC016 (`/api/nxt`) vào ma trận CLAUDE.md § 1.2.
+- 🔴 **LỖI ĐANG CÓ TRONG v2.0.0–v2.0.1:** `/api/xuat_xlsx_bieu_mau` + `/api/tai_file_xuat` (việc 35) **chưa khai báo quyền** ⇒
+  nhân viên thường xuất Excel Báo cáo TC bị **403**; Đại Ca là ADMIN nên không thấy. Đã thêm vào `PERM_PUBLIC` (không đọc thêm
+  dữ liệu). Ghi **Bẫy 30** + lệnh quét route chưa khai báo. `CO_GI_MOI.md` có sẵn mục **v2.0.2**.
+
+### 🧪 Verify
+
+| Mức | Kết quả |
+|---|---|
+| M1 | parse OK, **176 hàm / 72 route**, không trùng · Babel OK (lần đầu **lỗi**: em chèn `//` giữa dòng object — đã sửa) · quét route chưa khai báo: `[]` |
+| M2 (nạp `server.py` **bỏ dòng tắt cổng 5050**, không đụng app thật) | **Bản đang phát hành: nhân viên xuất Excel ⇒ 403** (xác nhận lỗi) · bản sửa ⇒ 200 + tải file về 200 · việc 9: 2 ca bỏ trống ⇒ 401 trong ≤5ms, **0 lần gọi Google** · việc 23: 3 ca bị đá ⇒ 401 + đúng câu, hỏi lần hai ra rỗng; Google xác nhận / mất mạng ⇒ giữ phiên |
+| Giao diện (5052, nhân viên chỉ xem đơn vị 35 + 71) | Ô Đơn vị Chứng từ tổng hợp + BC006: **chỉ 35, 71** · tab điều chuyển "Đơn vị xuất": **đủ 5** · bị huỷ phiên rồi bấm Xem BC006 ⇒ về màn đăng nhập, hiện *"Quyền của tài khoản vừa được thay đổi…"* · bỏ trống tài khoản ứng dụng ⇒ báo ngay, **0 request `/api/login`** |
+
+### 🔍 Điểm mù
+
+- "Tải lại" gặp 401 thì im lặng (không đá ra) — hành vi sẵn có; người bị huỷ phiên chỉ về màn đăng nhập ở lần tải số liệu kế tiếp.
+- Ô **Kho** vẫn liệt kê kho của mọi đơn vị — cùng bệnh với việc 10, chưa làm.
+- **Chưa build / chưa phát hành.** Lỗi xuất Excel của nhân viên còn nguyên trên mọi máy tới khi phát hành v2.0.2.
 
 ---
 

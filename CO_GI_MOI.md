@@ -13,6 +13,12 @@
 >   một lần), hiện tối đa 8 dòng, dư thì ghi "… và N thay đổi khác".
 > - Dòng không bắt đầu bằng `- ` (như khối ghi chú này) app bỏ qua.
 
+## v2.0.2
+- Sửa lỗi nhân viên không xuất được Excel ở Báo cáo tài chính (báo "Route chưa khai báo quyền")
+- Ô lọc Đơn vị chỉ hiện các đơn vị bạn được xem
+- Bỏ trống tài khoản ứng dụng khi đăng nhập thì báo ngay, không phải chờ
+- Bị đăng xuất giữa chừng (đổi mật khẩu, bị khoá, đổi quyền) thì màn đăng nhập nói rõ lý do
+
 ## v2.0.1
 - Cập nhật hệ thống
 

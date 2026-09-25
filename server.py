@@ -2636,6 +2636,154 @@ def save_export_route():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
+# ===== XUẤT BÁO CÁO RA .XLSX THẬT, GIỮ Y BIỂU MẪU ĐANG XEM (Đại Ca chốt 25/09/2026) =====
+# Trước đây Báo cáo TC ghi bảng HTML đuôi .xls ⇒ Excel mở được nhưng HỎI "định dạng và phần mở rộng tệp
+# không khớp", và thực chất không phải file Excel. Nay trình duyệt ĐỌC bảng đang hiện trên màn hình (chữ,
+# gộp ô, đậm/nghiêng, màu, căn lề, định dạng số, độ rộng cột, chiều cao dòng) thành một "mô hình" gọn, máy
+# chủ ghi ra .xlsx bằng xlsxwriter — thư viện đã có sẵn trong EXE, KHÔNG tải thêm gì từ Internet.
+#
+# Mô hình (JSON): { filename, landscape, fit_width, lap_dong: [đầu, cuối] | null, col_widths: [px],
+#   styles: [{bold, italic, underline, font_size, font_color, bg_color, align, valign, border, border_color,
+#             num_format, text_wrap}],
+#   head: [dòng], body: [dòng], foot: [dòng] }      dòng = { h: px | null, c: [[cột, giá_trị, kiểu, số_cột_gộp, số_dòng_gộp, loại]] }
+#   loại: 'n' số · 's' chữ · 't' chữ ép kiểu Text (mã TK, số CT — giữ số 0 đầu).
+# Quá _XLSX_GIOI_HAN_SHEET dòng thì tách sheet, mỗi sheet lặp lại head + foot (giống bản .xls cũ).
+#
+# ⚠️ Bật constant_memory để xuất sổ chi tiết cả năm không ngốn RAM. Chế độ này GHI THEO DÒNG: ghi sang dòng
+#    mới là dòng cũ bị đẩy ra đĩa ⇒ KHÔNG được dùng merge_range() cho vùng gộp NHIỀU DÒNG (nó ghi ô trống
+#    xuống dòng dưới ngay lập tức ⇒ đẩy mất phần còn lại của dòng đang ghi dở). Tự làm: ô đầu ghi giá trị,
+#    ô bị gộp ghi trống đúng lượt dòng của nó, vùng gộp khai vào ws.merge — đúng danh sách merge_range()
+#    dùng bên trong (đã đọc mã xlsxwriter 3.2.9).
+_XLSX_GIOI_HAN_SHEET = 1000000
+_XLSX_KIEU_HOP_LE = {'bold', 'italic', 'underline', 'font_size', 'font_color', 'bg_color', 'align', 'valign',
+                     'border', 'border_color', 'num_format', 'text_wrap'}
+
+
+def _ten_file_xuat_an_toan(ten, duoi='.xlsx'):
+    ten = os.path.basename(str(ten or '')).strip()
+    ten = ''.join('_' if ch in '\\/:*?"<>|' else ch for ch in ten) or 'BaoCao'
+    if not ten.lower().endswith(duoi):
+        ten = os.path.splitext(ten)[0] + duoi
+    return ten
+
+
+def _duong_dan_xuat_ghi_duoc(ten):
+    """File cùng tên đang MỞ trong Excel thì Windows khoá ⇒ ghi sang 'ten (2).xlsx', 'ten (3).xlsx'…
+    (bản .xls cũ gặp ca này là báo lỗi, người dùng phải tắt Excel rồi xuất lại)."""
+    thu_muc = _export_dir()
+    goc, duoi = os.path.splitext(ten)
+    for i in range(1, 100):
+        t = ten if i == 1 else f"{goc} ({i}){duoi}"
+        p = os.path.join(thu_muc, t)
+        try:
+            with open(p, 'ab'):
+                pass
+            return p, t
+        except PermissionError:
+            continue
+    raise PermissionError("Không ghi được file — hãy đóng bớt file Excel cùng tên rồi xuất lại")
+
+
+def _ghi_xlsx_bieu_mau(path, m):
+    import xlsxwriter
+    from xlsxwriter.utility import xl_range
+    wb = xlsxwriter.Workbook(path, {'constant_memory': True})
+    try:
+        goc = {'font_name': 'Arial', 'font_size': 9, 'valign': 'vcenter'}
+        fmts = []
+        for s in (m.get('styles') or []):
+            d = dict(goc)
+            for k, v in (s or {}).items():
+                if k in _XLSX_KIEU_HOP_LE and v not in (None, '', False):
+                    d[k] = v
+            fmts.append(wb.add_format(d))
+        f_goc = wb.add_format(goc)
+
+        def fmt(i):
+            return fmts[i] if isinstance(i, int) and 0 <= i < len(fmts) else f_goc
+
+        head, body, foot = m.get('head') or [], m.get('body') or [], m.get('foot') or []
+        moi_sheet = max(1, _XLSX_GIOI_HAN_SHEET - len(head) - len(foot))
+        phan = [body[i:i + moi_sheet] for i in range(0, len(body), moi_sheet)] or [[]]
+        rong = m.get('col_widths') or []
+        lap = m.get('lap_dong')
+
+        for so, doan in enumerate(phan, 1):
+            ws = wb.add_worksheet('Data' if len(phan) == 1 else f'Sheet {so}')
+            for c, px in enumerate(rong):     # constant_memory: set_column PHẢI trước mọi lệnh ghi ô
+                if px:
+                    ws.set_column(c, c, max(2.0, min(120.0, float(px) / 7.0)))
+            ws.set_paper(9)                   # A4
+            if m.get('landscape'):
+                ws.set_landscape()
+            if m.get('fit_width'):
+                ws.fit_to_pages(1, 0)
+            if isinstance(lap, list) and len(lap) == 2:
+                ws.repeat_rows(int(lap[0]), int(lap[1]))   # in nhiều trang: trang nào cũng có tiêu đề cột
+
+            dong = head + doan + foot
+            cho = {}      # dòng -> [(cột, format)] ô bị gộp dọc, ghi trống khi tới lượt dòng đó
+            for r, d in enumerate(dong):
+                h = d.get('h')
+                if h:
+                    ws.set_row(r, max(8.0, min(409.0, float(h) * 0.75)))
+                for c, f in cho.pop(r, []):
+                    ws.write_blank(r, c, None, f)
+                for o in (d.get('c') or []):
+                    c, v, s, cs, rs, loai = (list(o) + [None] * 6)[:6]
+                    c = int(c)
+                    cs = max(1, int(cs or 1))
+                    rs = max(1, min(int(rs or 1), len(dong) - r))   # gộp dọc không tràn qua sheet sau
+                    f = fmt(s)
+                    if v is None or v == '':
+                        ws.write_blank(r, c, None, f)
+                    elif loai == 'n' and isinstance(v, (int, float)) and not isinstance(v, bool):
+                        ws.write_number(r, c, v, f)
+                    else:
+                        ws.write_string(r, c, str(v), f)
+                    if cs > 1 or rs > 1:
+                        vung = xl_range(r, c, r + rs - 1, c + cs - 1)
+                        for rr in range(r, r + rs):
+                            for cc in range(c, c + cs):
+                                if ws.merged_cells.get((rr, cc)):
+                                    raise ValueError(f"Vùng gộp {vung} chồng lên {ws.merged_cells[(rr, cc)]}")
+                                ws.merged_cells[(rr, cc)] = vung
+                                if rr == r and cc == c:
+                                    continue
+                                if rr == r:
+                                    ws.write_blank(rr, cc, None, f)
+                                else:
+                                    cho.setdefault(rr, []).append((cc, f))
+                        ws.merge.append([r, c, r + rs - 1, c + cs - 1])
+    finally:
+        wb.close()
+
+
+@app.route("/api/xuat_xlsx_bieu_mau", methods=["POST"])
+def xuat_xlsx_bieu_mau():
+    """Nhận mô hình bảng từ trình duyệt, ghi .xlsx vào thư mục xuất, trả đường dẫn (để mở file / thư mục)."""
+    try:
+        m = request.get_json(force=True, silent=True) or {}
+        path, ten = _duong_dan_xuat_ghi_duoc(_ten_file_xuat_an_toan(m.get('filename')))
+        _ghi_xlsx_bieu_mau(path, m)
+        return jsonify({"status": "ok", "path": path, "filename": ten})
+    except Exception as e:
+        logger.error(f"Loi xuat xlsx bieu mau: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/tai_file_xuat")
+def tai_file_xuat():
+    """Trả lại file vừa ghi trong thư mục xuất để trình duyệt tải về như cũ. CHỈ đọc trong _export_dir()."""
+    from flask import send_file
+    ten = os.path.basename(request.args.get('ten', ''))
+    path = os.path.join(_export_dir(), ten)
+    if not ten or not os.path.isfile(path):
+        return jsonify({"status": "error", "message": "Không thấy file"}), 404
+    return send_file(path, as_attachment=True, download_name=ten,
+                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+
 @app.route("/api/open_file", methods=["POST"])
 def open_file_route():
     """Mở file (CSV/Excel) bằng app mặc định của OS."""

@@ -1618,7 +1618,7 @@ window.showConnectionLost = function() {
                     </button>
                     {mo && (
                         <div role="menu" className="absolute top-full right-0 mt-2 w-[190px] bg-white rounded-xl shadow-[0_20px_60px_rgba(15,23,42,0.25)] border border-slate-200 z-[500] p-1.5">
-                            {muc('file-spreadsheet', 'text-emerald-700', 'Xuất Excel', onExcel)}
+                            {muc('file-spreadsheet', 'text-emerald-700', 'Xuất Excel (.xlsx)', onExcel)}
                             {muc('file-text', 'text-red-700', 'Xuất PDF', onPdf)}
                         </div>
                     )}
@@ -1855,7 +1855,7 @@ window.showConnectionLost = function() {
             const [journalExportFmt, setJournalExportFmt] = React.useState('xlsx');
             const [showVatSalesExport, setShowVatSalesExport] = React.useState(false);   // BC007: chọn kiểu xuất Excel
             const [showPagedExport, setShowPagedExport] = React.useState(false);         // BC008/BC012: chọn kiểu xuất Excel
-            // Dòng nạp TẠM để xuất .xls đủ mọi trang (xem exportFullXls). Khác null ⇒ bảng đang render bản đầy đủ.
+            // Dòng nạp TẠM để xuất .xlsx đủ mọi trang (xem exportFullXls). Khác null ⇒ bảng đang render bản đầy đủ.
             const [fullExportRows, setFullExportRows] = React.useState(null);
             const [fullExporting, setFullExporting] = React.useState(false);
             // Ô Thời gian chọn xong: tháng / quý / năm ⇒ period đúng loại; còn lại ⇒ 'custom' (effect ở App
@@ -2164,109 +2164,119 @@ window.showConnectionLost = function() {
                 setTimeout(() => URL.revokeObjectURL(url), 1000);
             };
 
-            // Xuất báo cáo ra XLS giống HỆT giao diện web: dựng file Excel dạng HTML (mso), nội tuyến toàn bộ
-            // computed-style (font, màu chữ/nền, viền, canh lề, padding, merge colspan/rowspan). Kèm cả khối
-            // tiêu đề (công ty, mẫu, tên báo cáo, kỳ) canh theo đúng cột. Ô số cột giá trị lưu SỐ THẬT
-            // (bấm vào = 1000000) nhưng hiển thị #,##0. Tự tách sheet nếu vượt 60.000 dòng.
-            const exportReportXls = () => {
+            // ===== XUẤT BÁO CÁO RA .XLSX THẬT, GIỮ Y BIỂU MẪU ĐANG XEM (Đại Ca chốt 25/09/2026) =====
+            // Đọc bảng .report-table ĐANG HIỆN (chữ, gộp ô, đậm/nghiêng, màu, căn lề, độ rộng cột, chiều cao dòng) +
+            // khối tiêu đề / chữ ký y như bản .xls cũ ⇒ gửi MÔ HÌNH cho máy chủ ghi .xlsx bằng xlsxwriter
+            // (/api/xuat_xlsx_bieu_mau — định dạng mô hình xem chú thích bên server.py).
+            // Thay bản .xls HTML: Excel hết hỏi "định dạng và phần mở rộng tệp không khớp", ô số là SỐ THẬT.
+            // ⚠️ Phần ĐỌC BẢNG phải chạy ĐỒNG BỘ, trước lệnh await đầu tiên: exportFullXls nạp tạm đủ mọi trang
+            //    vào bảng rồi dọn ngay khi hàm này trả về (finally) — đọc sau await là đọc bảng đã bị dọn.
+            // ⚠️ Nhận dạng số giữ đúng luật bản .xls đã kiểm M4 (19/08/2026): "15.54%" ⇒ 0.1554 định dạng 0.00%;
+            //    ô tiền (col-value / col-rate / text-right / căn phải) "1,234" ⇒ 1234 định dạng #,##0;
+            //    "(1,000)" ⇒ -1000 và VẪN hiện trong ngoặc; ô mã (col-code / text-center) ép Text giữ số 0 đầu.
+            const exportReportXls = async () => {
                 const table = document.querySelector(".report-table");
                 if (!table) return;
-                const SHEET_LIMIT = 1000000;
 
-                // ── Nội tuyến computed-style từ DOM gốc vào clone ──
-                const clone = table.cloneNode(true);
-                clone.querySelectorAll('colgroup').forEach(cg => cg.remove());
-                const origRows = table.querySelectorAll('tr');
-                const cloneRows = clone.querySelectorAll('tr');
-                const toRemove = [];
-                for (let ri = 0; ri < origRows.length && ri < cloneRows.length; ri++) {
-                    const oTr = origRows[ri];
-                    const cTr = cloneRows[ri];
-                    const trCs = getComputedStyle(oTr);
-                    if (trCs.display === 'none') { toRemove.push(cTr); continue; }
-                    const oCells = oTr.querySelectorAll('th,td');
-                    const cCells = cTr.querySelectorAll('th,td');
-                    for (let ci = 0; ci < oCells.length && ci < cCells.length; ci++) {
-                        const oc = oCells[ci]; const cc = cCells[ci];
-                        const cs = getComputedStyle(oc);
-                        const isHdr = oc.tagName === 'TH';
-                        let st = 'border:1px solid #000;';
-                        st += 'font-weight:' + cs.fontWeight + ';text-align:' + cs.textAlign + ';';
-                        st += 'vertical-align:' + cs.verticalAlign + ';color:' + cs.color + ';';
-                        st += 'font-size:' + cs.fontSize + ';';
-                        st += 'padding:' + cs.paddingTop + ' ' + cs.paddingRight + ' ' + cs.paddingBottom + ' ' + cs.paddingLeft + ';';
-                        if (cs.width && cs.width !== 'auto') st += 'width:' + cs.width + ';';
-                        if (cs.height && cs.height !== 'auto') st += 'height:' + cs.height + ';';
-                        const bg = cs.backgroundColor;
-                        if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') st += 'background-color:' + bg + ';';
-                        if (cs.fontStyle !== 'normal') st += 'font-style:' + cs.fontStyle + ';';
-                        cc.setAttribute('style', st);
-                        if (!isHdr) {
-                            // Ô hiển thị số âm theo kiểu kế toán "(1,000,000)" → đưa về dấu trừ cho Excel.
-                            let txt = (cc.textContent || '').trim();
-                            let isNeg = false;
-                            if (txt.startsWith('(') && txt.endsWith(')')) {
-                                isNeg = true;
-                                txt = txt.slice(1, -1).trim();
-                            }
-                            // ── Ô PHẦN TRĂM ("15.54%") ─────────────────────────────────────────────
-                            // Excel phải giữ value THẬT là phân số (0.1554) rồi tự hiển thị 15.54%,
-                            // nếu để nguyên chuỗi "15.54%" thì ô thành text, không tính toán được.
-                            // Giữ đúng số chữ số thập phân đang hiển thị trên web (xpct0..xpct4).
-                            // Dịch dấu thập phân bằng toFixed thay vì chia 100 trần — 15.54/100 trong
-                            // JS ra 0.15539999999999998, ghi vào Excel là lệch.
-                            // ⚠️ BẪY (19/08/2026): mso-number-format PHẢI nằm trong INLINE STYLE của ô.
-                            // Excel khi nhập HTML chỉ đọc CLASS ĐẦU TIÊN trong danh sách class. Ô ở đây
-                            // luôn là class="col-value xnum" → Excel lấy 'col-value' (không có định dạng)
-                            // rồi bỏ qua 'xnum' → mọi ô về General: cột tiền hiện 103293720 thay vì
-                            // 103,293,720, cột % hiện 0.0029 thay vì 0.29%.
-                            // Đã dựng lại đúng ca này trong Excel thật: class="xnum" một mình thì CHẠY,
-                            // class="col-value xnum" thì HỎNG — nên đừng test bằng ô chỉ có một class.
-                            // Vẫn giữ class .xnum/.xpct trong <style> cho tương thích ngược, nhưng thứ
-                            // thực sự có tác dụng là inline dưới đây.
-                            const fmt = (f) => cc.setAttribute('style', st + 'mso-number-format:' + f + ';');
-                            if (/^[\d,]+(\.\d+)?\s*%$/.test(txt)) {
-                                const numTxt = txt.slice(0, -1).trim().replace(/,/g, '');
-                                const dec = Math.min((numTxt.split('.')[1] || '').length, 4);
-                                cc.classList.add('xpct' + dec);
-                                cc.textContent = (isNeg ? '-' : '') + (parseFloat(numTxt) / 100).toFixed(dec + 2);
-                                fmt(dec > 0 ? ('0\\.' + '0'.repeat(dec) + '\\%') : '0\\%');
-                            }
-                            // ── Ô TIỀN ─────────────────────────────────────────────────────────────
-                            // Bỏ dấu phẩy ngăn nghìn để value là 1000000, format #,##0 lo phần hiển thị.
-                            else if (oc.classList.contains('col-value') || oc.classList.contains('col-rate')
-                                     || oc.classList.contains('text-right')) {
-                                cc.classList.add('xnum');
-                                if (txt && /^[\d,]+(\.\d+)?$/.test(txt)) {
-                                    cc.textContent = (isNeg ? '-' : '') + txt.replace(/,/g, '');
-                                    fmt('\\#\\,\\#\\#0');
-                                }
-                            }
-                            // Mã TK / số chứng từ: ép text để Excel không ăn mất số 0 đứng đầu.
-                            else if (oc.classList.contains('col-code') || oc.classList.contains('text-center')) {
-                                cc.classList.add('xtext');
-                                fmt('\\@');
+                // ── Bộ kiểu dùng chung: kiểu trùng thì dùng lại ⇒ file nhẹ, không chạm trần 64.000 kiểu của Excel ──
+                const kieu = [], kieuSo = new Map();
+                const layKieu = (o) => {
+                    const k = JSON.stringify(o);
+                    let i = kieuSo.get(k);
+                    if (i === undefined) { i = kieu.length; kieu.push(o); kieuSo.set(k, i); }
+                    return i;
+                };
+                const hex = (css) => {
+                    const m = /rgba?\(([^)]+)\)/.exec(css || '');
+                    if (!m) return undefined;
+                    const p = m[1].split(/[\s,\/]+/).filter(Boolean).map(parseFloat);
+                    const a = p.length > 3 ? p[3] : 1;
+                    if (!(a > 0)) return undefined;
+                    const tron = (x) => Math.round(x * a + 255 * (1 - a));   // màu mờ ⇒ trộn với nền trắng như trên màn hình
+                    return '#' + [0, 1, 2].map(i => Math.min(255, Math.max(0, tron(p[i]))).toString(16).padStart(2, '0')).join('');
+                };
+                const pt = (px) => Math.max(7, Math.round(parseFloat(px) * 0.75 * 2) / 2);
+                const CANH = { left: 'left', start: 'left', right: 'right', end: 'right', center: 'center', justify: 'justify', '-webkit-center': 'center' };
+                const VIEN = { border: 1, border_color: '#000000' };      // như bản .xls: ô trong bảng kẻ viền đen mảnh
+                const coChuRieng = reportType === 'BC016' ? 8 : null;     // BC016 51–59 cột: chữ 8pt như bản .xls cũ
+                const SO_DONG_DO_RONG = 300;                              // đo độ rộng cột trên 300 dòng đầu là đủ
+
+                // ── 1. BẢNG: xếp từng ô vào lưới (tính cả gộp ngang / dọc) ──
+                const dongTr = [...table.querySelectorAll('tr')].filter(tr => getComputedStyle(tr).display !== 'none');
+                const chiem = [];                 // chiem[i] = các cột của dòng i đã bị ô gộp dọc ở dòng trên chiếm
+                const rongCot = [];
+                const dauBang = [], thanBang = [];
+                let soCot = 0;
+                dongTr.forEach((tr, i) => {
+                    const daChiem = chiem[i] || new Set();
+                    // Nền tô ở CẢ DÒNG (vd dòng TK cha BC006 'bg-slate-50') thì ô trong suốt ⇒ lấy nền của dòng.
+                    const nenDong = hex(getComputedStyle(tr).backgroundColor);
+                    const oDong = [];
+                    let c = 0;
+                    for (const td of tr.cells) {
+                        const st = getComputedStyle(td);
+                        if (st.display === 'none') continue;
+                        while (daChiem.has(c)) c++;
+                        const nGop = Math.max(1, td.colSpan || 1), dGop = Math.max(1, td.rowSpan || 1);
+                        for (let rr = 1; rr < dGop; rr++) {
+                            const s = chiem[i + rr] || (chiem[i + rr] = new Set());
+                            for (let cc = c; cc < c + nGop; cc++) s.add(cc);
+                        }
+                        if (nGop === 1 && i < SO_DONG_DO_RONG) rongCot[c] = Math.max(rongCot[c] || 0, td.getBoundingClientRect().width);
+
+                        const laTieuDe = td.tagName === 'TH';
+                        const k = { ...VIEN,
+                            bold: (parseInt(st.fontWeight, 10) || 400) >= 600 || undefined,
+                            italic: st.fontStyle === 'italic' || undefined,
+                            underline: /underline/.test(st.textDecorationLine || '') ? 1 : undefined,
+                            font_size: coChuRieng || pt(st.fontSize),
+                            font_color: hex(st.color),
+                            bg_color: hex(st.backgroundColor) || nenDong,
+                            align: CANH[st.textAlign],
+                            valign: st.verticalAlign === 'top' ? 'top' : st.verticalAlign === 'bottom' ? 'bottom' : 'vcenter',
+                        };
+                        if (k.bg_color === '#ffffff') k.bg_color = undefined;
+                        const txt = (td.innerText || '').replace(/ /g, ' ').trim();
+                        let v = txt, loai = 's';
+                        if (!laTieuDe && txt) {
+                            let t2 = txt, am = false, ngoac = false;
+                            if (/^\(.*\)$/.test(t2)) { am = true; ngoac = true; t2 = t2.slice(1, -1).trim(); }
+                            else if (/^[-−]\s*\d/.test(t2)) { am = true; t2 = t2.replace(/^[-−]\s*/, ''); }
+                            const oTien = td.classList.contains('col-value') || td.classList.contains('col-rate')
+                                || td.classList.contains('text-right') || k.align === 'right';
+                            const oMa = td.classList.contains('col-code') || td.classList.contains('text-center');
+                            let m;
+                            if ((m = /^([\d,]+(?:\.(\d+))?)\s*%$/.exec(t2))) {
+                                const dec = Math.min((m[2] || '').length, 4);
+                                // toFixed thay vì chia 100 trần: 15.54/100 trong JS ra 0.15539999999999998
+                                v = parseFloat(((am ? -1 : 1) * parseFloat(m[1].replace(/,/g, '')) / 100).toFixed(dec + 2));
+                                const f = dec > 0 ? '0.' + '0'.repeat(dec) + '%' : '0%';
+                                k.num_format = ngoac ? `${f};(${f})` : f; loai = 'n';
+                            } else if (oTien && (m = /^[\d,]+(?:\.(\d+))?$/.exec(t2))) {
+                                const dec = (m[1] || '').length;
+                                v = (am ? -1 : 1) * parseFloat(t2.replace(/,/g, ''));
+                                const f = '#,##0' + (dec ? '.' + '0'.repeat(dec) : '');
+                                k.num_format = ngoac ? `${f};(${f})` : f; loai = 'n';
+                            } else if (oMa) {
+                                k.num_format = '@'; loai = 't';
                             }
                         }
+                        // Xuống dòng: tiêu đề cột luôn cho xuống dòng; ô chữ dài chỉ khi trên màn hình ĐANG xuống dòng.
+                        if (laTieuDe || txt.includes('\n')) k.text_wrap = true;
+                        else if (loai === 's' && txt.length > 18) {
+                            const rg = document.createRange(); rg.selectNodeContents(td);
+                            if (new Set([...rg.getClientRects()].map(x => Math.round(x.top))).size > 1) k.text_wrap = true;
+                        }
+                        oDong.push([c, v, layKieu(k), nGop, dGop, loai]);
+                        c += nGop;
                     }
-                }
-                toRemove.forEach(tr => tr.remove());
+                    soCot = Math.max(soCot, c);
+                    const dong = { h: Math.round(tr.getBoundingClientRect().height) || null, c: oDong };
+                    (tr.parentElement && tr.parentElement.tagName === 'THEAD' ? dauBang : thanBang).push(dong);
+                });
+                const maxCols = soCot || 8;
 
-                const theadEl = clone.querySelector('thead');
-                const theadHTML = theadEl ? theadEl.outerHTML : '';
-                const bodyTrs = Array.from(clone.querySelectorAll('tbody tr'));
-                const totalTr = clone.querySelectorAll('tr').length;
-
-                // Tính số cột max để set colspan cho header & footer
-                const headerTr = table.querySelector('thead tr') || table.querySelector('tbody tr');
-                let maxCols = 0;
-                if (headerTr) {
-                    headerTr.querySelectorAll('th, td').forEach(cell => {
-                        maxCols += parseInt(cell.getAttribute('colspan') || '1', 10);
-                    });
-                }
-                if (maxCols <= 0) maxCols = 8;
-
+                // ── 2. KHỐI TIÊU ĐỀ + CHỮ KÝ: y nội dung bản .xls cũ ──
                 const companyName = (meta.company && meta.company.name)
                     || (meta.orgs && meta.orgs.find(o => o.id === '00')?.name)
                     || "CÔNG TY TNHH DUONG THANH LONG";
@@ -2281,9 +2291,7 @@ window.showConnectionLost = function() {
                         || (meta.orgs && meta.orgs.find(o => o.id === '00')?.address)
                         || "";
                     const taxCode = (meta.company && meta.company.tax_code) || "";
-                    if (taxCode && unitAddress) {
-                        unitAddress += " — MST: " + taxCode;
-                    }
+                    if (taxCode && unitAddress) unitAddress += " — MST: " + taxCode;
                 }
 
                 const REPORT_PATTERNS = {
@@ -2317,163 +2325,102 @@ window.showConnectionLost = function() {
                 else if (period.type === 'year') periodText = `Năm ${period.year}`;
                 else periodText = `Từ ngày ${filters.from_date} Đến ngày ${filters.to_date}`;
 
-                let subInfoHtml = "";
+                const dongPhu = [];   // các dòng "Tài khoản: …", "Đối tượng: …", "Đơn vị: …" dưới tên báo cáo
                 if (reportType === 'BC012' || reportType === 'BC013' || reportType === 'BC014') {
                     const accText = filters.acc_ids && filters.acc_ids.length > 0 ? filters.acc_ids.map(id => {
                         const a = meta.accounts.find(x => x.id === id);
                         return a ? `${id} - ${a.name}` : id;
                     }).join(', ') : (reportType === 'BC012' ? '111, 112, 113' : (reportType === 'BC014' ? '33311' : '—'));
-                    subInfoHtml += `<tr><td colspan="${maxCols}" style="text-align:center; font-weight:bold; font-size:10px; color:#475569; border:none;">Tài khoản: ${accText}</td></tr>`;
+                    dongPhu.push(`Tài khoản: ${accText}`);
                 }
                 if (reportType === 'BC013') {
                     const prText = filters.pr_detail_ids && filters.pr_detail_ids.length > 0 ? filters.pr_detail_ids.map(id => {
                         const p = meta.pr_details.find(x => x.id === id);
                         return p ? `${id} - ${p.name}` : id;
                     }).join(', ') : 'Tất cả';
-                    subInfoHtml += `<tr><td colspan="${maxCols}" style="text-align:center; font-weight:bold; font-size:10px; color:#475569; border:none;">Đối tượng: ${prText}</td></tr>`;
+                    dongPhu.push(`Đối tượng: ${prText}`);
                 }
                 if (['BC002', 'BC004'].includes(reportType) && filters.job_ids && filters.job_ids.length > 0) {
-                    const jobText = filters.job_ids.map(id => {
+                    dongPhu.push('Công việc: ' + filters.job_ids.map(id => {
                         const j = meta.jobs ? meta.jobs.find(x => x.id === id) : null;
                         return j ? `${id} - ${j.name}` : id;
-                    }).join(', ');
-                    subInfoHtml += `<tr><td colspan="${maxCols}" style="text-align:center; font-weight:bold; font-size:10px; color:#475569; border:none;">Công việc: ${jobText}</td></tr>`;
+                    }).join(', '));
                 }
-                if (reportType === 'BC015') {
-                    subInfoHtml += `<tr><td colspan="${maxCols}" style="text-align:center; font-weight:bold; font-size:10px; color:#475569; border:none;">Nguồn đơn: Tất cả</td></tr>`;
-                }
-                const orgText = filters.org_ids && filters.org_ids.length > 0 ? filters.org_ids.map(id => {
+                if (reportType === 'BC015') dongPhu.push('Nguồn đơn: Tất cả');
+                dongPhu.push('Đơn vị: ' + (filters.org_ids && filters.org_ids.length > 0 ? filters.org_ids.map(id => {
                     const org = meta.orgs.find(o => o.id === id);
                     return org ? `${id} - ${org.name}` : id;
-                }).join(', ') : 'Tất cả';
-                subInfoHtml += `<tr><td colspan="${maxCols}" style="text-align:center; font-weight:bold; font-size:10px; color:#475569; border:none;">Đơn vị: ${orgText}</td></tr>`;
+                }).join(', ') : 'Tất cả'));
 
-                const headerHtml = `
-                    <tr>
-                        <td colspan="${maxCols - 2}" style="font-weight:bold; font-size:11px; text-align:left; border:none;">${companyName}</td>
-                        <td colspan="2" style="font-weight:bold; font-size:10px; text-align:right; font-style:italic; text-decoration:underline; border:none;">${reportPattern}</td>
-                    </tr>
-                    <tr>
-                        <td colspan="${maxCols}" style="font-weight:bold; font-size:9px; color:#475569; text-align:left; border:none;">${unitName}</td>
-                    </tr>
-                    ${unitAddress ? `<tr><td colspan="${maxCols}" style="font-style:italic; font-size:9px; color:#64748b; text-align:left; border:none;">${unitAddress}</td></tr>` : ''}
-                    <tr><td colspan="${maxCols}" style="border:none;"></td></tr>
-                    <tr>
-                        <td colspan="${maxCols}" style="font-weight:bold; font-size:15px; text-align:center; text-transform:uppercase; border:none;">${reportTitle}</td>
-                    </tr>
-                    ${subInfoHtml}
-                    <tr>
-                        <td colspan="${maxCols}" style="font-weight:bold; font-size:11px; color:#1e3a8a; text-align:center; text-transform:uppercase; border:none;">${periodText}</td>
-                    </tr>
-                    <tr><td colspan="${maxCols}" style="border:none;"></td></tr>
-                `;
+                const kChu = (o) => layKieu({ font_size: pt(o.px || 11), bold: o.b || undefined, italic: o.i || undefined,
+                    underline: o.u ? 1 : undefined, font_color: o.mau, align: o.canh || 'left', text_wrap: o.xd || undefined });
+                const dong1 = (text, o, h) => ({ h: h || null, c: [[0, text, kChu(o), maxCols, 1, 's']] });
+                const dongTrong = (h) => ({ h: h || null, c: [] });
+                const cot1 = Math.max(1, maxCols - 2);
+                const khoiDau = [
+                    { h: null, c: [[0, companyName, kChu({ b: 1, px: 11 }), cot1, 1, 's']].concat(maxCols > cot1
+                        ? [[cot1, reportPattern, kChu({ b: 1, i: 1, u: 1, px: 10, canh: 'right' }), maxCols - cot1, 1, 's']] : []) },
+                    dong1(unitName, { b: 1, px: 9, mau: '#475569' }),
+                ];
+                if (unitAddress) khoiDau.push(dong1(unitAddress, { i: 1, px: 9, mau: '#64748b' }));
+                khoiDau.push(dongTrong());
+                khoiDau.push(dong1(reportTitle.toUpperCase(), { b: 1, px: 15, canh: 'center', xd: 1 }, 26));
+                dongPhu.forEach(t => khoiDau.push(dong1(t, { b: 1, px: 10, mau: '#475569', canh: 'center', xd: 1 })));
+                khoiDau.push(dong1(periodText.toUpperCase(), { b: 1, px: 11, mau: '#1e3a8a', canh: 'center' }));
+                khoiDau.push(dongTrong());
 
                 const now = new Date();
                 const dateStr = `TP. HCM, Ngày ${now.getDate()} Tháng ${now.getMonth() + 1} Năm ${now.getFullYear()}`;
+                const colsPerSig = Math.max(1, Math.floor(maxCols / 3));
+                const remCols = Math.max(1, maxCols - colsPerSig * 2);
+                const baO = (texts, o) => ({ h: null, c: texts.map((t, i) => [i * colsPerSig, t, kChu(o), i < 2 ? colsPerSig : remCols, 1, 's']) });
+                const khoiCuoi = [
+                    dongTrong(),
+                    { h: null, c: [[colsPerSig * 2, dateStr, kChu({ i: 1, px: 10, mau: '#64748b', canh: 'center' }), remCols, 1, 's']] },
+                    baO(['NGƯỜI LẬP BIỂU', 'KẾ TOÁN TRƯỞNG', 'GIÁM ĐỐC'], { b: 1, px: 11, canh: 'center' }),
+                    baO(['(Ký, họ tên)', '(Ký, họ tên)', '(Ký, họ tên)'], { i: 1, px: 9, mau: '#94a3b8', canh: 'center' }),
+                    dongTrong(50),
+                ];
 
-                const colsPerSig = Math.floor(maxCols / 3);
-                const remCols = maxCols - (colsPerSig * 2);
-
-                const footerHtml = `
-                    <tr><td colspan="${maxCols}" style="border:none;"></td></tr>
-                    <tr>
-                        <td colspan="${maxCols - remCols}" style="border:none;"></td>
-                        <td colspan="${remCols}" style="text-align:center; font-style:italic; font-size:10px; color:#64748b; border:none;">${dateStr}</td>
-                    </tr>
-                    <tr>
-                        <td colspan="${colsPerSig}" style="text-align:center; font-weight:bold; font-size:11px; border:none;">NGƯỜI LẬP BIỂU</td>
-                        <td colspan="${colsPerSig}" style="text-align:center; font-weight:bold; font-size:11px; border:none;">KẾ TOÁN TRƯỞNG</td>
-                        <td colspan="${remCols}" style="text-align:center; font-weight:bold; font-size:11px; border:none;">GIÁM ĐỐC</td>
-                    </tr>
-                    <tr>
-                        <td colspan="${colsPerSig}" style="text-align:center; font-style:italic; font-size:9px; color:#94a3b8; border:none;">(Ký, họ tên)</td>
-                        <td colspan="${colsPerSig}" style="text-align:center; font-style:italic; font-size:9px; color:#94a3b8; border:none;">(Ký, họ tên)</td>
-                        <td colspan="${remCols}" style="text-align:center; font-style:italic; font-size:9px; color:#94a3b8; border:none;">(Ký, họ tên)</td>
-                    </tr>
-                    <tr><td colspan="${maxCols}" style="height:50px; border:none;"></td></tr>
-                `;
-
-                const getSheetHtml = (tbodyContent) => {
-                    return `<table style="border-collapse:collapse;border:1px solid #000">
-                        <thead>
-                            ${headerHtml}
-                            ${theadHTML}
-                        </thead>
-                        <tbody>
-                            ${tbodyContent}
-                            ${footerHtml}
-                        </tbody>
-                    </table>`;
-                };
-
-                const sheets = [];
-                if (totalTr <= SHEET_LIMIT) {
-                    sheets.push({ name: 'Data', html: getSheetHtml(clone.querySelector('tbody') ? clone.querySelector('tbody').innerHTML : clone.innerHTML) });
-                } else {
-                    const per = Math.max(1, SHEET_LIMIT - theadEl.querySelectorAll('tr').length - 15);
-                    let idx = 1;
-                    for (let i = 0; i < bodyTrs.length; i += per) {
-                        const chunk = bodyTrs.slice(i, i + per).map(tr => tr.outerHTML).join('');
-                        sheets.push({ name: 'Sheet ' + (idx++), html: getSheetHtml(chunk) });
-                    }
-                }
-                
-                // BC016 rất nhiều cột: đặt luôn khổ ngang + co vừa 1 trang bề ngang ngay trong
-                // WorksheetOptions, để mở file ra là in được, không phải vào Page Setup chỉnh tay.
-                const wsPrint = reportType === 'BC016'
-                    ? '<x:Print><x:ValidPrinterInfo/><x:Orientation>Landscape</x:Orientation>'
-                      + '<x:FitWidth>1</x:FitWidth><x:FitHeight>0</x:FitHeight><x:Scale>0</x:Scale></x:Print>'
-                    : '';
-                const wsXml = sheets.map(s =>
-                    '<x:ExcelWorksheet><x:Name>' + s.name + '</x:Name><x:WorksheetOptions><x:DisplayGridlines/>' + wsPrint + '</x:WorksheetOptions></x:ExcelWorksheet>'
-                ).join('');
-                const bodyHtml = sheets.map(s => s.html).join('<br clear="all"/>');
-                const html =
-                    '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">' +
-                    '<head><meta charset="utf-8"><meta name="ProgId" content="Excel.Sheet">' +
-                    '<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets>' + wsXml +
-                    '</x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->' +
-                    '<style>table{border-collapse:collapse}th,td{border:1px solid #000}' +
-                    '.xnum{mso-number-format:"\\#\\,\\#\\#0"}.xtext{mso-number-format:"\\@"}' +
-                    '.xpct0{mso-number-format:"0\\%"}.xpct1{mso-number-format:"0\\.0\\%"}' +
-                    '.xpct2{mso-number-format:"0\\.00\\%"}.xpct3{mso-number-format:"0\\.000\\%"}' +
-                    '.xpct4{mso-number-format:"0\\.0000\\%"}' +
-                    // BC016 có 51–59 cột ⇒ ngoài khổ ngang còn phải ép vừa 1 trang chiều rộng,
-                    // không thì Excel cắt bảng thành hàng chục trang dọc rời rạc.
-                    ((reportType === 'BC015' || reportType === 'BC016') ? '@page{mso-page-orientation:landscape;}' : '') +
-                    (reportType === 'BC016' ? 'td,th{font-size:8pt}' : '') +
-                    '</style>' +
-                    '</head><body>' + bodyHtml + '</body></html>';
-
-                const dateSuffix = period.type === 'custom' 
+                const dateSuffix = period.type === 'custom'
                     ? `${filters.from_date.replace(/\//g,'')}-${filters.to_date.replace(/\//g,'')}`
                     : `${period.year}_Thang${period.value}`;
-                const fname = `${REPORT_FILE[reportType] || reportType}_${dateSuffix}.xls`;
+                const fname = `${REPORT_FILE[reportType] || reportType}_${dateSuffix}.xlsx`;
+                const moHinh = {
+                    filename: fname,
+                    landscape: reportType === 'BC015' || reportType === 'BC016',
+                    fit_width: reportType === 'BC016',     // BC016 rất nhiều cột: co vừa 1 trang bề ngang khi in
+                    lap_dong: dauBang.length ? [khoiDau.length, khoiDau.length + dauBang.length - 1] : null,
+                    col_widths: Array.from({ length: maxCols }, (_, i) => Math.round(rongCot[i] || 0)),
+                    styles: kieu,
+                    head: khoiDau.concat(dauBang),
+                    body: thanBang,
+                    foot: khoiCuoi,
+                };
+                // ── HẾT phần đọc bảng (đồng bộ). Từ đây mới được await. ──
 
                 setExportModal({ open: true, progress: 30, status: 'exporting', filename: fname });
-
-                const blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url; a.download = fname;
-                document.body.appendChild(a); a.click(); document.body.removeChild(a);
-                setTimeout(() => URL.revokeObjectURL(url), 1000);
-
-                setExportModal({ open: true, progress: 70, status: 'exporting', filename: fname });
-
-                fetch('/api/save_export', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ filename: fname, content: html })
-                }).then(r => r.json()).then(res => {
-                    if (res.status === 'ok') {
-                        setExportModal({ open: true, progress: 100, status: 'done', path: res.path, filename: res.filename });
-                    } else {
-                        setExportModal({ open: true, progress: 100, status: 'done', path: '', filename: fname });
+                try {
+                    const r = await fetch('/api/xuat_xlsx_bieu_mau', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(moHinh)
+                    });
+                    const res = await r.json().catch(() => ({ status: 'error', message: 'Máy chủ trả HTTP ' + r.status }));
+                    if (res.status !== 'ok') throw new Error(res.message || 'Không ghi được file');
+                    setExportModal({ open: true, progress: 75, status: 'exporting', filename: res.filename });
+                    // Tải về thư mục Downloads của trình duyệt như trước; bản trong thư mục xuất để nút "Mở file" dùng.
+                    const b = await fetch('/api/tai_file_xuat?ten=' + encodeURIComponent(res.filename));
+                    if (b.ok) {
+                        const url = URL.createObjectURL(await b.blob());
+                        const a = document.createElement('a');
+                        a.href = url; a.download = res.filename;
+                        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                        setTimeout(() => URL.revokeObjectURL(url), 1000);
                     }
-                }).catch(() => {
-                    setExportModal({ open: true, progress: 100, status: 'done', path: '', filename: fname });
-                });
+                    setExportModal({ open: true, progress: 100, status: 'done', path: res.path, filename: res.filename });
+                } catch (e) {
+                    setExportModal(null);
+                    alert('Không xuất được file Excel:\n\n' + e.message);
+                }
             };
 
             const downloadBlobAndSave = async (apiUrl, defaultFilename) => {
@@ -2585,7 +2532,7 @@ const exportJournalCsv = (mode) => {
                 }
             };
 
-            // ── Xuất .xls GIỮ NGUYÊN FORM cho báo cáo CÓ PHÂN TRANG (BC008 / BC012 / BC013) ──
+            // ── Xuất .xlsx GIỮ NGUYÊN FORM cho báo cáo CÓ PHÂN TRANG (BC008 / BC012 / BC013) ──
             // exportReportXls() đọc bảng .report-table đang hiển thị, mà DOM chỉ có TRANG HIỆN TẠI →
             // file sẽ thiếu dòng mà không báo lỗi. Cách xử lý (pattern exportBC014Xls của LedgerReport):
             // gọi API với page_size=0 (server trả toàn bộ) → nạp vào DOM qua fullExportRows →
@@ -3835,7 +3782,7 @@ const exportJournalCsv = (mode) => {
                             </div>
                         )}
 
-                        {/* BC008 / BC012 — chọn kiểu xuất: .xls giữ form (nạp đủ mọi trang) hoặc CSV toàn bộ */}
+                        {/* BC008 / BC012 — chọn kiểu xuất: .xlsx giữ form (nạp đủ mọi trang) hoặc CSV toàn bộ */}
                         {showPagedExport && (
                             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[9999] px-4 animate-backdrop" onClick={() => setShowPagedExport(false)}>
                                 <div className="bg-white/95 backdrop-blur-xl rounded-[32px] p-8 max-w-md w-full shadow-[0_32px_100px_rgba(0,0,0,0.3)] border border-white animate-modal space-y-4" onClick={e => e.stopPropagation()}>
@@ -3864,7 +3811,7 @@ const exportJournalCsv = (mode) => {
                                             className="w-full text-left p-4 rounded-2xl border-2 border-slate-100 hover:border-emerald-500 hover:bg-emerald-50/50 transition-all group disabled:opacity-50"
                                         >
                                             <div className="font-black text-[13px] text-slate-800 group-hover:text-emerald-700">Excel giữ nguyên form như trên web</div>
-                                            <div className="text-[11px] text-slate-400 font-medium mt-0.5">Tải ĐỦ mọi trang rồi xuất .xls y hệt bảng đang xem (có tiêu đề, chữ ký). Dữ liệu rất lớn sẽ chậm.</div>
+                                            <div className="text-[11px] text-slate-400 font-medium mt-0.5">Tải ĐỦ mọi trang rồi xuất .xlsx y hệt bảng đang xem (có tiêu đề, chữ ký). Dữ liệu rất lớn sẽ chậm.</div>
                                         </button>
 
                                         <button

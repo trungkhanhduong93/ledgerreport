@@ -103,7 +103,7 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 | 17 | ~~Nút `TRUY VẤN` đang chuyển màu navy → tím~~ ✅ **XONG 25/09** | Đại Ca chốt: chữ **"Lọc"**, navy đặc, như mẫu iPOS. Nằm trong thanh lọc mới của 9 màn danh sách |
 | 18 | ~~Chốt mốc commit phần đăng nhập nhanh + sửa font~~ ✅ **commit `c64540a`** | Local, chưa push |
 | 19 | ~~Đại Ca xem GĐ3 rồi chốt commit~~ ✅ **Đại Ca chốt OK sáng 25/09** (*"cái đó thì ok rồi"*) ⇒ đã commit GĐ3 | ⚠️ Đại Ca chốt chung, **không nói rõ đã thử từng mục dưới đây chưa** — lần đầu dùng số liệu thật thì để ý. Danh sách cần xem ở mục *"Việc Đại Ca xem sáng 25/09"* trong nhật ký 25/09 (tiếp 3), ngay dưới § này. Ba việc tôi **không** tự thử được: hộp *"Chuyển mẫu báo cáo?"* khi có số liệu thật · menu **Xuất Excel / Xuất PDF** khi có số liệu (chưa có số liệu thì nút tắt) · kéo thả thứ tự ô lọc bằng chuột thật. Và **đọc lại mô tả 16 thẻ** — tôi tự viết |
-| 35 | ❓ **Báo cáo TC xuất Excel ra `.xls` (HTML), KHÔNG phải `.xlsx` thật** — Đại Ca hỏi 25/09 | 9 màn danh sách + BC007 đã là `.xlsx` thật. Còn lại 15 báo cáo ghi bảng HTML đuôi `.xls` (giữ form: tiêu đề gộp ô, in đậm, định dạng số) ⇒ Excel mở được nhưng **hỏi "định dạng và phần mở rộng không khớp"**. Đường `.xlsx` phía máy chủ (`/api/export_excel_backend`) chỉ làm BC007/BC008 và giao diện không gọi tới. **Chờ Đại Ca chốt** có chuyển không |
+| 35 | ~~Báo cáo TC xuất Excel ra `.xls` (HTML), không phải `.xlsx` thật~~ ✅ **XONG 25/09 — nay `.xlsx` thật, giữ y biểu mẫu** (Đại Ca: *"luôn luôn xuất xlsx, y chang biểu mẫu đang xem"*) | Chi tiết: mục nhật ký *25/09 (khuya, tiếp 3)*. Chờ Đại Ca thử với số liệu thật trên 5051. `/api/export_excel_backend` (BC007/BC008, không ai gọi) vẫn để nguyên |
 | 34 | ~~Lỗi cuộn ảo (Bẫy 29) có trong bản ĐANG PHÁT HÀNH v1.12.3~~ ✅ **Đã vá lên `main` 25/09 (`6907d78`), CHƯA build/push** — Đại Ca đồng ý | Vá trong worktree tạm (không đụng thư mục 5051 đang phục vụ); chỉ thay khi hàm trên `main` giống hệt bản `giaodien` trước khi sửa (so sau khi bỏ khác biệt xuống dòng). Gộp thử `main` → `giaodien`: chỉ 1 xung đột, đúng chỗ việc 31 đã biết |
 | 33 | ~~Cột phân hệ navy bên trái~~ ✅ **XONG 25/09 — kiểu 06C** (Đại Ca chọn, navy nhạt hơn 1 bậc) | Phác thảo = mục **06** của canvas. Chờ Đại Ca xem trên 5051 |
 | 32 | ~~Giao diện mới cho tab Phân quyền~~ ✅ **XONG 25/09 — Đại Ca chốt OK, đã commit** (local, chưa push) | Mục **05 — PHÂN QUYỀN** của bản phác thảo. **Bản 2 (theo góp ý 25/09):** Chức vụ **bỏ ma trận** → danh sách + khung sửa bên phải, cùng kiểu tab Tài khoản · Tài khoản **bỏ ô mật khẩu và hộp tóm tắt quyền** (mật khẩu thu thành dòng *"Đặt lại mật khẩu"*; tài khoản mới vẫn có ô) · Đơn vị = **một danh sách tick**, có dòng *"Tất cả đơn vị"*. Thêm 2 khung **Thêm tài khoản** / **Thêm chức vụ** (Đại Ca hỏi *"màn hình thêm mới quyền thì sao"*). Dữ liệu trong khung là **minh hoạ**. Chưa sửa dòng mã nào |
@@ -162,6 +162,58 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 | Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 25/09/2026 (khuya, tiếp 3) — Vá việc 34 lên `main` · Báo cáo TC xuất `.xlsx` thật giữ y biểu mẫu (việc 35)
+
+Đại Ca: *"vá lỗi ok, khởi động lại luôn"*, rồi *"t muốn luôn luôn là xuất theo dạng xlsx của excel để lưu được định
+dạng cũng như y chang biểu mẫu đang xem, trước có làm rồi đó"*.
+
+### 1. Vá việc 34 lên `main` (commit `6907d78`, CHƯA build/push)
+
+Làm trong **worktree tạm** — không chuyển nhánh ở thư mục chính vì 5051 đọc `index.html` từ đĩa. Chỉ thay khi hàm
+`useVirtualScroll` trên `main` **giống hệt** bản `giaodien` trước khi sửa (so sau khi bỏ khác biệt CRLF/LF) ⇒ bản vá
+trùng từng ký tự với `giaodien`. Gộp thử `main` → `giaodien` (`git merge-tree`): **1 xung đột duy nhất**, đúng chỗ
+việc 31 đã biết. 5051 khởi động lại 2 lần (lần 2 để nạp route mới — log cho thấy Đại Ca chưa đăng nhập giữa hai lần).
+
+### 2. "Trước có làm rồi" — tìm trước khi viết
+
+Dò git (`-S` 8 tên thư viện), nhật ký, mọi file trong `D:\AI AGENT JOB`: **chưa từng có** bản ghi `.xlsx` kèm định
+dạng cho báo cáo. Cái "đã làm" là nút Excel cũ — **giữ y form nhưng ghi HTML đuôi `.xls`** (Excel hỏi "định dạng và
+phần mở rộng không khớp"). Đường `.xlsx` phía máy chủ `/api/export_excel_backend` chỉ làm BC007/BC008 và không ai gọi.
+LedgerStudio không có trên máy này; `b6553f6` không có trong repo.
+
+### 3. Cách làm
+
+- **Trình duyệt** (`exportReportXls`, viết lại): đọc `.report-table` đang hiện thành mô hình — xếp ô vào lưới (tính
+  gộp ngang/dọc), chữ đậm/nghiêng/gạch chân, màu chữ, màu nền (**kể cả nền tô cả dòng**), căn lề, cỡ chữ (px × 0,75),
+  độ rộng cột (đo 300 dòng đầu), chiều cao dòng. Luật số **giữ nguyên bản `.xls` đã đạt M4**; thêm: số âm có dấu `-`,
+  số lẻ giữ đúng số chữ số thập phân, số âm trong ngoặc **vẫn hiện trong ngoặc** (`#,##0;(#,##0)`).
+  Khối tiêu đề + chữ ký chép nguyên nội dung bản cũ.
+- **Máy chủ**: `/api/xuat_xlsx_bieu_mau` ghi bằng `xlsxwriter` (có sẵn trong EXE — **không thêm thư viện Internet**),
+  `constant_memory`, tự gộp ô theo lượt dòng (không dùng `merge_range` — CLAUDE.md Bẫy 8), tách sheet > 1 triệu dòng,
+  A4, khổ ngang BC015/BC016, BC016 co 1 trang ngang, lặp tiêu đề cột khi in. File trùng tên đang mở trong Excel ⇒ ghi
+  `ten (2).xlsx` thay vì báo lỗi. `/api/tai_file_xuat` trả file cho trình duyệt tải về như trước.
+- Menu nút tải: *"Xuất Excel (.xlsx)"*; hộp BC008/BC012 đổi chữ `.xls` → `.xlsx`. **CSV không giới hạn dòng giữ nguyên**.
+
+### 🧪 Verify
+
+| Kiểm | Kết quả |
+|---|---|
+| **M1** | Babel SUCCESSFUL · `server.py` **173 hàm / 71 route** (+5 / +2), không trùng |
+| Ghi trực tiếp (mô hình mẫu) | 8 vùng gộp đúng (cả gộp dọc) · `'01'` giữ số 0 đầu · tiền số thật `#,##0` · âm `(#,##0)` màu đỏ · `0.1554` `0.00%` · viền, nền, Arial, khổ ngang, lặp dòng in · tách sheet đúng, sheet nào cũng có tiêu đề |
+| Khối lượng | **100.000 dòng × 10 cột: 5,4 giây, 3,7 MB** |
+| Bấm thật trên giao diện (5052, BC006, API giả) | Gọi `/api/xuat_xlsx_bieu_mau` + `/api/tai_file_xuat` · file là zip `.xlsx` thật · 19 vùng gộp khớp bảng · `-1000000` hiện `(1,000,000)` · `0012` giữ số 0 · ô `-` giữ chữ · nền dòng TK cha `#f8fafc` (lần đầu thiếu — đã sửa) |
+
+File thử (số giả) đã **chuyển ra thư mục nháp**, không để lẫn trong `Downloads\iPOS_Ledger_Studio`.
+
+### 🔍 Điểm mù
+
+- **Chưa thử với số liệu thật**, nhất là BC001–BC004 (bảng KQKD nhiều cột), BC016 (59 cột) và BC008 cả năm (nhiều dòng):
+  máy chủ ghi nhanh, nhưng trình duyệt đọc từng ô bảng lớn có thể mất vài chục giây — y như bản `.xls` cũ.
+- Mô hình gửi lên cả khối một lần: sổ vài trăm nghìn dòng ⇒ vài chục MB JSON qua localhost. Chưa đo trần.
+- Chưa mở file trong **Excel thật** (mới đọc ngược bằng `openpyxl`) — Đại Ca mở giúp một file.
 
 ---
 

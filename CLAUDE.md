@@ -581,12 +581,23 @@ chỗ khác là trang chủ 404.
 ### Bẫy 7 — Lọc đa tài khoản
 `ACCOUNT_ID LIKE '111,112%'` trả 0 dòng. Dùng `_acc_like_sql("111,112", "ACCOUNT_ID")`.
 
-### Bẫy 8 — `<colgroup>` làm vỡ layout file `.xls`
-`exportReportXls()` phải `clone.querySelectorAll('colgroup').forEach(cg => cg.remove())` trước khi ghi file.
+### Bẫy 8 — `<colgroup>` làm vỡ layout file `.xls` *(hết hiệu lực từ 25/09/2026)*
+Chỉ đúng cho bản xuất `.xls` HTML cũ. Nay Báo cáo TC xuất **`.xlsx` thật** (xem dưới) — đọc lưới ô, không
+chép HTML nên `<colgroup>` không còn ảnh hưởng. Giữ mục này để ai đọc code cũ trong git khỏi bối rối.
+
+**Xuất Excel Báo cáo TC = `.xlsx` thật, giữ y biểu mẫu đang xem** *(Đại Ca chốt 25/09/2026, việc 35)*:
+`exportReportXls()` đọc `.report-table` ĐANG HIỆN (chữ, gộp ô, đậm/nghiêng, màu chữ/nền kể cả nền tô cả dòng,
+căn lề, cỡ chữ, độ rộng cột, chiều cao dòng) + khối tiêu đề / chữ ký ⇒ gửi **mô hình** cho
+`/api/xuat_xlsx_bieu_mau` ⇒ `xlsxwriter` ghi file vào thư mục xuất ⇒ trình duyệt tải qua `/api/tai_file_xuat`.
+Luật nhận dạng số giữ nguyên bản `.xls` đã đạt M4. ⛔ Đừng quay lại ghi HTML đuôi `.xls` — Excel hỏi
+*"định dạng và phần mở rộng không khớp"* mỗi lần mở. ⚠️ Máy chủ bật `constant_memory` ⇒ **cấm `merge_range()`
+cho vùng gộp nhiều dòng** (đẩy mất dòng đang ghi dở) — xem chú thích `_ghi_xlsx_bieu_mau`.
 
 ### Bẫy 9 — Xuất Excel báo cáo phân trang bị thiếu dòng
 DOM chỉ có trang hiện tại. Dùng helper `exportFullXls` (backend nhận `page_size=0` trả toàn bộ).
 Backend phải chặn `ZeroDivisionError` khi `page_size=0`.
+⚠️ Từ 25/09/2026 `exportReportXls` là hàm **async** mà `exportFullXls` dọn bảng tạm ngay khi nó trả về ⇒ phần
+**đọc bảng phải chạy đồng bộ, trước lệnh `await` đầu tiên**. Thêm `await` lên trên phần đọc bảng là xuất ra bảng rỗng.
 
 ### Bẫy 10 — EXE đang chạy thì PyInstaller không ghi đè được
 Build báo SUCCESS nhưng file `dist\*.exe` không đổi. `taskkill /F /IM iPOS_Accounting_Report.exe /T` trước khi build.

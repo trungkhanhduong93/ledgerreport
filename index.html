@@ -129,9 +129,6 @@ window.showConnectionLost = function() {
         .sortable-th.is-sorted { background: #dbeafe !important; color: #172554 !important; }
         .sortable-th.is-sorted .sort-icon { opacity: 1; color: #1e3a8a; }
         .sticky-footer { position: sticky; bottom: 0; background: #ffffff; border-top: 2px solid #1e3a8a; z-index: 40; box-shadow: 0 -4px 15px rgba(0,0,0,0.05); }
-        .tab-btn { padding: 10px 24px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; transition: all 0.3s; position: relative; }
-        .tab-btn.active { color: #ffffff; }
-        .tab-btn.active::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 3px; background: #FF9D3D; border-radius: 3px 3px 0 0; }
         
         .paper-landscape { width: 297mm !important; min-width: 297mm !important; max-width: 297mm !important; }
         .paper-portrait  { width: 210mm !important; min-width: 210mm !important; max-width: 210mm !important; }
@@ -594,12 +591,12 @@ window.showConnectionLost = function() {
             return debounced;
         }
 
-        const Icon = ({ name, size = 12, className = "" }) => {
+        const Icon = ({ name, size = 12, className = "", strokeWidth = "2.5" }) => {
             const icons = {
                 "search": '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
                 "chevron-down": '<path d="m6 9 6 6 6-6"/>',
                 "chevron-left": '<path d="m15 18-6-6 6-6"/>',
-                "chevron-right": '<path d="m9 18 6-6 6-6"/>',
+                "chevron-right": '<path d="m9 18 6-6-6-6"/>',   // bản cũ "6-6 6-6" vẽ ra gạch chéo "/" (sửa 25/09/2026)
                 "calendar": '<rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/>',
                 "loader": '<path d="M12 2v4"/><path d="m16.2 4.2 2.8 2.8"/><path d="M18 12h4"/><path d="m16.2 19.8 2.8-2.8"/><path d="M12 18v4"/><path d="m4.2 19.8 2.8-2.8"/><path d="M2 12h4"/><path d="m4.2 4.2 2.8 2.8"/>',
                 "file-text": '<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/>',
@@ -616,9 +613,20 @@ window.showConnectionLost = function() {
                 "arrow-down": '<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>',
                 "arrows-updown": '<path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/>',
                 "user": '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
-                "key": '<circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/>'
+                "key": '<circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/>',
+                // Thanh phân hệ + hàng tab (GĐ3 giao diện, 25/09/2026) — nét vẽ lấy từ bản phác thảo
+                "book": '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+                "banknote": '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>',
+                "cart": '<circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h3l2.4 12h11.3L21 7H6"/>',
+                "archive": '<path d="M21 8v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8"/><path d="M2 4h20v4H2z"/><path d="M10 12h4"/>',
+                "chart-line": '<path d="M3 3v18h18"/><path d="M7 15l3.5-4 3 2.5L21 7"/>',
+                "swap": '<path d="M3 7h13l-3-3"/><path d="M21 17H8l3 3"/>',
+                "grid": '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+                "filter": '<path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>',
+                "grip": '<path d="M4 8h16"/><path d="M4 12h16"/><path d="M4 16h16"/>',
+                "x": '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>'
             };
-            return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className} dangerouslySetInnerHTML={{ __html: icons[name] || '' }} />;
+            return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} dangerouslySetInnerHTML={{ __html: icons[name] || '' }} />;
         };
 
         const IOSDatePicker = ({ label, value, onChange, disabled }) => {
@@ -689,7 +697,7 @@ window.showConnectionLost = function() {
                         <Icon name="calendar" size={10} className={`${isOpen ? 'text-indigo-600' : 'text-slate-400'}`} />
                     </button>
                     {isOpen && createPortal(
-                        <div ref={calendarRef} style={{ position: 'fixed', top: pos.top, left: pos.left, zIndex: 999999, width: 300, background: '#fff', borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.18), 0 0 0 0.5px rgba(0,0,0,0.06)', overflow: 'hidden', fontFamily: 'AppSans, Arial, Helvetica, sans-serif' }}>
+                        <div ref={calendarRef} data-lop-noi="1" style={{ position: 'fixed', top: pos.top, left: pos.left, zIndex: 999999, width: 300, background: '#fff', borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.18), 0 0 0 0.5px rgba(0,0,0,0.06)', overflow: 'hidden', fontFamily: 'AppSans, Arial, Helvetica, sans-serif' }}>
                             <div style={{ background: '#f2f2f7', borderBottom: '1px solid rgba(0,0,0,0.08)', padding: '12px 12px 10px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}>
                                     <button onClick={() => setDisplayDate(new Date(displayDate.getFullYear(), displayDate.getMonth() - 1, 1))} style={{ padding: '4px 8px', borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: '#1e3a8a' }}><Icon name="chevron-left" size={16}/></button>
@@ -737,7 +745,7 @@ window.showConnectionLost = function() {
                 <div className="relative" ref={dropdownRef}>
                     <div className="label-text text-indigo-600">Kỳ báo cáo</div>
                     <button onClick={() => onToggle(isActive ? null : 'period')} className={`filter-control justify-between border-indigo-100 ${isActive ? 'active shadow-sm' : ''}`}>
-                        <span className="flex items-center gap-2"><Icon name="calendar" size={10} className="text-indigo-400"/> {period.year} - {label}</span>
+                        <span className="flex items-center gap-2 whitespace-nowrap"><Icon name="calendar" size={10} className="text-indigo-400"/> {period.year} - {label}</span>
                         <Icon name="chevron-down" size={10} className={`transition-transform ${isActive ? 'rotate-180 text-indigo-600' : 'opacity-40'}`} />
                     </button>
                     {isActive && (
@@ -1013,23 +1021,25 @@ window.showConnectionLost = function() {
         };
 
         const APP_NAME = 'iPOS Accounting Report';
+        // `name` = tên ĐẦY ĐỦ — checklist Phân quyền (ITEM_LABEL) đọc cái này, đừng đổi.
+        // `ten` + `mo_ta` = thẻ trên trang liệt kê báo cáo và ô chọn báo cáo (GĐ3 giao diện, 25/09/2026).
         const REPORT_TYPES = [
-            { id: 'BC001', name: 'BÁO CÁO KQKD THEO THÁNG' },
-            { id: 'BC002', name: 'BÁO CÁO KQKD THEO CÔNG VIỆC' },
-            { id: 'BC003', name: 'BÁO CÁO KQKD THEO THÁNG (TÙY CHỈNH)' },
-            { id: 'BC004', name: 'BÁO CÁO KQKD THEO CÔNG VIỆC (TÙY CHỈNH)' },
-            { id: 'BC005', name: 'BẢNG CÂN ĐỐI KẾ TOÁN (TT200)' },
-            { id: 'BC006', name: 'BẢNG CÂN ĐỐI PHÁT SINH' },
-            { id: 'BC007', name: 'SỔ NHẬT KÝ CHUNG (S03a-DN)' },
-            { id: 'BC008', name: 'SỔ CHI TIẾT TÀI KHOẢN' },
-            { id: 'BC009', name: 'LƯU CHUYỂN TIỀN TỆ - TRỰC TIẾP (B03-DN)' },
-            { id: 'BC010', name: 'LƯU CHUYỂN TIỀN TỆ - GIÁN TIẾP (B03-DN)' },
-            { id: 'BC011', name: 'LƯU CHUYỂN TIỀN TỆ - GIÁN TIẾP (CHÚ LONG)' },
-            { id: 'BC012', name: 'SỔ TIỀN MẶT VÀ TIỀN NGÂN HÀNG' },
-            { id: 'BC013', name: 'BẢNG TỔNG HỢP PHÁT SINH CÔNG NỢ' },
-            { id: 'BC014', name: '6.2 - BẢNG KÊ HÓA ĐƠN, CHỨNG TỪ HÀNG HÓA, DỊCH VỤ BÁN RA' },
-            { id: 'BC015', name: 'BÁO CÁO BÁN HÀNG THEO NGUỒN ĐƠN' },
-            { id: 'BC016', name: 'BÁO CÁO NHẬP XUẤT TỒN NHÀ HÀNG' },
+            { id: 'BC001', name: 'BÁO CÁO KQKD THEO THÁNG', ten: 'KQKD theo tháng', mo_ta: 'Doanh thu, chi phí, lợi nhuận từng tháng trong kỳ' },
+            { id: 'BC002', name: 'BÁO CÁO KQKD THEO CÔNG VIỆC', ten: 'KQKD theo công việc', mo_ta: 'Kết quả kinh doanh tách theo từng công việc' },
+            { id: 'BC003', name: 'BÁO CÁO KQKD THEO THÁNG (TÙY CHỈNH)', ten: 'KQKD theo tháng (tuỳ chỉnh)', mo_ta: 'Như BC001, tách riêng phí hoa hồng đối tác và phí quảng cáo' },
+            { id: 'BC004', name: 'BÁO CÁO KQKD THEO CÔNG VIỆC (TÙY CHỈNH)', ten: 'KQKD theo công việc (tuỳ chỉnh)', mo_ta: 'Như BC002, tách riêng phí hoa hồng đối tác và phí quảng cáo' },
+            { id: 'BC005', name: 'BẢNG CÂN ĐỐI KẾ TOÁN (TT200)', ten: 'Bảng cân đối kế toán', mo_ta: 'Mẫu B01-DN theo Thông tư 200' },
+            { id: 'BC006', name: 'BẢNG CÂN ĐỐI PHÁT SINH', ten: 'Bảng cân đối phát sinh', mo_ta: 'Số dư đầu kỳ, phát sinh và số dư cuối kỳ từng tài khoản' },
+            { id: 'BC007', name: 'SỔ NHẬT KÝ CHUNG (S03a-DN)', ten: 'Sổ nhật ký chung', mo_ta: 'Mẫu S03a-DN, xem chi tiết hoặc tổng hợp' },
+            { id: 'BC008', name: 'SỔ CHI TIẾT TÀI KHOẢN', ten: 'Sổ chi tiết tài khoản', mo_ta: 'Mẫu S38-DN, phát sinh theo từng chứng từ' },
+            { id: 'BC009', name: 'LƯU CHUYỂN TIỀN TỆ - TRỰC TIẾP (B03-DN)', ten: 'LCTT trực tiếp', mo_ta: 'Lưu chuyển tiền tệ phương pháp trực tiếp, mẫu B03-DN' },
+            { id: 'BC010', name: 'LƯU CHUYỂN TIỀN TỆ - GIÁN TIẾP (B03-DN)', ten: 'LCTT gián tiếp', mo_ta: 'Lưu chuyển tiền tệ phương pháp gián tiếp, mẫu B03-DN' },
+            { id: 'BC011', name: 'LƯU CHUYỂN TIỀN TỆ - GIÁN TIẾP (CHÚ LONG)', ten: 'LCTT gián tiếp (Chú Long)', mo_ta: 'Mẫu riêng theo yêu cầu Chú Long, không phải B03-DN chuẩn' },
+            { id: 'BC012', name: 'SỔ TIỀN MẶT VÀ TIỀN NGÂN HÀNG', ten: 'Sổ tiền mặt và ngân hàng', mo_ta: 'Thu chi tài khoản 111, 112, 113 theo từng chứng từ' },
+            { id: 'BC013', name: 'BẢNG TỔNG HỢP PHÁT SINH CÔNG NỢ', ten: 'Tổng hợp phát sinh công nợ', mo_ta: 'Số dư và phát sinh công nợ theo từng đối tượng' },
+            { id: 'BC014', name: '6.2 - BẢNG KÊ HÓA ĐƠN, CHỨNG TỪ HÀNG HÓA, DỊCH VỤ BÁN RA', ten: 'Bảng kê hoá đơn bán ra', mo_ta: 'Mẫu 01-1/GTGT mục 6.2, xem chi tiết hoặc tổng hợp' },
+            { id: 'BC015', name: 'BÁO CÁO BÁN HÀNG THEO NGUỒN ĐƠN', ten: 'Bán hàng theo nguồn đơn', mo_ta: 'Doanh thu theo nguồn đơn và đơn vị, chỉ chứng từ đã ghi sổ' },
+            { id: 'BC016', name: 'BÁO CÁO NHẬP XUẤT TỒN NHÀ HÀNG', ten: 'Nhập xuất tồn nhà hàng', mo_ta: 'Nhập, xuất, tồn từng mặt hàng, gom theo nhóm hàng hoặc kho' },
         ];
 
         // Chỉ tiêu LCTT trực tiếp (BC009) — Mẫu B03-DN. id rỗng = dòng tiêu đề (không in giá trị).
@@ -1254,34 +1264,450 @@ window.showConnectionLost = function() {
             { id: '440', name: 'TỔNG CỘNG NGUỒN VỐN  (440 = 300 + 400)', type: 'total' },
         ];
 
-        const ReportTypeDropdown = ({ value, onChange, isActive, onToggle, items = REPORT_TYPES }) => {
+        // Bỏ dấu để gõ "can doi" vẫn ra "Cân đối" — người dùng hay gõ không dấu.
+        const boDau = (t) => (t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+
+        // ===== Ô CHỌN BÁO CÁO — GĐ3 giao diện (Đại Ca chốt 25/09/2026, theo mẫu iPOS Inventory) =====
+        // Đứng ĐẦU hàng điều kiện, bên trái. Bấm ra danh sách có ô tìm: gõ mã hoặc tên, không dấu cũng được.
+        // Enter = chọn dòng đầu tiên đang khớp · Esc = đóng.
+        const ChonBaoCao = ({ value, onChange, isActive, onToggle, items = REPORT_TYPES }) => {
             const ref = useRef(null);
+            const [tim, setTim] = useState('');
             useEffect(() => {
-                const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) onToggle(null); };
-                if (isActive) document.addEventListener('mousedown', handler);
-                return () => document.removeEventListener('mousedown', handler);
+                if (!isActive) { setTim(''); return; }
+                const ngoai = (e) => { if (ref.current && !ref.current.contains(e.target)) onToggle(null); };
+                const esc = (e) => { if (e.key === 'Escape') onToggle(null); };
+                document.addEventListener('mousedown', ngoai);
+                document.addEventListener('keydown', esc);
+                return () => { document.removeEventListener('mousedown', ngoai); document.removeEventListener('keydown', esc); };
             }, [isActive]);
             const current = items.find(r => r.id === value) || items[0] || REPORT_TYPES[0];
+            const q = boDau(tim.trim());
+            const khop = q ? items.filter(r => boDau([r.id, r.ten, r.name, r.mo_ta].join(' ')).includes(q)) : items;
+            const chon = (id) => { onChange(id); onToggle(null); };
             return (
-                <div className="relative" ref={ref}>
-                    <div className="label-text text-violet-600">Mẫu báo cáo</div>
-                    <button onClick={() => onToggle(isActive ? null : 'reportType')} className={`filter-control justify-between border-violet-100 ${isActive ? 'active ring-2 ring-violet-100 border-violet-400 text-violet-700' : ''}`} style={{ width: 240 }}>
-                        <span className="flex items-center gap-2 truncate">
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-violet-100 text-violet-600 border border-violet-200 shrink-0">{current.id}</span>
-                            <span className="truncate text-[10px]">{current.name}</span>
-                        </span>
-                        <Icon name="chevron-down" size={10} className={`transition-transform shrink-0 ml-1 ${isActive ? 'rotate-180 text-violet-600' : 'opacity-40'}`} />
+                <div className="relative shrink-0" ref={ref}>
+                    <button type="button" onClick={() => onToggle(isActive ? null : 'reportType')} aria-haspopup="listbox" aria-expanded={isActive} title={current.name}
+                        className={`h-[32px] max-w-[320px] flex items-center gap-2 pl-1.5 pr-2.5 rounded-lg border bg-white transition-colors ${isActive ? 'border-indigo-400 ring-2 ring-indigo-100' : 'border-slate-200 hover:border-indigo-300'}`}>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 shrink-0 tabular-nums">{current.id}</span>
+                        <span className="truncate text-[12px] font-bold text-slate-900">{current.ten || current.name}</span>
+                        <Icon name="chevron-down" size={12} className={`shrink-0 text-slate-400 transition-transform ${isActive ? 'rotate-180' : ''}`} />
                     </button>
                     {isActive && (
-                        <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.25)] border border-slate-200 z-[500] overflow-y-auto custom-scrollbar" style={{ maxHeight: 260 }}>
-                            {items.map(rt => (
-                                <div key={rt.id} onClick={() => { onChange(rt.id); onToggle(null); }}
-                                    className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-all ${value === rt.id ? 'bg-violet-600 text-white' : 'hover:bg-slate-50 text-slate-700'}`}>
-                                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-black border shrink-0 ${value === rt.id ? 'bg-violet-500/50 border-violet-400 text-white' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>{rt.id}</span>
-                                    <span className="text-[11px] font-bold">{rt.name}</span>
-                                    {value === rt.id && <Icon name="check" size={12} className="ml-auto shrink-0" />}
+                        <div className="absolute top-full left-0 mt-2 w-[340px] bg-white rounded-xl shadow-[0_20px_60px_rgba(15,23,42,0.25)] border border-slate-200 z-[500] overflow-hidden">
+                            <div className="flex items-center gap-2 px-3 pt-3 pb-2">
+                                <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-slate-600">Báo cáo tài chính</span>
+                                <span className="ml-auto px-2 py-0.5 rounded-full bg-slate-100 text-[10px] font-bold text-slate-600 tabular-nums">{items.length}</span>
+                            </div>
+                            <div className="px-3 pb-2">
+                                <div className="flex items-center gap-2 h-[34px] px-2.5 rounded-lg border border-indigo-300 ring-2 ring-indigo-50">
+                                    <Icon name="search" size={13} className="text-slate-400 shrink-0" />
+                                    <input autoFocus value={tim} onChange={e => setTim(e.target.value)}
+                                        onKeyDown={e => { if (e.key === 'Enter' && khop.length) { e.preventDefault(); chon(khop[0].id); } }}
+                                        placeholder="Tìm theo mã hoặc tên" aria-label="Tìm báo cáo"
+                                        className="flex-1 min-w-0 bg-transparent outline-none text-[12px] text-slate-800 placeholder:text-slate-400" />
                                 </div>
-                            ))}
+                            </div>
+                            <div role="listbox" className="max-h-[320px] overflow-y-auto custom-scrollbar px-1.5 pb-1.5">
+                                {khop.map(rt => {
+                                    const on = rt.id === value;
+                                    return (
+                                        <button key={rt.id} type="button" role="option" aria-selected={on} onClick={() => chon(rt.id)}
+                                            className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors ${on ? 'bg-indigo-50' : 'hover:bg-slate-50'}`}>
+                                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0 tabular-nums ${on ? 'bg-white text-indigo-700' : 'bg-indigo-50 text-indigo-700'}`}>{rt.id}</span>
+                                            <span className={`text-[12px] truncate ${on ? 'font-bold text-indigo-700' : 'text-slate-700'}`}>{rt.ten || rt.name}</span>
+                                        </button>
+                                    );
+                                })}
+                                {!khop.length && <div className="px-3 py-4 text-[12px] text-slate-500">Không có báo cáo nào khớp “{tim}”</div>}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // ===== Ô "THỜI GIAN" — GĐ3 (Đại Ca chốt 25/09/2026, theo mẫu iPOS Inventory) =====
+        // Một ô ghi khoảng ngày. Bấm vào: cột chế độ bên trái + 2 lịch cạnh nhau bên phải.
+        // KHÔNG có phím tắt (Hôm nay, Tháng này…) — Đại Ca chốt 25/09: chỉ giữ 5 chế độ chọn.
+        // Chế độ: Chọn ngày (bấm 2 lần = từ ngày → đến ngày) · tuần · tháng · quý · năm.
+        // Chọn tháng / quý / năm thì đặt `period` ĐÚNG LOẠI (month / quarter / year): 9 màn danh sách
+        // vẫn dùng PeriodDropdown và dùng CHUNG `period`, nên nhãn bên đó vẫn đúng. Còn lại là 'custom'.
+        // "Chọn năm" không có trong hình mẫu — giữ lại vì bản cũ có "Cả năm", bỏ đi là mất tính năng.
+        // Bảng nổi dựng bằng PORTAL + position:fixed: ô Thời gian có thể đứng giữa hàng, bảng rộng 800px
+        // mà nằm trong khung overflow-hidden là bị cắt mép. Portal mang data-lop-noi (xem BoLocNangCao).
+        const TG = {
+            ngay: (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()),
+            cong: (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n),
+            thu2: (d) => { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); return new Date(x.getFullYear(), x.getMonth(), x.getDate() - ((x.getDay() + 6) % 7)); },
+            dmy: (d) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`,
+            doc: (s) => { if (!s) return null; const [d, m, y] = String(s).split('/').map(Number); return (d && m && y) ? new Date(y, m - 1, d) : null; },
+            bang: (a, b) => !!(a && b) && a.getTime() === b.getTime(),
+            // Tuần ISO 8601 (thứ Hai đầu tuần) — cùng cách đánh số của lịch mẫu iPOS: 21/09/2026 = tuần 39.
+            tuan: (d) => { const x = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const t = x.getUTCDay() || 7; x.setUTCDate(x.getUTCDate() + 4 - t); const dau = new Date(Date.UTC(x.getUTCFullYear(), 0, 1)); return Math.ceil(((x - dau) / 86400000 + 1) / 7); },
+            khoang: (ky) => ky.type === 'month' ? [new Date(ky.year, ky.value - 1, 1), new Date(ky.year, ky.value, 0)]
+                : ky.type === 'quarter' ? [new Date(ky.year, (ky.value - 1) * 3, 1), new Date(ky.year, ky.value * 3, 0)]
+                : [new Date(ky.year, 0, 1), new Date(ky.year, 11, 31)],
+        };
+        const CHE_DO_THOI_GIAN = [
+            { id: 'ngay', ten: 'Chọn ngày' }, { id: 'tuan', ten: 'Chọn tuần' }, { id: 'thang', ten: 'Chọn tháng' },
+            { id: 'quy', ten: 'Chọn quý' }, { id: 'nam', ten: 'Chọn năm' },
+        ];
+        const OThoiGian = ({ period, fromDate, toDate, onChon, isActive, onToggle }) => {
+            const ref = useRef(null);
+            const tu = TG.doc(fromDate), den = TG.doc(toDate);
+            const cheDoTuKy = () => ({ month: 'thang', quarter: 'quy', year: 'nam' })[period.type] || 'ngay';
+            const [cheDo, setCheDo] = useState(cheDoTuKy());
+            const [xem, setXem] = useState(() => { const d = tu || new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
+            const [chonDau, setChonDau] = useState(null);   // Chọn ngày: đã bấm "từ ngày", chờ bấm "đến ngày"
+            const [tro, setTro] = useState(null);           // ngày / tuần đang rê chuột qua
+            const [viTri, setViTri] = useState({ top: 0, left: 0 });
+            const RONG = 800;   // 128 cột chế độ + 2 × 336 lịch
+            const datViTri = () => {
+                if (!ref.current) return;
+                const r = ref.current.getBoundingClientRect();
+                // Đặt bảng càng sát dưới ô càng tốt: không tràn mép phải, và KHÔNG đè lên cột phân hệ bên trái.
+                const cotPhanHe = document.querySelector('nav[aria-label="Phân hệ"]');
+                const trai = (cotPhanHe ? cotPhanHe.getBoundingClientRect().right : 0) + 8;
+                const left = Math.max(trai, Math.min(r.left, window.innerWidth - RONG - 8));
+                setViTri({ top: r.bottom + 8, left });
+            };
+            useEffect(() => {
+                if (!isActive) return;
+                setCheDo(cheDoTuKy()); setChonDau(null); setTro(null);
+                const d = tu || new Date(); setXem(new Date(d.getFullYear(), d.getMonth(), 1));
+                datViTri();
+                const ngoai = (e) => { if (ref.current && !ref.current.contains(e.target) && !(e.target.closest && e.target.closest('[data-lop-noi]'))) onToggle(null); };
+                const esc = (e) => { if (e.key === 'Escape') onToggle(null); };
+                document.addEventListener('mousedown', ngoai);
+                document.addEventListener('keydown', esc);
+                window.addEventListener('resize', datViTri);
+                return () => { document.removeEventListener('mousedown', ngoai); document.removeEventListener('keydown', esc); window.removeEventListener('resize', datViTri); };
+            }, [isActive]);
+
+            const ap = (a, b, ky) => { onChon(a, b, ky || null); onToggle(null); };
+            const homNay = TG.ngay(new Date());
+            const nam = homNay.getFullYear(), thang = homNay.getMonth() + 1, quy = Math.ceil(thang / 3);
+            const dong = (on) => `w-full text-left px-3 py-[7px] rounded-lg text-[13px] transition-colors ${on ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`;
+            const nutDieuHuong = (nhan, onClick, ten) => (
+                <button type="button" onClick={onClick} aria-label={ten} className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-800 text-[13px] font-bold">{nhan}</button>
+            );
+
+            // Khoảng đang tô: đang chọn dở thì từ chonDau tới ngày đang rê, không thì khoảng hiện tại.
+            let [ta, tb] = [tu, den];
+            if (cheDo === 'ngay' && chonDau) { const x = tro || chonDau; [ta, tb] = chonDau <= x ? [chonDau, x] : [x, chonDau]; }
+            if (cheDo === 'tuan' && tro) { [ta, tb] = [tro, TG.cong(tro, 6)]; }
+
+            const veLichThang = (lech) => {
+                const t = new Date(xem.getFullYear(), xem.getMonth() + lech, 1);
+                const dau = TG.thu2(t);
+                const tuanMode = cheDo === 'tuan';
+                const cot = tuanMode ? 'grid-cols-8' : 'grid-cols-7';
+                return (
+                    <div className="w-[336px] px-4 py-3">
+                        <div className="flex items-center h-8 mb-1">
+                            {lech === 0 ? <>{nutDieuHuong('«', () => setXem(new Date(xem.getFullYear() - 1, xem.getMonth(), 1)), 'Lùi 1 năm')}{nutDieuHuong('‹', () => setXem(new Date(xem.getFullYear(), xem.getMonth() - 1, 1)), 'Lùi 1 tháng')}</> : <span className="w-14"></span>}
+                            <div className="flex-1 text-center text-[13px] font-bold text-slate-700 tabular-nums">{t.getFullYear()}&nbsp;&nbsp;T{t.getMonth() + 1}</div>
+                            {lech === 1 ? <>{nutDieuHuong('›', () => setXem(new Date(xem.getFullYear(), xem.getMonth() + 1, 1)), 'Tới 1 tháng')}{nutDieuHuong('»', () => setXem(new Date(xem.getFullYear() + 1, xem.getMonth(), 1)), 'Tới 1 năm')}</> : <span className="w-14"></span>}
+                        </div>
+                        <div className={`grid ${cot} text-[11px] font-bold text-slate-500 border-b border-slate-100 pb-1.5 mb-1`}>
+                            {tuanMode && <div></div>}
+                            {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map(d => <div key={d} className="text-center">{d}</div>)}
+                        </div>
+                        {[0, 1, 2, 3, 4, 5].map(w => {
+                            const dauTuan = TG.cong(dau, w * 7);
+                            const ngayTuan = [0, 1, 2, 3, 4, 5, 6].map(i => TG.cong(dauTuan, i));
+                            const tuanDangChon = ta && tb && TG.bang(ta, dauTuan) && TG.bang(tb, ngayTuan[6]);
+                            const o = ngayTuan.map(d => {
+                                const trongThang = d.getMonth() === t.getMonth();
+                                const la = TG.bang(d, ta), lb = TG.bang(d, tb);
+                                const giua = trongThang && ta && tb && d >= ta && d <= tb;
+                                const homnay = TG.bang(d, homNay);
+                                const nen = giua ? `bg-indigo-50 ${la ? 'rounded-l-full' : ''} ${lb ? 'rounded-r-full' : ''}` : '';
+                                const chu = (la || lb) && trongThang ? 'bg-indigo-700 text-white font-bold'
+                                    : !trongThang ? 'text-slate-300'
+                                    : homnay ? 'text-indigo-700 font-bold ring-1 ring-indigo-300'
+                                    : 'text-slate-700';
+                                const so = <span className={`w-8 h-8 rounded-full flex items-center justify-center text-[13px] tabular-nums ${chu} ${!tuanMode && trongThang && !(la || lb) ? 'group-hover:bg-slate-100' : ''}`}>{d.getDate()}</span>;
+                                if (tuanMode || !trongThang) return <span key={d.getTime()} className={`h-9 flex items-center justify-center ${nen}`}>{so}</span>;
+                                return (
+                                    <button key={d.getTime()} type="button" aria-label={'Ngày ' + TG.dmy(d)} aria-pressed={la || lb}
+                                        onClick={() => { if (!chonDau) { setChonDau(d); setTro(d); } else { const [x, y] = chonDau <= d ? [chonDau, d] : [d, chonDau]; ap(x, y, null); } }}
+                                        onMouseEnter={() => { if (chonDau && !TG.bang(tro, d)) setTro(d); }}
+                                        className={`group h-9 flex items-center justify-center ${nen}`}>{so}</button>
+                                );
+                            });
+                            if (!tuanMode) return <div key={w} className={`grid ${cot}`}>{o}</div>;
+                            return (
+                                <button key={w} type="button" aria-label={`Tuần ${TG.tuan(dauTuan)}: ${TG.dmy(dauTuan)} – ${TG.dmy(ngayTuan[6])}`}
+                                    onClick={() => ap(dauTuan, ngayTuan[6], null)} onMouseEnter={() => { if (!TG.bang(tro, dauTuan)) setTro(dauTuan); }} onMouseLeave={() => setTro(null)}
+                                    className={`grid ${cot} w-full rounded-full ${tuanDangChon ? '' : 'hover:bg-slate-50'}`}>
+                                    <span className={`h-9 flex items-center justify-center text-[12px] tabular-nums rounded-l-lg ${tuanDangChon ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-500'}`}>{TG.tuan(dauTuan)}</span>
+                                    {o}
+                                </button>
+                            );
+                        })}
+                    </div>
+                );
+            };
+
+            // Lưới tháng / quý cho một năm
+            const veLuoiNam = (lech) => {
+                const y = xem.getFullYear() + lech;
+                const laThang = cheDo === 'thang';
+                const o = laThang ? Array.from({ length: 12 }, (_, i) => ({ type: 'month', year: y, value: i + 1, nhan: 'T' + (i + 1) }))
+                    : [1, 2, 3, 4].map(q => ({ type: 'quarter', year: y, value: q, nhan: 'Quý ' + q, phu: `T${q * 3 - 2} – T${q * 3}` }));
+                return (
+                    <div className="w-[336px] px-4 py-3">
+                        <div className="flex items-center h-8 mb-2">
+                            {lech === 0 ? nutDieuHuong('«', () => setXem(new Date(xem.getFullYear() - 1, xem.getMonth(), 1)), 'Lùi 1 năm') : <span className="w-7"></span>}
+                            <div className="flex-1 text-center text-[13px] font-bold text-slate-700 tabular-nums">{y}</div>
+                            {lech === 1 ? nutDieuHuong('»', () => setXem(new Date(xem.getFullYear() + 1, xem.getMonth(), 1)), 'Tới 1 năm') : <span className="w-7"></span>}
+                        </div>
+                        <div className={`grid ${laThang ? 'grid-cols-3' : 'grid-cols-2'} gap-1.5`}>
+                            {o.map(k => {
+                                const [a, b] = TG.khoang(k);
+                                const on = TG.bang(a, tu) && TG.bang(b, den);
+                                const nay = laThang ? (y === nam && k.value === thang) : (y === nam && k.value === quy);
+                                return (
+                                    <button key={k.value} type="button" onClick={() => ap(a, b, k)} aria-pressed={on}
+                                        className={`${laThang ? 'h-[52px]' : 'h-[104px]'} rounded-lg flex flex-col items-center justify-center transition-colors ${on ? 'bg-indigo-700 text-white font-bold' : nay ? 'text-indigo-700 font-bold ring-1 ring-indigo-300 hover:bg-slate-50' : 'text-slate-700 hover:bg-slate-50'}`}>
+                                        <span className="text-[13px]">{k.nhan}</span>
+                                        {k.phu && <span className={`text-[11px] mt-1 ${on ? 'text-indigo-100' : 'text-slate-500'}`}>{k.phu}</span>}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                );
+            };
+
+            const veLuoiCacNam = () => {
+                const dauKhoi = xem.getFullYear() - 5;
+                const ds = Array.from({ length: 12 }, (_, i) => dauKhoi + i);
+                return (
+                    <div className="w-[672px] px-4 py-3">
+                        <div className="flex items-center h-8 mb-2">
+                            {nutDieuHuong('«', () => setXem(new Date(xem.getFullYear() - 12, xem.getMonth(), 1)), 'Lùi 12 năm')}
+                            <div className="flex-1 text-center text-[13px] font-bold text-slate-700 tabular-nums">{ds[0]} – {ds[11]}</div>
+                            {nutDieuHuong('»', () => setXem(new Date(xem.getFullYear() + 12, xem.getMonth(), 1)), 'Tới 12 năm')}
+                        </div>
+                        <div className="grid grid-cols-4 gap-1.5">
+                            {ds.map(y => {
+                                const k = { type: 'year', year: y, value: 1 };
+                                const [a, b] = TG.khoang(k);
+                                const on = TG.bang(a, tu) && TG.bang(b, den);
+                                return (
+                                    <button key={y} type="button" onClick={() => ap(a, b, k)} aria-pressed={on}
+                                        className={`h-[62px] rounded-lg text-[13px] tabular-nums transition-colors ${on ? 'bg-indigo-700 text-white font-bold' : y === nam ? 'text-indigo-700 font-bold ring-1 ring-indigo-300 hover:bg-slate-50' : 'text-slate-700 hover:bg-slate-50'}`}>{y}</button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                );
+            };
+
+            return (
+                <div className="relative" ref={ref}>
+                    <div className="label-text">Thời gian</div>
+                    <button type="button" onClick={() => onToggle(isActive ? null : 'period')} aria-haspopup="dialog" aria-expanded={isActive}
+                        className={`filter-control justify-between gap-2 ${isActive ? 'active ring-2 ring-indigo-100 border-indigo-400' : ''}`}>
+                        <span className="whitespace-nowrap tabular-nums">{fromDate} - {toDate}</span>
+                        <Icon name="calendar" size={12} className={`shrink-0 ${isActive ? 'text-indigo-600' : 'text-slate-400'}`} />
+                    </button>
+                    {isActive && createPortal(
+                        <div data-lop-noi="1" role="dialog" aria-label="Chọn thời gian" style={{ position: 'fixed', top: viTri.top, left: viTri.left, width: RONG, zIndex: 99990, fontFamily: 'AppSans, Arial, Helvetica, sans-serif' }}
+                            className="flex bg-white rounded-xl shadow-[0_20px_60px_rgba(15,23,42,0.25)] border border-slate-200">
+                            <div className="w-[128px] shrink-0 border-r border-slate-100 p-2 flex flex-col gap-0.5">
+                                {CHE_DO_THOI_GIAN.map(c => (
+                                    <button key={c.id} type="button" onClick={() => { setCheDo(c.id); setChonDau(null); setTro(null); }} aria-pressed={cheDo === c.id} className={dong(cheDo === c.id)}>{c.ten}</button>
+                                ))}
+                            </div>
+                            <div className="flex-1 min-w-0 flex flex-col">
+                            <div className="flex">
+                                {(cheDo === 'ngay' || cheDo === 'tuan') && <>{veLichThang(0)}<div className="border-l border-slate-100"></div>{veLichThang(1)}</>}
+                                {(cheDo === 'thang' || cheDo === 'quy') && <>{veLuoiNam(0)}<div className="border-l border-slate-100"></div>{veLuoiNam(1)}</>}
+                                {cheDo === 'nam' && veLuoiCacNam()}
+                            </div>
+                            <div className="mt-auto px-4 py-2 border-t border-slate-100 text-[11px] text-slate-500">
+                                {cheDo === 'ngay' ? (chonDau ? <>Từ <b className="text-slate-800 tabular-nums">{TG.dmy(chonDau)}</b> — bấm tiếp ngày kết thúc</> : 'Bấm ngày bắt đầu, rồi bấm ngày kết thúc (bấm 2 lần cùng một ngày = xem 1 ngày)')
+                                    : cheDo === 'tuan' ? 'Bấm vào một hàng để chọn cả tuần (thứ Hai – Chủ nhật). Số bên trái là số tuần trong năm'
+                                    : cheDo === 'thang' ? 'Bấm một tháng' : cheDo === 'quy' ? 'Bấm một quý' : 'Bấm một năm'}
+                            </div>
+                            </div>
+                        </div>, document.body
+                    )}
+                </div>
+            );
+        };
+
+        const CongTac = ({ bat, onDoi, khoa, nhan, goiY }) => (
+            <button type="button" role="switch" aria-checked={bat} aria-label={nhan} title={goiY || nhan} disabled={khoa} onClick={onDoi}
+                className={`relative w-9 h-5 rounded-full shrink-0 transition-colors ${bat ? 'bg-indigo-700' : 'bg-slate-400'} ${khoa ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${bat ? 'translate-x-4' : ''}`}></span>
+            </button>
+        );
+
+        // Nút tải xuống — gộp 2 nút Excel + PDF (Đại Ca chốt 25/09/2026). Chưa có số liệu thì cả nút tắt.
+        const NutXuat = ({ khongCoSo, onExcel, onPdf }) => {
+            const [mo, setMo] = useState(false);
+            const ref = useRef(null);
+            useEffect(() => {
+                if (!mo) return;
+                const ngoai = (e) => { if (ref.current && !ref.current.contains(e.target)) setMo(false); };
+                const esc = (e) => { if (e.key === 'Escape') setMo(false); };
+                document.addEventListener('mousedown', ngoai);
+                document.addEventListener('keydown', esc);
+                return () => { document.removeEventListener('mousedown', ngoai); document.removeEventListener('keydown', esc); };
+            }, [mo]);
+            const muc = (icon, mau, nhan, fn) => (
+                <button type="button" role="menuitem" onClick={() => { setMo(false); fn(); }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-[12px] font-bold text-slate-800 hover:bg-slate-50">
+                    <Icon name={icon} size={15} strokeWidth="2" className={mau} />{nhan}
+                </button>
+            );
+            return (
+                <div className="relative" ref={ref}>
+                    <button type="button" disabled={khongCoSo} onClick={() => setMo(!mo)} aria-haspopup="menu" aria-expanded={mo}
+                        aria-label="Xuất báo cáo" title={khongCoSo ? 'Chưa có số liệu — bấm Xem trước rồi mới xuất' : 'Xuất báo cáo'}
+                        className={`h-[32px] pl-2.5 pr-2 rounded-lg border flex items-center gap-1 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${mo ? 'border-indigo-400 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-700 hover:border-indigo-300'}`}>
+                        <Icon name="download" size={15} strokeWidth="2" />
+                        <Icon name="chevron-down" size={11} className={`transition-transform ${mo ? 'rotate-180' : ''}`} />
+                    </button>
+                    {mo && (
+                        <div role="menu" className="absolute top-full right-0 mt-2 w-[190px] bg-white rounded-xl shadow-[0_20px_60px_rgba(15,23,42,0.25)] border border-slate-200 z-[500] p-1.5">
+                            {muc('file-spreadsheet', 'text-emerald-700', 'Xuất Excel', onExcel)}
+                            {muc('file-text', 'text-red-700', 'Xuất PDF', onPdf)}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // ===== Ô LỌC CỦA BÁO CÁO TC + BỘ LỌC NÂNG CAO — GĐ3 (Đại Ca chốt 25/09/2026, theo mẫu iPOS Inventory) =====
+        // Thứ tự ở đây = thứ tự MẶC ĐỊNH: "Thời gian" luôn ở ngoài, rồi ô nào đứng trước thì được đưa ra
+        // ngoài trước, tới khi đủ TOI_DA_O_NGOAI (tính cả Thời gian). Ô còn lại nằm trong Bộ lọc nâng cao.
+        // Người dùng tự bật/tắt + kéo đổi thứ tự; nhớ RIÊNG từng báo cáo, TRÊN MÁY (localStorage).
+        // ⛔ Thêm ô lọc mới cho báo cáo thì khai ở đây — đừng viết thẳng vào hàng điều kiện nữa.
+        const TOI_DA_O_NGOAI = 4;
+        const O_LOC_BAO_CAO = [
+            { id: 'donvi',    ten: 'Đơn vị',      khoa: 'org_ids',        co: () => true },
+            { id: 'tk',       ten: 'Tài khoản',   khoa: 'acc_ids',        co: (t) => ['BC008', 'BC012', 'BC013', 'BC014'].includes(t) },
+            { id: 'cv',       ten: 'Công việc',   khoa: 'job_ids',        co: (t) => ['BC002', 'BC004'].includes(t) },
+            { id: 'doituong', ten: 'Đối tượng',   khoa: 'pr_detail_ids',  co: (t) => t === 'BC013' },
+            { id: 'tkdu',     ten: 'TK đối ứng',  khoa: 'contra_acc_ids', co: (t) => t === 'BC012' },
+            { id: 'soct',     ten: 'Số chứng từ', khoa: 'tran_no',        co: (t) => t === 'BC012' },
+        ];
+        // Đọc cấu hình đã lưu; bỏ mã không còn áp dụng, mã MỚI (chưa có trong bản lưu) nối cuối và mặc định TẮT.
+        // localStorage có thể ném lỗi / rỗng (cửa sổ ẩn danh, bị xoá) ⇒ luôn có đường về mặc định.
+        const docCauHinhLoc = (bc, dsId) => {
+            let luu = null;
+            try { luu = JSON.parse(localStorage.getItem('lr_loc_ngoai_' + bc) || 'null'); } catch (e) { luu = null; }
+            const thuTu = (luu && Array.isArray(luu.thuTu)) ? luu.thuTu.filter(id => dsId.includes(id)) : [];
+            dsId.forEach(id => { if (!thuTu.includes(id)) thuTu.push(id); });
+            const batSan = (luu && Array.isArray(luu.ngoai)) ? luu.ngoai : dsId.slice(0, TOI_DA_O_NGOAI - 1);
+            return { thuTu, ngoai: thuTu.filter(id => batSan.includes(id)).slice(0, TOI_DA_O_NGOAI - 1) };
+        };
+
+        // Nút phễu + bảng "Bộ lọc nâng cao". Bảng mở/đóng bằng state RIÊNG, không dùng activeDropdown chung:
+        // dùng chung thì mở một dropdown bên trong bảng là chính cái bảng bị đóng.
+        // ⚠️ Số trên nút phễu = số ô lọc ĐANG CÓ GIÁ TRỊ mà bị giấu trong bảng. Bắt buộc phải có: ô lọc bị
+        //    giấu mà vẫn đang áp dụng thì người xem tưởng số liệu là toàn bộ.
+        const BoLocNangCao = ({ cfg, onDoiCfg, tenO, soDangLocTrong, veO, onXoaTatCa, onXem, nhanXem, dangTai, onMo }) => {
+            const [mo, setMo] = useState(false);
+            const [moCauHinh, setMoCauHinh] = useState(false);
+            const [keo, setKeo] = useState(null);
+            const [tren, setTren] = useState(null);
+            const ref = useRef(null);
+            useEffect(() => {
+                if (!mo) return;
+                const ngoai = (e) => { if (ref.current && !ref.current.contains(e.target) && !(e.target.closest && e.target.closest('[data-lop-noi]'))) setMo(false); };
+                const esc = (e) => { if (e.key === 'Escape') setMo(false); };
+                document.addEventListener('mousedown', ngoai);
+                document.addEventListener('keydown', esc);
+                return () => { document.removeEventListener('mousedown', ngoai); document.removeEventListener('keydown', esc); };
+            }, [mo]);
+            const trong = cfg.thuTu.filter(id => !cfg.ngoai.includes(id));
+            const soNgoai = 1 + cfg.ngoai.length;   // + ô Thời gian
+            const du = soNgoai >= TOI_DA_O_NGOAI;
+            const batTat = (id) => {
+                const dangBat = cfg.ngoai.includes(id);
+                if (!dangBat && du) return;
+                onDoiCfg({ thuTu: cfg.thuTu, ngoai: dangBat ? cfg.ngoai.filter(x => x !== id) : cfg.thuTu.filter(x => x === id || cfg.ngoai.includes(x)) });
+            };
+            const doiCho = (id, dich) => {
+                const t = [...cfg.thuTu];
+                const a = t.indexOf(id), b = t.indexOf(dich);
+                if (a < 0 || b < 0 || a === b) return;
+                t.splice(a, 1); t.splice(b, 0, id);
+                onDoiCfg({ thuTu: t, ngoai: t.filter(x => cfg.ngoai.includes(x)) });
+            };
+            const phim = (e, id) => {
+                const i = cfg.thuTu.indexOf(id);
+                if (e.key === 'ArrowUp' && i > 0) { e.preventDefault(); doiCho(id, cfg.thuTu[i - 1]); }
+                if (e.key === 'ArrowDown' && i < cfg.thuTu.length - 1) { e.preventDefault(); doiCho(id, cfg.thuTu[i + 1]); }
+            };
+            return (
+                <div className="relative" ref={ref}>
+                    <button type="button" onClick={() => { if (!mo && onMo) onMo(); setMo(!mo); }} aria-expanded={mo}
+                        title={soDangLocTrong ? `Bộ lọc nâng cao — ${soDangLocTrong} ô lọc đang áp dụng nằm trong này` : 'Bộ lọc nâng cao'}
+                        aria-label={soDangLocTrong ? `Bộ lọc nâng cao, ${soDangLocTrong} ô đang áp dụng` : 'Bộ lọc nâng cao'}
+                        className={`relative w-[34px] h-[32px] rounded-lg border flex items-center justify-center transition-colors ${mo ? 'border-indigo-400 bg-indigo-50 text-indigo-700' : soDangLocTrong ? 'border-orange-300 bg-orange-50 text-orange-800' : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-300'}`}>
+                        <Icon name="filter" size={14} strokeWidth="2" />
+                        {soDangLocTrong > 0 && <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-[#c2410c] text-white text-[10px] font-bold leading-[18px] text-center tabular-nums">{soDangLocTrong}</span>}
+                    </button>
+                    {mo && (
+                        <div className="absolute top-full right-0 mt-2 w-[620px] bg-white rounded-xl shadow-[0_20px_60px_rgba(15,23,42,0.25)] border border-slate-200 z-[500]">
+                            <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-100">
+                                <Icon name="filter" size={14} strokeWidth="2" className="text-indigo-700" />
+                                <span className="text-[14px] font-bold text-slate-900">Bộ lọc nâng cao</span>
+                                <button type="button" onClick={onXoaTatCa} className="ml-auto text-[12px] font-bold text-indigo-700 hover:underline px-1">Xoá tất cả</button>
+                                <button type="button" onClick={() => setMo(false)} aria-label="Đóng bộ lọc" className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-100 hover:text-slate-800"><Icon name="x" size={14} strokeWidth="2" /></button>
+                            </div>
+                            {trong.length ? (
+                                <div className="grid grid-cols-3 gap-3 p-4">{trong.map((id, i) => veO(id, true, i % 3 === 2))}</div>
+                            ) : (
+                                <div className="px-4 py-5 text-[12px] text-slate-500">Mọi ô lọc của báo cáo này đang nằm ngoài. Tắt bớt ở phần cấu hình bên dưới thì ô đó sẽ vào đây.</div>
+                            )}
+                            <div className="border-t border-slate-100">
+                                <button type="button" onClick={() => setMoCauHinh(!moCauHinh)} aria-expanded={moCauHinh} className="w-full flex items-center gap-2 px-4 py-3 text-left">
+                                    <span className="text-[12px] font-bold text-indigo-700">Cấu hình tham số lọc</span>
+                                    <span className="px-1.5 rounded bg-indigo-50 text-indigo-700 text-[10px] font-bold tabular-nums">{soNgoai}</span>
+                                    <span className="text-[11px] text-slate-500">tối đa {TOI_DA_O_NGOAI} ô lọc đưa ra bên ngoài</span>
+                                    <Icon name="chevron-down" size={12} className={`ml-auto text-slate-400 transition-transform ${moCauHinh ? 'rotate-180' : ''}`} />
+                                </button>
+                                {moCauHinh && (
+                                    <div className="px-4 pb-3">
+                                        <div className="text-[11px] text-slate-500 mb-2">Bật để hiện ngoài, kéo để đổi thứ tự (hoặc bấm vào tay nắm rồi dùng phím ↑ ↓)</div>
+                                        <div className="flex items-center gap-2.5 h-9 px-2 rounded-lg bg-slate-50">
+                                            <span className="w-[14px]"></span>
+                                            <span className="flex-1 text-[12px] font-bold text-slate-800">Thời gian</span>
+                                            <span className="text-[10px] text-slate-500">luôn hiện</span>
+                                            <CongTac bat={true} khoa={true} nhan="Thời gian luôn hiện ngoài" goiY="Báo cáo nào cũng cần kỳ — luôn hiện ngoài" />
+                                        </div>
+                                        {cfg.thuTu.map(id => {
+                                            const bat = cfg.ngoai.includes(id);
+                                            return (
+                                                <div key={id} draggable
+                                                    onDragStart={e => { setKeo(id); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', id); } catch (x) {} }}
+                                                    onDragOver={e => { e.preventDefault(); if (tren !== id) setTren(id); }}
+                                                    onDrop={e => { e.preventDefault(); if (keo) doiCho(keo, id); setKeo(null); setTren(null); }}
+                                                    onDragEnd={() => { setKeo(null); setTren(null); }}
+                                                    className={`flex items-center gap-2.5 h-9 px-2 rounded-lg transition-colors ${keo === id ? 'opacity-40' : ''} ${tren === id && keo && keo !== id ? 'bg-indigo-50 ring-1 ring-indigo-200' : 'hover:bg-slate-50'}`}>
+                                                    <button type="button" onKeyDown={e => phim(e, id)} aria-label={`Đổi thứ tự ô ${tenO[id]}: kéo, hoặc dùng phím mũi tên lên xuống`} className="cursor-grab text-slate-400 hover:text-slate-700 focus:text-indigo-700"><Icon name="grip" size={14} strokeWidth="2" /></button>
+                                                    <span className="flex-1 text-[12px] text-slate-800">{tenO[id]}</span>
+                                                    {!bat && du && <span className="text-[10px] text-slate-500">đã đủ {TOI_DA_O_NGOAI} ô</span>}
+                                                    <CongTac bat={bat} khoa={!bat && du} onDoi={() => batTat(id)} nhan={`Hiện ô ${tenO[id]} ra ngoài`} />
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="flex justify-end gap-2 px-4 py-3 border-t border-slate-100">
+                                <button type="button" onClick={() => setMo(false)} className="h-[32px] px-4 rounded-lg border border-slate-200 bg-white text-[12px] font-bold text-slate-700 hover:bg-slate-50">Đóng</button>
+                                <button type="button" onClick={() => { setMo(false); onXem(); }} disabled={dangTai} className="h-[32px] px-4 rounded-lg bg-indigo-700 text-[12px] font-bold text-white hover:bg-indigo-800 disabled:opacity-60">{nhanXem}</button>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -1331,6 +1757,44 @@ window.showConnectionLost = function() {
             // Dòng nạp TẠM để xuất .xls đủ mọi trang (xem exportFullXls). Khác null ⇒ bảng đang render bản đầy đủ.
             const [fullExportRows, setFullExportRows] = React.useState(null);
             const [fullExporting, setFullExporting] = React.useState(false);
+            // Ô Thời gian chọn xong: tháng / quý / năm ⇒ period đúng loại; còn lại ⇒ 'custom' (effect ở App
+            // bỏ qua 'custom' nên không ghi đè 2 ngày vừa đặt). Tháng / quý / năm thì effect tính lại ra đúng 2 ngày này.
+            const datThoiGian = (a, b, ky) => {
+                setPeriod(ky ? { year: ky.year, type: ky.type, value: ky.value } : { ...period, year: a.getFullYear(), type: 'custom', value: 1 });
+                setFilters(p => ({ ...p, from_date: TG.dmy(a), to_date: TG.dmy(b) }));
+            };
+            // Bộ lọc thu gọn (GĐ3, 25/09/2026): ô nào ra ngoài, ô nào nằm trong Bộ lọc nâng cao — xem O_LOC_BAO_CAO.
+            const [cauHinhLoc, setCauHinhLoc] = React.useState({});
+            const oLocCo = O_LOC_BAO_CAO.filter(o => o.co(reportType));
+            const cfgLoc = cauHinhLoc[reportType] || docCauHinhLoc(reportType, oLocCo.map(o => o.id));
+            const luuCfgLoc = (moi) => {
+                setCauHinhLoc(p => ({ ...p, [reportType]: moi }));
+                try { localStorage.setItem('lr_loc_ngoai_' + reportType, JSON.stringify(moi)); } catch (e) { /* ẩn danh / bị chặn: vẫn chạy, chỉ không nhớ */ }
+            };
+            const tenOLoc = {}; O_LOC_BAO_CAO.forEach(o => { tenOLoc[o.id] = o.ten; });
+            const oCoGiaTri = (id) => { const o = O_LOC_BAO_CAO.find(x => x.id === id); const v = o && filters[o.khoa]; return Array.isArray(v) ? v.length > 0 : !!(v && String(v).trim()); };
+            const soDangLocTrong = cfgLoc.thuTu.filter(id => !cfgLoc.ngoai.includes(id) && oCoGiaTri(id)).length;
+            // "Xoá tất cả" = bỏ giá trị MỌI ô lọc của báo cáo này (cả ngoài lẫn trong), trừ Thời gian.
+            const xoaTatCaOLoc = () => setFilters(p => { const m = { ...p }; oLocCo.forEach(o => { m[o.khoa] = o.khoa === 'tran_no' ? '' : []; }); return m; });
+            const nguonOLoc = { donvi: meta.orgs, tk: meta.accounts, cv: meta.jobs, doituong: meta.pr_details, tkdu: meta.accounts };
+            // Một ô lọc — dùng chung cho hàng ngoài (có mức sàn) lẫn lưới trong Bộ lọc nâng cao.
+            const veOLoc = (id, trongBang, canhPhai) => {
+                const o = O_LOC_BAO_CAO.find(x => x.id === id);
+                if (!o) return null;
+                const lop = trongBang ? '' : (id === 'soct' ? 'basis-36 min-w-[90px]' : 'basis-40 min-w-[96px]');
+                if (id === 'soct') return (
+                    <div key={id} className={lop}>
+                        <div className="label-text">Số chứng từ</div>
+                        <input value={filters.tran_no || ''} onChange={e => { const v = e.target.value; setFilters(p => ({ ...p, tran_no: v })); }} placeholder="Nhập số chứng từ"
+                            className="w-full h-[32px] px-3 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400" />
+                    </div>
+                );
+                return (
+                    <div key={id} className={lop}>
+                        <PremiumDropdown label={o.ten} items={nguonOLoc[id] || []} selectedItems={filters[o.khoa] || []} onSelect={v => onToggleFilter(o.khoa, v)} isActive={activeDropdown === o.ten} onToggle={setActiveDropdown} align={trongBang && !canhPhai ? 'left' : 'right'} />
+                    </div>
+                );
+            };
             // BC012 — server trả sẵn các dòng hiển thị của TRANG hiện tại (phân trang 10000 dòng/trang, giống Nhật ký chung).
             const cbRows = (cashBookData && cashBookData.rows) || [];
             const cbPag = (cashBookData && cashBookData.pagination) || { total_rows: 0, total_pages: 1, page: 1 };
@@ -2150,21 +2614,12 @@ const exportJournalCsv = (mode) => {
             return (
                 <div className="flex-1 overflow-hidden flex flex-col">
                     <div className="bg-white border-b border-slate-200 p-3 px-6 shrink-0 shadow-sm z-[900] space-y-3">
-                        <div className="flex items-end gap-3">
-                            <div className="w-60"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
-                            <div className="w-32">
-                                <IOSDatePicker label="Từ ngày" value={filters.from_date} onChange={val => onToggleFilter('from_date', val)} disabled={period.type !== 'custom'} />
-                            </div>
-                            <div className="w-32">
-                                <IOSDatePicker label="Đến ngày" value={filters.to_date} onChange={val => onToggleFilter('to_date', val)} disabled={period.type !== 'custom'} />
-                            </div>
-                            <div className="w-40"><PremiumDropdown label="Đơn vị" items={meta.orgs} selectedItems={filters.org_ids} onSelect={id => onToggleFilter('org_ids', id)} isActive={activeDropdown === 'Đơn vị'} onToggle={setActiveDropdown} /></div>
-                            {(reportType === 'BC008' || reportType === 'BC012' || reportType === 'BC013' || reportType === 'BC014') ? (
-                                <div className="w-40"><PremiumDropdown label="Tài khoản" items={meta.accounts} selectedItems={filters.acc_ids} onSelect={id => onToggleFilter('acc_ids', id)} isActive={activeDropdown === 'Tài khoản'} onToggle={setActiveDropdown} /></div>
-                            ) : null}
-                            {['BC002', 'BC004'].includes(reportType) && (
-                                <div className="w-40"><PremiumDropdown label="Công việc" items={meta.jobs} selectedItems={filters.job_ids} onSelect={id => onToggleFilter('job_ids', id)} isActive={activeDropdown === 'Công việc'} onToggle={setActiveDropdown} /></div>
-                            )}
+                        <div className="flex flex-wrap items-end gap-3">
+                            {/* TRÁI: chọn báo cáo + kiểu xem (Đại Ca chốt 25/09/2026, theo mẫu iPOS Inventory) */}
+                            {/* ⚠️ Hỏi "xoá số liệu?" phải xét initialReportData (số liệu THẬT từ App), KHÔNG xét reportData:
+                                với BC003/BC004 bản reportData ở đây đã bị chèn sẵn 2 dòng VH.PHH/VH.PQC nên LUÔN có khoá
+                                ⇒ rời BC003/BC004 là bị hỏi dù chưa tải gì (lỗi có từ trước, sửa 25/09/2026). */}
+                            <ChonBaoCao value={reportType} onChange={(type) => { if (type !== reportType && Object.keys(initialReportData || {}).length > 0) { setPendingReportType(type); setShowClearModal(true); } else { setReportType(type); } }} isActive={activeDropdown === 'reportType'} onToggle={setActiveDropdown} items={allowedReports} />
                             {reportType === 'BC007' && (
                                 <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200 shrink-0 h-[32px] items-center">
                                     <button onClick={() => setJournalViewMode('detail')} className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${journalViewMode === 'detail' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>Chi tiết</button>
@@ -2190,26 +2645,23 @@ const exportJournalCsv = (mode) => {
                                     <button disabled={loading} onClick={() => { if (nxtGroupBy === 'warehouse' || loading) return; setNxtGroupBy('warehouse'); loadReportData(1, 'warehouse'); }} className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${nxtGroupBy === 'warehouse' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'} disabled:opacity-50`}>Kho</button>
                                 </div>
                             )}
-                            {reportType === 'BC013' ? (
-                                <div className="w-40"><PremiumDropdown label="Đối tượng" items={meta.pr_details} selectedItems={filters.pr_detail_ids} onSelect={id => onToggleFilter('pr_detail_ids', id)} isActive={activeDropdown === 'Đối tượng'} onToggle={setActiveDropdown} /></div>
-                            ) : null}
-                            {reportType === 'BC012' ? (
-                                <>
-                                <div className="w-40"><PremiumDropdown label="TK đối ứng" items={meta.accounts} selectedItems={filters.contra_acc_ids} onSelect={id => onToggleFilter('contra_acc_ids', id)} isActive={activeDropdown === 'TK đối ứng'} onToggle={setActiveDropdown} /></div>
-                                <div className="w-36">
-                                    <input value={filters.tran_no || ''} onChange={e => onToggleFilter('tran_no', e.target.value)} placeholder="Số chứng từ"
-                                        className="w-full h-[32px] px-3 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-700 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400" />
-                                </div>
-                                </>
-                            ) : null}
-                            <div className="ml-auto"><ReportTypeDropdown value={reportType} onChange={(type) => { if (type !== reportType && Object.keys(reportData).length > 0) { setPendingReportType(type); setShowClearModal(true); } else { setReportType(type); } }} isActive={activeDropdown === 'reportType'} onToggle={setActiveDropdown} items={allowedReports} /></div>
-                            <div className="flex gap-1.5">
+                            {/* PHẢI: ô Thời gian + tối đa 3 ô lọc do người dùng chọn (Bộ lọc nâng cao, nhớ theo từng báo cáo).
+                                Mỗi ô có MỨC SÀN (min-w) — co tới sàn là thôi, không bóp chữ (đo 25/09: ô Kỳ cũ bị bóp còn
+                                106px ⇒ "2026 - Tháng 1" gãy 2 dòng). Chạm sàn mà vẫn thiếu chỗ thì cụm nút xuống dòng. */}
+                            <div className="flex-1 flex items-end justify-end gap-3">
+                                <div className="basis-[200px] min-w-[186px]"><OThoiGian period={period} fromDate={filters.from_date} toDate={filters.to_date} onChon={datThoiGian} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
+                                {cfgLoc.thuTu.filter(id => cfgLoc.ngoai.includes(id)).map(id => veOLoc(id, false, true))}
+                            </div>
+                            <div className="ml-auto flex gap-1.5 shrink-0">
+                                <BoLocNangCao cfg={cfgLoc} onDoiCfg={luuCfgLoc} tenO={tenOLoc} soDangLocTrong={soDangLocTrong} veO={veOLoc}
+                                    onXoaTatCa={xoaTatCaOLoc} onXem={() => loadReportData(1)} nhanXem={'Xem ' + reportType} dangTai={loading} onMo={() => setActiveDropdown(null)} />
                                 <button onClick={() => loadReportData(1)} disabled={loading} className="bg-indigo-600 text-white px-5 h-[32px] rounded-lg font-black text-[9px] shadow-lg hover:bg-indigo-700 transition-all uppercase tracking-widest flex items-center gap-2">
                                     {loading && <Icon name="loader" className="animate-spin" />}
                                     Xem {reportType}
                                 </button>
-                                <button onClick={exportToExcel} disabled={reportType === 'BC016' ? !(nxtData && nxtData.groups && nxtData.groups.length) : reportType === 'BC012' ? cbRows.length === 0 : (reportType === 'BC006' || reportType === 'BC013') ? trialBalanceData.length === 0 : Object.keys(reportData).length === 0} className="bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 h-[32px] rounded-lg font-black text-[9px] shadow-lg hover:bg-emerald-700 hover:disabled:bg-emerald-600 transition-all flex items-center gap-2"><Icon name="file-spreadsheet" size={12}/> Excel</button>
-                                <button onClick={exportToPDF} disabled={reportType === 'BC016' ? !(nxtData && nxtData.groups && nxtData.groups.length) : reportType === 'BC012' ? cbRows.length === 0 : (reportType === 'BC006' || reportType === 'BC013') ? trialBalanceData.length === 0 : Object.keys(reportData).length === 0} className="bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 h-[32px] rounded-lg font-black text-[9px] shadow-lg hover:bg-red-700 hover:disabled:bg-red-600 transition-all flex items-center gap-2"><Icon name="download" size={12}/> PDF</button>
+                                {/* ⚠️ Nhánh cuối xét initialReportData, KHÔNG xét reportData: BC003/BC004 đã chèn sẵn 2 dòng
+                                    VH.PHH/VH.PQC nên reportData luôn có khoá ⇒ nút xuất sáng dù chưa tải gì (việc 29, sửa 25/09/2026). */}
+                                <NutXuat khongCoSo={reportType === 'BC016' ? !(nxtData && nxtData.groups && nxtData.groups.length) : reportType === 'BC012' ? cbRows.length === 0 : (reportType === 'BC006' || reportType === 'BC013') ? trialBalanceData.length === 0 : Object.keys(initialReportData || {}).length === 0} onExcel={exportToExcel} onPdf={exportToPDF} />
                             </div>
                         </div>
                     </div>
@@ -3579,76 +4031,112 @@ const exportJournalCsv = (mode) => {
             );
         };
 
+        // Mỗi màn hình danh sách: `name` = tên ĐẦY ĐỦ — checklist Phân quyền đọc cái này, đừng đổi.
+        // `short` = tên trên hàng tab: bỏ chữ "Danh sách…" lặp ở cả 9 mục (phác thảo GĐ3 giao diện).
         const DOC_TABS = [
-            { id: 'ledger',    name: 'Danh sách chứng từ tổng hợp' },
-            { id: 'sale',      name: 'Danh sách chứng từ bán hàng' },
-            { id: 'voucher',   name: 'Danh sách chứng từ tiền' },
-            { id: 'purchase',  name: 'Danh sách chứng từ nhập kho' },
-            { id: 'warehouse', name: 'Danh sách chứng từ kho' },
-            { id: 'warehouse_balance', name: 'Danh sách tồn kho thực tế' },
-            { id: 'btp_reconcile', name: 'Danh sách đối chiếu xuất SX BTP – nhập thành phẩm' },
-            { id: 'dcnb_reconcile', name: 'Danh sách đối chiếu điều chuyển nội bộ (xuất – nhập)' },
-            { id: 'po_list', name: 'Danh sách PO – yêu cầu mua hàng' },
+            { id: 'ledger',    name: 'Danh sách chứng từ tổng hợp', short: 'Chứng từ tổng hợp', icon: 'table' },
+            { id: 'sale',      name: 'Danh sách chứng từ bán hàng', short: 'Chứng từ bán hàng', icon: 'table' },
+            { id: 'voucher',   name: 'Danh sách chứng từ tiền',     short: 'Chứng từ tiền',     icon: 'table' },
+            { id: 'purchase',  name: 'Danh sách chứng từ nhập kho', short: 'Chứng từ nhập kho', icon: 'table' },
+            { id: 'warehouse', name: 'Danh sách chứng từ kho',      short: 'Chứng từ kho',      icon: 'table' },
+            { id: 'warehouse_balance', name: 'Danh sách tồn kho thực tế', short: 'Tồn kho thực tế', icon: 'archive' },
+            { id: 'btp_reconcile', name: 'Danh sách đối chiếu xuất SX BTP – nhập thành phẩm', short: 'Đối chiếu BTP', icon: 'swap' },
+            { id: 'dcnb_reconcile', name: 'Danh sách đối chiếu điều chuyển nội bộ (xuất – nhập)', short: 'Đối chiếu điều chuyển', icon: 'swap' },
+            { id: 'po_list', name: 'Danh sách PO – yêu cầu mua hàng', short: 'PO – yêu cầu mua hàng', icon: 'file-text' },
         ];
 
-        const DocumentTabDropdown = ({ activeTab, setActiveTab, items = DOC_TABS }) => {
-            const [open, setOpen] = useState(false);
-            const [pos, setPos] = useState({ top: 0, left: 0 });
-            const btnRef = useRef(null);
-            const panelRef = useRef(null);
-            const isDocTab = DOC_TABS.some(t => t.id === activeTab);
-            const current = DOC_TABS.find(t => t.id === activeTab);
+        // ===== ĐIỀU HƯỚNG 2 TẦNG — GĐ3 giao diện PROOFTRAIL (Đại Ca chốt 25/09/2026) =====
+        // Tầng 1 = cột icon navy bên trái = PHÂN HỆ. Tầng 2 = hàng tab ngang = MÀN HÌNH của phân hệ đó.
+        // Phân hệ KHÔNG giữ state riêng — suy ra từ activeTab, nên hai tầng không bao giờ lệch nhau.
+        //
+        // ⛔ Thêm tab danh sách mới thì gắn nó vào một phân hệ ở đây. Quên cũng KHÔNG mất tab: tab
+        //    chưa gắn tự rơi vào phân hệ "Khác". Cùng bài học Bẫy 22 (Google nuốt mã quyền trong im
+        //    lặng): thứ chưa khai báo phải LỘ RA, không được biến mất.
+        const PHAN_HE = (() => {
+            const ds = [
+                { id: 'tonghop', ten: 'Tổng hợp',   icon: 'book',       tabs: ['ledger'] },
+                { id: 'tien',    ten: 'Tiền',       icon: 'banknote',   tabs: ['voucher'] },
+                { id: 'muaban',  ten: 'Mua & bán',  icon: 'cart',       tabs: ['sale', 'purchase', 'po_list'] },
+                { id: 'kho',     ten: 'Kho',        icon: 'archive',    tabs: ['warehouse', 'warehouse_balance', 'btp_reconcile', 'dcnb_reconcile'] },
+                { id: 'baocao',  ten: 'Báo cáo TC', icon: 'chart-line', tabs: null },   // trang liệt kê thẻ, xem DanhSachBaoCao
+            ];
+            const daGan = new Set(ds.flatMap(p => p.tabs || []));
+            const conLai = DOC_TABS.map(t => t.id).filter(id => !daGan.has(id));
+            if (conLai.length) ds.splice(ds.length - 1, 0, { id: 'khac', ten: 'Khác', icon: 'grid', tabs: conLai });
+            return ds;
+        })();
 
-            const updatePos = () => {
-                if (btnRef.current) {
-                    const r = btnRef.current.getBoundingClientRect();
-                    setPos({ top: r.bottom + 4, left: r.left });
-                }
-            };
-            useEffect(() => {
-                if (!open) return;
-                updatePos();
-                const onDown = (e) => {
-                    if (panelRef.current?.contains(e.target)) return;
-                    if (btnRef.current?.contains(e.target)) return;
-                    setOpen(false);
-                };
-                document.addEventListener('mousedown', onDown);
-                window.addEventListener('scroll', updatePos, true);
-                window.addEventListener('resize', updatePos);
-                return () => {
-                    document.removeEventListener('mousedown', onDown);
-                    window.removeEventListener('scroll', updatePos, true);
-                    window.removeEventListener('resize', updatePos);
-                };
-            }, [open]);
+        // ===== TRANG LIỆT KÊ BÁO CÁO — GĐ3 (Đại Ca chốt 25/09/2026, theo mẫu iPOS Inventory) =====
+        // Vào phân hệ Báo cáo TC là thấy ngay MỌI báo cáo dạng thẻ, KHÔNG chia nhóm — Đại Ca bỏ phương
+        // án 5 tab nhóm. Bấm thẻ = mở báo cáo. Đang xem mà muốn đổi thì dùng ô ChonBaoCao ở đầu hàng điều kiện.
+        // Báo cáo mới thêm vào REPORT_TYPES tự hiện ở đây, không phải khai báo thêm chỗ nào.
+        const DanhSachBaoCao = ({ items, dangMo, onMo }) => (
+            <div className="flex-1 overflow-auto bg-slate-50 p-5">
+                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                    {items.map(r => (
+                        <button key={r.id} type="button" onClick={() => onMo(r.id)} title={r.name}
+                            className={`group flex items-center gap-3.5 p-4 bg-white border rounded-xl text-left transition-colors hover:border-indigo-400 ${r.id === dangMo ? 'border-indigo-300' : 'border-slate-200'}`}>
+                            <span className="w-[54px] h-9 shrink-0 rounded-lg bg-indigo-50 text-indigo-700 text-[11px] font-bold flex items-center justify-center tabular-nums">{r.id}</span>
+                            <span className="flex-1 min-w-0">
+                                <span className="block text-[14px] font-bold text-slate-900 leading-snug">{r.ten || r.name}</span>
+                                <span className="block text-[12px] text-slate-500 mt-1 leading-snug">{r.mo_ta}</span>
+                            </span>
+                            <Icon name="chevron-right" size={16} strokeWidth="2" className="shrink-0 text-slate-300 group-hover:text-indigo-600 transition-colors" />
+                        </button>
+                    ))}
+                </div>
+            </div>
+        );
 
-            return (
-                <>
-                    <button ref={btnRef} onClick={() => setOpen(!open)} className={`tab-btn flex items-center gap-2 ${isDocTab ? 'active bg-white/5' : 'hover:bg-white/5'}`}>
-                        <Icon name="table" size={12}/>
-                        <span className="truncate max-w-[260px]">{isDocTab ? current.name : 'Danh sách chứng từ'}</span>
-                        <Icon name="chevron-down" size={10} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
-                    </button>
-                    {open && createPortal(
-                        <div ref={panelRef} style={{ position: 'fixed', top: pos.top, left: pos.left, zIndex: 99999, width: 320 }} className="bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.35)] border border-slate-200 overflow-hidden">
-                            <div className="px-4 py-2 bg-slate-50 border-b border-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-widest">Chọn danh sách</div>
-                            {items.map(t => (
-                                <div key={t.id}
-                                     onClick={() => { setActiveTab(t.id); setOpen(false); }}
-                                     className={`px-4 py-3 cursor-pointer transition-all border-b last:border-b-0 border-slate-100 flex items-center gap-2 ${activeTab === t.id ? 'bg-indigo-600 text-white font-black' : 'hover:bg-indigo-50 text-slate-700 font-bold'}`}>
-                                    <Icon name="table" size={12} className={activeTab === t.id ? 'text-white' : 'text-slate-400'}/>
-                                    <span className="text-[12px] flex-1">{t.name}</span>
-                                    {activeTab === t.id && <Icon name="check" size={12}/>}
-                                </div>
-                            ))}
-                        </div>,
-                        document.body
-                    )}
-                </>
-            );
-        };
+        // Một nút trên cột phân hệ: icon + chữ 10px bên dưới (10px là cỡ tối thiểu — Bẫy 27).
+        // ⚠️ Rê chuột CHỈ đổi màu chữ, KHÔNG tô nền: nền white/5 trên navy tối trông gần y hệt
+        //    nền #1e3a8a của mục đang chọn ⇒ rê qua "Kho" là tưởng đang ở Kho (đã thấy khi chụp thử).
+        const NutPhanHe = ({ icon, ten, dangChon, onClick }) => (
+            <button type="button" onClick={onClick} title={ten} aria-current={dangChon ? 'page' : undefined}
+                className={`w-[58px] h-[50px] shrink-0 rounded-lg flex flex-col items-center justify-center gap-[5px] transition-colors ${dangChon ? 'text-white' : 'text-[#93c5fd] hover:text-white'}`}
+                style={dangChon ? { background: '#1e3a8a' } : undefined}>
+                <Icon name={icon} size={18} strokeWidth="1.8" />
+                <span className="text-[10px] font-bold leading-none whitespace-nowrap">{ten}</span>
+            </button>
+        );
 
+        // Cột phân hệ, rộng 64px (Đại Ca chốt — cột bảng vốn đã hẹp, không lấy 84px như phác thảo).
+        // Đáy cột: Phân quyền (chỉ ai có quyền mới thấy) rồi tới ô tài khoản.
+        const ThanhPhanHe = ({ dsPhanHe, phanHeDangMo, onChon, coPhanQuyen, dangOPhanQuyen, onPhanQuyen, taiKhoan }) => (
+            <nav aria-label="Phân hệ" className="shrink-0 flex flex-col items-center gap-1 py-3 overflow-y-auto" style={{ width: 64, background: '#172554', borderRight: '1px solid #1e3a8a' }}>
+                <svg viewBox="0 0 200 200" className="w-8 h-8 shrink-0 mb-3" role="img" aria-label="PROOFTRAIL">
+                    <rect width="200" height="200" rx="45" fill="#FF9D3D"/>
+                    <rect x="40" y="40" width="120" height="120" rx="30" fill="none" stroke="white" strokeWidth="20"/>
+                </svg>
+                {dsPhanHe.map(p => (
+                    <NutPhanHe key={p.id} icon={p.icon} ten={p.ten} dangChon={phanHeDangMo === p.id} onClick={() => onChon(p.id)} />
+                ))}
+                <div className="flex-1"></div>
+                {coPhanQuyen && <NutPhanHe icon="lock" ten="Phân quyền" dangChon={dangOPhanQuyen} onClick={onPhanQuyen} />}
+                <div className="mt-2 shrink-0">{taiKhoan}</div>
+            </nav>
+        );
+
+        // Hàng tab ngang. Trái: màn hình của phân hệ đang mở. Phải (`phai`): phần việc của thanh đen
+        // cũ — tên DB, phiên bản, Danh mục, Tải lại (Đại Ca chốt gộp để đỡ tốn chiều cao).
+        const HangTab = ({ tabs, dangChon, onChon, phai }) => (
+            <div className="shrink-0 bg-white flex items-stretch gap-6 pl-6 pr-3 z-[1000]" style={{ height: 44, boxShadow: 'inset 0 -1px 0 #e2e8f0' }}>
+                <div role="tablist" className="flex items-stretch gap-6 min-w-0 overflow-x-auto overflow-y-hidden">
+                    {tabs.map(t => {
+                        const on = t.id === dangChon;
+                        return (
+                            <button key={t.id} type="button" role="tab" aria-selected={on} onClick={() => onChon(t.id)}
+                                className={`shrink-0 flex items-center gap-2 pt-[2px] text-[13px] whitespace-nowrap border-b-2 transition-colors ${on ? 'font-bold text-slate-900' : 'text-slate-500 border-transparent hover:text-slate-900'}`}
+                                style={on ? { borderBottomColor: '#1e3a8a' } : undefined}>
+                                <Icon name={t.icon} size={14} strokeWidth="1.8" />
+                                {t.ten}
+                            </button>
+                        );
+                    })}
+                </div>
+                <div className="ml-auto flex items-center gap-2 shrink-0">{phai}</div>
+            </div>
+        );
         
         const PageSizeDropdown = ({ value, onChange }) => {
             const [open, setOpen] = useState(false);
@@ -4051,21 +4539,22 @@ const exportJournalCsv = (mode) => {
             );
         };
 
-        // ===== Ô TÀI KHOẢN Ở HEADER (mẫu SYNA AI PORTAL) =====
+        // ===== Ô TÀI KHOẢN Ở ĐÁY CỘT PHÂN HỆ (gốc: mẫu SYNA AI PORTAL) =====
         //
-        // Luật lấy từ Portal (Đại Ca chốt 2026-08-17): ô này chỉ gánh 2 việc — cho biết
-        // đang ở tài khoản nào, và đổi mật khẩu. **KHÔNG đưa Đăng xuất vào đây** — nút đó
-        // đã nằm sẵn cạnh bên, bày hai chỗ chỉ tổ rối.
+        // Luật gốc (Đại Ca chốt 2026-08-17): ô này cho biết đang ở tài khoản nào + đổi mật khẩu,
+        // KHÔNG đưa Đăng xuất vào vì nút Đăng xuất đã nằm cạnh bên — bày hai chỗ chỉ tổ rối.
+        // ➡️ GĐ3 giao diện (Đại Ca chốt 25/09/2026): thanh đen trên cùng bị gộp vào hàng tab,
+        //    nút Đăng xuất riêng BỎ ĐI ⇒ Đăng xuất chuyển vào đây. Vẫn chỉ MỘT chỗ — đúng tinh
+        //    thần luật cũ. Đừng thêm lại nút Đăng xuất thứ hai ở đâu khác.
         //
-        // ⚠️ Menu thả xuống dựng bằng createPortal, KHÔNG phải absolute trong header.
+        // ⚠️ Menu dựng bằng createPortal, KHÔNG phải absolute trong cột.
         //    Portal đã trả giá đúng chỗ này: menu nằm trong thẻ cha có z-index thì nó tạo
         //    một tầng riêng, số z-index của con chỉ tranh nhau TRONG tầng đó chứ không
         //    vượt ra so với khối khác ⇒ dòng dưới của menu bị khối bên dưới phủ lên,
-        //    nhìn thấy mà bấm KHÔNG ăn. DocumentTabDropdown trong chính file này cũng đã
-        //    giải bằng portal — đi theo cách đó.
-        const MenuTaiKhoan = ({ nguoiDung, onDoiMatKhau }) => {
+        //    nhìn thấy mà bấm KHÔNG ăn.
+        const MenuTaiKhoan = ({ nguoiDung, onDoiMatKhau, onDangXuat }) => {
             const [mo, setMo] = useState(false);
-            const [pos, setPos] = useState({ top: 0, right: 0 });
+            const [pos, setPos] = useState({ left: 0, bottom: 0 });
             const btnRef = useRef(null);
             const panelRef = useRef(null);
             useEffect(() => {
@@ -4089,24 +4578,22 @@ const exportJournalCsv = (mode) => {
             const bat = () => {
                 if (!mo && btnRef.current) {
                     const r = btnRef.current.getBoundingClientRect();
-                    setPos({ top: r.bottom + 8, right: Math.max(8, window.innerWidth - r.right) });
+                    // Nút nằm ở ĐÁY cột phân hệ ⇒ menu mở sang PHẢI, đáy menu ngang đáy nút
+                    // (mở xuống dưới như hồi còn ở header là tụt khỏi màn hình).
+                    setPos({ left: r.right + 10, bottom: Math.max(8, window.innerHeight - r.bottom) });
                 }
                 setMo(v => !v);
             };
 
             return (
-                <div className="flex items-center gap-2.5">
-                    <div className="text-right leading-tight hidden sm:block">
-                        <div className="font-black text-slate-200 text-[10px] tracking-wide">{ten || '—'}</div>
-                        <div className="font-bold text-slate-500 text-[9px] uppercase tracking-widest">{(nguoiDung && nguoiDung.group) || '—'}</div>
-                    </div>
-                    <button ref={btnRef} onClick={bat} title="Tài khoản"
-                        aria-haspopup="true" aria-expanded={mo}
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-[11px] transition-all border ${mo ? 'bg-indigo-500 border-indigo-400 text-white' : 'bg-white/10 border-white/10 text-indigo-300 hover:bg-white/20'}`}>
+                <>
+                    <button ref={btnRef} onClick={bat} title={ten ? 'Tài khoản: ' + ten : 'Tài khoản'}
+                        aria-label="Tài khoản" aria-haspopup="true" aria-expanded={mo}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-[12px] transition-colors ${mo ? 'bg-white text-[#1e3a8a]' : 'bg-[#dbeafe] text-[#1e40af] hover:bg-white'}`}>
                         {chuDau}
                     </button>
                     {mo && createPortal(
-                        <div ref={panelRef} style={{ position: 'fixed', top: pos.top, right: pos.right, zIndex: 99999, minWidth: 236 }}
+                        <div ref={panelRef} style={{ position: 'fixed', left: pos.left, bottom: pos.bottom, zIndex: 99999, minWidth: 236 }}
                              className="bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.35)] border border-slate-200 overflow-hidden">
                             <div className="px-4 py-3 bg-slate-50 border-b border-slate-100">
                                 <div className="font-black text-slate-800 text-[12px] truncate">{ten || '—'}</div>
@@ -4123,8 +4610,12 @@ const exportJournalCsv = (mode) => {
                                 className="w-full flex items-center gap-2.5 px-4 py-3 text-left text-slate-800 font-bold text-[12px] hover:bg-slate-50 transition-colors">
                                 <Icon name="key" size={14} className="text-indigo-600"/> Đổi mật khẩu
                             </button>
+                            <button type="button" onClick={() => { setMo(false); onDangXuat(); }}
+                                className="w-full flex items-center gap-2.5 px-4 py-3 text-left text-red-700 font-bold text-[12px] hover:bg-red-50 transition-colors border-t border-slate-100">
+                                <Icon name="log-out" size={14}/> Đăng xuất
+                            </button>
                         </div>, document.body)}
-                </div>
+                </>
             );
         };
 
@@ -4357,6 +4848,53 @@ const exportJournalCsv = (mode) => {
             // Quyền theo mục: mục nào KHÔNG nằm trong allowedItems thì ẩn khỏi menu.
             // null (chưa nạp) coi như thấy hết — tránh nháy menu rỗng ngay sau đăng nhập.
             const canSee = (id) => !allowedItems || allowedItems.includes(id);
+
+            // ===== ĐIỀU HƯỚNG 2 TẦNG (GĐ3) — xem PHAN_HE / DanhSachBaoCao =====
+            // Nhớ màn hình mở gần nhất của TỪNG phân hệ: quay lại phân hệ là về đúng chỗ đang dở.
+            const tabCuoiRef = useRef({});
+            // Báo cáo TC có 2 trạng thái: trang liệt kê thẻ (true) hoặc đang xem một báo cáo (false).
+            // ReportTab KHÔNG bị tháo khi về trang liệt kê — chỉ ẩn đi — nên số liệu, hộp xuất file
+            // đang chạy… đều còn nguyên khi quay lại.
+            const [xemDsBaoCao, setXemDsBaoCao] = useState(true);
+            const [daMoBaoCao, setDaMoBaoCao] = useState(false);
+            const phanHeDangMo = activeTab === 'report' ? 'baocao'
+                : ((PHAN_HE.find(p => p.tabs && p.tabs.includes(activeTab)) || {}).id || null);
+            useEffect(() => { if (phanHeDangMo && phanHeDangMo !== 'baocao') tabCuoiRef.current[phanHeDangMo] = activeTab; }, [activeTab]);
+            const dsPhanHe = PHAN_HE.filter(p => p.tabs ? p.tabs.some(canSee) : REPORT_TYPES.some(r => canSee(r.id)));
+            const chonPhanHe = (id) => {
+                if (id === 'baocao') { setActiveTab('report'); return; }
+                const p = PHAN_HE.find(x => x.id === id);
+                const cuoi = tabCuoiRef.current[id];
+                const dich = (cuoi && canSee(cuoi)) ? cuoi : p.tabs.find(canSee);
+                if (dich) setActiveTab(dich);
+            };
+            // Bấm thẻ trên trang liệt kê. Cùng luật với ô chọn báo cáo: đang có số liệu mà sang báo
+            // cáo KHÁC thì HỎI trước khi xoá (bấm Huỷ ⇒ vẫn xem báo cáo cũ, số liệu còn nguyên).
+            const moBaoCao = (id) => {
+                if (id !== reportType) {
+                    if (Object.keys(reportData).length > 0) { setPendingReportType(id); setShowClearModal(true); }
+                    else setReportType(id);
+                }
+                setXemDsBaoCao(false);
+                setDaMoBaoCao(true);
+            };
+            const baoCaoDangMo = REPORT_TYPES.find(r => r.id === reportType);
+            const tabHangNgang = activeTab === 'perm_admin'
+                ? [{ id: 'perm_admin', ten: 'Phân quyền', icon: 'lock' }]
+                : activeTab === 'report'
+                    ? [{ id: 'ds_bao_cao', ten: 'Tất cả báo cáo', icon: 'grid' }].concat(
+                        daMoBaoCao && !xemDsBaoCao && baoCaoDangMo && canSee(reportType)   // đang ở trang liệt kê thì ẩn (Đại Ca chốt 25/09)
+                            ? [{ id: 'bao_cao', ten: reportType + ' · ' + (baoCaoDangMo.ten || baoCaoDangMo.name), icon: 'file-text' }] : [])
+                    : (((PHAN_HE.find(p => p.id === phanHeDangMo) || {}).tabs) || []).filter(canSee).map(id => {
+                        const t = DOC_TABS.find(x => x.id === id);
+                        return { id, ten: t.short || t.name, icon: t.icon || 'table' };
+                    });
+            const tabDangChon = activeTab === 'report' ? (xemDsBaoCao ? 'ds_bao_cao' : 'bao_cao') : activeTab;
+            const chonTab = (id) => {
+                if (activeTab === 'report') setXemDsBaoCao(id === 'ds_bao_cao');
+                else if (id !== 'perm_admin') setActiveTab(id);
+            };
+
             const loadPerms = async () => {
                 try {
                     const r = await fetch('/api/my_perms');
@@ -4423,8 +4961,8 @@ const exportJournalCsv = (mode) => {
                         // Hiệu ứng "Done" nhẹ
                         const btn = document.getElementById('btn-refresh-meta');
                         if(btn) {
-                            btn.classList.add('bg-emerald-500/20', 'text-emerald-400');
-                            setTimeout(() => btn.classList.remove('bg-emerald-500/20', 'text-emerald-400'), 2000);
+                            btn.classList.add('bg-emerald-50', 'text-emerald-700');
+                            setTimeout(() => btn.classList.remove('bg-emerald-50', 'text-emerald-700'), 2000);
                         }
                     }
                 } finally {
@@ -6523,40 +7061,46 @@ const exportJournalCsv = (mode) => {
                             onDismiss={() => autoUpdate.setDismissed(true)}
                         />
                     )}
-                    <div className="bg-slate-900 text-[10px] text-slate-400 px-6 py-1.5 flex justify-between items-center shrink-0 z-[1000]">
-                        <div className="flex items-center gap-6"><div className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div><span className="font-black text-slate-200 uppercase tracking-widest">Connected</span></div><div className="font-black text-indigo-400 uppercase tracking-widest">{meta.db_info?.database}</div><div className="text-slate-500 font-bold">{appVersion}</div></div>
-                        <div className="flex bg-white/5 rounded-lg border border-white/10">
-                            {DOC_TABS.some(t => canSee(t.id)) && (
-                                <DocumentTabDropdown activeTab={activeTab} setActiveTab={setActiveTab} items={DOC_TABS.filter(t => canSee(t.id))} />
-                            )}
-                            {REPORT_TYPES.some(r => canSee(r.id)) && (
-                                <button onClick={() => setActiveTab('report')} className={`tab-btn flex items-center gap-2 ${activeTab === 'report' ? 'active bg-white/5' : 'hover:bg-white/5'}`}><Icon name="file-text" size={12}/> Báo cáo</button>
-                            )}
-                            {canSee('perm_admin') && (
-                                <button onClick={() => setActiveTab('perm_admin')} className={`tab-btn flex items-center gap-2 ${activeTab === 'perm_admin' ? 'active bg-white/5' : 'hover:bg-white/5'}`}><Icon name="lock" size={12}/> Phân quyền</button>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <div className="font-black uppercase tracking-widest">Records: <span className="text-white">{meta.global_total?.toLocaleString()}</span></div>
-                            <button id="btn-refresh-meta" onClick={refreshMeta} disabled={refreshing} title="Tải lại danh mục (Tài khoản, Đơn vị...)" className="bg-white/10 hover:bg-indigo-500/20 hover:text-indigo-400 p-1.5 px-3 rounded-lg transition-all flex items-center gap-2 font-black uppercase text-[9px]">
-                                <Icon name="loader" size={10} className={refreshing ? 'animate-spin' : ''}/> 
+                    {/* ĐIỀU HƯỚNG 2 TẦNG (GĐ3): cột phân hệ bên trái + hàng tab ngang. Thay thanh đen cũ. */}
+                    <div className="flex-1 min-h-0 flex">
+                    <ThanhPhanHe
+                        dsPhanHe={dsPhanHe}
+                        phanHeDangMo={phanHeDangMo}
+                        onChon={chonPhanHe}
+                        coPhanQuyen={canSee('perm_admin')}
+                        dangOPhanQuyen={activeTab === 'perm_admin'}
+                        onPhanQuyen={() => setActiveTab('perm_admin')}
+                        taiKhoan={<MenuTaiKhoan nguoiDung={nguoiDung} onDoiMatKhau={() => setHienDoiMatKhau(true)} onDangXuat={handleLogout} />}
+                    />
+                    <div className="flex-1 min-w-0 min-h-0 flex flex-col">
+                    <HangTab
+                        tabs={tabHangNgang}
+                        dangChon={tabDangChon}
+                        onChon={chonTab}
+                        phai={<>
+                            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mr-2" title="Đang kết nối cơ sở dữ liệu">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                <span className="font-bold text-slate-700">{meta.db_info?.database}</span>
+                                <span className="text-slate-300">&middot;</span>
+                                <span className="tabular-nums">{appVersion}</span>
+                            </div>
+                            <button id="btn-refresh-meta" onClick={refreshMeta} disabled={refreshing} title="Tải lại danh mục (Tài khoản, Đơn vị...)" className="h-8 px-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[11px] font-bold flex items-center gap-1.5 transition-colors disabled:opacity-60">
+                                <Icon name="loader" size={12} className={refreshing ? 'animate-spin' : ''}/>
                                 {refreshing ? 'Đang tải...' : 'Danh mục'}
                             </button>
-                            <button onClick={taiLaiTrang} disabled={dangTaiLai} title="Tải lại quyền, danh mục và dữ liệu tab đang mở (không phải đăng nhập lại)" className="bg-white/10 hover:bg-emerald-500/20 hover:text-emerald-400 p-1.5 px-3 rounded-lg transition-all flex items-center gap-2 font-black uppercase text-[9px] disabled:opacity-60">
-                                <Icon name="loader" size={10} className={dangTaiLai ? 'animate-spin' : ''}/>
+                            <button onClick={taiLaiTrang} disabled={dangTaiLai} title="Tải lại quyền, danh mục và dữ liệu tab đang mở (không phải đăng nhập lại)" className="h-8 px-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[11px] font-bold flex items-center gap-1.5 transition-colors disabled:opacity-60">
+                                <Icon name="loader" size={12} className={dangTaiLai ? 'animate-spin' : ''}/>
                                 {dangTaiLai ? 'Đang tải...' : 'Tải lại'}
                             </button>
-                            <MenuTaiKhoan nguoiDung={nguoiDung} onDoiMatKhau={() => setHienDoiMatKhau(true)} />
-                            <button onClick={handleLogout} className="bg-white/10 hover:bg-red-500/20 hover:text-red-400 p-1.5 px-3 rounded-lg transition-all flex items-center gap-2 font-black uppercase text-[9px]"><Icon name="log-out" size={10}/> Đăng xuất</button>
-                        </div>
-                    </div>
+                        </>}
+                    />
 
                     {activeTab === 'ledger' && (
                         <>
                             <div className="bg-white border-b border-slate-200 p-4 px-6 shrink-0 shadow-sm z-[900]">
                                 <div className="space-y-4">
-                                    <div className="flex items-end gap-4">
-                                        <div className="w-64"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
+                                    <div className="flex items-end gap-3">
+                                        <div className="w-44"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
                                         <div className="w-32">
                                             <IOSDatePicker label="Từ ngày" value={filters.from_date} onChange={val => toggleFilter('from_date', val)} disabled={period.type !== 'custom'} />
                                         </div>
@@ -6567,7 +7111,7 @@ const exportJournalCsv = (mode) => {
                                         <div className="w-40"><PremiumDropdown label="Đơn vị" items={meta.orgs} selectedItems={filters.org_ids} onSelect={id => toggleFilter('org_ids', id)} isActive={activeDropdown === 'Đơn vị'} onToggle={setActiveDropdown} align="right" /></div>
                                         
                                         {/* Khối hành động ĐẨY SÁT PHẢI TUYỆT ĐỐI */}
-                                        <div className="ml-auto flex items-center gap-2">
+                                        <div className="ml-auto shrink-0 flex items-center gap-2">
                                             <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/60 rounded-xl px-3 py-1 shrink-0 h-[40px]">
                                                 <div className="flex flex-col items-start shrink-0">
                                                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.1em] mb-0.5">Hiển thị</span>
@@ -6770,8 +7314,8 @@ const exportJournalCsv = (mode) => {
                         <>
                             <div className="bg-white border-b border-slate-200 p-4 px-6 shrink-0 shadow-sm z-[900]">
                                 <div className="space-y-4">
-                                    <div className="flex items-end gap-4">
-                                        <div className="w-64"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
+                                    <div className="flex items-end gap-3">
+                                        <div className="w-44"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
                                         <div className="w-32"><IOSDatePicker label="Từ ngày" value={filters.from_date} onChange={val => toggleFilter('from_date', val)} disabled={period.type !== 'custom'} /></div>
                                         <div className="w-32"><IOSDatePicker label="Đến ngày" value={filters.to_date} onChange={val => toggleFilter('to_date', val)} disabled={period.type !== 'custom'} /></div>
                                         <div className="w-44">
@@ -6782,7 +7326,7 @@ const exportJournalCsv = (mode) => {
                                             </div>
                                         </div>
                                         <div className="w-40"><PremiumDropdown label="Đơn vị" items={meta.orgs} selectedItems={filters.org_ids} onSelect={id => toggleFilter('org_ids', id)} isActive={activeDropdown === 'Đơn vị'} onToggle={setActiveDropdown} align="right" /></div>
-                                        <div className="ml-auto flex items-center gap-2">
+                                        <div className="ml-auto shrink-0 flex items-center gap-2">
                                             <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/60 rounded-xl px-3 py-1 shrink-0 h-[40px]">
                                                 <div className="flex flex-col items-start shrink-0">
                                                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.1em] mb-0.5">Hiển thị</span>
@@ -6987,8 +7531,8 @@ const exportJournalCsv = (mode) => {
                         <>
                             <div className="bg-white border-b border-slate-200 p-4 px-6 shrink-0 shadow-sm z-[900]">
                                 <div className="space-y-4">
-                                    <div className="flex items-end gap-4">
-                                        <div className="w-64"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
+                                    <div className="flex items-end gap-3">
+                                        <div className="w-44"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
                                         <div className="w-32"><IOSDatePicker label="Từ ngày" value={filters.from_date} onChange={val => toggleFilter('from_date', val)} disabled={period.type !== 'custom'} /></div>
                                         <div className="w-32"><IOSDatePicker label="Đến ngày" value={filters.to_date} onChange={val => toggleFilter('to_date', val)} disabled={period.type !== 'custom'} /></div>
                                         <div className="w-44">
@@ -6999,7 +7543,7 @@ const exportJournalCsv = (mode) => {
                                             </div>
                                         </div>
                                         <div className="w-40"><PremiumDropdown label="Đơn vị" items={meta.orgs} selectedItems={filters.org_ids} onSelect={id => toggleFilter('org_ids', id)} isActive={activeDropdown === 'Đơn vị'} onToggle={setActiveDropdown} align="right" /></div>
-                                        <div className="ml-auto flex items-center gap-2">
+                                        <div className="ml-auto shrink-0 flex items-center gap-2">
                                             <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/60 rounded-xl px-3 py-1 shrink-0 h-[40px]">
                                                 <div className="flex flex-col items-start shrink-0">
                                                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.1em] mb-0.5">Hiển thị</span>
@@ -7170,13 +7714,13 @@ const exportJournalCsv = (mode) => {
                         <>
                             <div className="bg-white border-b border-slate-200 p-4 px-6 shrink-0 shadow-sm z-[900]">
                                 <div className="space-y-4">
-                                    <div className="flex items-end gap-4">
-                                        <div className="w-64"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
+                                    <div className="flex items-end gap-3">
+                                        <div className="w-44"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
                                         <div className="w-32"><IOSDatePicker label="Từ ngày" value={filters.from_date} onChange={val => toggleFilter('from_date', val)} disabled={period.type !== 'custom'} /></div>
                                         <div className="w-32"><IOSDatePicker label="Đến ngày" value={filters.to_date} onChange={val => toggleFilter('to_date', val)} disabled={period.type !== 'custom'} /></div>
                                         <div className="w-40"><PremiumDropdown label="Loại CT" items={tranItemsFor('purchase')} selectedItems={filters.tran_ids} onSelect={id => toggleFilter('tran_ids', id)} isActive={activeDropdown === 'Loại CT'} onToggle={setActiveDropdown} /></div>
                                         <div className="w-40"><PremiumDropdown label="Đơn vị" items={meta.orgs} selectedItems={filters.org_ids} onSelect={id => toggleFilter('org_ids', id)} isActive={activeDropdown === 'Đơn vị'} onToggle={setActiveDropdown} align="right" /></div>
-                                        <div className="ml-auto flex items-center gap-2">
+                                        <div className="ml-auto shrink-0 flex items-center gap-2">
                                             <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/60 rounded-xl px-3 py-1 shrink-0 h-[40px]">
                                                 <div className="flex flex-col items-start shrink-0">
                                                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.1em] mb-0.5">Hiển thị</span>
@@ -7377,13 +7921,13 @@ const exportJournalCsv = (mode) => {
                         <>
                             <div className="bg-white border-b border-slate-200 p-4 px-6 shrink-0 shadow-sm z-[900]">
                                 <div className="space-y-4">
-                                    <div className="flex items-end gap-4">
-                                        <div className="w-64"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
+                                    <div className="flex items-end gap-3">
+                                        <div className="w-44"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
                                         <div className="w-32"><IOSDatePicker label="Từ ngày" value={filters.from_date} onChange={val => toggleFilter('from_date', val)} disabled={period.type !== 'custom'} /></div>
                                         <div className="w-32"><IOSDatePicker label="Đến ngày" value={filters.to_date} onChange={val => toggleFilter('to_date', val)} disabled={period.type !== 'custom'} /></div>
                                         <div className="w-40"><PremiumDropdown label="Loại CT" items={tranItemsFor('warehouse')} selectedItems={filters.tran_ids} onSelect={id => toggleFilter('tran_ids', id)} isActive={activeDropdown === 'Loại CT'} onToggle={setActiveDropdown} /></div>
                                         <div className="w-40"><PremiumDropdown label="Đơn vị" items={meta.orgs} selectedItems={filters.org_ids} onSelect={id => toggleFilter('org_ids', id)} isActive={activeDropdown === 'Đơn vị'} onToggle={setActiveDropdown} align="right" /></div>
-                                        <div className="ml-auto flex items-center gap-2">
+                                        <div className="ml-auto shrink-0 flex items-center gap-2">
                                             <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/60 rounded-xl px-3 py-1 shrink-0 h-[40px]">
                                                 <div className="flex flex-col items-start shrink-0">
                                                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.1em] mb-0.5">Hiển thị</span>
@@ -7580,12 +8124,12 @@ const exportJournalCsv = (mode) => {
                         <>
                             <div className="bg-white border-b border-slate-200 p-4 px-6 shrink-0 shadow-sm z-[900]">
                                 <div className="space-y-4">
-                                    <div className="flex items-end gap-4">
-                                        <div className="w-64"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
+                                    <div className="flex items-end gap-3">
+                                        <div className="w-44"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
                                         <div className="w-32"><IOSDatePicker label="Từ ngày" value={filters.from_date} onChange={val => toggleFilter('from_date', val)} disabled={period.type !== 'custom'} /></div>
                                         <div className="w-32"><IOSDatePicker label="Đến ngày" value={filters.to_date} onChange={val => toggleFilter('to_date', val)} disabled={period.type !== 'custom'} /></div>
                                         <div className="w-40"><PremiumDropdown label="Đơn vị" items={meta.orgs} selectedItems={filters.org_ids} onSelect={id => toggleFilter('org_ids', id)} isActive={activeDropdown === 'Đơn vị'} onToggle={setActiveDropdown} /></div>
-                                        <div className="ml-auto flex items-center gap-2">
+                                        <div className="ml-auto shrink-0 flex items-center gap-2">
                                             <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/60 rounded-xl px-3 py-1 shrink-0 h-[40px]">
                                                 <div className="flex flex-col items-start shrink-0">
                                                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.1em] mb-0.5">Hiển thị</span>
@@ -7706,12 +8250,12 @@ const exportJournalCsv = (mode) => {
                         <>
                             <div className="bg-white border-b border-slate-200 p-4 px-6 shrink-0 shadow-sm z-[900]">
                                 <div className="space-y-4">
-                                    <div className="flex items-end gap-4">
-                                        <div className="w-64"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
+                                    <div className="flex items-end gap-3">
+                                        <div className="w-44"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
                                         <div className="w-32"><IOSDatePicker label="Từ ngày" value={filters.from_date} onChange={val => toggleFilter('from_date', val)} disabled={period.type !== 'custom'} /></div>
                                         <div className="w-32"><IOSDatePicker label="Đến ngày" value={filters.to_date} onChange={val => toggleFilter('to_date', val)} disabled={period.type !== 'custom'} /></div>
                                         <div className="w-40"><PremiumDropdown label="Đơn vị" items={meta.orgs} selectedItems={filters.org_ids} onSelect={id => toggleFilter('org_ids', id)} isActive={activeDropdown === 'Đơn vị'} onToggle={setActiveDropdown} /></div>
-                                        <div className="ml-auto flex items-center gap-2">
+                                        <div className="ml-auto shrink-0 flex items-center gap-2">
                                             <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/60 rounded-xl px-3 py-1 shrink-0 h-[40px]">
                                                 <div className="flex flex-col items-start shrink-0">
                                                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.1em] mb-0.5">Hiển thị</span>
@@ -7882,12 +8426,12 @@ const exportJournalCsv = (mode) => {
                         <>
                             <div className="bg-white border-b border-slate-200 p-4 px-6 shrink-0 shadow-sm z-[900]">
                                 <div className="space-y-4">
-                                    <div className="flex items-end gap-4">
-                                        <div className="w-64"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
+                                    <div className="flex items-end gap-3">
+                                        <div className="w-44"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
                                         <div className="w-32"><IOSDatePicker label="Từ ngày" value={filters.from_date} onChange={val => toggleFilter('from_date', val)} disabled={period.type !== 'custom'} /></div>
                                         <div className="w-32"><IOSDatePicker label="Đến ngày" value={filters.to_date} onChange={val => toggleFilter('to_date', val)} disabled={period.type !== 'custom'} /></div>
                                         <div className="w-40"><PremiumDropdown label="Đơn vị xuất" items={meta.orgs} selectedItems={filters.org_ids} onSelect={id => toggleFilter('org_ids', id)} isActive={activeDropdown === 'Đơn vị xuất'} onToggle={setActiveDropdown} /></div>
-                                        <div className="ml-auto flex items-center gap-2">
+                                        <div className="ml-auto shrink-0 flex items-center gap-2">
                                             <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/60 rounded-xl px-3 py-1 shrink-0 h-[40px]">
                                                 <div className="flex flex-col items-start shrink-0">
                                                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.1em] mb-0.5">Hiển thị</span>
@@ -8054,12 +8598,12 @@ const exportJournalCsv = (mode) => {
                         <>
                             <div className="bg-white border-b border-slate-200 p-4 px-6 shrink-0 shadow-sm z-[900]">
                                 <div className="space-y-4">
-                                    <div className="flex items-end gap-4">
-                                        <div className="w-64"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
+                                    <div className="flex items-end gap-3">
+                                        <div className="w-44"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
                                         <div className="w-32"><IOSDatePicker label="Từ ngày" value={filters.from_date} onChange={val => toggleFilter('from_date', val)} disabled={period.type !== 'custom'} /></div>
                                         <div className="w-32"><IOSDatePicker label="Đến ngày" value={filters.to_date} onChange={val => toggleFilter('to_date', val)} disabled={period.type !== 'custom'} /></div>
                                         <div className="w-40"><PremiumDropdown label="Đơn vị" items={meta.orgs} selectedItems={filters.org_ids} onSelect={id => toggleFilter('org_ids', id)} isActive={activeDropdown === 'Đơn vị'} onToggle={setActiveDropdown} /></div>
-                                        <div className="ml-auto flex items-center gap-2">
+                                        <div className="ml-auto shrink-0 flex items-center gap-2">
                                             <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/60 rounded-xl px-3 py-1 shrink-0 h-[40px]">
                                                 <div className="flex flex-col items-start shrink-0">
                                                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.1em] mb-0.5">Hiển thị</span>
@@ -8221,8 +8765,11 @@ const exportJournalCsv = (mode) => {
                         </>
                     )}
 
+                    {activeTab === 'report' && xemDsBaoCao && (
+                        <DanhSachBaoCao items={REPORT_TYPES.filter(r => canSee(r.id))} dangMo={daMoBaoCao ? reportType : null} onMo={moBaoCao} />
+                    )}
                     {activeTab === 'report' && (
-                        <div className="flex-1 flex flex-col relative overflow-hidden">
+                        <div className={`${xemDsBaoCao ? 'hidden' : 'flex'} flex-1 flex-col relative overflow-hidden`}>
                             {loading && <div className="absolute inset-0 bg-white/60 z-50 flex flex-col items-center justify-center backdrop-blur-[4px] transition-all"><div className="bg-white p-8 rounded-[40px] shadow-[0_30px_100px_rgba(0,0,0,0.2)] flex flex-col items-center gap-6 border border-indigo-50 scale-110"><div className="relative"><div className="w-16 h-16 border-4 border-indigo-100 rounded-full"></div><div className="w-16 h-16 border-4 border-indigo-600 rounded-full border-t-transparent animate-spin absolute top-0 left-0"></div><Icon name="file-text" size={24} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-indigo-600"/></div><div className="flex flex-col items-center gap-1"><div className="text-[12px] font-black text-indigo-900 uppercase tracking-widest">Đang kết xuất báo cáo</div><div className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter italic">Vui lòng chờ trong giây lát...</div></div></div></div>}
                             <ReportTab
                                 allowedReports={REPORT_TYPES.filter(r => canSee(r.id))}
@@ -8268,6 +8815,8 @@ const exportJournalCsv = (mode) => {
                             <PermAdminPanel onPermsChanged={loadPerms} orgs={meta.orgs} />
                         </div>
                     )}
+                    </div>{/* hết cột nội dung (hàng tab + màn hình) */}
+                    </div>{/* hết khung điều hướng 2 tầng */}
                     {/* MODAL: Xác nhận xuất CSV cho dataset lớn */}
                     {exportConfirm && (
                         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[9999] px-4 animate-backdrop">

@@ -5,7 +5,10 @@
 > Cập nhật gần nhất: **24/09/2026** · **Bản mới nhất: `v1.12.3`** — đã push, Actions `success`,
 > **là `Latest` trên GitHub** (`main` = `62af287`)
 > · 🎨 **Đang làm (25/09/2026): giao diện mới `PROOFTRAIL` + đăng nhập nhanh** trên nhánh
-> **`giaodien`** — chưa push, một phần chưa commit. Kế hoạch & tiến độ: **NHAT_KY_CONG_VIEC.md → § VIỆC CẦN LÀM → 🎨**
+> **`giaodien`** — chưa push. **GĐ0–GĐ3 đã commit** (GĐ3 Đại Ca chốt OK 25/09), kế tiếp GĐ4 Trang chủ.
+> Kế hoạch & tiến độ: **NHAT_KY_CONG_VIEC.md → § VIỆC CẦN LÀM → 🎨**
+> · 🩹 **`main` local có bản vá việc 31 (`784d227`) — CHƯA build, CHƯA push.** Đại Ca chốt build một lần cùng đợt sau
+> (25/09/2026). `version.txt` vẫn `1.12.3` ⇒ **build bằng `build_exe.py` để nó tự lên `1.12.4`**, đừng push trần
 > · EXE trên máy Đại Ca **là đúng file CI đã phát hành** (SHA256 khớp digest, đổi 24/09/2026)
 > · Tab đối chiếu điều chuyển **đã đạt M4** — Đại Ca bấm thử trên giao diện, đúng
 > · Apps Script: **Version 5** (`ban 2026-09-21c`)
@@ -153,6 +156,46 @@ không cần biết lúc đó có mạng hay không.
 
 > Tab `income_alloc` (doanh thu chờ phân bổ) đã **gỡ hẳn 16/08/2026** — nó vốn của LedgerStudio,
 > bị copy nhầm sang đây và chết hoàn toàn trên `IACC_CHULONG` vì cột `RECEIVE_DATE` không tồn tại.
+
+#### 🧭 Điều hướng 2 tầng *(nhánh `giaodien`, GĐ3 — 25/09/2026, CHƯA phát hành)*
+
+Cột icon navy bên trái (64px) = **phân hệ** · hàng tab ngang = **màn hình** của phân hệ đó. Khai báo
+ở `PHAN_HE` trong `index.html`:
+Tổng hợp (`ledger`) · Tiền (`voucher`) · Mua & bán (`sale`, `purchase`, `po_list`) ·
+Kho (`warehouse`, `warehouse_balance`, `btp_reconcile`, `dcnb_reconcile`) · **Báo cáo TC**.
+Phân quyền + ô tài khoản (có Đăng xuất) nằm ở đáy cột.
+
+**Báo cáo TC — KHÔNG chia nhóm** (Đại Ca chốt 25/09/2026, theo mẫu iPOS Inventory): vào là thấy
+**trang liệt kê 16 thẻ** (`DanhSachBaoCao`, mỗi thẻ = mã + `ten` + `mo_ta` trong `REPORT_TYPES`).
+Đang xem mà muốn đổi thì bấm **ô chọn ở đầu hàng điều kiện** (`ChonBaoCao`, có ô tìm, gõ không dấu
+được). Ô chọn + nút kiểu xem ở **trái**, Thời gian + ô lọc + nút phễu ở **phải**. Hàng tab: `Tất cả báo cáo` ·
+`BCxxx · tên` — tab thứ hai **chỉ hiện khi đang xem báo cáo**, ở trang liệt kê thì ẩn (Đại Ca chốt). ⚠️ `ReportTab` **chỉ bị ẩn, không bị tháo** khi về trang liệt kê
+— tháo ra là mất số liệu đang xem và hộp xuất file đang chạy.
+
+⛔ **Thêm tab danh sách mới thì gắn vào `PHAN_HE`.** Quên thì nó tự rơi vào phân hệ **"Khác"** — cố
+ý để lộ ra, đừng "dọn" nhánh đó đi (cùng bài học Bẫy 22). Báo cáo mới thì chỉ cần thêm vào
+`REPORT_TYPES` (nhớ `ten` + `mo_ta`), trang liệt kê tự hiện.
+**Hàng điều kiện báo cáo = ô "Thời gian" gộp + tối đa 3 ô lọc + nút phễu "Bộ lọc nâng cao" + nút
+tải xuống** (Đại Ca chốt 25/09/2026). Ô **Thời gian** (`OThoiGian`) gộp Kỳ + Từ ngày + Đến ngày, luôn
+ở ngoài. Bấm vào: cột trái **chỉ 5 chế độ** Chọn ngày · tuần · tháng · quý · năm (**không có phím tắt**
+kiểu "Hôm nay", "Tháng này" — Đại Ca đã bỏ), bên phải 2 lịch cạnh nhau. Chọn tháng/quý/năm thì
+`period` được đặt **đúng loại** vì 9 màn danh sách dùng chung `period`; còn lại là `custom`. Số tuần
+theo **ISO 8601** (`TG.tuan`). Bảng nổi là portal `position:fixed`, đặt sát dưới ô nhưng **không đè
+cột phân hệ**. Hai nút Excel + PDF gộp thành **`NutXuat`** (icon tải xuống, xổ ra chọn kiểu).
+Các ô khác khai ở **`O_LOC_BAO_CAO`**: mặc định ô nào đứng trước thì ra ngoài trước, tới đủ
+**`TOI_DA_O_NGOAI` = 4** (tính cả Thời gian); còn lại vào bảng nâng cao. Người dùng bật/tắt + kéo đổi
+thứ tự, **nhớ riêng từng báo cáo trên máy** (`localStorage` khoá `lr_loc_ngoai_BCxxx`).
+⛔ **Số trên nút phễu = số ô ĐANG CÓ GIÁ TRỊ mà bị giấu trong bảng — đừng bỏ.** Ô lọc bị giấu mà
+vẫn áp dụng thì người xem tưởng số liệu là toàn bộ.
+⛔ Thêm ô lọc cho báo cáo thì khai vào `O_LOC_BAO_CAO`, **đừng viết thẳng vào hàng điều kiện**.
+⚠️ Lớp nổi gắn vào `body` bằng portal (lịch của `IOSDatePicker`) phải mang **`data-lop-noi`** — không
+thì bấm vào nó bị tính là "bấm ra ngoài" và bảng Thời gian / Bộ lọc nâng cao tự đóng.
+⚠️ 9 màn danh sách **chưa** dùng kiểu này (vẫn nút "Bộ lọc" mở hàng 2) — Đại Ca chốt làm sau.
+
+⚠️ Hàng lọc của 9 màn danh sách: cụm nút phải là **`shrink-0`** — bỏ đi là trên màn 1366px nút
+**Xuất Excel bị cắt 56–62px** (đã đo). Ô lọc ngoài của báo cáo có **mức sàn `min-w`** — bỏ đi là ô
+bị bóp tới gãy chữ (đã đo: ô Kỳ cũ còn 106px, *"2026 - Tháng 1"* gãy 2 dòng). Máy Đại Ca 2048px nên
+sẽ không thấy các lỗi này — **đo ở 1366px và 1280px**.
 
 #### `btp_reconcile` — đối chiếu xuất kho SX BTP → nhập kho thành phẩm *(thêm 28/08/2026)*
 
@@ -475,6 +518,14 @@ Mảng `params` truyền vào pyodbc phải **đúng thứ tự dấu `?` xuất
 ### Bẫy 6 — "Ghost server" cổng 5050
 Sửa code mà test vẫn ra kết quả cũ vì còn tiến trình `python.exe` / `.exe` cũ giữ cổng.
 ➡️ **Luôn test bằng `test_client` in-process**, không qua cổng.
+
+⛔ **Chiều ngược lại — `import server` TẮT app đang mở ở cổng 5050** *(phát hiện 25/09/2026)*.
+`server.py` gọi `kill_process_on_port(5050)` **ở cấp module**, nên nó chạy ngay lúc import, kể cả khi bỏ
+qua khối `__main__` (kể cả `test_client`). Hàm này `taskkill /F` mọi tiến trình LISTENING có `:5050`.
+Bật server thử lúc Đại Ca đang dùng EXE ⇒ app bị tắt ngang, *"Failed to fetch"*.
+➡️ Trước khi `import server`: `netstat -ano | grep ":5050" | grep LISTENING` phải rỗng; có thì dừng, hỏi.
+Và `index.html` được tìm theo **thư mục đang đứng** (`resource_path` dùng `os.path.abspath(".")`) — chạy từ
+chỗ khác là trang chủ 404.
 
 ### Bẫy 7 — Lọc đa tài khoản
 `ACCOUNT_ID LIKE '111,112%'` trả 0 dòng. Dùng `_acc_like_sql("111,112", "ACCOUNT_ID")`.

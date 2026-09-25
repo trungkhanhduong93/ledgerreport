@@ -4,7 +4,10 @@
 > Kiến trúc, ma trận báo cáo, phương án backup: [CLAUDE.md](CLAUDE.md).
 > Mổ xẻ sâu sự cố + 4 bài học: [SU_CO_15082026.md](SU_CO_15082026.md).
 > 🎨 **ĐANG LÀM (24–25/09/2026):** giao diện mới **PROOFTRAIL** + đăng nhập nhanh — nhánh
-> **`giaodien`**, **CHƯA push, một phần CHƯA commit**. Kế hoạch & tiến độ: § VIỆC CẦN LÀM → 🎨.
+> **`giaodien`**, **CHƯA push**. Kế hoạch & tiến độ: § VIỆC CẦN LÀM → 🎨.
+> ✅ **GĐ3 (điều hướng + Báo cáo TC): Đại Ca xem và chốt OK sáng 25/09 — đã commit.** Kế tiếp: **GĐ4 Trang chủ**.
+> 🩹 **Việc 31 (lỗi trong bản đang phát hành) ĐÃ VÁ trên `main` — commit `784d227`, CHƯA build, CHƯA push.**
+> Đại Ca chốt 25/09: *"vá trước nhưng chưa build, để build 1 lần luôn"*.
 > Phiên phát hành gần nhất: **24/09/2026** · ✅ **v1.12.3** — `main` = `62af287`,
 > Actions `success`, Release là `Latest`. Cả ngày ra **bốn** bản: v1.12.0 → v1.12.1 → v1.12.2 → v1.12.3.
 > 🔑 Phiên này chốt được **luật nghiệp vụ gốc**: iPOS **tự sinh** phiếu nhập `NDCNB` khi phiếu xuất
@@ -42,9 +45,15 @@
 >
 > ## 🚧 ĐANG CÓ COMMIT TÀI LIỆU GIỮ Ở LOCAL — **ĐỪNG PUSH RIÊNG**
 >
-> Tính tới 25/09/2026: **`main` đang `ahead 6`** so với `origin/main`, cả 6 đều là commit `.md`.
-> Thêm nhánh **`giaodien`** = `main` + **1 commit** `1dadaae` + **thay đổi CHƯA commit** ở
-> `server.py` và `index.html` (xem 🎨 ngay dưới). **Không nhánh nào đã push.**
+> Tính tới 25/09/2026 (sáng): **`main` đang `ahead 7`** so với `origin/main` = 6 commit `.md` +
+> **commit vá việc 31 `784d227`** (1 dòng `index.html`, chưa build).
+> Nhánh **`giaodien`** tách từ `main` **trước** commit vá: `main` cũ + **3 commit** (`1dadaae` GĐ1+GĐ2 ·
+> `c64540a` đăng nhập nhanh + sửa font · **commit GĐ3** ngày 25/09 — xem `git log giaodien`).
+> **Không nhánh nào đã push.**
+>
+> ⚠️ **Gộp `main` vào `giaodien` sẽ ĐỤNG ĐÚNG MỘT CHỖ** — ô Số chứng từ BC012: `main` sửa ở chỗ cũ,
+> `giaodien` đã dời ô đó vào `O_LOC_BAO_CAO` và sửa theo cùng một cách. Gặp xung đột thì **lấy bản
+> `giaodien`**, rồi dò lại: không còn chỗ nào gọi `onToggleFilter('tran_no'`.
 >
 > **Đại Ca chốt: gộp cùng lần sửa code tiếp theo rồi push một thể.** Lý do: push file `.md` một
 > mình cũng kích hoạt Actions build lại, **thay asset bằng binary khác SHA**, và cái digest vừa
@@ -74,10 +83,10 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 | GĐ | Việc | Trạng thái |
 |---|---|---|
 | **0** | Nhánh `giaodien` + ghi mốc **164 hàm / 69 route** | ✅ Xong |
-| **1** | **Nền**: Arial · navy · nhãn 11px `#475569` · `tabular-nums` · **sửa lỗi font** | ✅ Xong — một phần ở commit `1dadaae`, **phần sửa font CHƯA commit** |
+| **1** | **Nền**: Arial · navy · nhãn 11px `#475569` · `tabular-nums` · **sửa lỗi font** | ✅ Xong — commit `1dadaae` + `c64540a` |
 | **2** | **Màn đăng nhập**: tấm navy trái, `PROOFTRAIL`, logo gốc, mục 01/02 | ✅ Xong — commit `1dadaae` |
-| ➕ | **Đăng nhập nhanh** (hướng A — Đại Ca chốt giữa chừng) | ✅ Xong, **Đại Ca đã thử thật: nhanh** — **CHƯA commit** |
-| **3** | **Điều hướng**: thanh icon navy + gom 9 màn hình vào 5 phân hệ | ⏳ Chưa làm |
+| ➕ | **Đăng nhập nhanh** (hướng A — Đại Ca chốt giữa chừng) | ✅ Xong, **Đại Ca đã thử thật: nhanh** — commit `c64540a` |
+| **3** | **Điều hướng**: cột phân hệ 64px + hàng tab ngang, 9 màn hình vào 5 phân hệ. **Báo cáo TC: trang liệt kê 16 thẻ + ô chọn có tìm kiếm, ô lọc dời phải, ô Thời gian gộp, Bộ lọc nâng cao** (Đại Ca đổi ý: bỏ 5 tab nhóm) | ✅ Xong — **Đại Ca xem và chốt OK 25/09**, đã commit (local, chưa push) |
 | **4** | **Trang chủ**: tải NGẦM từng ô số (mỗi ô là truy vấn 6–8s) | ⏳ Chưa làm |
 | **5** | **Đổi tên hiển thị** 4 chỗ: `APP_NAME`, `<title>`, `manifest.json`, `version_info.txt` | ⏳ Chưa làm. ⛔ **Giữ tên file `iPOS_Accounting_Report.exe`** — đổi là tự cập nhật đứt |
 
@@ -85,10 +94,15 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 
 | # | Việc | Ghi chú |
 |---|---|---|
-| 16 | **Đại Ca F5 xem lại màn danh sách** | Đặc biệt dòng *"TỔNG TOÀN BỘ TRUY VẤN"* — số `0.00` vừa đổi từ Consolas sang Arial, **tôi chưa nhìn được bằng mắt** |
+| 16 | ~~Đại Ca F5 xem lại màn danh sách~~ ✅ **Đại Ca đã xem 25/09** | Nhận xét: **cột bị hẹp** ⇒ thành việc 28 |
 | 17 | **Nút `TRUY VẤN` đang chuyển màu navy → tím** | Lớp gradient `indigo → purple` cũ. Hỏi 2 lần, **chưa chốt** đưa về navy đặc |
-| 18 | **Chốt mốc commit** phần đăng nhập nhanh + sửa font | Đang chờ Đại Ca xem xong |
-| 19–21 | GĐ3 · GĐ4 · GĐ5 | Theo bảng trên |
+| 18 | ~~Chốt mốc commit phần đăng nhập nhanh + sửa font~~ ✅ **commit `c64540a`** | Local, chưa push |
+| 19 | ~~Đại Ca xem GĐ3 rồi chốt commit~~ ✅ **Đại Ca chốt OK sáng 25/09** (*"cái đó thì ok rồi"*) ⇒ đã commit GĐ3 | ⚠️ Đại Ca chốt chung, **không nói rõ đã thử từng mục dưới đây chưa** — lần đầu dùng số liệu thật thì để ý. Danh sách cần xem ở mục *"Việc Đại Ca xem sáng 25/09"* trong nhật ký 25/09 (tiếp 3), ngay dưới § này. Ba việc tôi **không** tự thử được: hộp *"Chuyển mẫu báo cáo?"* khi có số liệu thật · menu **Xuất Excel / Xuất PDF** khi có số liệu (chưa có số liệu thì nút tắt) · kéo thả thứ tự ô lọc bằng chuột thật. Và **đọc lại mô tả 16 thẻ** — tôi tự viết |
+| 31 | 🩹 **Ô Số chứng từ của BC012 hỏng trong bản ĐANG PHÁT HÀNH v1.12.3** — ✅ **ĐÃ VÁ trên `main` 25/09 (`784d227`), ⏳ CHƯA build/push** | Gõ từng chữ `P` → `T` thì thành `P,PT` và lọc ra 0 dòng (`toggleFilter` coi `tran_no` là mảng). Sửa cả hai nhánh: `giaodien` (chưa commit) và `main`. Đại Ca chốt **build một lần** cùng đợt sau. Người dùng **vẫn gặp lỗi tới khi phát hành**. Dán nguyên số phiếu một lần thì chạy |
+| 30 | 🆕 **Áp Bộ lọc nâng cao + ô Thời gian gộp sang 9 màn danh sách** | Đại Ca chốt: *"làm báo cáo trước, có logic rồi làm danh sách sau"*. Ở đó nó thay nút "Bộ lọc" đang mở hàng lọc thứ 2. Màn danh sách nhiều ô hơn hẳn (Chứng từ tổng hợp: 11 ô) |
+| 29 | ~~Nút Excel / PDF của BC003, BC004 sáng sẵn khi chưa có số liệu~~ ✅ **XONG 25/09/2026** | Sửa luôn khi gộp 2 nút thành nút tải xuống: điều kiện xét `initialReportData`. Đã thử: BC001/003/004/012/016 chưa tải số liệu ⇒ nút tắt, tooltip *"Chưa có số liệu — bấm Xem trước rồi mới xuất"* |
+| 20–21 | GĐ4 · GĐ5 | Theo bảng trên |
+| 28 | 🆕 **Cột bảng hẹp** — Đại Ca: *"sửa sau khi update toàn bộ giai đoạn"* | Số đo 25/09 cho lúc sửa: hàng lọc 5 màn danh sách **cần 1.393px** để mọi ô đủ rộng, màn 1366 chỉ có **1.254px** (bản cũ trước GĐ3: cần 1.473 / có 1.318 — **vốn đã bị ép co từ trước**). Ở 1280px tiêu đề **`MÃ CT` gãy 2 dòng**. Cột phân hệ ăn thêm 64px chiều ngang |
 | 22 | **Hướng B**: bỏ `LockService` cho lệnh chỉ đọc trong `Code.gs` (dòng 487) | 5 người mở app cùng lúc thì người thứ 5 chờ gần 1 phút. **Phải triển khai lại Apps Script** — theo đúng `chuan_bi_deploy.py` (Bẫy 19, 23) |
 | 23 | **Bị đá ra (đăng nhập nhanh) không có câu báo lý do** | Người dùng chỉ thấy quay về màn đăng nhập. Đại Ca: *"tính sau"* |
 | 24 | **Biên dịch sẵn JSX lúc đóng gói** | Mở app trắng màn hình **~7–13 giây** (Babel dịch 723 KB mỗi lần mở). Đo: `domInteractive` 152ms / `DOMContentLoaded` 6.926ms |
@@ -139,6 +153,314 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 | Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 25/09/2026 (sáng) — Vá việc 31 trên `main`, CHƯA build · bật lại server 5051
+
+Đại Ca hỏi hôm nay cần làm gì cho bản hôm qua. Đọc nhật ký rồi đi kiểm máy thật thì thấy
+**server 5051 đã chết** (không còn tiến trình python nào), dù nhật ký ghi *"không cần khởi động lại"*.
+Đại Ca chốt việc 31: *"vá trước lỗi nhưng chưa build, để build 1 lần luôn"*.
+
+### Đã làm
+
+| Việc | Chi tiết |
+|---|---|
+| Bật lại server 5051 | Đúng lệnh cũ: `import server; server.app.run(host='127.0.0.1', port=5051, …)`. Trả đúng `index.html` trên đĩa (**SHA256 khớp**), màn đăng nhập hiện. Chạy nền theo phiên chat ⇒ **đóng phiên là tắt** |
+| **Vá việc 31 trên `main`** — commit **`784d227`** | Làm trong **git worktree riêng** ở scratchpad, để thư mục làm việc (nhánh `giaodien`, GĐ3 chưa commit) và server 5051 đang phục vụ Đại Ca **không bị đổi mã dưới chân**. Sửa đúng **1 dòng**, khớp chuỗi `assert count == 1` (Bẫy 26): ô Số chứng từ ghi thẳng chuỗi vào `filters.tran_no`, bỏ `onToggleFilter('tran_no', …)`. Cùng cách đã sửa trên `giaodien`. Xong thì gỡ worktree |
+| Không làm | **Không build, không tăng `version.txt`, không push** — theo lệnh Đại Ca. Lúc build, `build_exe.py` tự tăng lên `1.12.4` |
+
+### 🧪 Verify
+
+| Mức | Kết quả |
+|---|---|
+| **M1** | `check_babel.js` SUCCESSFUL trên `index.html` của `main` đã vá · diff đúng 1 dòng · quét secret 0 dòng |
+| **M2** | Server thử **cổng 5052** chạy **mã `main` đã vá** (phiên ADMIN giả, không DB), đo SHA256 trang phục vụ = file đã vá. Vào Báo cáo → BC012, **gõ từng chữ** `P`,`T`,`0`,`1`: ô hiện `PT` → `PT01`; xoá lùi → `PT0`; gõ lại → `PT01`. Bấm Xem BC012 ⇒ request gửi **`tran_no=PT01`** (bản lỗi gửi `P,PT,…`). Console: chỉ còn ghi chú Babel >500 KB có sẵn |
+| **M3 / M4** | ⏳ Chờ build — Đại Ca chốt build một lần |
+
+### 🔴 Phát hiện: `import server` TẮT app đang mở ở cổng 5050
+
+`server.py:702` gọi `kill_process_on_port(5050)` **ở cấp module** ⇒ chạy ngay lúc `import server`,
+kể cả khi bỏ qua khối `__main__`. Bật server thử (5051/5052) trong lúc Đại Ca đang mở EXE là **EXE bị
+`taskkill /F` ngang** ⇒ *"Failed to fetch"*. Sáng nay cổng 5050 trống nên không sao; từ nay **kiểm
+`netstat` cổng 5050 trước khi bật server thử**, có tiến trình thì dừng lại hỏi. Đã ghi vào
+[CLAUDE.md Bẫy 6](CLAUDE.md).
+
+### 📦 Git
+
+`main` = **`784d227`**, `ahead 7` (6 `.md` + 1 bản vá), **chưa push**.
+
+Sau đó Đại Ca chốt **GĐ3 OK** (*"cái đó thì ok rồi"*) ⇒ **commit GĐ3 lên `giaodien`** — gồm `index.html`
+(GĐ3 + ô Số chứng từ BC012 đã sửa theo kiểu mới) và `CLAUDE.md` + nhật ký này. Local, **chưa push**.
+
+---
+
+## 25/09/2026 (tiếp 3, đêm) — Ô Thời gian làm lại theo iPOS · gộp nút xuất · ẩn tab ở trang liệt kê · nhánh `giaodien`, CHƯA commit
+
+Đại Ca xem bản *(tiếp 2)* và gửi 4 ảnh lịch của iPOS Inventory: *"cái bên trong chọn ngày nó không gọn
+gàng, làm như chi tiết bộ lọc theo hình, cho thêm option quý"* · *"2 ô xuất gom lại 1 icon download, xổ
+xuống chọn hình thức cần xuất"* · *"bấm vào Tất cả báo cáo thì cái ô kế bên nó mất đi"*.
+Giữa chừng Đại Ca chốt thêm: **bỏ hết phím tắt** (Hôm nay, Tháng này…), chỉ giữ phần chọn.
+Cuối phiên: *"làm xong tự động cập nhật nhật ký, mai t xem"*.
+
+### 👀 Việc Đại Ca xem sáng 25/09 — `http://127.0.0.1:5051`
+
+> ⚠️ Tiêu đề cũ ghi *"sáng 26/09 … không cần khởi động lại"* — **sai cả hai**: phiên này kết thúc 01:44
+> sáng 25/09, và server 5051 **chết theo phiên chat** (sáng 25/09 không còn tiến trình nào). Đã bật lại.
+
+| # | Xem gì | Tôi đã thử chưa |
+|---|---|---|
+| 1 | Báo cáo TC → bấm một thẻ → ô **Thời gian**: 5 chế độ Chọn ngày · tuần · tháng · quý · năm | ✅ bấm đủ, ra đúng ngày (bảng dưới) |
+| 2 | **Chọn ngày**: bấm ngày đầu rồi ngày cuối, có thể bắc qua 2 tháng | ✅ |
+| 3 | **Nút tải xuống** (cuối hàng) → *Xuất Excel* / *Xuất PDF* | ⚠️ **Chưa** — cần số liệu thật mới bật được nút. Chưa có số liệu thì nút mờ, đúng ý |
+| 4 | Bấm **Tất cả báo cáo** → tab báo cáo bên cạnh biến mất; bấm lại thẻ → hiện lại | ✅ |
+| 5 | Đang có số liệu mà đổi báo cáo → hộp *"Chuyển mẫu báo cáo?"* | ⚠️ **Chưa** — server thử không có DB |
+| 6 | Kéo thả thứ tự ô lọc trong **Bộ lọc nâng cao** bằng chuột thật | ⚠️ Mới thử bằng thao tác giả lập |
+| 7 | Đọc lại **mô tả 16 thẻ** ở trang liệt kê | Tôi tự viết theo mã |
+| 8 | Ưng thì **chốt commit GĐ3** | — |
+
+### Đã làm (`index.html`)
+
+**1. Ô Thời gian — viết lại hẳn.** Cột trái 5 chế độ, bên phải 2 lịch cạnh nhau (điều hướng « ‹ › »):
+
+| Chế độ | Cách chọn | `period` đặt thành |
+|---|---|---|
+| Chọn ngày | Bấm ngày đầu → ngày cuối (bấm ngược chiều tự đảo; bấm 2 lần 1 ngày = 1 ngày). Rê chuột thấy trước dải sẽ chọn | `custom` |
+| Chọn tuần | Bấm cả hàng. Cột trái là **số tuần ISO 8601** | `custom` |
+| Chọn tháng | Lưới T1–T12 của 2 năm | `month` |
+| Chọn quý | Lưới Quý 1–4 của 2 năm, ghi kèm T1–T3… | `quarter` |
+| Chọn năm | Lưới 12 năm | `year` |
+
+`period` đặt đúng loại vì **9 màn danh sách dùng chung `period`** — đã thử: chọn quý bên báo cáo thì ô Kỳ
+bên *Chứng từ tổng hợp* ghi đúng *"2026 - Quý 3"*. **"Chọn năm" không có trong hình mẫu** — tôi giữ vì bản
+cũ có "Cả năm", bỏ là mất tính năng. Bảng nổi là portal `position:fixed`, đặt **sát dưới ô nhưng không
+đè cột phân hệ** (lần đầu tôi canh theo mép phải của ô ⇒ 4 báo cáo bị đè lên cột, đo ra mới thấy).
+
+**2. Nút tải xuống** (`NutXuat`) thay 2 nút Excel + PDF: icon ⤓ + ⌄, xổ ra *Xuất Excel* / *Xuất PDF*.
+Chưa có số liệu thì cả nút tắt. Nhân tiện **đóng việc 29** (BC003/BC004 nút xuất sáng khi chưa có số liệu).
+
+**3. Tab**: ở trang liệt kê chỉ còn *Tất cả báo cáo*.
+
+**4. 🔴 Sửa lỗi ô Số chứng từ BC012 — CÓ TRONG BẢN ĐANG PHÁT HÀNH** (việc 31). `toggleFilter` chỉ coi
+`from_date`/`to_date` là giá trị đơn; `tran_no` rơi vào nhánh mảng ⇒ gõ `P` rồi `T` thành `['P','PT']`,
+ô hiện `P,PT`, gửi lên máy chủ `P,PT` ⇒ 0 dòng. Sửa tại ô (ghi thẳng chuỗi), không đụng `toggleFilter`
+chung. Lần thử trước tôi **dán cả chuỗi một lần** nên không lộ — lần này gõ từng chữ mới thấy.
+
+### 🧪 Verify (server thử 5052, dữ liệu giả)
+
+| Kiểm | Kết quả |
+|---|---|
+| Số tuần ISO (chạy thẳng hàm thật) | 21/09/2026 = **39** (khớp hình iPOS) · 29/12/2025 = 1 · 31/12/2026 = 53 · 04/01/2027 = 1 — **8/8 đúng** |
+| Khoảng ngày | T2/2024 → 29/02 (năm nhuận) · Quý 4/2025 → 01/10–31/12 — đúng |
+| 5 chế độ trên app | Ngày 20/04 → 05/04 ⇒ `05/04/2026 - 20/04/2026` · Tuần 16 ⇒ `13/04 – 19/04` · Quý 2 ⇒ `01/04 – 30/06` · Năm 2025 ⇒ `01/01 – 31/12/2025` · T2 ⇒ `01/02 – 28/02/2026` |
+| Gõ từng chữ `PT01` vào Số chứng từ | Ô hiện đúng `PT01` |
+| Bề rộng + vị trí bảng Thời gian | **16/16 đạt ở 1366px và 1280px**: một hàng, không tràn, bảng không đè cột phân hệ |
+| Console | 0 lỗi |
+
+### 💡 Bài học
+
+- **Đừng khai component lồng bên trong component** (`const Lich = () => …` ngay trong thân `OThoiGian`):
+  mỗi lần render React coi là component MỚI, gỡ DOM ra dựng lại ⇒ rê chuột là thay cả lịch, và cú bấm
+  có thể **mất** nếu DOM bị thay giữa lúc nhấn và nhả. Bắt được khi đọc lại mã, trước khi thử —
+  đã đổi thành hàm vẽ thường (`veLichThang(0)`).
+- **Thử ô gõ chữ thì phải gõ TỪNG CHỮ**, đừng dán cả chuỗi một lần — lỗi `tran_no` chỉ lộ khi gõ từng chữ.
+
+### 📦 Git
+
+**Chưa commit** — chờ Đại Ca xem sáng 25/09 (việc 19). `index.html`, `CLAUDE.md`, `NHAT_KY_CONG_VIEC.md`
+đang sửa trên nhánh `giaodien`; commit mốc gần nhất `c64540a`. **Không nhánh nào đã push.**
+
+---
+
+## 25/09/2026 (tiếp 2) — Báo cáo TC: ô "Thời gian" gộp + Bộ lọc nâng cao · nhánh `giaodien`, CHƯA commit
+
+> ⚠️ Bảng chọn bên trong ô Thời gian ở mục này (năm/tháng/quý/tuỳ ý + 2 ô ngày) **đã bị thay** — xem *(tiếp 3)* ở trên.
+
+Đại Ca gửi thêm 2 ảnh **"Bộ lọc nâng cao"** của iPOS Inventory: *"nếu bị giới hạn nhiều quá thì làm bộ
+lọc thu gọn như này, cho phép thêm hoặc bớt ô lọc hiển thị bên ngoài"*.
+
+### Đại Ca chốt
+
+| Câu hỏi | Chốt |
+|---|---|
+| Làm ở đâu | **Báo cáo TC trước**, có logic rồi mới làm 9 màn danh sách (việc 30) |
+| Kỳ + Từ ngày + Đến ngày | **Gộp thành 1 ô "Thời gian"** như hình |
+| Ô nào ở ngoài | *"Mặc định ô thời gian để lọc, còn các ô còn lại theo thứ tự cái nào trước thì hiện"* — tối đa 4 (tính cả Thời gian), đúng như hình |
+| Nhớ cấu hình | **Riêng từng báo cáo, trên máy** |
+
+Tôi tự thêm một điều **không hỏi**, vì là chốt an toàn nghiệp vụ: **số trên nút phễu = số ô đang có
+giá trị mà bị giấu trong bảng** (nút chuyển màu cam). Ô lọc bị giấu mà vẫn áp dụng thì người xem
+tưởng số liệu là toàn bộ. Và **Thời gian luôn ở ngoài, không tắt được** — báo cáo nào cũng cần kỳ.
+
+### Đã làm (`index.html`)
+
+- **`OThoiGian`** — một ô ghi `01/09/2026 - 30/09/2026`; bấm ra năm · tháng · quý · cả năm · tuỳ ý +
+  2 ô ngày (chỉ gõ được khi chọn Tuỳ ý — giữ luật cũ). 9 màn danh sách **vẫn dùng ô Kỳ cũ**.
+- **`O_LOC_BAO_CAO`** — khai 6 ô lọc của Báo cáo TC ở **một chỗ** (Đơn vị · Tài khoản · Công việc ·
+  Đối tượng · TK đối ứng · Số chứng từ), mỗi ô ghi rõ báo cáo nào có. Trước đây viết rải trong JSX.
+- **`BoLocNangCao`** — nút phễu + bảng: lưới 3 cột các ô đang giấu · *Xoá tất cả* · phần **Cấu hình
+  tham số lọc** thu gọn được: công tắc bật/tắt + kéo thả đổi thứ tự (bấm tay nắm rồi ↑ ↓ cũng được) ·
+  *Đóng* / *Xem BCxxx*. Đủ 4 ô thì công tắc còn lại khoá, ghi *"đã đủ 4 ô"*.
+- Lịch của `IOSDatePicker` (portal gắn vào `body`) mang dấu **`data-lop-noi`** để bấm vào lịch không
+  làm bảng Thời gian tự đóng.
+
+Mặc định: BC012 = Thời gian · Đơn vị · Tài khoản · TK đối ứng (Số chứng từ vào trong) · BC013 =
+Thời gian · Đơn vị · Tài khoản · Đối tượng · 12 báo cáo còn lại có ≤ 3 ô nên **tất cả vẫn ở ngoài**.
+
+### 🧪 Verify (server thử 5052, dữ liệu giả)
+
+| Kiểm | Kết quả |
+|---|---|
+| Tắt TK đối ứng → bật Số chứng từ → ↑↑ → kéo thả | Hàng ngoài đổi đúng từng bước |
+| Gõ `PT0001` vào Số chứng từ đang giấu, đóng bảng | Nút phễu **cam, số 1**, tooltip *"1 ô lọc đang áp dụng nằm trong này"* |
+| *Xoá tất cả* | Ô trống lại, số trên nút mất |
+| Tải lại trang | Cấu hình BC012 **còn nguyên**; BC013 chưa chỉnh thì về mặc định |
+| Ô Thời gian | Q3 → `01/07/2026 - 30/09/2026` · 2025 + tháng 9 → `01/09/2025 - 30/09/2025` · Tuỳ ý giữ bảng mở, bấm ngày trên lịch bảng **không** tự đóng · bấm ra ngoài thì đóng |
+| Bề rộng, cấu hình mặc định | **1366px và 1280px: 16/16 báo cáo một hàng**, không cụm nút nào xuống dòng (trước đó 1280 có 4 báo cáo phải xuống), 0 tràn, 0 gãy chữ · bảng nâng cao nằm trọn màn hình |
+| Console | 0 lỗi |
+
+### 🔍 Điểm mù
+
+- Kéo thả thử bằng sự kiện giả lập (`DragEvent`), **chưa kéo bằng chuột thật** — Đại Ca kéo thử giúp.
+- Dropdown Đơn vị / Tài khoản trên server thử **rỗng** (danh mục giả) ⇒ số trên nút phễu mới thử
+  được bằng ô Số chứng từ. Logic đếm dùng chung cho mọi ô.
+- Cấu hình nhớ **theo máy, không theo người**: hai người dùng chung một máy sẽ thấy chung một bố cục.
+
+---
+
+## 25/09/2026 (tiếp) — Báo cáo TC: bỏ chia nhóm, trang liệt kê thẻ + ô chọn có tìm · nhánh `giaodien`, CHƯA commit
+
+Đại Ca xem phương án 5 tab nhóm và gửi 2 ảnh mẫu từ **iPOS Inventory**: *"không nên chia nhóm mà
+liệt kê như hình, khi đang xem muốn đổi thì cho chọn như hình 2, điều kiện và các ô lọc dời sang phải"*.
+
+### Đã làm (`index.html`)
+
+| Việc | Chi tiết |
+|---|---|
+| **Trang liệt kê** (`DanhSachBaoCao`) | 16 thẻ, 4 cột, vừa **một màn hình 1366×768**. Mỗi thẻ: mã · tên ngắn · một dòng mô tả. Thẻ báo cáo đang mở viền nổi |
+| **Ô chọn báo cáo** (`ChonBaoCao`, thay `ReportTypeDropdown`) | Đứng đầu hàng điều kiện bên trái: `[BC013] Tổng hợp phát sinh công nợ ⌃`. Mở ra: tiêu đề *Báo cáo tài chính* + số lượng · ô tìm (con trỏ đặt sẵn) · danh sách mã + tên. Gõ **không dấu** được (`can doi` → BC005, BC006). Enter = chọn dòng đầu, Esc = đóng |
+| **Hàng điều kiện** | Trái: ô chọn + nút kiểu xem (Chi tiết/Tổng hợp, Gom theo). Phải: Kỳ, ngày, Đơn vị, TK… rồi Xem/Excel/PDF |
+| **Hàng tab** | `Tất cả báo cáo` · `BC013 · Tổng hợp phát sinh công nợ` — qua lại **không mất số liệu**: `ReportTab` chỉ ẩn đi, không tháo ra (nó giữ hộp xuất file, tiến độ xuất…) |
+| Gỡ | `NHOM_BAO_CAO`, `ReportTypeDropdown`. Báo cáo mới chỉ cần thêm vào `REPORT_TYPES` là tự hiện |
+
+**Tên ngắn + mô tả 16 thẻ — TÔI TỰ VIẾT, Đại Ca đọc lại.** Viết theo đúng mã, không theo cảm tính:
+BC003/BC004 = *"tách riêng phí hoa hồng đối tác và phí quảng cáo"* (đọc từ chỗ mã chèn dòng VH.PHH /
+VH.PQC) · BC011 = *"mẫu riêng theo yêu cầu Chú Long, không phải B03-DN chuẩn"* (lời `CLAUDE.md`) ·
+BC012 = *"thu chi TK 111, 112, 113"* (mặc định trong mã) · BC015 = *"theo nguồn đơn và đơn vị, chỉ
+chứng từ đã ghi sổ"* (docstring `server.py`) · BC016 = *"gom theo nhóm hàng hoặc kho"*.
+`name` (tên đầy đủ viết hoa) **giữ nguyên** vì checklist Phân quyền đọc nó.
+
+### Ba lỗi bắt được khi bấm thử
+
+**1. Hỏi *"Chuyển mẫu báo cáo?"* oan — lỗi CÓ TỪ TRƯỚC.** Đổi BC001 → BC002 → BC003 được, rồi kẹt.
+Nguyên nhân: với BC003/BC004, `ReportTab` chèn sẵn 2 dòng VH.PHH/VH.PQC vào `reportData` kể cả khi
+chưa tải gì ⇒ luôn "có số liệu" ⇒ rời BC003/BC004 là bị hỏi dù màn trống. Ô chọn cũ dính y hệt.
+Sửa: xét `initialReportData` (số liệu thật App đưa vào). Đo lại: đổi đủ 16 báo cáo, **0 lần hỏi oan**.
+
+> ⚠️ Bảng đo ngay dưới là **trước khi có Bộ lọc nâng cao**. Nay 16/16 báo cáo nằm một hàng ở cả 1366
+> lẫn 1280px — xem mục *(tiếp 2)* ở trên.
+
+**2. Ô Kỳ bị bóp, chữ gãy 2 dòng.** Ở BC012 (7 ô lọc) ô Kỳ còn **106px**, *"2026 - Tháng 1"* gãy.
+Phép đo lần đầu **không bắt được** vì chỉ dò chữ tràn ngang — phải đếm số dòng thật của từng đoạn
+chữ mới thấy. Sửa: mỗi ô có **mức sàn** (Kỳ 146 · ngày 100 · dropdown 96 · Số CT 90px), chạm sàn
+mà vẫn thiếu thì **cụm nút Xem/Excel/PDF xuống dòng 2**, không bóp chữ nữa.
+
+| Độ rộng | Cụm nút xuống dòng | Tràn / cuộn ngang | Chữ gãy dòng |
+|---|---|---|---|
+| **1366px** | chỉ **BC012** | 0/16 | 0/16 |
+| **1280px** | BC012, BC013, BC014, BC016 | 0/16 | 0/16 |
+
+**3. Mũi tên `›` vẽ ra thành gạch chéo `/` — lỗi CÓ TỪ TRƯỚC.** Icon `chevron-right` có nét
+`m9 18 6-6 6-6` (đi thẳng) thay vì `m9 18 6-6-6-6` (bẻ góc). Nút **trang sau** ở thanh phân trang
+dùng chung icon này nên xưa nay cũng là gạch chéo. Đã sửa một chỗ, ăn cả hai.
+
+### 🧪 Verify
+
+| Mức | Kết quả |
+|---|---|
+| **M1** | `check_babel.js` SUCCESSFUL · `server.py` không đổi |
+| **M2** (server thử 5052, dữ liệu giả) | 16/16 báo cáo đổi được bằng ô chọn · tìm: `can doi`/`LCTT`/`chu long`/`bc01`/`nguồn đơn`/`xyz` ra đúng · Enter, Esc đúng · 9/9 màn danh sách vẫn vừa ở 1280 (ô Kỳ dùng chung vừa thêm cấm gãy dòng) · tài khoản hạn chế (BC005 + BC013): 2 thẻ, ô chọn ghi "2" · qua lại trang liệt kê ↔ báo cáo ↔ Kho vẫn về đúng chỗ · console **0 lỗi** |
+| **M3** | ⏳ Chờ Đại Ca F5 cổng 5051 |
+
+### 🔍 Điểm mù
+
+- Hộp *"Chuyển mẫu báo cáo?"* **khi có số liệu thật** — chưa thử được (không có DB).
+- Nghi thêm một lỗi cùng gốc ở nút Excel/PDF của BC003/BC004 — **mới đọc mã**, ghi thành việc 29.
+
+---
+
+## 25/09/2026 — GĐ3 giao diện: điều hướng 2 tầng · nhánh `giaodien`, CHƯA commit
+
+> ⚠️ Phần **Báo cáo TC chia 5 tab nhóm** trong mục này **đã bị thay** — xem mục *(tiếp)* ngay trên.
+
+Đại Ca đã xem màn danh sách sau khi sửa font (*"cột nó bị hẹp — sửa sau khi xong toàn bộ giai
+đoạn"*) ⇒ commit mốc **`c64540a`** (đăng nhập nhanh + sửa font), rồi làm GĐ3.
+
+### Đại Ca chốt 4 điểm phác thảo chưa nói rõ
+
+| Câu hỏi | Chốt |
+|---|---|
+| Cột phân hệ rộng bao nhiêu (cột bảng vốn đã hẹp) | **64px**: icon + chữ 10px — không lấy 84px như phác thảo |
+| Báo cáo TC chia thế nào | **5 tab nhóm**: Kết quả kinh doanh · Sổ sách bắt buộc · Tiền · Công nợ & thuế · Vận hành. Ô *"Mẫu báo cáo"* bên trong chỉ còn báo cáo của nhóm đó |
+| Thanh đen trên cùng đi đâu | **Gộp vào hàng tab**: phải hàng tab = tên DB · phiên bản · Danh mục · Tải lại. Bỏ số *"Records"*. Không thêm dòng tiêu đề to |
+| Phân quyền đặt đâu | **Đáy cột phân hệ**, trên ô tài khoản |
+
+⚠️ **Đụng một luật cũ:** chú thích ở `MenuTaiKhoan` ghi Đại Ca chốt 17/08 *"KHÔNG đưa Đăng xuất vào ô
+tài khoản vì nút đó đã nằm cạnh bên"*. Phương án mới bỏ nút cạnh bên ⇒ Đăng xuất chuyển vào menu,
+**vẫn chỉ một chỗ** — giữ được lý do của luật cũ. Đã sửa chú thích cho khớp.
+
+### Đã làm (`index.html`, không đụng `server.py`)
+
+- **`PHAN_HE`** (5 phân hệ) + **`NHOM_BAO_CAO`** (5 nhóm). Tab/báo cáo **chưa gắn nhóm tự rơi vào
+  "Khác"** — cùng bài học Bẫy 22: thứ chưa khai báo phải lộ ra, không được biến mất. Kiểm bằng cách
+  chạy thẳng đoạn mã thật với dữ liệu giả: thêm `tab_moi` + `BC017` ⇒ hiện ở "Khác"; gỡ BC015+16 ⇒
+  nhóm Vận hành tự ẩn.
+- Phân hệ **suy ra từ `activeTab`**, không giữ state riêng ⇒ hai tầng không lệch nhau được.
+- **Nhớ chỗ đang dở**: màn hình mở gần nhất của từng phân hệ, báo cáo mở gần nhất của từng nhóm.
+- Đổi nhóm báo cáo khi đang có số liệu ⇒ **cùng hộp hỏi "xoá số liệu?"** như ô Mẫu báo cáo.
+- `DOC_TABS` thêm `short` (tên trên tab, bỏ chữ *"Danh sách…"*) — **giữ nguyên `name`** vì checklist
+  Phân quyền đọc cái đó.
+- Gỡ `DocumentTabDropdown` + CSS `.tab-btn` (thành mã chết). Icon thêm 7 hình từ phác thảo.
+
+### Hai lỗi tự bắt được khi bấm thử — **trước khi** Đại Ca thấy
+
+**1. Nút Xuất Excel bị cắt trên màn 1366px.** Cột 64px đẩy nút lòi ra **56–62px** ở 5 màn danh sách
+(tổng hợp, tiền, bán hàng, nhập kho, kho). Trước GĐ3 các màn này chỉ còn dư **2–8px**.
+
+| Thử | Kết quả ở 1366px |
+|---|---|
+| Ô Kỳ báo cáo `w-64` → `w-44` (256 → 176px) | Vẫn tràn **28–34px** — mọi ô cùng co, bớt 80px danh nghĩa chỉ lấy lại ~28px thật |
+| Thêm `flex-wrap` | Hết tràn nhưng **cụm nút xuống dòng**, tốn thêm ~60px chiều cao ⇒ bỏ |
+| ✅ Cụm nút `shrink-0` + khoảng cách ô 16 → 12px | **Dư 24px, không cuộn ngang, không chữ nào bị cắt** ở cả 1366 lẫn **1280px** (9/9 màn) |
+
+Thủ phạm thật: cụm *Hiển thị · Truy vấn · Bộ lọc · Xuất Excel* cần **545px** mà bị ép còn 487px.
+Cho cụm đó không co thì các ô bên trái (còn chỗ co) gánh phần thiếu.
+
+**2. Rê chuột trông y hệt đang chọn.** Chụp ra thấy cột tô sáng "Kho" trong khi đang ở Báo cáo TC —
+DOM nói đúng là Báo cáo TC, ô sáng ở Kho là **con trỏ đang rê qua**. Nền `white/5` trên navy tối gần
+trùng nền `#1e3a8a` của mục đang chọn. Sửa: rê chuột chỉ đổi màu chữ, không tô nền.
+
+### 🧪 Verify
+
+| Mức | Kết quả |
+|---|---|
+| **M1** | `check_babel.js` SUCCESSFUL · `server.py` **không đổi** (167 hàm / 69 route) · chỗ dùng độ đậm 800/900 mới thêm: **0** |
+| **M2** | Server thử **riêng cổng 5052** (phiên ADMIN giả + danh mục giả, không DB, không gọi Google): bấm **14/14** lượt (5 phân hệ × 9 màn hình × 5 nhóm) đúng tab · ô Mẫu báo cáo đúng 4/4/4/2/2 báo cáo · nhớ đúng BC014 khi đổi nhóm rồi quay lại · rời Kho sang Báo cáo TC rồi về vẫn đúng tab · menu tài khoản mở sang phải, có Đổi mật khẩu + Đăng xuất · console **0 lỗi React** |
+| **M2 — quyền hạn chế** | Tài khoản chỉ có 3 tab kho + BC005 + BC013: cột chỉ còn **Kho + Báo cáo TC**, không có Phân quyền · mở app tự vào *Chứng từ kho* · Báo cáo TC chỉ 2 nhóm |
+| **M3** | ⏳ Chờ Đại Ca F5 cổng **5051** (server của Đại Ca đọc `index.html` mới mỗi lần tải, không cần khởi động lại) |
+
+💡 **Trình duyệt tích hợp của Claude NAY đã vào được `localhost`** — điểm mù *"không nhìn được app
+đang chạy"* của phiên trước đã hết. Chụp màn hình hay bị hết giờ lần đầu (Babel dịch 7–13 giây), chờ
+rồi chụp lại là được.
+
+### 🔍 Điểm mù
+
+- Chưa thử **hộp "xoá số liệu?" khi đổi nhóm báo cáo** với số liệu thật — server thử không có DB.
+  Logic dùng lại đúng điều kiện của ô Mẫu báo cáo (`Object.keys(reportData).length > 0`).
+- **Không bấm thử nút Phân quyền** trên server thử: màn đó gọi lên Google bằng tài khoản giả, dễ bị
+  tính vào lưới chống dò. Hàng tab của nó chỉ là một tab *"Phân quyền"* — đọc mã là đủ.
+- Chỉ đo ở 1280 / 1366. **Máy Đại Ca là 2048px** (2560×1440, co giãn 125%) nên sẽ không thấy lỗi tràn —
+  lỗi đó chỉ lộ trên laptop nhân viên.
 
 ---
 

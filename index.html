@@ -1605,20 +1605,23 @@ window.showConnectionLost = function() {
         ];
         // Đọc cấu hình đã lưu; bỏ mã không còn áp dụng, mã MỚI (chưa có trong bản lưu) nối cuối và mặc định TẮT.
         // localStorage có thể ném lỗi / rỗng (cửa sổ ẩn danh, bị xoá) ⇒ luôn có đường về mặc định.
-        const docCauHinhLoc = (bc, dsId) => {
+        // `toiDa` = số ô tối đa đứng ngoài, TÍNH CẢ ô Thời gian. Báo cáo TC = 4, danh sách = 3 (Đại Ca chốt 25/09).
+        const docCauHinhLoc = (bc, dsId, toiDa = TOI_DA_O_NGOAI) => {
             let luu = null;
             try { luu = JSON.parse(localStorage.getItem('lr_loc_ngoai_' + bc) || 'null'); } catch (e) { luu = null; }
             const thuTu = (luu && Array.isArray(luu.thuTu)) ? luu.thuTu.filter(id => dsId.includes(id)) : [];
             dsId.forEach(id => { if (!thuTu.includes(id)) thuTu.push(id); });
-            const batSan = (luu && Array.isArray(luu.ngoai)) ? luu.ngoai : dsId.slice(0, TOI_DA_O_NGOAI - 1);
-            return { thuTu, ngoai: thuTu.filter(id => batSan.includes(id)).slice(0, TOI_DA_O_NGOAI - 1) };
+            const batSan = (luu && Array.isArray(luu.ngoai)) ? luu.ngoai : dsId.slice(0, toiDa - 1);
+            return { thuTu, ngoai: thuTu.filter(id => batSan.includes(id)).slice(0, toiDa - 1) };
         };
 
         // Nút phễu + bảng "Bộ lọc nâng cao". Bảng mở/đóng bằng state RIÊNG, không dùng activeDropdown chung:
         // dùng chung thì mở một dropdown bên trong bảng là chính cái bảng bị đóng.
         // ⚠️ Số trên nút phễu = số ô lọc ĐANG CÓ GIÁ TRỊ mà bị giấu trong bảng. Bắt buộc phải có: ô lọc bị
         //    giấu mà vẫn đang áp dụng thì người xem tưởng số liệu là toàn bộ.
-        const BoLocNangCao = ({ cfg, onDoiCfg, tenO, soDangLocTrong, veO, onXoaTatCa, onXem, nhanXem, dangTai, onMo }) => {
+        const BoLocNangCao = ({ cfg, onDoiCfg, tenO, soDangLocTrong, veO, onXoaTatCa, onXem, nhanXem, dangTai, onMo,
+                                toiDa = TOI_DA_O_NGOAI, goiYThoiGian = 'Báo cáo nào cũng cần kỳ — luôn hiện ngoài' }) => {
+            // toiDa: báo cáo 4 ô, danh sách 3 ô (Đại Ca chốt 25/09) — tính cả ô Thời gian.
             const [mo, setMo] = useState(false);
             const [moCauHinh, setMoCauHinh] = useState(false);
             const [keo, setKeo] = useState(null);
@@ -1634,7 +1637,7 @@ window.showConnectionLost = function() {
             }, [mo]);
             const trong = cfg.thuTu.filter(id => !cfg.ngoai.includes(id));
             const soNgoai = 1 + cfg.ngoai.length;   // + ô Thời gian
-            const du = soNgoai >= TOI_DA_O_NGOAI;
+            const du = soNgoai >= toiDa;
             const batTat = (id) => {
                 const dangBat = cfg.ngoai.includes(id);
                 if (!dangBat && du) return;
@@ -1678,7 +1681,7 @@ window.showConnectionLost = function() {
                                 <button type="button" onClick={() => setMoCauHinh(!moCauHinh)} aria-expanded={moCauHinh} className="w-full flex items-center gap-2 px-4 py-3 text-left">
                                     <span className="text-[12px] font-bold text-indigo-700">Cấu hình tham số lọc</span>
                                     <span className="px-1.5 rounded bg-indigo-50 text-indigo-700 text-[10px] font-bold tabular-nums">{soNgoai}</span>
-                                    <span className="text-[11px] text-slate-500">tối đa {TOI_DA_O_NGOAI} ô lọc đưa ra bên ngoài</span>
+                                    <span className="text-[11px] text-slate-500">tối đa {toiDa} ô lọc đưa ra bên ngoài</span>
                                     <Icon name="chevron-down" size={12} className={`ml-auto text-slate-400 transition-transform ${moCauHinh ? 'rotate-180' : ''}`} />
                                 </button>
                                 {moCauHinh && (
@@ -1688,7 +1691,7 @@ window.showConnectionLost = function() {
                                             <span className="w-[14px]"></span>
                                             <span className="flex-1 text-[12px] font-bold text-slate-800">Thời gian</span>
                                             <span className="text-[10px] text-slate-500">luôn hiện</span>
-                                            <CongTac bat={true} khoa={true} nhan="Thời gian luôn hiện ngoài" goiY="Báo cáo nào cũng cần kỳ — luôn hiện ngoài" />
+                                            <CongTac bat={true} khoa={true} nhan="Thời gian luôn hiện ngoài" goiY={goiYThoiGian} />
                                         </div>
                                         {cfg.thuTu.map(id => {
                                             const bat = cfg.ngoai.includes(id);
@@ -1701,7 +1704,7 @@ window.showConnectionLost = function() {
                                                     className={`flex items-center gap-2.5 h-9 px-2 rounded-lg transition-colors ${keo === id ? 'opacity-40' : ''} ${tren === id && keo && keo !== id ? 'bg-indigo-50 ring-1 ring-indigo-200' : 'hover:bg-slate-50'}`}>
                                                     <button type="button" onKeyDown={e => phim(e, id)} aria-label={`Đổi thứ tự ô ${tenO[id]}: kéo, hoặc dùng phím mũi tên lên xuống`} className="cursor-grab text-slate-400 hover:text-slate-700 focus:text-indigo-700"><Icon name="grip" size={14} strokeWidth="2" /></button>
                                                     <span className="flex-1 text-[12px] text-slate-800">{tenO[id]}</span>
-                                                    {!bat && du && <span className="text-[10px] text-slate-500">đã đủ {TOI_DA_O_NGOAI} ô</span>}
+                                                    {!bat && du && <span className="text-[10px] text-slate-500">đã đủ {toiDa} ô</span>}
                                                     <CongTac bat={bat} khoa={!bat && du} onDoi={() => batTat(id)} nhan={`Hiện ô ${tenO[id]} ra ngoài`} />
                                                 </div>
                                             );
@@ -6778,11 +6781,12 @@ const exportJournalCsv = (mode) => {
                             type="button"
                             disabled={exporting}
                             onClick={() => setExportOpen(exportOpen === kind ? null : kind)}
-                            className="group relative overflow-hidden bg-emerald-600 text-white px-3 h-[40px] rounded-xl font-black text-[10px] uppercase tracking-wider transition-all hover:bg-emerald-700 active:scale-[0.98] shadow-lg shadow-emerald-500/20 flex items-center gap-1.5 shrink-0"
+                            title={exporting ? 'Đang xuất...' : 'Xuất Excel — chỉ các cột đang hiện'} aria-label="Xuất Excel" aria-haspopup="menu" aria-expanded={exportOpen === kind}
+                            className={`h-[32px] pl-2.5 pr-2 rounded-lg border flex items-center gap-1 shrink-0 transition-colors disabled:opacity-60 ${exportOpen === kind ? 'border-emerald-400 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-white text-emerald-700 hover:border-emerald-300'}`}
                         >
-                            {exporting ? <Icon name="loader" className="animate-spin" size={12}/> : <Icon name="file-spreadsheet" size={12}/>}
-                            <span>{exporting ? 'Đang xuất...' : 'Xuất Excel'}</span>
-                            <Icon name="chevron-down" size={9} className={`transition-transform ${exportOpen === kind ? 'rotate-180' : ''}`} />
+                            {/* Thu thành ô icon 32px như mẫu iPOS (25/09/2026) — menu chọn kiểu xuất bên dưới giữ nguyên */}
+                            {exporting ? <Icon name="loader" className="animate-spin" size={15}/> : <Icon name="file-spreadsheet" size={15} strokeWidth="2"/>}
+                            <Icon name="chevron-down" size={11} className={`transition-transform ${exportOpen === kind ? 'rotate-180' : ''}`} />
                         </button>
                         {exportOpen === kind && (
                             <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.25)] border border-slate-200 z-[600] overflow-hidden animate-fadeIn">
@@ -7039,6 +7043,109 @@ const exportJournalCsv = (mode) => {
                 if (!missing.length) return scoped;
                 const all = meta.tran_ids || [];
                 return scoped.concat(missing.map(id => all.find(i => i.id === id) || { id, name: id }));
+            };
+
+            // ===== THANH LỌC 9 MÀN DANH SÁCH (Đại Ca chốt 25/09/2026, theo mẫu iPOS "Đặt mua hàng") =====
+            // Cùng khuôn Báo cáo TC: ô Thời gian gộp luôn ở ngoài + tối đa 2 ô khác = TỔNG 3 ô (danh sách chật
+            // hơn báo cáo vì còn nút Lọc / Excel), phần còn lại vào Bộ lọc nâng cao. Thứ tự khai dưới đây =
+            // thứ tự MẶC ĐỊNH (giữ đúng hàng 1 của bản cũ). Nhớ riêng từng màn, trên máy ('lr_loc_ngoai_ds_<tab>').
+            // ⛔ Thêm ô lọc cho danh sách thì khai trong oLocDs — đừng viết thẳng vào hàng điều kiện.
+            const TOI_DA_O_NGOAI_DS = 3;
+            const [cauHinhLocDs, setCauHinhLocDs] = useState({});
+            const oLocDs = (tab) => {
+                const ds = (id, ten, nguon, gt, chon, xoa) => ({ id, ten, loai: 'ds', nguon: nguon || [], gt: gt || [], chon, xoa });
+                const chung = (id, ten, khoa, nguon) => ds(id, ten, nguon, filters[khoa], v => toggleFilter(khoa, v), () => setFilters(p => ({ ...p, [khoa]: [] })));
+                const soCt = (st, setSt) => ({ id: 'soct', ten: 'Số chứng từ', loai: 'go', gt: st.tran_no_search || '',
+                    dat: v => setSt(p => ({ ...p, tran_no_search: v })), xoa: () => setSt(p => ({ ...p, tran_no_search: '' })) });
+                const kho = (ten, st, toggle, setSt, khoa = 'wh_ids') => ds(khoa === 'wh_ids' ? 'kho' : 'kho_nhap', ten, meta.warehouses, st[khoa],
+                    v => toggle(khoa, v), () => setSt(p => ({ ...p, [khoa]: [] })));
+                const loaiCt = chung('loaict', 'Loại CT', 'tran_ids', tranItemsFor(tab));
+                const donVi = (ten = 'Đơn vị') => chung('donvi', ten, 'org_ids', meta.orgs);
+                const tk = chung('tk', 'Tài khoản', 'acc_ids', meta.accounts);
+                const dt = chung('dt', 'Đối tượng', 'pr_detail_ids', meta.pr_details);
+                const cv = chung('cv', 'Công việc', 'job_ids', meta.jobs);
+                const mcp = chung('mcp', 'Mục chi phí', 'expense_ids', meta.expenses);
+                const hh = (ten = 'Hàng hóa') => chung('hh', ten, 'item_ids', meta.items);
+                const sp = chung('sp', 'Sản phẩm', 'product_ids', meta.products);
+                switch (tab) {
+                    case 'ledger':   return [loaiCt, donVi(), tk, dt, cv, mcp, hh(), sp];
+                    case 'sale':     return [soCt(saleFilters, setSaleFilters), donVi(), loaiCt, kho('Kho', saleFilters, toggleSaleFilter, setSaleFilters), hh(), mcp, cv, dt];
+                    case 'voucher':  return [soCt(voucherFilters, setVoucherFilters), donVi(), loaiCt, tk, dt, mcp, cv];
+                    case 'purchase': return [loaiCt, donVi(), soCt(purchaseFilters, setPurchaseFilters), kho('Kho nhập', purchaseFilters, togglePurchaseFilter, setPurchaseFilters), hh(), mcp, cv, dt];
+                    case 'warehouse': return [loaiCt, donVi(), soCt(warehouseFilters, setWarehouseFilters), kho('Kho', warehouseFilters, toggleWarehouseFilter, setWarehouseFilters), hh(), sp, mcp, cv, dt];
+                    case 'warehouse_balance': return [donVi(), kho('Kho', warehouseBalanceFilters, toggleWarehouseBalanceFilter, setWarehouseBalanceFilters), hh(), tk];
+                    case 'btp_reconcile': return [donVi(), kho('Kho xuất', btpFilters, toggleBtpFilter, setBtpFilters), hh('Nguyên liệu'),
+                        ds('btp', 'Bán thành phẩm', meta.products, btpFilters.btp_ids, v => toggleBtpFilter('btp_ids', v), () => setBtpFilters(p => ({ ...p, btp_ids: [] })))];
+                    case 'dcnb_reconcile': return [donVi('Đơn vị xuất'), kho('Kho xuất', dcnbFilters, toggleDcnbFilter, setDcnbFilters),
+                        kho('Kho nhập', dcnbFilters, toggleDcnbFilter, setDcnbFilters, 'wh_nhap_ids'), hh('Hàng hoá')];
+                    case 'po_list':  return [donVi(), kho('Kho', poFilters, togglePoFilter, setPoFilters), hh('Hàng hoá')];
+                    default: return [];
+                }
+            };
+            // Ô Thời gian chọn xong: tháng / quý / năm ⇒ period đúng loại; còn lại ⇒ 'custom' (giống Báo cáo TC).
+            const datThoiGianDs = (a, b, ky) => {
+                setPeriod(ky ? { year: ky.year, type: ky.type, value: ky.value } : { ...period, year: a.getFullYear(), type: 'custom', value: 1 });
+                setFilters(p => ({ ...p, from_date: TG.dmy(a), to_date: TG.dmy(b) }));
+            };
+            // Hàm vẽ thường (KHÔNG phải component lồng — bài học OThoiGian): trái = kết quả + số dòng/trang;
+            // phải = Thời gian + ô ngoài + phễu + Lọc + Excel. Nút cấu hình cột thêm ở chặng sau.
+            const veHangLocDs = (tab, { onLoc, dangTai, tongDong }) => {
+                const dsO = oLocDs(tab);
+                const cfg = cauHinhLocDs[tab] || docCauHinhLoc('ds_' + tab, dsO.map(o => o.id), TOI_DA_O_NGOAI_DS);
+                const luu = (moi) => {
+                    setCauHinhLocDs(p => ({ ...p, [tab]: moi }));
+                    try { localStorage.setItem('lr_loc_ngoai_ds_' + tab, JSON.stringify(moi)); } catch (e) { /* ẩn danh / bị chặn: vẫn chạy, chỉ không nhớ */ }
+                };
+                const tenO = {}; dsO.forEach(o => { tenO[o.id] = o.ten; });
+                const coGt = (o) => !!o && (o.loai === 'go' ? !!String(o.gt || '').trim() : o.gt.length > 0);
+                // ⚠️ Số trên nút phễu = ô ĐANG CÓ GIÁ TRỊ mà bị giấu trong bảng — bắt buộc, như Báo cáo TC.
+                const soTrong = cfg.thuTu.filter(id => !cfg.ngoai.includes(id) && coGt(dsO.find(o => o.id === id))).length;
+                const veO = (id, trongBang, canhPhai) => {
+                    const o = dsO.find(x => x.id === id);
+                    if (!o) return null;
+                    const lop = trongBang ? '' : (o.loai === 'go' ? 'basis-36 min-w-[110px]' : 'basis-40 min-w-[120px]');
+                    if (o.loai === 'go') return (
+                        <div key={id} className={lop}>
+                            <div className="label-text">{o.ten}</div>
+                            <input value={o.gt} onChange={e => o.dat(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') onLoc(); }} placeholder="Nhập số chứng từ"
+                                className="w-full h-[32px] px-3 rounded-lg border border-slate-200 text-[12px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400" />
+                        </div>
+                    );
+                    return (
+                        <div key={id} className={lop}>
+                            <PremiumDropdown label={o.ten} items={o.nguon} selectedItems={o.gt} onSelect={o.chon} isActive={activeDropdown === o.ten} onToggle={setActiveDropdown} align={trongBang && !canhPhai ? 'left' : 'right'} />
+                        </div>
+                    );
+                };
+                return (
+                    <div className="flex items-end gap-3">
+                        <div className="flex items-end gap-4 mr-auto shrink-0">
+                            <div>
+                                <div className="label-text">Kết quả</div>
+                                <div className="h-[32px] flex items-center text-[13px] font-bold text-slate-900 tabular-nums whitespace-nowrap">{Number(tongDong || 0).toLocaleString('vi-VN')}<span className="ml-1 text-[12px] font-normal text-slate-500">dòng</span></div>
+                            </div>
+                            <div>
+                                <div className="label-text">Hiển thị</div>
+                                <div className="h-[32px] flex items-center"><PageSizeDropdown value={filters.page_size} onChange={n => setFilters(p => ({ ...p, page_size: n, page: 1 }))} /></div>
+                            </div>
+                        </div>
+                        <div className="flex items-end justify-end gap-3 min-w-0">
+                            <div className="basis-[200px] min-w-[186px]"><OThoiGian period={period} fromDate={filters.from_date} toDate={filters.to_date} onChon={datThoiGianDs} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
+                            {cfg.thuTu.filter(id => cfg.ngoai.includes(id)).map(id => veO(id, false, true))}
+                        </div>
+                        <div className="flex items-end gap-1.5 shrink-0">
+                            <BoLocNangCao cfg={cfg} onDoiCfg={luu} tenO={tenO} soDangLocTrong={soTrong} veO={veO} toiDa={TOI_DA_O_NGOAI_DS}
+                                goiYThoiGian="Danh sách nào cũng cần kỳ — luôn hiện ngoài"
+                                onXoaTatCa={() => dsO.forEach(o => o.xoa())} onXem={onLoc} nhanXem="Lọc" dangTai={dangTai} onMo={() => setActiveDropdown(null)} />
+                            {/* Nút "Lọc" navy đặc — thay "TRUY VẤN" gradient navy→tím (Đại Ca chốt 25/09, đóng việc 17) */}
+                            <button type="button" onClick={onLoc} disabled={dangTai}
+                                className="h-[32px] px-4 rounded-lg bg-[#1e3a8a] hover:bg-[#172554] text-white text-[12px] font-bold flex items-center gap-1.5 disabled:opacity-60 shrink-0">
+                                {dangTai && <Icon name="loader" size={12} className="animate-spin" />}Lọc
+                            </button>
+                            <ExportButton kind={tab} />
+                        </div>
+                    </div>
+                );
             };
 
             if (!isLoggedIn) {
@@ -7326,65 +7433,8 @@ const exportJournalCsv = (mode) => {
 
                     {activeTab === 'ledger' && (
                         <>
-                            <div className="bg-white border-b border-slate-200 p-4 px-6 shrink-0 shadow-sm z-[900]">
-                                <div className="space-y-4">
-                                    <div className="flex items-end gap-3">
-                                        <div className="w-44"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
-                                        <div className="w-32">
-                                            <IOSDatePicker label="Từ ngày" value={filters.from_date} onChange={val => toggleFilter('from_date', val)} disabled={period.type !== 'custom'} />
-                                        </div>
-                                        <div className="w-32">
-                                            <IOSDatePicker label="Đến ngày" value={filters.to_date} onChange={val => toggleFilter('to_date', val)} disabled={period.type !== 'custom'} />
-                                        </div>
-                                        <div className="w-40"><PremiumDropdown label="Loại CT" items={tranItemsFor('ledger')} selectedItems={filters.tran_ids} onSelect={id => toggleFilter('tran_ids', id)} isActive={activeDropdown === 'Loại CT'} onToggle={setActiveDropdown} /></div>
-                                        <div className="w-40"><PremiumDropdown label="Đơn vị" items={meta.orgs} selectedItems={filters.org_ids} onSelect={id => toggleFilter('org_ids', id)} isActive={activeDropdown === 'Đơn vị'} onToggle={setActiveDropdown} align="right" /></div>
-                                        
-                                        {/* Khối hành động ĐẨY SÁT PHẢI TUYỆT ĐỐI */}
-                                        <div className="ml-auto shrink-0 flex items-center gap-2">
-                                            <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/60 rounded-xl px-3 py-1 shrink-0 h-[40px]">
-                                                <div className="flex flex-col items-start shrink-0">
-                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.1em] mb-0.5">Hiển thị</span>
-                                                    <PageSizeDropdown 
-                                                        value={filters.page_size} 
-                                                        onChange={newSize => { setFilters(p => ({ ...p, page_size: newSize, page: 1 })); }} 
-                                                    />
-                                                </div>
-                                                <div className="h-6 w-px bg-slate-200"></div>
-                                                <div className="flex flex-col items-end shrink-0">
-                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em] mb-0.5">Results</span>
-                                                    <div className="text-[12px] font-black text-indigo-600 tabular-nums leading-none tracking-tighter">
-                                                        {pagination.total_rows?.toLocaleString()}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <button 
-                                                onClick={() => loadData()} 
-                                                disabled={loading} 
-                                                className="group relative overflow-hidden bg-slate-900 text-white px-4 h-[40px] rounded-xl font-black text-[10px] uppercase tracking-wider transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-indigo-500/30 shrink-0"
-                                            >
-                                                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-violet-600 opacity-90 group-hover:opacity-100 transition-opacity"></div>
-                                                <div className="relative flex items-center gap-2">
-                                                    {loading && activeTab === 'ledger' ? (
-                                                        <Icon name="loader" className="animate-spin" />
-                                                    ) : (
-                                                        <Icon name="search" size={12} className="group-hover:rotate-12 transition-transform"/>
-                                                    )}
-                                                    <span>{loading && activeTab === 'ledger' ? 'ĐANG TẢI...' : 'TRUY VẤN'}</span>
-                                                </div>
-                                            </button>
-                                            <FilterToggleButton expanded={filtersExpanded} onToggle={() => setFiltersExpanded(v => !v)} count={ledgerRow2Count} />
-                                            <ExportButton kind="ledger" />
-                                        </div>
-                                    </div>
-                                    {filtersExpanded && <div className="grid grid-cols-7 gap-1.5">
-                                        <PremiumDropdown label="Tài khoản" items={meta.accounts} selectedItems={filters.acc_ids} onSelect={id => toggleFilter('acc_ids', id)} isActive={activeDropdown === 'Tài khoản'} onToggle={setActiveDropdown} />
-                                        <PremiumDropdown label="Đối tượng" items={meta.pr_details} selectedItems={filters.pr_detail_ids} onSelect={id => toggleFilter('pr_detail_ids', id)} isActive={activeDropdown === 'Đối tượng'} onToggle={setActiveDropdown} />
-                                        <PremiumDropdown label="Công việc" items={meta.jobs} selectedItems={filters.job_ids} onSelect={id => toggleFilter('job_ids', id)} isActive={activeDropdown === 'Công việc'} onToggle={setActiveDropdown} />
-                                        <PremiumDropdown label="Mục chi phí" items={meta.expenses} selectedItems={filters.expense_ids} onSelect={id => toggleFilter('expense_ids', id)} isActive={activeDropdown === 'Mục chi phí'} onToggle={setActiveDropdown} />
-                                        <PremiumDropdown label="Hàng hóa" items={meta.items} selectedItems={filters.item_ids} onSelect={id => toggleFilter('item_ids', id)} isActive={activeDropdown === 'Hàng hóa'} onToggle={setActiveDropdown} align="right" />
-                                        <PremiumDropdown label="Sản phẩm" items={meta.products} selectedItems={filters.product_ids} onSelect={id => toggleFilter('product_ids', id)} isActive={activeDropdown === 'Sản phẩm'} onToggle={setActiveDropdown} align="right" />
-                                    </div>}
-                                </div>
+                            <div className="bg-white border-b border-slate-200 px-6 py-3 shrink-0 z-[900]">
+                                {veHangLocDs('ledger', { onLoc: () => loadData(), dangTai: loading, tongDong: pagination.total_rows })}
                             </div>
                             <div className="flex-1 min-h-0 p-3 overflow-hidden bg-slate-50 flex flex-col relative">
                                 {loading && <div className="absolute inset-0 bg-white/40 z-50 flex flex-col items-center justify-center backdrop-blur-[2px] transition-all"><div className="bg-white p-6 rounded-3xl shadow-2xl flex flex-col items-center gap-4 border border-indigo-50"><Icon name="loader" size={48} className="animate-spin text-indigo-600"/><div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest animate-pulse">Đang truy vấn dữ liệu...</div></div></div>}
@@ -7541,54 +7591,8 @@ const exportJournalCsv = (mode) => {
 
                     {activeTab === 'sale' && (
                         <>
-                            <div className="bg-white border-b border-slate-200 p-4 px-6 shrink-0 shadow-sm z-[900]">
-                                <div className="space-y-4">
-                                    <div className="flex items-end gap-3">
-                                        <div className="w-44"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
-                                        <div className="w-32"><IOSDatePicker label="Từ ngày" value={filters.from_date} onChange={val => toggleFilter('from_date', val)} disabled={period.type !== 'custom'} /></div>
-                                        <div className="w-32"><IOSDatePicker label="Đến ngày" value={filters.to_date} onChange={val => toggleFilter('to_date', val)} disabled={period.type !== 'custom'} /></div>
-                                        <div className="w-44">
-                                            <div className="label-text text-indigo-600">Số chứng từ</div>
-                                            <div className="relative">
-                                                <Icon name="search" size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-indigo-400 pointer-events-none z-10"/>
-                                                <input type="text" value={saleFilters.tran_no_search} onChange={e => setSaleFilters(p => ({...p, tran_no_search: e.target.value}))} onKeyDown={e => { if (e.key === 'Enter') loadSaleData(); }} placeholder="Nhập số CT..." className={`filter-control pl-8 text-[11px] font-bold border-indigo-300 shadow-inner focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 ${saleFilters.tran_no_search ? 'bg-indigo-50 text-indigo-700' : 'bg-indigo-50/40'}`} />
-                                            </div>
-                                        </div>
-                                        <div className="w-40"><PremiumDropdown label="Đơn vị" items={meta.orgs} selectedItems={filters.org_ids} onSelect={id => toggleFilter('org_ids', id)} isActive={activeDropdown === 'Đơn vị'} onToggle={setActiveDropdown} align="right" /></div>
-                                        <div className="ml-auto shrink-0 flex items-center gap-2">
-                                            <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/60 rounded-xl px-3 py-1 shrink-0 h-[40px]">
-                                                <div className="flex flex-col items-start shrink-0">
-                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.1em] mb-0.5">Hiển thị</span>
-                                                    <PageSizeDropdown value={filters.page_size} onChange={newSize => { setFilters(p => ({ ...p, page_size: newSize, page: 1 })); }} />
-                                                </div>
-                                                <div className="h-6 w-px bg-slate-200"></div>
-                                                <div className="flex flex-col items-end shrink-0">
-                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em] mb-0.5">Results</span>
-                                                    <div className="text-[12px] font-black text-indigo-600 tabular-nums leading-none tracking-tighter">
-                                                        {salePagination.total_rows?.toLocaleString()}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <button onClick={() => loadSaleData()} disabled={saleLoading} className="group relative overflow-hidden bg-slate-900 text-white px-4 h-[40px] rounded-xl font-black text-[10px] uppercase tracking-wider transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-indigo-500/30 shrink-0">
-                                                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-violet-600 opacity-90 group-hover:opacity-100 transition-opacity"></div>
-                                                <div className="relative flex items-center gap-2">
-                                                    {saleLoading ? <Icon name="loader" className="animate-spin" /> : <Icon name="search" size={12} className="group-hover:rotate-12 transition-transform"/>}
-                                                    <span>{saleLoading ? 'ĐANG TẢI...' : 'TRUY VẤN'}</span>
-                                                </div>
-                                            </button>
-                                            <FilterToggleButton expanded={filtersExpanded} onToggle={() => setFiltersExpanded(v => !v)} count={saleRow2Count} />
-                                            <ExportButton kind="sale" />
-                                        </div>
-                                    </div>
-                                    {filtersExpanded && <div className="grid grid-cols-6 gap-1.5">
-                                        <PremiumDropdown label="Hàng hóa" items={meta.items} selectedItems={filters.item_ids} onSelect={id => toggleFilter('item_ids', id)} isActive={activeDropdown === 'Hàng hóa'} onToggle={setActiveDropdown} />
-                                        <PremiumDropdown label="Mục chi phí" items={meta.expenses} selectedItems={filters.expense_ids} onSelect={id => toggleFilter('expense_ids', id)} isActive={activeDropdown === 'Mục chi phí'} onToggle={setActiveDropdown} />
-                                        <PremiumDropdown label="Công việc" items={meta.jobs} selectedItems={filters.job_ids} onSelect={id => toggleFilter('job_ids', id)} isActive={activeDropdown === 'Công việc'} onToggle={setActiveDropdown} />
-                                        <PremiumDropdown label="Đối tượng" items={meta.pr_details} selectedItems={filters.pr_detail_ids} onSelect={id => toggleFilter('pr_detail_ids', id)} isActive={activeDropdown === 'Đối tượng'} onToggle={setActiveDropdown} />
-                                        <PremiumDropdown label="Loại CT" items={tranItemsFor('sale')} selectedItems={filters.tran_ids} onSelect={id => toggleFilter('tran_ids', id)} isActive={activeDropdown === 'Loại CT'} onToggle={setActiveDropdown} align="right" />
-                                        <PremiumDropdown label="Kho" items={meta.warehouses} selectedItems={saleFilters.wh_ids} onSelect={id => toggleSaleFilter('wh_ids', id)} isActive={activeDropdown === 'Kho'} onToggle={setActiveDropdown} align="right" />
-                                    </div>}
-                                </div>
+                            <div className="bg-white border-b border-slate-200 px-6 py-3 shrink-0 z-[900]">
+                                {veHangLocDs('sale', { onLoc: () => loadSaleData(), dangTai: saleLoading, tongDong: salePagination.total_rows })}
                             </div>
                             <div className="flex-1 min-h-0 p-3 overflow-hidden bg-slate-50 flex flex-col relative">
                                 {saleLoading && <div className="absolute inset-0 bg-white/40 z-50 flex flex-col items-center justify-center backdrop-blur-[2px] transition-all"><div className="bg-white p-6 rounded-3xl shadow-2xl flex flex-col items-center gap-4 border border-indigo-50"><Icon name="loader" size={48} className="animate-spin text-indigo-600"/><div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest animate-pulse">Đang truy vấn dữ liệu...</div></div></div>}
@@ -7758,53 +7762,8 @@ const exportJournalCsv = (mode) => {
 
                     {activeTab === 'voucher' && (
                         <>
-                            <div className="bg-white border-b border-slate-200 p-4 px-6 shrink-0 shadow-sm z-[900]">
-                                <div className="space-y-4">
-                                    <div className="flex items-end gap-3">
-                                        <div className="w-44"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
-                                        <div className="w-32"><IOSDatePicker label="Từ ngày" value={filters.from_date} onChange={val => toggleFilter('from_date', val)} disabled={period.type !== 'custom'} /></div>
-                                        <div className="w-32"><IOSDatePicker label="Đến ngày" value={filters.to_date} onChange={val => toggleFilter('to_date', val)} disabled={period.type !== 'custom'} /></div>
-                                        <div className="w-44">
-                                            <div className="label-text text-indigo-600">Số chứng từ</div>
-                                            <div className="relative">
-                                                <Icon name="search" size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-indigo-400 pointer-events-none z-10"/>
-                                                <input type="text" value={voucherFilters.tran_no_search} onChange={e => setVoucherFilters(p => ({...p, tran_no_search: e.target.value}))} onKeyDown={e => { if (e.key === 'Enter') loadVoucherData(); }} placeholder="Nhập số CT..." className={`filter-control pl-8 text-[11px] font-bold border-indigo-300 shadow-inner focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 ${voucherFilters.tran_no_search ? 'bg-indigo-50 text-indigo-700' : 'bg-indigo-50/40'}`} />
-                                            </div>
-                                        </div>
-                                        <div className="w-40"><PremiumDropdown label="Đơn vị" items={meta.orgs} selectedItems={filters.org_ids} onSelect={id => toggleFilter('org_ids', id)} isActive={activeDropdown === 'Đơn vị'} onToggle={setActiveDropdown} align="right" /></div>
-                                        <div className="ml-auto shrink-0 flex items-center gap-2">
-                                            <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/60 rounded-xl px-3 py-1 shrink-0 h-[40px]">
-                                                <div className="flex flex-col items-start shrink-0">
-                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.1em] mb-0.5">Hiển thị</span>
-                                                    <PageSizeDropdown value={filters.page_size} onChange={newSize => { setFilters(p => ({ ...p, page_size: newSize, page: 1 })); }} />
-                                                </div>
-                                                <div className="h-6 w-px bg-slate-200"></div>
-                                                <div className="flex flex-col items-end shrink-0">
-                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em] mb-0.5">Results</span>
-                                                    <div className="text-[12px] font-black text-indigo-600 tabular-nums leading-none tracking-tighter">
-                                                        {voucherPagination.total_rows?.toLocaleString()}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <button onClick={() => loadVoucherData()} disabled={voucherLoading} className="group relative overflow-hidden bg-slate-900 text-white px-4 h-[40px] rounded-xl font-black text-[10px] uppercase tracking-wider transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-indigo-500/30 shrink-0">
-                                                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-violet-600 opacity-90 group-hover:opacity-100 transition-opacity"></div>
-                                                <div className="relative flex items-center gap-2">
-                                                    {voucherLoading ? <Icon name="loader" className="animate-spin" /> : <Icon name="search" size={12} className="group-hover:rotate-12 transition-transform"/>}
-                                                    <span>{voucherLoading ? 'ĐANG TẢI...' : 'TRUY VẤN'}</span>
-                                                </div>
-                                            </button>
-                                            <FilterToggleButton expanded={filtersExpanded} onToggle={() => setFiltersExpanded(v => !v)} count={voucherRow2Count} />
-                                            <ExportButton kind="voucher" />
-                                        </div>
-                                    </div>
-                                    {filtersExpanded && <div className="grid grid-cols-5 gap-1.5">
-                                        <PremiumDropdown label="Loại CT" items={tranItemsFor('voucher')} selectedItems={filters.tran_ids} onSelect={id => toggleFilter('tran_ids', id)} isActive={activeDropdown === 'Loại CT'} onToggle={setActiveDropdown} />
-                                        <PremiumDropdown label="Tài khoản" items={meta.accounts} selectedItems={filters.acc_ids} onSelect={id => toggleFilter('acc_ids', id)} isActive={activeDropdown === 'Tài khoản'} onToggle={setActiveDropdown} />
-                                        <PremiumDropdown label="Đối tượng" items={meta.pr_details} selectedItems={filters.pr_detail_ids} onSelect={id => toggleFilter('pr_detail_ids', id)} isActive={activeDropdown === 'Đối tượng'} onToggle={setActiveDropdown} />
-                                        <PremiumDropdown label="Mục chi phí" items={meta.expenses} selectedItems={filters.expense_ids} onSelect={id => toggleFilter('expense_ids', id)} isActive={activeDropdown === 'Mục chi phí'} onToggle={setActiveDropdown} />
-                                        <PremiumDropdown label="Công việc" items={meta.jobs} selectedItems={filters.job_ids} onSelect={id => toggleFilter('job_ids', id)} isActive={activeDropdown === 'Công việc'} onToggle={setActiveDropdown} />
-                                    </div>}
-                                </div>
+                            <div className="bg-white border-b border-slate-200 px-6 py-3 shrink-0 z-[900]">
+                                {veHangLocDs('voucher', { onLoc: () => loadVoucherData(), dangTai: voucherLoading, tongDong: voucherPagination.total_rows })}
                             </div>
                             <div className="flex-1 min-h-0 p-3 overflow-hidden bg-slate-50 flex flex-col relative">
                                 {voucherLoading && <div className="absolute inset-0 bg-white/40 z-50 flex flex-col items-center justify-center backdrop-blur-[2px] transition-all"><div className="bg-white p-6 rounded-3xl shadow-2xl flex flex-col items-center gap-4 border border-indigo-50"><Icon name="loader" size={48} className="animate-spin text-indigo-600"/><div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest animate-pulse">Đang truy vấn dữ liệu...</div></div></div>}
@@ -7941,56 +7900,8 @@ const exportJournalCsv = (mode) => {
 
                     {activeTab === 'purchase' && (
                         <>
-                            <div className="bg-white border-b border-slate-200 p-4 px-6 shrink-0 shadow-sm z-[900]">
-                                <div className="space-y-4">
-                                    <div className="flex items-end gap-3">
-                                        <div className="w-44"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
-                                        <div className="w-32"><IOSDatePicker label="Từ ngày" value={filters.from_date} onChange={val => toggleFilter('from_date', val)} disabled={period.type !== 'custom'} /></div>
-                                        <div className="w-32"><IOSDatePicker label="Đến ngày" value={filters.to_date} onChange={val => toggleFilter('to_date', val)} disabled={period.type !== 'custom'} /></div>
-                                        <div className="w-40"><PremiumDropdown label="Loại CT" items={tranItemsFor('purchase')} selectedItems={filters.tran_ids} onSelect={id => toggleFilter('tran_ids', id)} isActive={activeDropdown === 'Loại CT'} onToggle={setActiveDropdown} /></div>
-                                        <div className="w-40"><PremiumDropdown label="Đơn vị" items={meta.orgs} selectedItems={filters.org_ids} onSelect={id => toggleFilter('org_ids', id)} isActive={activeDropdown === 'Đơn vị'} onToggle={setActiveDropdown} align="right" /></div>
-                                        <div className="ml-auto shrink-0 flex items-center gap-2">
-                                            <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/60 rounded-xl px-3 py-1 shrink-0 h-[40px]">
-                                                <div className="flex flex-col items-start shrink-0">
-                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.1em] mb-0.5">Hiển thị</span>
-                                                    <PageSizeDropdown 
-                                                        value={filters.page_size} 
-                                                        onChange={newSize => {
-                                                            setFilters(p => ({ ...p, page_size: newSize, page: 1 }));
-                                                        }} 
-                                                    />
-                                                </div>
-                                                <div className="h-6 w-px bg-slate-200"></div>
-                                                <div className="flex flex-col items-end shrink-0">
-                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em] mb-0.5">Results</span>
-                                                    <div className="text-[12px] font-black text-indigo-600 tabular-nums leading-none tracking-tighter">
-                                                        {purchasePagination.total_rows?.toLocaleString()}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <button onClick={() => loadPurchaseData()} disabled={purchaseLoading} className="group relative overflow-hidden bg-slate-900 text-white px-4 h-[40px] rounded-xl font-black text-[10px] uppercase tracking-wider transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-indigo-500/30 shrink-0">
-                                                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-violet-600 opacity-90 group-hover:opacity-100 transition-opacity"></div>
-                                                <div className="relative flex items-center gap-2">
-                                                    {purchaseLoading ? <Icon name="loader" className="animate-spin" /> : <Icon name="search" size={12} className="group-hover:rotate-12 transition-transform"/>}
-                                                    <span>{purchaseLoading ? 'ĐANG TẢI...' : 'TRUY VẤN'}</span>
-                                                </div>
-                                            </button>
-                                            <FilterToggleButton expanded={filtersExpanded} onToggle={() => setFiltersExpanded(v => !v)} count={purchaseRow2Count} />
-                                            <ExportButton kind="purchase" />
-                                        </div>
-                                    </div>
-                                    {filtersExpanded && <div className="grid grid-cols-6 gap-1.5">
-                                        <PremiumDropdown label="Hàng hóa" items={meta.items} selectedItems={filters.item_ids} onSelect={id => toggleFilter('item_ids', id)} isActive={activeDropdown === 'Hàng hóa'} onToggle={setActiveDropdown} />
-                                        <PremiumDropdown label="Mục chi phí" items={meta.expenses} selectedItems={filters.expense_ids} onSelect={id => toggleFilter('expense_ids', id)} isActive={activeDropdown === 'Mục chi phí'} onToggle={setActiveDropdown} />
-                                        <PremiumDropdown label="Công việc" items={meta.jobs} selectedItems={filters.job_ids} onSelect={id => toggleFilter('job_ids', id)} isActive={activeDropdown === 'Công việc'} onToggle={setActiveDropdown} />
-                                        <PremiumDropdown label="Đối tượng" items={meta.pr_details} selectedItems={filters.pr_detail_ids} onSelect={id => toggleFilter('pr_detail_ids', id)} isActive={activeDropdown === 'Đối tượng'} onToggle={setActiveDropdown} />
-                                        <PremiumDropdown label="Kho nhập" items={meta.warehouses} selectedItems={purchaseFilters.wh_ids} onSelect={id => togglePurchaseFilter('wh_ids', id)} isActive={activeDropdown === 'Kho nhập'} onToggle={setActiveDropdown} />
-                                        <div>
-                                            <div className="label-text">Số chứng từ</div>
-                                            <input type="text" value={purchaseFilters.tran_no_search} onChange={e => setPurchaseFilters(p => ({...p, tran_no_search: e.target.value}))} placeholder="Nhập số CT..." className="filter-control text-[11px] font-bold" />
-                                        </div>
-                                    </div>}
-                                </div>
+                            <div className="bg-white border-b border-slate-200 px-6 py-3 shrink-0 z-[900]">
+                                {veHangLocDs('purchase', { onLoc: () => loadPurchaseData(), dangTai: purchaseLoading, tongDong: purchasePagination.total_rows })}
                             </div>
                             <div className="flex-1 min-h-0 p-3 overflow-hidden bg-slate-50 flex flex-col relative">
                                 {purchaseLoading && <div className="absolute inset-0 bg-white/40 z-50 flex flex-col items-center justify-center backdrop-blur-[2px] transition-all"><div className="bg-white p-6 rounded-3xl shadow-2xl flex flex-col items-center gap-4 border border-indigo-50"><Icon name="loader" size={48} className="animate-spin text-indigo-600"/><div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest animate-pulse">Đang truy vấn dữ liệu...</div></div></div>}
@@ -8148,58 +8059,8 @@ const exportJournalCsv = (mode) => {
 
                     {activeTab === 'warehouse' && (
                         <>
-                            <div className="bg-white border-b border-slate-200 p-4 px-6 shrink-0 shadow-sm z-[900]">
-                                <div className="space-y-4">
-                                    <div className="flex items-end gap-3">
-                                        <div className="w-44"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
-                                        <div className="w-32"><IOSDatePicker label="Từ ngày" value={filters.from_date} onChange={val => toggleFilter('from_date', val)} disabled={period.type !== 'custom'} /></div>
-                                        <div className="w-32"><IOSDatePicker label="Đến ngày" value={filters.to_date} onChange={val => toggleFilter('to_date', val)} disabled={period.type !== 'custom'} /></div>
-                                        <div className="w-40"><PremiumDropdown label="Loại CT" items={tranItemsFor('warehouse')} selectedItems={filters.tran_ids} onSelect={id => toggleFilter('tran_ids', id)} isActive={activeDropdown === 'Loại CT'} onToggle={setActiveDropdown} /></div>
-                                        <div className="w-40"><PremiumDropdown label="Đơn vị" items={meta.orgs} selectedItems={filters.org_ids} onSelect={id => toggleFilter('org_ids', id)} isActive={activeDropdown === 'Đơn vị'} onToggle={setActiveDropdown} align="right" /></div>
-                                        <div className="ml-auto shrink-0 flex items-center gap-2">
-                                            <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/60 rounded-xl px-3 py-1 shrink-0 h-[40px]">
-                                                <div className="flex flex-col items-start shrink-0">
-                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.1em] mb-0.5">Hiển thị</span>
-                                                    <PageSizeDropdown 
-                                                        value={filters.page_size} 
-                                                        onChange={newSize => {
-                                                            setFilters(p => ({ ...p, page_size: newSize, page: 1 }));
-                                                        }} 
-                                                    />
-                                                </div>
-                                                <div className="h-6 w-px bg-slate-200"></div>
-                                                <div className="flex flex-col items-end shrink-0">
-                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em] mb-0.5">Results</span>
-                                                    <div className="text-[12px] font-black text-indigo-600 tabular-nums leading-none tracking-tighter">
-                                                        {warehousePagination.total_rows?.toLocaleString()}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <button onClick={() => loadWarehouseData()} disabled={warehouseLoading} className="group relative overflow-hidden bg-slate-900 text-white px-4 h-[40px] rounded-xl font-black text-[10px] uppercase tracking-wider transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-indigo-500/30 shrink-0">
-                                                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-violet-600 opacity-90 group-hover:opacity-100 transition-opacity"></div>
-                                                <div className="relative flex items-center gap-2">
-                                                    {warehouseLoading ? <Icon name="loader" className="animate-spin" /> : <Icon name="search" size={12} className="group-hover:rotate-12 transition-transform"/>}
-                                                    <span>{warehouseLoading ? 'ĐANG TẢI...' : 'TRUY VẤN'}</span>
-                                                </div>
-                                            </button>
-                                            <FilterToggleButton expanded={filtersExpanded} onToggle={() => setFiltersExpanded(v => !v)} count={warehouseRow2Count} />
-                                            <ExportButton kind="warehouse" />
-                                        </div>
-                                    </div>
-                                    {filtersExpanded && <div className="grid grid-cols-8 gap-1.5">
-                                        <IssueReceiveDropdown value={warehouseFilters.issue_receive} onChange={v => setWarehouseFilters(p => ({...p, issue_receive: v}))} isActive={activeDropdown === 'issueReceive'} onToggle={setActiveDropdown}/>
-                                        <PremiumDropdown label="Hàng hóa" items={meta.items} selectedItems={filters.item_ids} onSelect={id => toggleFilter('item_ids', id)} isActive={activeDropdown === 'Hàng hóa'} onToggle={setActiveDropdown} />
-                                        <PremiumDropdown label="Sản phẩm" items={meta.products} selectedItems={filters.product_ids} onSelect={id => toggleFilter('product_ids', id)} isActive={activeDropdown === 'Sản phẩm'} onToggle={setActiveDropdown} />
-                                        <PremiumDropdown label="Mục chi phí" items={meta.expenses} selectedItems={filters.expense_ids} onSelect={id => toggleFilter('expense_ids', id)} isActive={activeDropdown === 'Mục chi phí'} onToggle={setActiveDropdown} />
-                                        <PremiumDropdown label="Công việc" items={meta.jobs} selectedItems={filters.job_ids} onSelect={id => toggleFilter('job_ids', id)} isActive={activeDropdown === 'Công việc'} onToggle={setActiveDropdown} />
-                                        <PremiumDropdown label="Đối tượng" items={meta.pr_details} selectedItems={filters.pr_detail_ids} onSelect={id => toggleFilter('pr_detail_ids', id)} isActive={activeDropdown === 'Đối tượng'} onToggle={setActiveDropdown} />
-                                        <PremiumDropdown label="Kho" items={meta.warehouses} selectedItems={warehouseFilters.wh_ids} onSelect={id => toggleWarehouseFilter('wh_ids', id)} isActive={activeDropdown === 'Kho'} onToggle={setActiveDropdown} align="right" />
-                                        <div>
-                                            <div className="label-text">Số chứng từ</div>
-                                            <input type="text" value={warehouseFilters.tran_no_search} onChange={e => setWarehouseFilters(p => ({...p, tran_no_search: e.target.value}))} placeholder="Nhập số CT..." className="filter-control text-[11px] font-bold" />
-                                        </div>
-                                    </div>}
-                                </div>
+                            <div className="bg-white border-b border-slate-200 px-6 py-3 shrink-0 z-[900]">
+                                {veHangLocDs('warehouse', { onLoc: () => loadWarehouseData(), dangTai: warehouseLoading, tongDong: warehousePagination.total_rows })}
                             </div>
                             <div className="flex-1 min-h-0 p-3 overflow-hidden bg-slate-50 flex flex-col relative">
                                 {warehouseLoading && <div className="absolute inset-0 bg-white/40 z-50 flex flex-col items-center justify-center backdrop-blur-[2px] transition-all"><div className="bg-white p-6 rounded-3xl shadow-2xl flex flex-col items-center gap-4 border border-indigo-50"><Icon name="loader" size={48} className="animate-spin text-indigo-600"/><div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest animate-pulse">Đang truy vấn dữ liệu...</div></div></div>}
@@ -8351,47 +8212,8 @@ const exportJournalCsv = (mode) => {
 
                     {activeTab === 'warehouse_balance' && (
                         <>
-                            <div className="bg-white border-b border-slate-200 p-4 px-6 shrink-0 shadow-sm z-[900]">
-                                <div className="space-y-4">
-                                    <div className="flex items-end gap-3">
-                                        <div className="w-44"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
-                                        <div className="w-32"><IOSDatePicker label="Từ ngày" value={filters.from_date} onChange={val => toggleFilter('from_date', val)} disabled={period.type !== 'custom'} /></div>
-                                        <div className="w-32"><IOSDatePicker label="Đến ngày" value={filters.to_date} onChange={val => toggleFilter('to_date', val)} disabled={period.type !== 'custom'} /></div>
-                                        <div className="w-40"><PremiumDropdown label="Đơn vị" items={meta.orgs} selectedItems={filters.org_ids} onSelect={id => toggleFilter('org_ids', id)} isActive={activeDropdown === 'Đơn vị'} onToggle={setActiveDropdown} /></div>
-                                        <div className="ml-auto shrink-0 flex items-center gap-2">
-                                            <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/60 rounded-xl px-3 py-1 shrink-0 h-[40px]">
-                                                <div className="flex flex-col items-start shrink-0">
-                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.1em] mb-0.5">Hiển thị</span>
-                                                    <PageSizeDropdown
-                                                        value={filters.page_size}
-                                                        onChange={newSize => { setFilters(p => ({ ...p, page_size: newSize, page: 1 })); }}
-                                                    />
-                                                </div>
-                                                <div className="h-6 w-px bg-slate-200"></div>
-                                                <div className="flex flex-col items-end shrink-0">
-                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em] mb-0.5">Results</span>
-                                                    <div className="text-[12px] font-black text-indigo-600 tabular-nums leading-none tracking-tighter">
-                                                        {warehouseBalancePagination.total_rows?.toLocaleString()}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <button onClick={() => loadWarehouseBalanceData()} disabled={warehouseBalanceLoading} className="group relative overflow-hidden bg-slate-900 text-white px-4 h-[40px] rounded-xl font-black text-[10px] uppercase tracking-wider transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-indigo-500/30 shrink-0">
-                                                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-violet-600 opacity-90 group-hover:opacity-100 transition-opacity"></div>
-                                                <div className="relative flex items-center gap-2">
-                                                    {warehouseBalanceLoading ? <Icon name="loader" className="animate-spin" /> : <Icon name="search" size={12} className="group-hover:rotate-12 transition-transform"/>}
-                                                    <span>{warehouseBalanceLoading ? 'ĐANG TẢI...' : 'TRUY VẤN'}</span>
-                                                </div>
-                                            </button>
-                                            <FilterToggleButton expanded={filtersExpanded} onToggle={() => setFiltersExpanded(v => !v)} count={warehouseBalanceRow2Count} />
-                                            <ExportButton kind="warehouse_balance" />
-                                        </div>
-                                    </div>
-                                    {filtersExpanded && <div className="grid grid-cols-8 gap-1.5">
-                                        <PremiumDropdown label="Kho" items={meta.warehouses} selectedItems={warehouseBalanceFilters.wh_ids} onSelect={id => toggleWarehouseBalanceFilter('wh_ids', id)} isActive={activeDropdown === 'Kho'} onToggle={setActiveDropdown} />
-                                        <PremiumDropdown label="Hàng hóa" items={meta.items} selectedItems={filters.item_ids} onSelect={id => toggleFilter('item_ids', id)} isActive={activeDropdown === 'Hàng hóa'} onToggle={setActiveDropdown} />
-                                        <PremiumDropdown label="Tài khoản" items={meta.accounts} selectedItems={filters.acc_ids} onSelect={id => toggleFilter('acc_ids', id)} isActive={activeDropdown === 'Tài khoản'} onToggle={setActiveDropdown} align="right" />
-                                    </div>}
-                                </div>
+                            <div className="bg-white border-b border-slate-200 px-6 py-3 shrink-0 z-[900]">
+                                {veHangLocDs('warehouse_balance', { onLoc: () => loadWarehouseBalanceData(), dangTai: warehouseBalanceLoading, tongDong: warehouseBalancePagination.total_rows })}
                             </div>
                             <div className="flex-1 min-h-0 p-3 overflow-hidden bg-slate-50 flex flex-col relative">
                                 {warehouseBalanceLoading && <div className="absolute inset-0 bg-white/40 z-50 flex flex-col items-center justify-center backdrop-blur-[2px] transition-all"><div className="bg-white p-6 rounded-3xl shadow-2xl flex flex-col items-center gap-4 border border-indigo-50"><Icon name="loader" size={48} className="animate-spin text-indigo-600"/><div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest animate-pulse">Đang truy vấn dữ liệu...</div></div></div>}
@@ -8477,44 +8299,9 @@ const exportJournalCsv = (mode) => {
 
                     {activeTab === 'btp_reconcile' && (
                         <>
-                            <div className="bg-white border-b border-slate-200 p-4 px-6 shrink-0 shadow-sm z-[900]">
-                                <div className="space-y-4">
-                                    <div className="flex items-end gap-3">
-                                        <div className="w-44"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
-                                        <div className="w-32"><IOSDatePicker label="Từ ngày" value={filters.from_date} onChange={val => toggleFilter('from_date', val)} disabled={period.type !== 'custom'} /></div>
-                                        <div className="w-32"><IOSDatePicker label="Đến ngày" value={filters.to_date} onChange={val => toggleFilter('to_date', val)} disabled={period.type !== 'custom'} /></div>
-                                        <div className="w-40"><PremiumDropdown label="Đơn vị" items={meta.orgs} selectedItems={filters.org_ids} onSelect={id => toggleFilter('org_ids', id)} isActive={activeDropdown === 'Đơn vị'} onToggle={setActiveDropdown} /></div>
-                                        <div className="ml-auto shrink-0 flex items-center gap-2">
-                                            <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/60 rounded-xl px-3 py-1 shrink-0 h-[40px]">
-                                                <div className="flex flex-col items-start shrink-0">
-                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.1em] mb-0.5">Hiển thị</span>
-                                                    <PageSizeDropdown value={filters.page_size} onChange={newSize => { setFilters(p => ({ ...p, page_size: newSize, page: 1 })); }} />
-                                                </div>
-                                                <div className="h-6 w-px bg-slate-200"></div>
-                                                <div className="flex flex-col items-end shrink-0">
-                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em] mb-0.5">Results</span>
-                                                    <div className="text-[12px] font-black text-indigo-600 tabular-nums leading-none tracking-tighter">{btpPagination.total_rows?.toLocaleString()}</div>
-                                                </div>
-                                            </div>
-                                            <button onClick={() => loadBtpData()} disabled={btpLoading} className="group relative overflow-hidden bg-slate-900 text-white px-4 h-[40px] rounded-xl font-black text-[10px] uppercase tracking-wider transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-indigo-500/30 shrink-0">
-                                                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-violet-600 opacity-90 group-hover:opacity-100 transition-opacity"></div>
-                                                <div className="relative flex items-center gap-2">
-                                                    {btpLoading ? <Icon name="loader" className="animate-spin" /> : <Icon name="search" size={12} className="group-hover:rotate-12 transition-transform"/>}
-                                                    <span>{btpLoading ? 'ĐANG TẢI...' : 'TRUY VẤN'}</span>
-                                                </div>
-                                            </button>
-                                            <FilterToggleButton expanded={filtersExpanded} onToggle={() => setFiltersExpanded(v => !v)} count={btpRow2Count} />
-                                            <ExportButton kind="btp_reconcile" />
-                                        </div>
-                                    </div>
-                                    {filtersExpanded && <div className="grid grid-cols-8 gap-1.5">
-                                        <PremiumDropdown label="Kho xuất" items={meta.warehouses} selectedItems={btpFilters.wh_ids} onSelect={id => toggleBtpFilter('wh_ids', id)} isActive={activeDropdown === 'Kho xuất'} onToggle={setActiveDropdown} />
-                                        <PremiumDropdown label="Nguyên liệu" items={meta.items} selectedItems={filters.item_ids} onSelect={id => toggleFilter('item_ids', id)} isActive={activeDropdown === 'Nguyên liệu'} onToggle={setActiveDropdown} />
-                                        {/* Danh sách lấy từ dbo.DM_PRODUCT (meta.products) — đúng bộ mã đứng ở
-                                            cột PRODUCT_ID của phiếu xuất SX. Đã kiểm: cả 22 mã BTP phát sinh
-                                            trong 2026 đều có trong DM_PRODUCT với ACTIVE=1. */}
-                                        <PremiumDropdown label="Bán thành phẩm" items={meta.products} selectedItems={btpFilters.btp_ids} onSelect={id => toggleBtpFilter('btp_ids', id)} isActive={activeDropdown === 'Bán thành phẩm'} onToggle={setActiveDropdown} />
-                                    </div>}
+                            <div className="bg-white border-b border-slate-200 px-6 py-3 shrink-0 z-[900]">
+                                {veHangLocDs('btp_reconcile', { onLoc: () => loadBtpData(), dangTai: btpLoading, tongDong: btpPagination.total_rows })}
+                                <div className="mt-3">
                                     <div className="flex items-center gap-2 flex-wrap">
                                         {[['', 'Tất cả', null],
                                           ['chua', 'Chưa nhập kho BTP', 'Chưa nhập kho BTP'],
@@ -8653,41 +8440,9 @@ const exportJournalCsv = (mode) => {
 
                     {activeTab === 'dcnb_reconcile' && (
                         <>
-                            <div className="bg-white border-b border-slate-200 p-4 px-6 shrink-0 shadow-sm z-[900]">
-                                <div className="space-y-4">
-                                    <div className="flex items-end gap-3">
-                                        <div className="w-44"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
-                                        <div className="w-32"><IOSDatePicker label="Từ ngày" value={filters.from_date} onChange={val => toggleFilter('from_date', val)} disabled={period.type !== 'custom'} /></div>
-                                        <div className="w-32"><IOSDatePicker label="Đến ngày" value={filters.to_date} onChange={val => toggleFilter('to_date', val)} disabled={period.type !== 'custom'} /></div>
-                                        <div className="w-40"><PremiumDropdown label="Đơn vị xuất" items={meta.orgs} selectedItems={filters.org_ids} onSelect={id => toggleFilter('org_ids', id)} isActive={activeDropdown === 'Đơn vị xuất'} onToggle={setActiveDropdown} /></div>
-                                        <div className="ml-auto shrink-0 flex items-center gap-2">
-                                            <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/60 rounded-xl px-3 py-1 shrink-0 h-[40px]">
-                                                <div className="flex flex-col items-start shrink-0">
-                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.1em] mb-0.5">Hiển thị</span>
-                                                    <PageSizeDropdown value={filters.page_size} onChange={newSize => { setFilters(p => ({ ...p, page_size: newSize, page: 1 })); }} />
-                                                </div>
-                                                <div className="h-6 w-px bg-slate-200"></div>
-                                                <div className="flex flex-col items-end shrink-0">
-                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em] mb-0.5">Results</span>
-                                                    <div className="text-[12px] font-black text-indigo-600 tabular-nums leading-none tracking-tighter">{dcnbPagination.total_rows?.toLocaleString()}</div>
-                                                </div>
-                                            </div>
-                                            <button onClick={() => loadDcnbData()} disabled={dcnbLoading} className="group relative overflow-hidden bg-slate-900 text-white px-4 h-[40px] rounded-xl font-black text-[10px] uppercase tracking-wider transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-indigo-500/30 shrink-0">
-                                                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-violet-600 opacity-90 group-hover:opacity-100 transition-opacity"></div>
-                                                <div className="relative flex items-center gap-2">
-                                                    {dcnbLoading ? <Icon name="loader" className="animate-spin" /> : <Icon name="search" size={12} className="group-hover:rotate-12 transition-transform"/>}
-                                                    <span>{dcnbLoading ? 'ĐANG TẢI...' : 'TRUY VẤN'}</span>
-                                                </div>
-                                            </button>
-                                            <FilterToggleButton expanded={filtersExpanded} onToggle={() => setFiltersExpanded(v => !v)} count={dcnbRow2Count} />
-                                            <ExportButton kind="dcnb_reconcile" />
-                                        </div>
-                                    </div>
-                                    {filtersExpanded && <div className="grid grid-cols-8 gap-1.5">
-                                        <PremiumDropdown label="Kho xuất" items={meta.warehouses} selectedItems={dcnbFilters.wh_ids} onSelect={id => toggleDcnbFilter('wh_ids', id)} isActive={activeDropdown === 'Kho xuất'} onToggle={setActiveDropdown} />
-                                        <PremiumDropdown label="Kho nhập" items={meta.warehouses} selectedItems={dcnbFilters.wh_nhap_ids} onSelect={id => toggleDcnbFilter('wh_nhap_ids', id)} isActive={activeDropdown === 'Kho nhập'} onToggle={setActiveDropdown} />
-                                        <PremiumDropdown label="Hàng hoá" items={meta.items} selectedItems={filters.item_ids} onSelect={id => toggleFilter('item_ids', id)} isActive={activeDropdown === 'Hàng hoá'} onToggle={setActiveDropdown} />
-                                    </div>}
+                            <div className="bg-white border-b border-slate-200 px-6 py-3 shrink-0 z-[900]">
+                                {veHangLocDs('dcnb_reconcile', { onLoc: () => loadDcnbData(), dangTai: dcnbLoading, tongDong: dcnbPagination.total_rows })}
+                                <div className="mt-3">
                                     <div className="flex items-center gap-2 flex-wrap">
                                         {/* Hai chip "Không thấy ..." để CẠNH NHAU: chúng là hai chiều ngược
                                             của cùng một việc (thiếu phiếu nhập / thiếu phiếu xuất) và tên chỉ
@@ -8825,40 +8580,9 @@ const exportJournalCsv = (mode) => {
 
                     {activeTab === 'po_list' && (
                         <>
-                            <div className="bg-white border-b border-slate-200 p-4 px-6 shrink-0 shadow-sm z-[900]">
-                                <div className="space-y-4">
-                                    <div className="flex items-end gap-3">
-                                        <div className="w-44"><PeriodDropdown period={period} setPeriod={setPeriod} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
-                                        <div className="w-32"><IOSDatePicker label="Từ ngày" value={filters.from_date} onChange={val => toggleFilter('from_date', val)} disabled={period.type !== 'custom'} /></div>
-                                        <div className="w-32"><IOSDatePicker label="Đến ngày" value={filters.to_date} onChange={val => toggleFilter('to_date', val)} disabled={period.type !== 'custom'} /></div>
-                                        <div className="w-40"><PremiumDropdown label="Đơn vị" items={meta.orgs} selectedItems={filters.org_ids} onSelect={id => toggleFilter('org_ids', id)} isActive={activeDropdown === 'Đơn vị'} onToggle={setActiveDropdown} /></div>
-                                        <div className="ml-auto shrink-0 flex items-center gap-2">
-                                            <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/60 rounded-xl px-3 py-1 shrink-0 h-[40px]">
-                                                <div className="flex flex-col items-start shrink-0">
-                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.1em] mb-0.5">Hiển thị</span>
-                                                    <PageSizeDropdown value={filters.page_size} onChange={newSize => { setFilters(p => ({ ...p, page_size: newSize, page: 1 })); }} />
-                                                </div>
-                                                <div className="h-6 w-px bg-slate-200"></div>
-                                                <div className="flex flex-col items-end shrink-0">
-                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em] mb-0.5">Results</span>
-                                                    <div className="text-[12px] font-black text-indigo-600 tabular-nums leading-none tracking-tighter">{poPagination.total_rows?.toLocaleString()}</div>
-                                                </div>
-                                            </div>
-                                            <button onClick={() => loadPoData()} disabled={poLoading} className="group relative overflow-hidden bg-slate-900 text-white px-4 h-[40px] rounded-xl font-black text-[10px] uppercase tracking-wider transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-indigo-500/30 shrink-0">
-                                                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-violet-600 opacity-90 group-hover:opacity-100 transition-opacity"></div>
-                                                <div className="relative flex items-center gap-2">
-                                                    {poLoading ? <Icon name="loader" className="animate-spin" /> : <Icon name="search" size={12} className="group-hover:rotate-12 transition-transform"/>}
-                                                    <span>{poLoading ? 'ĐANG TẢI...' : 'TRUY VẤN'}</span>
-                                                </div>
-                                            </button>
-                                            <FilterToggleButton expanded={filtersExpanded} onToggle={() => setFiltersExpanded(v => !v)} count={poRow2Count} />
-                                            <ExportButton kind="po_list" />
-                                        </div>
-                                    </div>
-                                    {filtersExpanded && <div className="grid grid-cols-8 gap-1.5">
-                                        <PremiumDropdown label="Kho" items={meta.warehouses} selectedItems={poFilters.wh_ids} onSelect={id => togglePoFilter('wh_ids', id)} isActive={activeDropdown === 'Kho'} onToggle={setActiveDropdown} />
-                                        <PremiumDropdown label="Hàng hoá" items={meta.items} selectedItems={filters.item_ids} onSelect={id => toggleFilter('item_ids', id)} isActive={activeDropdown === 'Hàng hoá'} onToggle={setActiveDropdown} />
-                                    </div>}
+                            <div className="bg-white border-b border-slate-200 px-6 py-3 shrink-0 z-[900]">
+                                {veHangLocDs('po_list', { onLoc: () => loadPoData(), dangTai: poLoading, tongDong: poPagination.total_rows })}
+                                <div className="mt-3">
                                     <div className="flex items-center gap-2 flex-wrap">
                                         {[['TX', 'TX · Yêu cầu mua hàng'],
                                           ['TX1', 'TX1 · PO Kho tổng'],
@@ -8891,11 +8615,6 @@ const exportJournalCsv = (mode) => {
                                                 </button>
                                             );
                                         })}
-                                    </div>
-                                    {/* Nói thẳng vì sao không có cột đối chiếu phiếu mua — để người xem khỏi
-                                        tưởng là thiếu sót, và khỏi ai đó "bổ sung" bằng một liên kết bịa. */}
-                                    <div className="text-[10px] font-bold text-slate-400">
-                                        Số đếm là <b>số phiếu PO</b>. Bảng này <b>không</b> đối chiếu sang phiếu nhập mua hàng: iPOS trên dữ liệu này không ghi liên kết PO → phiếu nhập (đã kiểm 7 khoá nối, không khoá nào đúng), nên mọi cột "đã mua chưa" đều sẽ là suy đoán.
                                     </div>
                                 </div>
                             </div>

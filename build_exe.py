@@ -16,7 +16,7 @@ import subprocess
 VALID_APP_NAMES = ('iPOS_Accounting_Report', 'iPOS_Ledger_Studio')
 # Ten HIEN THI trong Properties cua file EXE (FileDescription / ProductName). Ten FILE van la APP_NAME:
 # bo tu cap nhat tai asset theo dung ten file, doi la moi may dang chay mat duong cap nhat (GD5, 25/09/2026).
-DISPLAY_NAMES = {'iPOS_Accounting_Report': 'PROOFTRAIL', 'iPOS_Ledger_Studio': 'iPOS_Ledger_Studio'}
+DISPLAY_NAMES = {'iPOS_Accounting_Report': 'DATA REPORT', 'iPOS_Ledger_Studio': 'iPOS_Ledger_Studio'}
 
 if len(sys.argv) > 1 and sys.argv[1].strip():
     APP_NAME = sys.argv[1].strip()

@@ -3,12 +3,12 @@
 > Toàn bộ những gì đã làm với **LedgerReport**, và **vì sao**. Đọc file này trước khi sửa tiếp.
 > Kiến trúc, ma trận báo cáo, phương án backup: [CLAUDE.md](CLAUDE.md).
 > Mổ xẻ sâu sự cố + 4 bài học: [SU_CO_15082026.md](SU_CO_15082026.md).
-> 🎨 **ĐANG LÀM (24–25/09/2026):** giao diện mới **PROOFTRAIL** + đăng nhập nhanh — nhánh
+> 🎨 **ĐANG LÀM (24–25/09/2026):** giao diện mới **DATA REPORT** (tên cũ PROOFTRAIL, đổi 25/09) + đăng nhập nhanh — nhánh
 > **`giaodien`**, **CHƯA push**. Kế hoạch & tiến độ: § VIỆC CẦN LÀM → 🎨.
 > ✅ **GĐ3 (điều hướng + Báo cáo TC): Đại Ca xem và chốt OK sáng 25/09 — đã commit `fed091f`.**
 > ✅ **GĐ4 Trang chủ (khung, chưa số liệu): Đại Ca xem và chốt OK 25/09 — đã commit.**
 > ✅ **Tab Phân quyền — giao diện mới: Đại Ca xem và chốt OK 25/09 — đã commit** (việc 32).
-> 🟡 **GĐ5 (tên PROOFTRAIL) + thanh lọc mới 9 màn danh sách + ẩn/hiện/kéo giãn cột + Excel theo cột hiện: XONG ở mã nguồn,
+> 🟡 **GĐ5 (tên — nay là DATA REPORT) + thanh lọc mới 9 màn danh sách + ẩn/hiện/kéo giãn cột + Excel theo cột hiện: XONG ở mã nguồn,
 > đã commit từng chặng — CHỜ Đại Ca xem trên 5051.** ⚠️ Phần *Excel bỏ cột ẩn* có sửa `server.py` ⇒ phải **khởi động lại 5051** mới thấy.
 > 🩹 **Việc 31 (lỗi trong bản đang phát hành) ĐÃ VÁ trên `main` — commit `784d227`, CHƯA build, CHƯA push.**
 > Đại Ca chốt 25/09: *"vá trước nhưng chưa build, để build 1 lần luôn"*.
@@ -103,7 +103,8 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 | 17 | ~~Nút `TRUY VẤN` đang chuyển màu navy → tím~~ ✅ **XONG 25/09** | Đại Ca chốt: chữ **"Lọc"**, navy đặc, như mẫu iPOS. Nằm trong thanh lọc mới của 9 màn danh sách |
 | 18 | ~~Chốt mốc commit phần đăng nhập nhanh + sửa font~~ ✅ **commit `c64540a`** | Local, chưa push |
 | 19 | ~~Đại Ca xem GĐ3 rồi chốt commit~~ ✅ **Đại Ca chốt OK sáng 25/09** (*"cái đó thì ok rồi"*) ⇒ đã commit GĐ3 | ⚠️ Đại Ca chốt chung, **không nói rõ đã thử từng mục dưới đây chưa** — lần đầu dùng số liệu thật thì để ý. Danh sách cần xem ở mục *"Việc Đại Ca xem sáng 25/09"* trong nhật ký 25/09 (tiếp 3), ngay dưới § này. Ba việc tôi **không** tự thử được: hộp *"Chuyển mẫu báo cáo?"* khi có số liệu thật · menu **Xuất Excel / Xuất PDF** khi có số liệu (chưa có số liệu thì nút tắt) · kéo thả thứ tự ô lọc bằng chuột thật. Và **đọc lại mô tả 16 thẻ** — tôi tự viết |
-| 33 | 🎨 **Cột phân hệ navy bên trái** — Đại Ca: *"nhìn hơi sao sao đó"*, xin đề xuất + phác thảo | ⏳ **Chờ Đại Ca chọn.** Phác thảo = mục **06** của canvas (bản 18): Hiện tại · **A** cột sáng · **B** bỏ cột, phân hệ lên thanh trên · **C** cột có tên, thu gọn được. Số đo ở 1366×768: bảng rộng 1.276 / 1.276 / **1.340** / 1.124px, thấy 15 / 15 / **13** / 15 dòng. Chưa sửa mã |
+| 34 | 🔴 **Lỗi cuộn ảo (Bẫy 29) có trong bản ĐANG PHÁT HÀNH v1.12.3** — đã sửa trên `giaodien` (`9c37191`) | **Chờ Đại Ca chốt** có vá lên `main` như việc 31 không (chưa build, build một lần cùng đợt). Người dùng gặp khi: xem xong một màn, sang màn khác thao tác, quay lại cuộn ⇒ chỉ ~87 dòng. Bấm Lọc lại là hết |
+| 33 | ~~Cột phân hệ navy bên trái~~ ✅ **XONG 25/09 — kiểu 06C** (Đại Ca chọn, navy nhạt hơn 1 bậc) | Phác thảo = mục **06** của canvas. Chờ Đại Ca xem trên 5051 |
 | 32 | ~~Giao diện mới cho tab Phân quyền~~ ✅ **XONG 25/09 — Đại Ca chốt OK, đã commit** (local, chưa push) | Mục **05 — PHÂN QUYỀN** của bản phác thảo. **Bản 2 (theo góp ý 25/09):** Chức vụ **bỏ ma trận** → danh sách + khung sửa bên phải, cùng kiểu tab Tài khoản · Tài khoản **bỏ ô mật khẩu và hộp tóm tắt quyền** (mật khẩu thu thành dòng *"Đặt lại mật khẩu"*; tài khoản mới vẫn có ô) · Đơn vị = **một danh sách tick**, có dòng *"Tất cả đơn vị"*. Thêm 2 khung **Thêm tài khoản** / **Thêm chức vụ** (Đại Ca hỏi *"màn hình thêm mới quyền thì sao"*). Dữ liệu trong khung là **minh hoạ**. Chưa sửa dòng mã nào |
 | 31 | 🩹 **Ô Số chứng từ của BC012 hỏng trong bản ĐANG PHÁT HÀNH v1.12.3** — ✅ **ĐÃ VÁ trên `main` 25/09 (`784d227`), ⏳ CHƯA build/push** | Gõ từng chữ `P` → `T` thì thành `P,PT` và lọc ra 0 dòng (`toggleFilter` coi `tran_no` là mảng). Sửa cả hai nhánh: `giaodien` (chưa commit) và `main`. Đại Ca chốt **build một lần** cùng đợt sau. Người dùng **vẫn gặp lỗi tới khi phát hành**. Dán nguyên số phiếu một lần thì chạy |
 | 30 | ~~Áp Bộ lọc nâng cao + ô Thời gian gộp sang 9 màn danh sách~~ ✅ **XONG 25/09 — commit `e071bb9`** | Theo ảnh mẫu iPOS *"Đặt mua hàng"*. **Tối đa 3 ô ngoài** (tính cả Thời gian — Đại Ca chốt), phần còn lại vào Bộ lọc nâng cao. 9/9 màn một hàng ở 1366 và 1280px |
@@ -160,6 +161,50 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 | Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 25/09/2026 (khuya, tiếp 2) — Sửa lỗi bảng chỉ vẽ ~87 dòng · thanh cuộn dễ thấy · đổi tên DATA REPORT · cột phân hệ kiểu 06C
+
+Đại Ca gửi 2 ảnh màn Chứng từ tiền T08/2026 (*149.522 dòng*): cuộn tới **dòng 87 là trắng**, thanh cuộn *"bị ẩn vào
+trong"*; hỏi *"có phải do cho chọn kỳ không"*. Chốt thêm: cột phân hệ **làm theo 06C, navy nhạt 1 chút**; tên
+**DATA REPORT** *"cho đúng bản chất"*.
+
+### 1. Bảng chỉ vẽ ~87 dòng — KHÔNG phải do chọn kỳ (commit `9c37191`)
+
+Số đếm và dữ liệu đi chung một lần gọi `/api/voucher` ⇒ không thể lệch kỳ. Dựng lại được đúng lỗi trên server thử
+(10.000 dòng giả): Lọc rồi cuộn **đúng** · đổi tab rồi quay lại ngay **đúng** · đổi tab, **có thao tác ở tab kia**,
+quay lại **TRẮNG** · bấm Lọc lại **đúng**. Gốc: deps `[containerRef.current]` của `useVirtualScroll` ⇒ **Bẫy 29**.
+Sửa: effect không deps, tự so khung. Sau sửa: cả 4 bước đều đúng, thử cả Tiền lẫn Tổng hợp.
+⚠️ **Có sẵn từ commit đầu tiên ⇒ bản v1.12.3 cũng bị** — việc 34.
+
+Thanh cuộn khung bảng 9 màn: 8px trong suốt / con trượt 4px xám nhạt ⇒ **12px, có rãnh nền, con trượt `#94a3b8`,
+dài tối thiểu 48px** (CSS `:has(> table[data-bang])`, menu thả xuống giữ nguyên). Đo: khung cuộn ăn đúng 12px.
+
+### 2. Đổi tên PROOFTRAIL → DATA REPORT
+
+`<title>`, 2 meta, `APP_NAME`, logo, màn đăng nhập (*DATA / REPORT*, chữ REPORT 277px trong tấm 480px — vừa),
+`manifest.json`, Properties EXE (`build_exe.py`, `version_info.txt`). **Giữ** dòng phụ *"Minh bạch tới từng chứng từ"*
+và tên file `iPOS_Accounting_Report.exe`.
+
+### 3. Cột phân hệ kiểu 06C
+
+Cột có tên 216px, navy `#1e3a8a` (trước `#172554`), mục chọn `#1d4ed8`; nhóm nhiều màn hiện sẵn màn con; hàng tab
+ngang của màn danh sách thành dòng đường dẫn; nút Thu gọn ⇒ 64px + tab ngang như cũ. Chi tiết: CLAUDE.md § Điều hướng.
+
+### 🧪 Verify (server thử 5052)
+
+| Kiểm | Kết quả |
+|---|---|
+| **M1** | Babel SUCCESSFUL |
+| 9 màn, cột mở rộng, 4 ô lọc | **1366px và 1280px: 9/9 một hàng**, ô 200/160/144px, trang không tràn ngang |
+| Báo cáo | BC008 1280px: đủ 160px · **BC012 1280px: 3 ô ép còn 113px**, một hàng, không cắt chữ |
+| Thu gọn / mở rộng | 216 ⇄ 64px, thu gọn thì tab ngang quay lại, **nạp lại trang vẫn nhớ** · đóng nhóm Mua & bán ⇒ ẩn 3 màn con, nhớ |
+
+### 🔍 Điểm mù
+
+- Chưa thử với số liệu thật trên 5051 — nhất là **cuộn thật bằng chuột** qua 10.000 dòng.
+- Màn Phân quyền với cột 216px: chưa đo (danh sách + khung sửa 460px, còn ~690px cho danh sách ở 1366).
 
 ---
 

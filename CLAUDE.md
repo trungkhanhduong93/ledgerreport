@@ -4,7 +4,7 @@
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
 > Cập nhật gần nhất: **24/09/2026** · **Bản mới nhất: `v1.12.3`** — đã push, Actions `success`,
 > **là `Latest` trên GitHub** (`main` = `62af287`)
-> · 🎨 **Đang làm (25/09/2026): giao diện mới `PROOFTRAIL` + đăng nhập nhanh** trên nhánh
+> · 🎨 **Đang làm (25/09/2026): giao diện mới `DATA REPORT`** (đổi từ `PROOFTRAIL` cùng ngày) **+ đăng nhập nhanh** trên nhánh
 > **`giaodien`** — chưa push. **GĐ0–GĐ5 đã commit** (GĐ3, GĐ4, tab Phân quyền Đại Ca chốt OK 25/09;
 > GĐ5 + thanh lọc 9 màn + cột bảng + lọc 2 chiều tab điều chuyển **chờ Đại Ca xem**).
 > Kế hoạch & tiến độ: **NHAT_KY_CONG_VIEC.md → § VIỆC CẦN LÀM → 🎨**
@@ -160,8 +160,14 @@ không cần biết lúc đó có mạng hay không.
 
 #### 🧭 Điều hướng 2 tầng *(nhánh `giaodien`, GĐ3 — 25/09/2026, CHƯA phát hành)*
 
-Cột icon navy bên trái (64px) = **phân hệ** · hàng tab ngang = **màn hình** của phân hệ đó. Khai báo
-ở `PHAN_HE` trong `index.html`:
+Cột navy bên trái = **phân hệ** · màn hình của phân hệ nằm ở cột (mở rộng) hoặc hàng tab ngang (thu gọn).
+**Kiểu 06C** (Đại Ca chốt 25/09/2026 tối, phác thảo mục 06 của canvas): cột **có tên, 216px**, nền navy nhạt hơn
+1 bậc (`#1e3a8a`, mục đang chọn `#1d4ed8` — hằng `CPH`). Phân hệ nhiều màn (Mua & bán, Kho) hiện sẵn màn con,
+bấm tên nhóm = đóng/mở; phân hệ 1 màn bấm tên là vào thẳng. Mở rộng thì hàng tab ngang của màn danh sách thành
+**dòng đường dẫn** (`HangTab` prop `duongDan`); Báo cáo TC / Phân quyền / Trang chủ vẫn có tab riêng. Nút
+**Thu gọn cột** ⇒ 64px icon như GĐ3, hàng tab ngang quay lại. Nhớ trên máy: `lr_cot_phan_he_gon`,
+`lr_nhom_phan_he_dong`. ⚠️ Mở rộng ăn thêm 152px chiều ngang: ở 1280px, BC012 (4 ô lọc) ô bị ép còn 113px —
+vẫn một hàng, không cắt chữ (đo 25/09). Tên hiển thị: **`DATA REPORT`** (`APP_NAME`). Khai báo ở `PHAN_HE` trong `index.html`:
 Tổng hợp (`ledger`) · Tiền (`voucher`) · Mua & bán (`sale`, `purchase`, `po_list`) ·
 Kho (`warehouse`, `warehouse_balance`, `btp_reconcile`, `dcnb_reconcile`) · **Báo cáo TC**.
 Phân quyền nằm **sát đáy cột**; ô tài khoản (có Đăng xuất) ở **góc phải trên cùng**, sau nút Tải lại
@@ -927,6 +933,25 @@ biến mất mà không có lỗi nào.
 ➡️ Thay màu xong phải **rà NỀN PHÍA SAU từng chỗ**. Đổi tông cả app thì **đừng thay mã màu hàng
 loạt** — ghi đè thang màu trong `tailwind.config` (403 lớp `indigo-*` đổi theo mà không sửa lớp nào),
 còn các mã ghi thẳng thì duyệt tay từng chỗ.
+
+### Bẫy 29 — `useEffect(…, [ref.current])` gắn listener vào khung CŨ ⇒ bảng chỉ vẽ ~87 dòng rồi trắng *(25/09/2026)*
+
+Triệu chứng Đại Ca báo (màn Chứng từ tiền): *Kết quả 149.522 dòng*, trang 10.000 dòng, nhưng cuộn xuống
+tới **dòng 87 là hết, bên dưới trắng**. Nhìn như lọc sai kỳ — **không phải**: số đếm và dữ liệu đi chung một
+lần gọi API, dữ liệu về đủ 10.000 dòng.
+
+Gốc: `useVirtualScroll` gắn listener cuộn + ResizeObserver bằng deps `[containerRef.current]`. Giá trị đó đọc
+lúc **render**, còn ref chỉ được gán lúc **commit** ⇒ sang tab khác, **có một lần vẽ lại ở tab đó**, rồi quay
+về: khung bảng MỚI không được gắn gì. `scrollTop` kẹt ở 0, `containerHeight` kẹt ở `window.innerHeight` ⇒ chỉ
+vẽ `innerHeight / 29 + 50` dòng (≈87 trên màn Đại Ca). Bấm Lọc lại thì hết (có lần vẽ lại). **Dính cả 9 màn,
+có sẵn từ commit đầu tiên — bản đang phát hành cũng bị.**
+
+➡️ Nay effect **không có deps**, chạy sau mọi commit và tự so khung đang gắn với khung hiện tại. ⛔ Đừng dùng
+`ref.current` làm deps ở bất cứ đâu — lint đã cảnh báo đúng chỗ này, bản cũ tắt cảnh báo bằng `eslint-disable`.
+
+⚠️ **Thử lại lỗi cuộn trong trình duyệt tích hợp khi khung đang ẩn:** trình duyệt **không bắn sự kiện `scroll`**
+khi trang không được vẽ ⇒ gán `scrollTop` xong phải tự `dispatchEvent(new Event('scroll'))`, không thì phép thử
+báo "trắng" giả. Đã vấp khi dựng lại lỗi này.
 
 ---
 

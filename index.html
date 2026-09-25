@@ -45,13 +45,13 @@ window.showConnectionLost = function() {
     if (b) b.onclick = function() { location.reload(); };
 };
 </script>
-<title>PROOFTRAIL</title>
+<title>DATA REPORT</title>
     <link rel="icon" type="image/svg+xml" href="/icon.svg">
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#1e3a8a">
-    <meta name="application-name" content="PROOFTRAIL">
+    <meta name="application-name" content="DATA REPORT">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="PROOFTRAIL">
+    <meta name="apple-mobile-web-app-title" content="DATA REPORT">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -656,6 +656,8 @@ window.showConnectionLost = function() {
                 "archive": '<path d="M21 8v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8"/><path d="M2 4h20v4H2z"/><path d="M10 12h4"/>',
                 "chart-line": '<path d="M3 3v18h18"/><path d="M7 15l3.5-4 3 2.5L21 7"/>',
                 "swap": '<path d="M3 7h13l-3-3"/><path d="M21 17H8l3 3"/>',
+                "chevrons-left": '<path d="m11 17-5-5 5-5"/><path d="m18 17-5-5 5-5"/>',     // nút Thu gọn cột phân hệ
+                "chevrons-right": '<path d="m6 17 5-5-5-5"/><path d="m13 17 5-5-5-5"/>',    // nút Mở rộng cột phân hệ
                 "grid": '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
                 "filter": '<path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>',
                 "grip": '<path d="M4 8h16"/><path d="M4 12h16"/><path d="M4 16h16"/>',
@@ -1058,9 +1060,9 @@ window.showConnectionLost = function() {
             );
         };
 
-        // GĐ5 (25/09/2026): tên HIỂN THỊ là PROOFTRAIL. ⛔ Tên FILE EXE giữ `iPOS_Accounting_Report.exe` —
+        // GĐ5 (25/09/2026): tên HIỂN THỊ là DATA REPORT (ban đầu PROOFTRAIL, Đại Ca đổi cùng ngày "cho đúng bản chất"). ⛔ Tên FILE EXE giữ `iPOS_Accounting_Report.exe` —
         // bộ tự cập nhật tải asset theo đúng tên file đó, đổi là mọi máy đang chạy mất đường cập nhật.
-        const APP_NAME = 'PROOFTRAIL';
+        const APP_NAME = 'DATA REPORT';
         // `name` = tên ĐẦY ĐỦ — checklist Phân quyền (ITEM_LABEL) đọc cái này, đừng đổi.
         // `ten` + `mo_ta` = thẻ trên trang liệt kê báo cáo và ô chọn báo cáo (GĐ3 giao diện, 25/09/2026).
         const REPORT_TYPES = [
@@ -4163,7 +4165,7 @@ const exportJournalCsv = (mode) => {
             po_list: [['_stt','#',48,[]], ['DON_VI','ĐV',64,["DON_VI"]], ['TEN_DON_VI','Tên đơn vị',176,["TEN_DON_VI"]], ['LOAI_PO','Loại',64,["LOAI_PO", "TEN_LOAI"]], ['SO_PHIEU','Số phiếu PO',160,["SO_PHIEU"]], ['NGAY','Ngày lập',96,["NGAY"]], ['NGAY_GIAO','Ngày giao',96,["NGAY_GIAO"]], ['KHO','Kho',112,["KHO", "TEN_KHO"]], ['MA_HANG','Mã hàng',112,["MA_HANG"]], ['TEN_HANG','Tên hàng',208,["TEN_HANG"]], ['DVT','ĐVT',64,["DVT"]], ['SL_DAT','SL đặt',112,["SL_DAT"]], ['DON_GIA','Đơn giá',112,["DON_GIA"]], ['THANH_TIEN','Thành tiền',128,["THANH_TIEN"]], ['TONG_TIEN','Tổng tiền',128,["TONG_TIEN"]], ['TRANG_THAI','Trạng thái',128,["TRANG_THAI"]], ['GHI_CHU','Ghi chú',320,["GHI_CHU"]]],
         };
 
-        // ===== ĐIỀU HƯỚNG 2 TẦNG — GĐ3 giao diện PROOFTRAIL (Đại Ca chốt 25/09/2026) =====
+        // ===== ĐIỀU HƯỚNG 2 TẦNG — GĐ3 giao diện mới (Đại Ca chốt 25/09/2026) =====
         // Tầng 1 = cột icon navy bên trái = PHÂN HỆ. Tầng 2 = hàng tab ngang = MÀN HÌNH của phân hệ đó.
         // Phân hệ KHÔNG giữ state riêng — suy ra từ activeTab, nên hai tầng không bao giờ lệch nhau.
         //
@@ -4215,7 +4217,7 @@ const exportJournalCsv = (mode) => {
             </div>
         );
 
-        // ===== TRANG CHỦ — GĐ4 giao diện PROOFTRAIL (Đại Ca chốt 25/09/2026) =====
+        // ===== TRANG CHỦ — GĐ4 giao diện mới (Đại Ca chốt 25/09/2026) =====
         // Mở app / đăng nhập xong là vào đây. Đại Ca chốt "tạm thời lên mẫu, chưa lấy số liệu" ⇒ trang
         // này KHÔNG gọi truy vấn SQL nào: chỉ lời chào + thẻ phân hệ. Số trên thẻ (số màn hình, số báo
         // cáo) đếm từ PHAN_HE / REPORT_TYPES theo QUYỀN của người đang đăng nhập — không đụng DB.
@@ -4259,40 +4261,123 @@ const exportJournalCsv = (mode) => {
             );
         };
 
-        // Một nút trên cột phân hệ: icon + chữ 10px bên dưới (10px là cỡ tối thiểu — Bẫy 27).
-        // ⚠️ Rê chuột CHỈ đổi màu chữ, KHÔNG tô nền: nền white/5 trên navy tối trông gần y hệt
-        //    nền #1e3a8a của mục đang chọn ⇒ rê qua "Kho" là tưởng đang ở Kho (đã thấy khi chụp thử).
+        // ===== CỘT PHÂN HỆ — kiểu 06C (Đại Ca chốt 25/09/2026 tối): CÓ TÊN, thu gọn được, navy nhạt hơn 1 bậc =====
+        // MỞ RỘNG 216px: phân hệ nhiều màn (Mua & bán, Kho) hiện sẵn màn con ⇒ bấm 1 lần tới bất kỳ màn nào (bấm tên
+        //   nhóm = đóng/mở nhóm); phân hệ 1 màn (Tổng hợp, Tiền) bấm tên là vào thẳng. Hàng tab ngang của màn danh
+        //   sách thành dòng đường dẫn (HangTab, prop duongDan).
+        // THU GỌN 64px: như cột icon GĐ3, hàng tab ngang quay lại. Nhớ trên máy: 'lr_cot_phan_he_gon', 'lr_nhom_phan_he_dong'.
+        // Bề ngang bảng: mở rộng mất 152px so với thu gọn (phác thảo 06C: 1.124 / 1.276px ở màn 1366).
+        // ⚠️ Rê chuột CHỈ đổi màu chữ, KHÔNG tô nền: nền mờ trên navy trông gần y hệt nền mục đang chọn ⇒ rê qua là
+        //    tưởng đang ở đó (đã thấy khi chụp thử GĐ3). Mục đang chọn = nền xanh sáng CPH.chon, chữ trắng.
+        // Tương phản chữ thường #bfdbfe trên nền #1e3a8a = 7,6:1; chữ trắng trên #1d4ed8 = 6,7:1.
+        const CPH = { nen: '#1e3a8a', vien: '#1e40af', chu: '#bfdbfe', chon: '#1d4ed8', ke: '#2e4a99' };
+        const LogoApp = ({ lop }) => (
+            <svg viewBox="0 0 200 200" className={lop} role="img" aria-label="DATA REPORT">
+                <rect width="200" height="200" rx="45" fill="#FF9D3D"/>
+                <rect x="40" y="40" width="120" height="120" rx="30" fill="none" stroke="white" strokeWidth="20"/>
+            </svg>
+        );
+        // Dạng THU GỌN: icon + chữ 10px bên dưới (10px là cỡ tối thiểu — Bẫy 27).
         const NutPhanHe = ({ icon, ten, dangChon, onClick }) => (
             <button type="button" onClick={onClick} title={ten} aria-current={dangChon ? 'page' : undefined}
-                className={`w-[58px] h-[50px] shrink-0 rounded-lg flex flex-col items-center justify-center gap-[5px] transition-colors ${dangChon ? 'text-white' : 'text-[#93c5fd] hover:text-white'}`}
-                style={dangChon ? { background: '#1e3a8a' } : undefined}>
+                className={`w-[58px] h-[50px] shrink-0 rounded-lg flex flex-col items-center justify-center gap-[5px] transition-colors ${dangChon ? 'text-white' : 'text-[#bfdbfe] hover:text-white'}`}
+                style={dangChon ? { background: CPH.chon } : undefined}>
                 <Icon name={icon} size={18} strokeWidth="1.8" />
                 <span className="text-[10px] font-bold leading-none whitespace-nowrap">{ten}</span>
             </button>
         );
-
-        // Cột phân hệ, rộng 64px (Đại Ca chốt — cột bảng vốn đã hẹp, không lấy 84px như phác thảo).
-        // Đáy cột: Phân quyền (chỉ ai có quyền mới thấy), nằm SÁT ĐÁY — ô tài khoản đã lên góc phải
-        // trên cùng (Đại Ca chốt 25/09/2026, xem MenuTaiKhoan).
-        const ThanhPhanHe = ({ dsPhanHe, phanHeDangMo, onChon, dangOTrangChu, onTrangChu, coPhanQuyen, dangOPhanQuyen, onPhanQuyen }) => (
-            <nav aria-label="Phân hệ" className="shrink-0 flex flex-col items-center gap-1 py-3 overflow-y-auto" style={{ width: 64, background: '#172554', borderRight: '1px solid #1e3a8a' }}>
-                <svg viewBox="0 0 200 200" className="w-8 h-8 shrink-0 mb-3" role="img" aria-label="PROOFTRAIL">
-                    <rect width="200" height="200" rx="45" fill="#FF9D3D"/>
-                    <rect x="40" y="40" width="120" height="120" rx="30" fill="none" stroke="white" strokeWidth="20"/>
-                </svg>
-                <NutPhanHe icon="home" ten="Trang chủ" dangChon={dangOTrangChu} onClick={onTrangChu} />
-                {dsPhanHe.map(p => (
-                    <NutPhanHe key={p.id} icon={p.icon} ten={p.ten} dangChon={phanHeDangMo === p.id} onClick={() => onChon(p.id)} />
-                ))}
-                <div className="flex-1"></div>
-                {coPhanQuyen && <NutPhanHe icon="lock" ten="Phân quyền" dangChon={dangOPhanQuyen} onClick={onPhanQuyen} />}
-            </nav>
+        // Dạng MỞ RỘNG. `mui` = nhóm có màn con (true mở / false đóng); `nhan` = nhóm đang chứa màn đang mở.
+        const DongPhanHe = ({ icon, ten, dangChon, nhan, onClick, mui }) => (
+            <button type="button" onClick={onClick} aria-current={dangChon ? 'page' : undefined} aria-expanded={mui === undefined ? undefined : mui}
+                className={`w-full h-9 shrink-0 rounded-lg flex items-center gap-2.5 px-2.5 text-[13px] font-bold text-left transition-colors ${dangChon || nhan ? 'text-white' : 'text-[#bfdbfe] hover:text-white'}`}
+                style={dangChon ? { background: CPH.chon } : undefined}>
+                <Icon name={icon} size={16} strokeWidth="1.8" className="shrink-0" />
+                <span className="flex-1 min-w-0 truncate">{ten}</span>
+                {mui !== undefined && <Icon name={mui ? 'chevron-down' : 'chevron-right'} size={13} strokeWidth="2" className="shrink-0 opacity-70" />}
+            </button>
         );
+        const DongManHinh = ({ ten, dangChon, onClick }) => (
+            <button type="button" onClick={onClick} aria-current={dangChon ? 'page' : undefined} title={ten}
+                className={`w-full h-8 shrink-0 rounded-lg flex items-center pl-9 pr-2.5 text-[12.5px] text-left transition-colors ${dangChon ? 'text-white font-bold' : 'text-[#bfdbfe] hover:text-white'}`}
+                style={dangChon ? { background: CPH.chon } : undefined}>
+                <span className="truncate">{ten}</span>
+            </button>
+        );
+        // Đáy cột: Phân quyền (chỉ ai có quyền mới thấy) rồi nút Thu gọn / Mở rộng. Ô tài khoản ở góc phải trên cùng.
+        const ThanhPhanHe = ({ dsPhanHe, phanHeDangMo, activeTab, canSee, onChon, onChonManHinh, dangOTrangChu, onTrangChu,
+                               coPhanQuyen, dangOPhanQuyen, onPhanQuyen, gon, onDoiGon }) => {
+            const [dong, setDong] = useState(() => {   // nhóm đang ĐÓNG — mặc định mở hết
+                try { const v = JSON.parse(localStorage.getItem('lr_nhom_phan_he_dong') || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; }
+            });
+            const doiDong = (id) => setDong(p => {
+                const moi = p.includes(id) ? p.filter(x => x !== id) : [...p, id];
+                try { localStorage.setItem('lr_nhom_phan_he_dong', JSON.stringify(moi)); } catch (e) { /* vẫn chạy, chỉ không nhớ */ }
+                return moi;
+            });
+            const khung = { background: CPH.nen, borderRight: `1px solid ${CPH.vien}` };
+            if (gon) return (
+                <nav aria-label="Phân hệ" className="shrink-0 flex flex-col items-center gap-1 py-3 overflow-y-auto" style={{ width: 64, ...khung }}>
+                    <LogoApp lop="w-8 h-8 shrink-0 mb-3" />
+                    <NutPhanHe icon="home" ten="Trang chủ" dangChon={dangOTrangChu} onClick={onTrangChu} />
+                    {dsPhanHe.map(p => (
+                        <NutPhanHe key={p.id} icon={p.icon} ten={p.ten} dangChon={phanHeDangMo === p.id} onClick={() => onChon(p.id)} />
+                    ))}
+                    <div className="flex-1"></div>
+                    {coPhanQuyen && <NutPhanHe icon="lock" ten="Phân quyền" dangChon={dangOPhanQuyen} onClick={onPhanQuyen} />}
+                    <button type="button" onClick={onDoiGon} title="Mở rộng cột" aria-label="Mở rộng cột phân hệ"
+                        className="w-[58px] h-8 shrink-0 mt-1 rounded-lg flex items-center justify-center text-[#93c5fd] hover:text-white transition-colors">
+                        <Icon name="chevrons-right" size={16} strokeWidth="2" />
+                    </button>
+                </nav>
+            );
+            return (
+                <nav aria-label="Phân hệ" className="shrink-0 flex flex-col gap-0.5 py-3 px-2.5 overflow-y-auto" style={{ width: 216, ...khung }}>
+                    <div className="flex items-center gap-2.5 px-1.5 pb-4 shrink-0">
+                        <LogoApp lop="w-7 h-7 shrink-0" />
+                        <span className="text-[14px] font-bold text-white whitespace-nowrap" style={{ letterSpacing: '0.04em' }}>DATA REPORT</span>
+                    </div>
+                    <DongPhanHe icon="home" ten="Trang chủ" dangChon={dangOTrangChu} onClick={onTrangChu} />
+                    {dsPhanHe.map(p => {
+                        const tabs = p.tabs ? p.tabs.filter(canSee) : null;
+                        if (!tabs || tabs.length <= 1)
+                            return <DongPhanHe key={p.id} icon={p.icon} ten={p.ten_day || p.ten} dangChon={phanHeDangMo === p.id} onClick={() => onChon(p.id)} />;
+                        const mo = !dong.includes(p.id);
+                        return (
+                            <React.Fragment key={p.id}>
+                                {/* Nhóm đang ĐÓNG mà chứa màn đang mở ⇒ tô nền nhóm, không thì mất dấu đang ở đâu */}
+                                <DongPhanHe icon={p.icon} ten={p.ten_day || p.ten} mui={mo} nhan={phanHeDangMo === p.id}
+                                    dangChon={!mo && phanHeDangMo === p.id} onClick={() => doiDong(p.id)} />
+                                {mo && tabs.map(id => {
+                                    const t = DOC_TABS.find(x => x.id === id);
+                                    return <DongManHinh key={id} ten={t.short || t.name} dangChon={activeTab === id} onClick={() => onChonManHinh(id)} />;
+                                })}
+                            </React.Fragment>
+                        );
+                    })}
+                    <div className="flex-1"></div>
+                    {coPhanQuyen && <DongPhanHe icon="lock" ten="Phân quyền" dangChon={dangOPhanQuyen} onClick={onPhanQuyen} />}
+                    <div className="h-px my-1.5 shrink-0" style={{ background: CPH.ke }}></div>
+                    <button type="button" onClick={onDoiGon} aria-label="Thu gọn cột phân hệ"
+                        className="w-full h-8 shrink-0 rounded-lg flex items-center gap-2.5 px-2.5 text-[12px] text-[#93c5fd] hover:text-white transition-colors">
+                        <Icon name="chevrons-left" size={15} strokeWidth="2" className="shrink-0" />Thu gọn cột
+                    </button>
+                </nav>
+            );
+        };
 
         // Hàng tab ngang. Trái: màn hình của phân hệ đang mở. Phải (`phai`): phần việc của thanh đen
         // cũ — tên DB, phiên bản, Danh mục, Tải lại (Đại Ca chốt gộp để đỡ tốn chiều cao).
-        const HangTab = ({ tabs, dangChon, onChon, phai }) => (
+        // `duongDan` = { phanHe, manHinh }: cột phân hệ đang MỞ RỘNG thì màn con đã nằm ở cột ⇒ trái chỉ còn dòng
+        // đường dẫn (kiểu 06C). Báo cáo TC, Phân quyền, Trang chủ không truyền duongDan ⇒ vẫn là tab như cũ.
+        const HangTab = ({ tabs, dangChon, onChon, phai, duongDan }) => (
             <div className="shrink-0 bg-white flex items-stretch gap-6 pl-6 pr-3 z-[1000]" style={{ height: 44, boxShadow: 'inset 0 -1px 0 #e2e8f0' }}>
+                {duongDan ? (
+                    <div className="flex items-center gap-2 min-w-0 pt-[2px] text-[13px] text-slate-500">
+                        <span className="whitespace-nowrap">{duongDan.phanHe}</span>
+                        <Icon name="chevron-right" size={13} strokeWidth="2" className="shrink-0 text-slate-300" />
+                        <span className="font-bold text-slate-900 truncate">{duongDan.manHinh}</span>
+                    </div>
+                ) :
                 <div role="tablist" className="flex items-stretch gap-6 min-w-0 overflow-x-auto overflow-y-hidden">
                     {tabs.map(t => {
                         const on = t.id === dangChon;
@@ -4306,7 +4391,7 @@ const exportJournalCsv = (mode) => {
                             </button>
                         );
                     })}
-                </div>
+                </div>}
                 <div className="ml-auto flex items-center gap-2 shrink-0">{phai}</div>
             </div>
         );
@@ -5225,6 +5310,18 @@ const exportJournalCsv = (mode) => {
                         const t = DOC_TABS.find(x => x.id === id);
                         return { id, ten: t.short || t.name, icon: t.icon || 'table' };
                     });
+            // Cột phân hệ thu gọn (64px) hay mở rộng (216px, kiểu 06C) — nhớ trên máy, mặc định MỞ RỘNG.
+            const [gonCotPhanHe, setGonCotPhanHe] = useState(() => { try { return localStorage.getItem('lr_cot_phan_he_gon') === '1'; } catch (e) { return false; } });
+            const doiGonCotPhanHe = () => setGonCotPhanHe(v => {
+                try { localStorage.setItem('lr_cot_phan_he_gon', v ? '0' : '1'); } catch (e) { /* vẫn chạy, chỉ không nhớ */ }
+                return !v;
+            });
+            // Cột mở rộng + đang ở màn danh sách ⇒ hàng tab ngang thành dòng đường dẫn (màn con đã nằm ở cột).
+            const duongDan = (() => {
+                if (gonCotPhanHe || !phanHeDangMo || phanHeDangMo === 'baocao') return null;
+                const p = PHAN_HE.find(x => x.id === phanHeDangMo), t = DOC_TABS.find(x => x.id === activeTab);
+                return p && t ? { phanHe: p.ten_day || p.ten, manHinh: t.short || t.name } : null;
+            })();
             const tabDangChon = activeTab === 'report' ? (xemDsBaoCao ? 'ds_bao_cao' : 'bao_cao')
                 : activeTab === 'perm_admin' ? (tabPhanQuyen === 'role' ? 'pq_role' : 'pq_user') : activeTab;
             const chonTab = (id) => {
@@ -7400,7 +7497,7 @@ const exportJournalCsv = (mode) => {
 
                                 <div className="relative">
                                     <h1 className="text-white font-bold m-0" style={{ fontSize: '70px', lineHeight: '0.92', letterSpacing: '-0.035em' }}>
-                                        PROOF<br/><span style={{ color: '#60a5fa' }}>TRAIL</span>
+                                        DATA<br/><span style={{ color: '#60a5fa' }}>REPORT</span>
                                     </h1>
                                     <div className="text-[11px] font-bold uppercase mt-[18px]" style={{ letterSpacing: '0.18em', color: '#93c5fd' }}>Minh bạch tới từng chứng từ</div>
                                     <div style={{ height: '3px', width: '64px', background: '#FF9D3D', margin: '26px 0' }}></div>
@@ -7623,18 +7720,24 @@ const exportJournalCsv = (mode) => {
                     <ThanhPhanHe
                         dsPhanHe={dsPhanHe}
                         phanHeDangMo={phanHeDangMo}
+                        activeTab={activeTab}
+                        canSee={canSee}
                         onChon={chonPhanHe}
+                        onChonManHinh={id => setActiveTab(id)}
                         dangOTrangChu={activeTab === 'home'}
                         onTrangChu={() => setActiveTab('home')}
                         coPhanQuyen={canSee('perm_admin')}
                         dangOPhanQuyen={activeTab === 'perm_admin'}
                         onPhanQuyen={() => setActiveTab('perm_admin')}
+                        gon={gonCotPhanHe}
+                        onDoiGon={doiGonCotPhanHe}
                     />
                     <div className="flex-1 min-w-0 min-h-0 flex flex-col">
                     <HangTab
                         tabs={tabHangNgang}
                         dangChon={tabDangChon}
                         onChon={chonTab}
+                        duongDan={duongDan}
                         phai={<>
                             <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mr-2" title="Đang kết nối cơ sở dữ liệu">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>

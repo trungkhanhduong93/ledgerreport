@@ -67,7 +67,7 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 | ➕ | **Đăng nhập nhanh** (hướng A — Đại Ca chốt giữa chừng) | ✅ Xong, **Đại Ca đã thử thật: nhanh** — commit `c64540a` |
 | **3** | **Điều hướng**: cột phân hệ 64px + hàng tab ngang, 9 màn hình vào 5 phân hệ. **Báo cáo TC: trang liệt kê 16 thẻ + ô chọn có tìm kiếm, ô lọc dời phải, ô Thời gian gộp, Bộ lọc nâng cao** (Đại Ca đổi ý: bỏ 5 tab nhóm) | ✅ Xong — **Đại Ca xem và chốt OK 25/09**, đã commit (local, chưa push) |
 | **4** | **Trang chủ** — Đại Ca chốt 25/09: **chỉ khung + thẻ phân hệ, CHƯA lấy số liệu**; kỳ sau này = tháng hiện tại | ✅ **Khung xong — Đại Ca chốt OK 25/09** (sau khi cho lưới thẻ trải hết bề ngang), đã commit (local, chưa push). Khối số liệu (tải NGẦM, mỗi ô 6–8s) để sau |
-| **5** | **Đổi tên hiển thị**: `APP_NAME`, `<title>` + 2 meta, 9 dòng chữ chìm, `manifest.json` (trước ghi nhầm *iPOS Ledger Studio*), Properties của EXE (`build_exe.py` + `version_info.txt`) | ✅ **Xong 25/09 — commit `ee5aed3`**. ⛔ **Giữ tên file `iPOS_Accounting_Report.exe`** — đổi là tự cập nhật đứt. Không đổi được tiêu đề Release trên GitHub (nằm trong `release.yml`, token thiếu scope `workflow` — việc 11) |
+| **5** | **Đổi tên hiển thị**: `APP_NAME`, `<title>` + 2 meta, 9 dòng chữ chìm, `manifest.json` (trước ghi nhầm *iPOS Ledger Studio*), Properties của EXE (`build_exe.py` + `version_info.txt`) | ✅ **Xong 25/09 — commit `ee5aed3`**. ⛔ **Giữ tên file `iPOS_Accounting_Report.exe`** — đổi là tự cập nhật đứt. Tiêu đề Release trên GitHub **giữ chữ cũ** *iPOS Accounting Report* — **Đại Ca chốt không cần đổi (25/09/2026)** |
 
 **Việc còn chờ của dự án này:**
 
@@ -181,7 +181,7 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 - **Phát hành cho cả công ty ngay khi Actions xong** — máy nào đang 1.12.x mở app là thấy nút cập nhật lên giao diện mới.
 - Mục *"chờ Đại Ca xem"* còn lại trong bảng 🎨 (GĐ5, thanh lọc 9 màn, cột bảng, việc 7 lọc 2 chiều) **chưa có câu chốt riêng**
   — Đại Ca chốt chung *"tạm thời ổn rồi"*. Người dùng báo gì thì sửa ở bản 2.0.x.
-- Tiêu đề + nội dung Release trên GitHub vẫn là chữ cũ *"iPOS Accounting Report"* (nằm trong `release.yml`, token thiếu scope `workflow` — việc 11).
+- Tiêu đề + nội dung Release trên GitHub giữ chữ cũ *"iPOS Accounting Report"* — ✅ **Đại Ca chốt không cần đổi** (25/09/2026). Đừng đề xuất lại.
 - Khởi động lại app sau cập nhật ⇒ **phải đăng nhập lại** (kho phiên trong RAM, Bẫy 17) — như mọi lần.
 
 ---

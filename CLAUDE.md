@@ -207,10 +207,25 @@ vẫn áp dụng thì người xem tưởng số liệu là toàn bộ.
 ⛔ Thêm ô lọc cho báo cáo thì khai vào `O_LOC_BAO_CAO`, **đừng viết thẳng vào hàng điều kiện**.
 ⚠️ Lớp nổi gắn vào `body` bằng portal (lịch của `IOSDatePicker`) phải mang **`data-lop-noi`** — không
 thì bấm vào nó bị tính là "bấm ra ngoài" và bảng Thời gian / Bộ lọc nâng cao tự đóng.
-⚠️ 9 màn danh sách **chưa** dùng kiểu này (vẫn nút "Bộ lọc" mở hàng 2) — Đại Ca chốt làm sau.
+
+**9 màn danh sách — thanh lọc mới** *(25/09/2026, theo mẫu iPOS "Đặt mua hàng")*: một hàng — trái
+*Kết quả N dòng · Hiển thị*; phải ô **Thời gian** + tối đa **2** ô khác (**tổng 3 ô**, Đại Ca chốt — ít
+hơn báo cáo vì còn nút) + phễu **Bộ lọc nâng cao** + nút **"Lọc"** navy đặc (thay TRUY VẤN) + nút **Cấu
+hình cột** + Excel (ô icon). Ô lọc khai ở **`oLocDs(tab)`** trong App — thêm ô lọc cho danh sách thì khai
+ở đó. Nhớ cấu hình ô ngoài: `lr_loc_ngoai_ds_<tab>`. 3 màn đối chiếu giữ hàng chip trạng thái ngay dưới.
+
+**Cột của 9 bảng — ẩn/hiện + kéo giãn** *(25/09/2026, việc 28)*: khai ở **`COT_BANG`** (khoá, nhãn, độ
+rộng gốc, khoá cột file xuất). ⛔ **Thứ tự `COT_BANG` phải đúng thứ tự cột trên bảng** — ẩn cột làm bằng
+CSS `:nth-child` theo vị trí; thêm/bớt/đổi chỗ cột trên bảng mà quên sửa `COT_BANG` là **ẩn nhầm cột**.
+Dòng gom nhóm (`.dong-nhom`) và dòng tổng tính lại `colSpan` qua `hienCot` / `nhipCot` — viết dòng
+tổng mới thì dùng hai hàm đó, đừng ghi `colSpan` cứng. Kéo mép phải tiêu đề = đổi độ rộng, bấm đúp mép =
+về gốc; bảng vẫn **tự nở theo nội dung** nên kéo hẹp chỉ tới mức vừa chữ (cố ý, không cắt số liệu).
+Tiêu đề cột **không gãy dòng**. Nhớ `lr_cot_<tab>`. **Excel xuất đúng cột đang hiện**: xuất 1 file đi
+qua máy chủ (tham số `an_cot` ⇒ `_loc_cot_xuat` trong `server.py`), chia sheet theo đơn vị lọc ở trình
+duyệt. Cột chỉ có trong file (Địa chỉ, MST… của Bán hàng) không ẩn được ⇒ luôn xuất.
 
 ⚠️ Hàng lọc của 9 màn danh sách: cụm nút phải là **`shrink-0`** — bỏ đi là trên màn 1366px nút
-**Xuất Excel bị cắt 56–62px** (đã đo). Ô lọc ngoài của báo cáo có **mức sàn `min-w`** — bỏ đi là ô
+**Xuất Excel bị cắt 56–62px** (đo trên hàng lọc cũ; thanh lọc mới 25/09 đo lại: 9/9 màn một hàng ở 1366 và 1280px). Ô lọc ngoài của báo cáo có **mức sàn `min-w`** — bỏ đi là ô
 bị bóp tới gãy chữ (đã đo: ô Kỳ cũ còn 106px, *"2026 - Tháng 1"* gãy 2 dòng). Máy Đại Ca 2048px nên
 sẽ không thấy các lỗi này — **đo ở 1366px và 1280px**.
 

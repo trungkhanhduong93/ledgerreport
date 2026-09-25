@@ -2685,6 +2685,26 @@ def open_folder_route():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
+def _loc_cot_xuat(cols, transform, args):
+    """Bỏ khỏi file xuất các cột người dùng đang ẨN trên màn hình danh sách.
+
+    Đại Ca chốt 25/09/2026: "Excel xuất đúng các cột đang hiện". Frontend gửi `an_cot` = danh sách
+    KHOÁ cột (khớp khoá của *_CSV_COLS), cách nhau dấu phẩy. Khoá lạ bị bỏ qua (máy chủ không có cột
+    đó thì không có gì để bỏ). Không gửi / rỗng ⇒ giữ NGUYÊN như cũ. Không bao giờ ra file 0 cột.
+    Trả về (headers, transform) — transform bọc lại, chỉ giữ đúng các ô của cột còn lại.
+    """
+    an = {k.strip() for k in (args.get('an_cot') or '').split(',') if k.strip()}
+    giu = [i for i, (k, _) in enumerate(cols) if k not in an]
+    if not an or not giu or len(giu) == len(cols):
+        return [label for _, label in cols], transform
+    headers = [cols[i][1] for i in giu]
+
+    def transform_loc(raw, c):
+        row = transform(raw, c)
+        return [row[i] for i in giu]
+    return headers, transform_loc
+
+
 def _start_export_job(filename, headers, sql, params, transform_row, total_estimate=0, sheet_limit=1000000):
     """Mở connection mới (cùng db_config session) → chạy query → ghi disk ở thread riêng.
 
@@ -2873,7 +2893,7 @@ def get_ledger_stream_csv():
                 bank_id_contra or '', bank_name_contra or '',
             ]
 
-        headers = [label for _, label in LEDGER_CSV_COLS]
+        headers, transform = _loc_cot_xuat(LEDGER_CSV_COLS, transform, args)   # bỏ cột đang ẩn (25/09/2026)
         fname   = f"ChungTuTongHop_{args.get('from_date','').replace('/','')}-{args.get('to_date','').replace('/','')}.{args.get('format', 'csv')}"
         job_id  = _start_export_job(fname, headers, sql, params + join_params, transform, total_estimate)
         return jsonify({"status": "ok", "job_id": job_id, "filename": fname})
@@ -2942,7 +2962,7 @@ def get_purchase_stream_csv():
             d = dict(zip(sql_cols, raw))
             return [d.get(key) for key, _ in PURCHASE_CSV_COLS]
 
-        headers = [label for _, label in PURCHASE_CSV_COLS]
+        headers, transform = _loc_cot_xuat(PURCHASE_CSV_COLS, transform, args)   # bỏ cột đang ẩn (25/09/2026)
         fname   = f"PhieuNhapKho_{args.get('from_date','').replace('/','')}-{args.get('to_date','').replace('/','')}.{args.get('format', 'csv')}"
         job_id  = _start_export_job(fname, headers, sql, params, transform, total_estimate)
         return jsonify({"status": "ok", "job_id": job_id, "filename": fname})
@@ -3013,7 +3033,7 @@ def get_warehouse_stream_csv():
             d = dict(zip(sql_cols, raw))
             return [d.get(key) for key, _ in WAREHOUSE_CSV_COLS]
 
-        headers = [label for _, label in WAREHOUSE_CSV_COLS]
+        headers, transform = _loc_cot_xuat(WAREHOUSE_CSV_COLS, transform, args)   # bỏ cột đang ẩn (25/09/2026)
         fname   = f"ChungTuKho_{args.get('from_date','').replace('/','')}-{args.get('to_date','').replace('/','')}.{args.get('format', 'csv')}"
         job_id  = _start_export_job(fname, headers, sql, params, transform, total_estimate)
         return jsonify({"status": "ok", "job_id": job_id, "filename": fname})
@@ -3231,7 +3251,7 @@ def get_warehouse_balance_stream_csv():
             d = dict(zip(sql_cols, raw))
             return [d.get(key) for key, _ in WAREHOUSE_BALANCE_CSV_COLS]
 
-        headers = [label for _, label in WAREHOUSE_BALANCE_CSV_COLS]
+        headers, transform = _loc_cot_xuat(WAREHOUSE_BALANCE_CSV_COLS, transform, args)   # bỏ cột đang ẩn (25/09/2026)
         fname   = f"TonKhoThucTe_{args.get('from_date','').replace('/','')}-{args.get('to_date','').replace('/','')}.{args.get('format', 'csv')}"
         job_id  = _start_export_job(fname, headers, sql, params, transform, total_estimate)
         return jsonify({"status": "ok", "job_id": job_id, "filename": fname})
@@ -3777,7 +3797,7 @@ def get_btp_reconcile_stream_csv():
                 out.append(v)
             return out
 
-        headers = [label for _, label in BTPDC_CSV_COLS]
+        headers, transform = _loc_cot_xuat(BTPDC_CSV_COLS, transform, args)   # bỏ cột đang ẩn (25/09/2026)
         fname   = f"DoiChieuXuatSX_NhapTP_{args.get('from_date','').replace('/','')}-{args.get('to_date','').replace('/','')}.{args.get('format', 'csv')}"
         job_id  = _start_export_job(fname, headers, sql, params, transform, total_estimate)
         return jsonify({"status": "ok", "job_id": job_id, "filename": fname})
@@ -4401,7 +4421,7 @@ def get_dcnb_reconcile_stream_csv():
                 out.append(v)
             return out
 
-        headers = [label for _, label in DCNB_CSV_COLS]
+        headers, transform = _loc_cot_xuat(DCNB_CSV_COLS, transform, args)   # bỏ cột đang ẩn (25/09/2026)
         fname   = f"DoiChieuDieuChuyenNoiBo_{args.get('from_date','').replace('/','')}-{args.get('to_date','').replace('/','')}.{args.get('format', 'csv')}"
         job_id  = _start_export_job(fname, headers, sql, params, transform, total_estimate)
         return jsonify({"status": "ok", "job_id": job_id, "filename": fname})
@@ -4707,7 +4727,7 @@ def get_po_list_stream_csv():
                 out.append(v)
             return out
 
-        headers = [label for _, label in POLIST_CSV_COLS]
+        headers, transform = _loc_cot_xuat(POLIST_CSV_COLS, transform, args)   # bỏ cột đang ẩn (25/09/2026)
         fname   = f"DanhSachPO_{args.get('from_date','').replace('/','')}-{args.get('to_date','').replace('/','')}.{args.get('format', 'csv')}"
         job_id  = _start_export_job(fname, headers, sql, params, transform, total_estimate)
         return jsonify({"status": "ok", "job_id": job_id, "filename": fname})
@@ -5119,7 +5139,7 @@ def get_sale_stream_csv():
             d['EXTRA_NAME_2']        = dim["extra2"].get((str(d.get('EXTRA_ID_2') or '')).strip(), '')
             return [d.get(key) for key, _ in SALE_CSV_COLS]
 
-        headers = [label for _, label in SALE_CSV_COLS]
+        headers, transform = _loc_cot_xuat(SALE_CSV_COLS, transform, args)   # bỏ cột đang ẩn (25/09/2026)
         fname   = f"ChungTuBanHang_{args.get('from_date','').replace('/','')}-{args.get('to_date','').replace('/','')}.{args.get('format', 'csv')}"
         job_id  = _start_export_job(fname, headers, sql, params, transform, total_estimate)
         return jsonify({"status": "ok", "job_id": job_id, "filename": fname})
@@ -5399,7 +5419,7 @@ def get_voucher_stream_csv():
             d['PR_DETAIL_NAME_CREDIT'], d['BANK_NAME_CREDIT'], d['BANK_ACCOUNT_CREDIT'] = pc
             return [d.get(key) for key, _ in VOUCHER_CSV_COLS]
 
-        headers = [label for _, label in VOUCHER_CSV_COLS]
+        headers, transform = _loc_cot_xuat(VOUCHER_CSV_COLS, transform, args)   # bỏ cột đang ẩn (25/09/2026)
         fname   = f"ChungTuTien_{args.get('from_date','').replace('/','')}-{args.get('to_date','').replace('/','')}.{args.get('format', 'csv')}"
         job_id  = _start_export_job(fname, headers, sql, params, transform, total_estimate)
         return jsonify({"status": "ok", "job_id": job_id, "filename": fname})

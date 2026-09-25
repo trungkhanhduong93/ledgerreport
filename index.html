@@ -129,6 +129,11 @@ window.showConnectionLost = function() {
         .sortable-th.is-sorted { background: #dbeafe !important; color: #172554 !important; }
         .sortable-th.is-sorted .sort-icon { opacity: 1; color: #1e3a8a; }
         .sticky-footer { position: sticky; bottom: 0; background: #ffffff; border-top: 2px solid #1e3a8a; z-index: 40; box-shadow: 0 -4px 15px rgba(0,0,0,0.05); }
+        /* 9 bảng danh sách (25/09/2026, việc 28 "cột bị hẹp"): tiêu đề KHÔNG gãy dòng (trước "MÃ CT" gãy đôi),
+           và tay kéo giãn cột = dải 8px ở mép phải mỗi tiêu đề (trừ cột #). Xử lý kéo: effect trong App. */
+        table[data-bang] > thead > tr:first-child > th { white-space: nowrap; position: relative; }
+        table[data-bang] > thead > tr:first-child > th:not(:first-child)::after { content: ''; position: absolute; top: 0; right: -4px; width: 8px; height: 100%; cursor: col-resize; z-index: 5; }
+        table[data-bang] > thead > tr:first-child > th:not(:first-child):hover::after { background: linear-gradient(to right, transparent 3px, #60a5fa 3px, #60a5fa 5px, transparent 5px); }
         
         .paper-landscape { width: 297mm !important; min-width: 297mm !important; max-width: 297mm !important; }
         .paper-portrait  { width: 210mm !important; min-width: 210mm !important; max-width: 210mm !important; }
@@ -392,10 +397,12 @@ window.showConnectionLost = function() {
             return flat;
         }
 
-        const LedgerGroupRow = ({ node, toggleExpand }) => {
+        const LedgerGroupRow = ({ node, toggleExpand, cot }) => {
+            // Ẩn/hiện cột (25/09/2026): ô nhãn chỉ phủ các cột ĐANG HIỆN, ô tiền của cột bị ẩn thì không vẽ.
+            const hien = (i) => !cot || cot.hien(i), nhip = (x, y) => cot ? cot.nhip(x, y) : y - x + 1;
             return (
-                <tr className={`border-b border-slate-200 font-bold text-[11px] cursor-pointer transition-colors ${node.level === 0 ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-indigo-50 text-indigo-900 hover:bg-indigo-100'}`} onClick={() => toggleExpand(node.id)}>
-                    <td colSpan={8} className="px-4 py-1.5 border-r border-indigo-200/30 whitespace-nowrap">
+                <tr className={`dong-nhom border-b border-slate-200 font-bold text-[11px] cursor-pointer transition-colors ${node.level === 0 ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-indigo-50 text-indigo-900 hover:bg-indigo-100'}`} onClick={() => toggleExpand(node.id)}>
+                    <td colSpan={nhip(0, 7)} className="px-4 py-1.5 border-r border-indigo-200/30 whitespace-nowrap">
                         <div className="flex items-center gap-2" style={{ paddingLeft: `${node.level * 20}px` }}>
                             <span className={`inline-flex items-center justify-center w-3 h-3 border rounded-sm font-mono text-[9px] leading-none ${node.level === 0 ? 'border-indigo-400 bg-indigo-500' : 'border-indigo-300 bg-white'}`}>
                                 {node.expanded ? '-' : '+'}
@@ -404,21 +411,23 @@ window.showConnectionLost = function() {
                             <span className={`text-[10px] ml-2 ${node.level === 0 ? 'text-indigo-200' : 'text-indigo-400'}`}>({node.children ? node.children.length : 0} dòng)</span>
                         </div>
                     </td>
-                    <td className={`border-r border-indigo-200/30 text-right font-mono px-2 ${node.level === 0 ? 'text-white' : 'text-indigo-700'}`}>
+                    {hien(8) && <td className={`border-r border-indigo-200/30 text-right font-mono px-2 ${node.level === 0 ? 'text-white' : 'text-indigo-700'}`}>
                         {node.sums.DEBIT !== undefined && node.sums.DEBIT !== 0 ? node.sums.DEBIT.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) : ''}
-                    </td>
-                    <td className={`border-r border-indigo-200/30 text-right font-mono px-2 ${node.level === 0 ? 'text-white' : 'text-indigo-700'}`}>
+                    </td>}
+                    {hien(9) && <td className={`border-r border-indigo-200/30 text-right font-mono px-2 ${node.level === 0 ? 'text-white' : 'text-indigo-700'}`}>
                         {node.sums.CREDIT !== undefined && node.sums.CREDIT !== 0 ? node.sums.CREDIT.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) : ''}
-                    </td>
+                    </td>}
                     <td colSpan={100}></td>
                 </tr>
             );
         };
 
-        const PurchaseGroupRow = ({ node, toggleExpand }) => {
+        const PurchaseGroupRow = ({ node, toggleExpand, cot }) => {
+            // Ẩn/hiện cột (25/09/2026): ô nhãn chỉ phủ các cột ĐANG HIỆN, ô tiền của cột bị ẩn thì không vẽ.
+            const hien = (i) => !cot || cot.hien(i), nhip = (x, y) => cot ? cot.nhip(x, y) : y - x + 1;
             return (
-                <tr className={`border-b border-slate-200 font-bold text-[11px] cursor-pointer transition-colors ${node.level === 0 ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-indigo-50 text-indigo-900 hover:bg-indigo-100'}`} onClick={() => toggleExpand(node.id)}>
-                    <td colSpan={23} className="px-4 py-1.5 border-r border-indigo-200/30 whitespace-nowrap">
+                <tr className={`dong-nhom border-b border-slate-200 font-bold text-[11px] cursor-pointer transition-colors ${node.level === 0 ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-indigo-50 text-indigo-900 hover:bg-indigo-100'}`} onClick={() => toggleExpand(node.id)}>
+                    <td colSpan={nhip(0, 22)} className="px-4 py-1.5 border-r border-indigo-200/30 whitespace-nowrap">
                         <div className="flex items-center gap-2" style={{ paddingLeft: `${node.level * 20}px` }}>
                             <span className={`inline-flex items-center justify-center w-3 h-3 border rounded-sm font-mono text-[9px] leading-none ${node.level === 0 ? 'border-indigo-400 bg-indigo-500' : 'border-indigo-300 bg-white'}`}>
                                 {node.expanded ? '-' : '+'}
@@ -427,18 +436,20 @@ window.showConnectionLost = function() {
                             <span className={`text-[10px] ml-2 ${node.level === 0 ? 'text-indigo-200' : 'text-indigo-400'}`}>({node.children ? node.children.length : 0} dòng)</span>
                         </div>
                     </td>
-                    <td className={`border-r border-indigo-200/30 text-right font-mono font-black px-2 ${node.level === 0 ? 'text-white' : 'text-emerald-600'}`}>
+                    {hien(23) && <td className={`border-r border-indigo-200/30 text-right font-mono font-black px-2 ${node.level === 0 ? 'text-white' : 'text-emerald-600'}`}>
                         {node.sums.TOTAL_AMOUNT !== undefined && node.sums.TOTAL_AMOUNT !== 0 ? node.sums.TOTAL_AMOUNT.toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0}) : ''}
-                    </td>
+                    </td>}
                     <td colSpan={100}></td>
                 </tr>
             );
         };
 
-        const SaleGroupRow = ({ node, toggleExpand }) => {
+        const SaleGroupRow = ({ node, toggleExpand, cot }) => {
+            // Ẩn/hiện cột (25/09/2026): ô nhãn chỉ phủ các cột ĐANG HIỆN, ô tiền của cột bị ẩn thì không vẽ.
+            const hien = (i) => !cot || cot.hien(i), nhip = (x, y) => cot ? cot.nhip(x, y) : y - x + 1;
             return (
-                <tr className={`border-b border-slate-200 font-bold text-[11px] cursor-pointer transition-colors ${node.level === 0 ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-indigo-50 text-indigo-900 hover:bg-indigo-100'}`} onClick={() => toggleExpand(node.id)}>
-                    <td colSpan={19} className="px-4 py-1.5 border-r border-indigo-200/30 whitespace-nowrap">
+                <tr className={`dong-nhom border-b border-slate-200 font-bold text-[11px] cursor-pointer transition-colors ${node.level === 0 ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-indigo-50 text-indigo-900 hover:bg-indigo-100'}`} onClick={() => toggleExpand(node.id)}>
+                    <td colSpan={nhip(0, 24)} className="px-4 py-1.5 border-r border-indigo-200/30 whitespace-nowrap">
                         <div className="flex items-center gap-2" style={{ paddingLeft: `${node.level * 20}px` }}>
                             <span className={`inline-flex items-center justify-center w-3 h-3 border rounded-sm font-mono text-[9px] leading-none ${node.level === 0 ? 'border-indigo-400 bg-indigo-500' : 'border-indigo-300 bg-white'}`}>
                                 {node.expanded ? '-' : '+'}
@@ -447,9 +458,9 @@ window.showConnectionLost = function() {
                             <span className={`text-[10px] ml-2 ${node.level === 0 ? 'text-indigo-200' : 'text-indigo-400'}`}>({node.children ? node.children.length : 0} dòng)</span>
                         </div>
                     </td>
-                    <td className={`border-r border-indigo-200/30 text-right font-mono font-black px-2 ${node.level === 0 ? 'text-white' : 'text-emerald-600'}`}>
+                    {hien(25) && <td className={`border-r border-indigo-200/30 text-right font-mono font-black px-2 ${node.level === 0 ? 'text-white' : 'text-emerald-600'}`}>
                         {node.sums.TOTAL_AMOUNT !== undefined && node.sums.TOTAL_AMOUNT !== 0 ? node.sums.TOTAL_AMOUNT.toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0}) : ''}
-                    </td>
+                    </td>}
                     <td colSpan={100}></td>
                 </tr>
             );
@@ -506,10 +517,12 @@ window.showConnectionLost = function() {
 
 
         // ===== Danh sách chứng từ TIỀN (VOUCHER_VIEW) =====
-        const VoucherGroupRow = ({ node, toggleExpand }) => {
+        const VoucherGroupRow = ({ node, toggleExpand, cot }) => {
+            // Ẩn/hiện cột (25/09/2026): ô nhãn chỉ phủ các cột ĐANG HIỆN, ô tiền của cột bị ẩn thì không vẽ.
+            const hien = (i) => !cot || cot.hien(i), nhip = (x, y) => cot ? cot.nhip(x, y) : y - x + 1;
             return (
-                <tr className={`border-b border-slate-200 font-bold text-[11px] cursor-pointer transition-colors ${node.level === 0 ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-indigo-50 text-indigo-900 hover:bg-indigo-100'}`} onClick={() => toggleExpand(node.id)}>
-                    <td colSpan={9} className="px-4 py-1.5 border-r border-indigo-200/30 whitespace-nowrap">
+                <tr className={`dong-nhom border-b border-slate-200 font-bold text-[11px] cursor-pointer transition-colors ${node.level === 0 ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-indigo-50 text-indigo-900 hover:bg-indigo-100'}`} onClick={() => toggleExpand(node.id)}>
+                    <td colSpan={nhip(0, 8)} className="px-4 py-1.5 border-r border-indigo-200/30 whitespace-nowrap">
                         <div className="flex items-center gap-2" style={{ paddingLeft: `${node.level * 20}px` }}>
                             <span className={`inline-flex items-center justify-center w-3 h-3 border rounded-sm font-mono text-[9px] leading-none ${node.level === 0 ? 'border-indigo-400 bg-indigo-500' : 'border-indigo-300 bg-white'}`}>
                                 {node.expanded ? '-' : '+'}
@@ -518,9 +531,9 @@ window.showConnectionLost = function() {
                             <span className={`text-[10px] ml-2 ${node.level === 0 ? 'text-indigo-200' : 'text-indigo-400'}`}>({node.children ? node.children.length : 0} dòng)</span>
                         </div>
                     </td>
-                    <td className={`border-r border-indigo-200/30 text-right font-mono font-black px-2 ${node.level === 0 ? 'text-white' : 'text-emerald-600'}`}>
+                    {hien(9) && <td className={`border-r border-indigo-200/30 text-right font-mono font-black px-2 ${node.level === 0 ? 'text-white' : 'text-emerald-600'}`}>
                         {node.sums.AMOUNT !== undefined && node.sums.AMOUNT !== 0 ? node.sums.AMOUNT.toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0}) : ''}
-                    </td>
+                    </td>}
                     <td colSpan={100}></td>
                 </tr>
             );
@@ -560,10 +573,12 @@ window.showConnectionLost = function() {
             </tr>
         ));
 
-        const WarehouseGroupRow = ({ node, toggleExpand }) => {
+        const WarehouseGroupRow = ({ node, toggleExpand, cot }) => {
+            // Ẩn/hiện cột (25/09/2026): ô nhãn chỉ phủ các cột ĐANG HIỆN, ô tiền của cột bị ẩn thì không vẽ.
+            const hien = (i) => !cot || cot.hien(i), nhip = (x, y) => cot ? cot.nhip(x, y) : y - x + 1;
             return (
-                <tr className={`border-b border-slate-200 font-bold text-[11px] cursor-pointer transition-colors ${node.level === 0 ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-indigo-50 text-indigo-900 hover:bg-indigo-100'}`} onClick={() => toggleExpand(node.id)}>
-                    <td colSpan={19} className="px-4 py-1.5 border-r border-indigo-200/30 whitespace-nowrap">
+                <tr className={`dong-nhom border-b border-slate-200 font-bold text-[11px] cursor-pointer transition-colors ${node.level === 0 ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-indigo-50 text-indigo-900 hover:bg-indigo-100'}`} onClick={() => toggleExpand(node.id)}>
+                    <td colSpan={nhip(0, 18)} className="px-4 py-1.5 border-r border-indigo-200/30 whitespace-nowrap">
                         <div className="flex items-center gap-2" style={{ paddingLeft: `${node.level * 20}px` }}>
                             <span className={`inline-flex items-center justify-center w-3 h-3 border rounded-sm font-mono text-[9px] leading-none ${node.level === 0 ? 'border-indigo-400 bg-indigo-500' : 'border-indigo-300 bg-white'}`}>
                                 {node.expanded ? '-' : '+'}
@@ -572,9 +587,9 @@ window.showConnectionLost = function() {
                             <span className={`text-[10px] ml-2 ${node.level === 0 ? 'text-indigo-200' : 'text-indigo-400'}`}>({node.children ? node.children.length : 0} dòng)</span>
                         </div>
                     </td>
-                    <td className={`border-r border-indigo-200/30 text-right font-mono font-black px-2 ${node.level === 0 ? 'text-white' : 'text-emerald-600'}`}>
+                    {hien(19) && <td className={`border-r border-indigo-200/30 text-right font-mono font-black px-2 ${node.level === 0 ? 'text-white' : 'text-emerald-600'}`}>
                         {node.sums.AMOUNT !== undefined && node.sums.AMOUNT !== 0 ? node.sums.AMOUNT.toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0}) : ''}
-                    </td>
+                    </td>}
                     <td colSpan={100}></td>
                 </tr>
             );
@@ -1716,6 +1731,60 @@ window.showConnectionLost = function() {
                                 <button type="button" onClick={() => setMo(false)} className="h-[32px] px-4 rounded-lg border border-slate-200 bg-white text-[12px] font-bold text-slate-700 hover:bg-slate-50">Đóng</button>
                                 <button type="button" onClick={() => { setMo(false); onXem(); }} disabled={dangTai} className="h-[32px] px-4 rounded-lg bg-indigo-700 text-[12px] font-bold text-white hover:bg-indigo-800 disabled:opacity-60">{nhanXem}</button>
                             </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // Nút "Cấu hình cột" (icon thanh trượt, cạnh nút Lọc — mẫu iPOS): tick ẩn/hiện từng cột, "Về mặc định" xoá
+        // cả cột ẩn lẫn độ rộng đã kéo. Số trên nút = số cột đang ẩn (ẩn mà không thấy dấu hiệu là tưởng mất cột).
+        // Không cho ẩn hết: còn đúng 1 cột thì ô đó khoá.
+        const CauHinhCot = ({ ds, an, coDoiRong, onDoi, onMacDinh }) => {
+            const [mo, setMo] = useState(false);
+            const ref = useRef(null);
+            useEffect(() => {
+                if (!mo) return;
+                const ngoai = (e) => { if (ref.current && !ref.current.contains(e.target)) setMo(false); };
+                const esc = (e) => { if (e.key === 'Escape') setMo(false); };
+                document.addEventListener('mousedown', ngoai);
+                document.addEventListener('keydown', esc);
+                return () => { document.removeEventListener('mousedown', ngoai); document.removeEventListener('keydown', esc); };
+            }, [mo]);
+            const cot = (ds || []).filter(c => c[0] !== '_stt');
+            const soHien = cot.filter(c => !an.has(c[0])).length;
+            const doi = (k) => { const m = new Set(an); if (m.has(k)) m.delete(k); else { if (soHien <= 1) return; m.add(k); } onDoi([...m]); };
+            return (
+                <div className="relative shrink-0" ref={ref}>
+                    <button type="button" onClick={() => setMo(!mo)} aria-expanded={mo} aria-label={an.size ? `Cấu hình cột, đang ẩn ${an.size} cột` : 'Cấu hình cột'}
+                        title={an.size ? `Cấu hình cột — đang ẩn ${an.size} cột` : 'Cấu hình cột: ẩn / hiện cột, độ rộng'}
+                        className={`relative w-[34px] h-[32px] rounded-lg border flex items-center justify-center transition-colors ${mo ? 'border-indigo-400 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-300'}`}>
+                        <Icon name="sliders" size={14} strokeWidth="2" />
+                        {an.size > 0 && <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-slate-700 text-white text-[10px] font-bold leading-[18px] text-center tabular-nums">{an.size}</span>}
+                    </button>
+                    {mo && (
+                        <div className="absolute top-full right-0 mt-2 w-[300px] bg-white rounded-xl shadow-[0_20px_60px_rgba(15,23,42,0.25)] border border-slate-200 z-[500]">
+                            <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-100">
+                                <Icon name="sliders" size={14} strokeWidth="2" className="text-indigo-700" />
+                                <span className="text-[14px] font-bold text-slate-900">Cấu hình cột</span>
+                                <span className="ml-auto text-[12px] text-slate-500 tabular-nums">{soHien}/{cot.length} cột hiện</span>
+                            </div>
+                            <div className="max-h-[360px] overflow-auto p-1.5">
+                                {cot.map(([k, t]) => {
+                                    const hien = !an.has(k), khoa = hien && soHien <= 1;
+                                    return (
+                                        <label key={k} className={`flex items-center gap-2.5 h-[30px] px-2 rounded-md text-[12.5px] text-slate-700 ${khoa ? 'opacity-60' : 'cursor-pointer hover:bg-slate-50'}`}>
+                                            <input type="checkbox" className="w-4 h-4 shrink-0 accent-[#1e3a8a] cursor-pointer" checked={hien} disabled={khoa} onChange={() => doi(k)} />
+                                            <span className="truncate">{t}</span>
+                                        </label>
+                                    );
+                                })}
+                            </div>
+                            <div className="flex items-center gap-2 px-4 py-3 border-t border-slate-100">
+                                <button type="button" onClick={() => onDoi([])} disabled={!an.size} className="text-[12px] font-bold text-indigo-700 hover:underline disabled:text-slate-400 disabled:no-underline">Hiện tất cả</button>
+                                <button type="button" onClick={onMacDinh} disabled={!an.size && !coDoiRong} className="ml-auto h-[30px] px-3 rounded-lg border border-slate-200 text-[12px] font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50">Về mặc định</button>
+                            </div>
+                            <div className="px-4 pb-3 text-[11px] text-slate-500 leading-snug">Kéo mép phải tiêu đề cột để đổi độ rộng, bấm đúp mép để về độ rộng gốc. Nhớ riêng từng màn, trên máy này. Xuất Excel bỏ các cột đang ẩn.</div>
                         </div>
                     )}
                 </div>
@@ -4052,6 +4121,25 @@ const exportJournalCsv = (mode) => {
             { id: 'dcnb_reconcile', name: 'Danh sách đối chiếu điều chuyển nội bộ (xuất – nhập)', short: 'Đối chiếu điều chuyển', icon: 'swap' },
             { id: 'po_list', name: 'Danh sách PO – yêu cầu mua hàng', short: 'PO – yêu cầu mua hàng', icon: 'file-text' },
         ];
+
+        // ===== CỘT CỦA 9 BẢNG DANH SÁCH — ẩn/hiện + kéo giãn (Đại Ca chốt 25/09/2026) =====
+        // Mỗi cột: [khoá, nhãn tiêu đề, độ rộng gốc (px, theo lớp w-* của tiêu đề), [khoá cột trong file xuất]].
+        // ⛔ THỨ TỰ PHẢI ĐÚNG THỨ TỰ CỘT TRÊN BẢNG — ẩn cột làm bằng CSS :nth-child theo vị trí. Thêm/bớt/đổi
+        //    chỗ một cột trên bảng thì sửa ở đây cùng lúc, không là ẩn nhầm cột. (Đã đếm 25/09: mọi hàng tiêu
+        //    đề, ô tìm, dòng dữ liệu của cả 9 bảng đều đúng 1 ô / cột.)
+        // Khoá xuất nhiều hơn 1 = cột trên màn hình gộp mã + tên, file xuất tách 2 cột (ẩn là bỏ cả hai).
+        // Cột chỉ có trong file xuất (Địa chỉ, MST… của Bán hàng) không ẩn được trên màn hình ⇒ luôn xuất.
+        const COT_BANG = {
+            ledger: [['_stt','#',56,[]], ['TRAN_DATE','Ngày CT',112,["TRAN_DATE"]], ['TRAN_NO','Số Chứng Từ',144,["TRAN_NO"]], ['TRAN_ID','Mã CT',64,["TRAN_ID"]], ['TRAN_NAME','Tên chứng từ',160,["TRAN_NAME"]], ['ACCOUNT_ID','Tài khoản',96,["ACCOUNT_ID"]], ['ACCOUNT_ID_CONTRA','Đối ứng',96,["ACCOUNT_ID_CONTRA"]], ['DESCRIPTION','Diễn giải',256,["DESCRIPTION"]], ['DEBIT','Nợ',176,["DEBIT"]], ['CREDIT','Có',176,["CREDIT"]], ['PR_DETAIL_ID','Mã ĐT',96,["PR_DETAIL_ID"]], ['PR_DETAIL_NAME','Đối tượng',224,["PR_DETAIL_NAME"]], ['PR_DETAIL_ID_CONTRA','Mã ĐT ĐƯ',96,["PR_DETAIL_ID_CONTRA"]], ['PR_DETAIL_NAME_CONTRA','Đối tượng ĐƯ',224,["PR_DETAIL_NAME_CONTRA"]], ['EXPENSE_ID','Mã MCP',96,["EXPENSE_ID"]], ['EXPENSE_NAME','Mục chi phí',176,["EXPENSE_NAME"]], ['EXPENSE_ID_CONTRA','Mã MCP ĐƯ',96,["EXPENSE_ID_CONTRA"]], ['EXPENSE_NAME_CONTRA','Mục chi phí ĐƯ',176,["EXPENSE_NAME_CONTRA"]], ['ORGANIZATION_ID','Mã ĐV',96,["ORGANIZATION_ID"]], ['ORGANIZATION_NAME','Tên Đơn vị',176,["ORGANIZATION_NAME"]], ['ITEM_ID','Mã HH',96,["ITEM_ID"]], ['ITEM_NAME','Hàng hóa',176,["ITEM_NAME"]], ['ITEM_ID_CONTRA','Mã HH ĐƯ',96,["ITEM_ID_CONTRA"]], ['ITEM_NAME_CONTRA','Hàng hóa ĐƯ',176,["ITEM_NAME_CONTRA"]], ['JOB_ID','Mã CV',96,["JOB_ID"]], ['JOB_NAME','Công việc',176,["JOB_NAME"]], ['JOB_ID_CONTRA','Mã CV ĐƯ',96,["JOB_ID_CONTRA"]], ['JOB_NAME_CONTRA','Công việc ĐƯ',176,["JOB_NAME_CONTRA"]], ['PRODUCT_ID','Mã SP',96,["PRODUCT_ID"]], ['PRODUCT_NAME','Sản phẩm',176,["PRODUCT_NAME"]], ['BANK_ID','Mã NH',96,["BANK_ID"]], ['BANK_NAME','Ngân hàng',176,["BANK_NAME"]], ['BANK_ID_CONTRA','Mã NH ĐƯ',96,["BANK_ID_CONTRA"]], ['BANK_NAME_CONTRA','NH đối ứng',176,["BANK_NAME_CONTRA"]]],
+            sale: [['_stt','#',48,[]], ['ORGANIZATION_ID','Mã ĐV',80,["ORGANIZATION_ID"]], ['ORGANIZATION_NAME','Tên đơn vị',160,["ORGANIZATION_NAME"]], ['TRAN_ID','Mã CT',64,["TRAN_ID"]], ['TRAN_NAME','Tên chứng từ',160,["TRAN_NAME"]], ['TRAN_NO','Số CT',128,["TRAN_NO"]], ['TRAN_DATE','Ngày CT',96,["TRAN_DATE"]], ['VAT_TRAN_NO','Số HĐ',112,["VAT_TRAN_NO"]], ['VAT_TRAN_DATE','Ngày HĐ',96,["VAT_TRAN_DATE"]], ['VAT_TRAN_SERIE','Ký hiệu',96,["VAT_TRAN_SERIE"]], ['PR_DETAIL_ID','Mã ĐT',96,["PR_DETAIL_ID"]], ['PR_DETAIL_NAME','Tên đối tượng',176,["PR_DETAIL_NAME"]], ['WAREHOUSE_ID','Mã kho',80,["WAREHOUSE_ID"]], ['WAREHOUSE_NAME','Tên kho',144,["WAREHOUSE_NAME"]], ['ITEM_ID','Mã hàng',96,["ITEM_ID"]], ['ITEM_NAME','Tên hàng hóa',176,["ITEM_NAME"]], ['DESCRIPTION','Diễn giải',224,["DESCRIPTION"]], ['UNIT_ID','ĐVT',64,["UNIT_ID"]], ['UNIT_NAME','Tên ĐVT',96,["UNIT_NAME"]], ['QUANTITY','Số lượng',96,["QUANTITY"]], ['UNIT_PRICE','Đơn giá',112,["UNIT_PRICE"]], ['AMOUNT','Thành tiền',128,["AMOUNT"]], ['DISCOUNT_AMOUNT','Giảm giá',96,["DISCOUNT_AMOUNT"]], ['VAT_TAX_RATE','Thuế %',64,["VAT_TAX_RATE"]], ['VAT_TAX_AMOUNT','Tiền thuế',112,["VAT_TAX_AMOUNT"]], ['TOTAL_AMOUNT','Tổng TT',128,["TOTAL_AMOUNT"]], ['COG_AMOUNT','Giá vốn',128,["COG_AMOUNT"]], ['ACCOUNT_ID','TK',80,["ACCOUNT_ID"]], ['ACCOUNT_ID_PR','TK công nợ',96,["ACCOUNT_ID_PR"]], ['ACCOUNT_ID_COST','TK kho',80,["ACCOUNT_ID_COST"]], ['ACCOUNT_ID_INCOME','TK DT',80,["ACCOUNT_ID_INCOME"]], ['ACCOUNT_ID_VAT','TK thuế',80,["ACCOUNT_ID_VAT"]], ['EXPENSE_ID','Mã MCP',96,["EXPENSE_ID"]], ['EXPENSE_NAME','Tên MCP',144,["EXPENSE_NAME"]], ['JOB_ID','Mã CV',96,["JOB_ID"]], ['JOB_NAME','Tên công việc',144,["JOB_NAME"]], ['IS_RETURN','Trả',64,["IS_RETURN"]], ['PAYMENT_METHOD_ID','Mã HTTT',80,["PAYMENT_METHOD_ID"]], ['PAYMENT_METHOD_NAME','Hình thức TT',144,["PAYMENT_METHOD_NAME"]], ['EXTRA_ID_2','Mã nguồn',96,["EXTRA_ID_2"]], ['EXTRA_NAME_2','Nguồn đơn',144,["EXTRA_NAME_2"]], ['INCOME_AMOUNT','Doanh thu',128,["INCOME_AMOUNT"]], ['VAT_INCOME_AMOUNT','Thuế DT',112,["VAT_INCOME_AMOUNT"]], ['COMMENTS','Ghi chú',224,["COMMENTS"]]],
+            voucher: [['_stt','#',48,[]], ['ORGANIZATION_ID','Mã ĐV',80,["ORGANIZATION_ID"]], ['ORGANIZATION_NAME','Tên đơn vị',160,["ORGANIZATION_NAME"]], ['TRAN_ID','Mã CT',64,["TRAN_ID"]], ['TRAN_NAME','Tên chứng từ',160,["TRAN_NAME"]], ['TRAN_NO','Số CT',128,["TRAN_NO"]], ['TRAN_DATE','Ngày CT',96,["TRAN_DATE"]], ['ACCOUNT_ID_DEBIT','Tài khoản',80,["ACCOUNT_ID_DEBIT"]], ['ACCOUNT_ID_CREDIT','TK đối ứng',80,["ACCOUNT_ID_CREDIT"]], ['AMOUNT','Số tiền',128,["AMOUNT"]], ['DESCRIPTION','Diễn giải',224,["DESCRIPTION"]], ['PR_DETAIL_ID_DEBIT','Mã Đối tượng',96,["PR_DETAIL_ID_DEBIT"]], ['PR_DETAIL_NAME_DEBIT','Đối tượng',160,["PR_DETAIL_NAME_DEBIT"]], ['PR_DETAIL_ID_CREDIT','Mã ĐT đối ứng',96,["PR_DETAIL_ID_CREDIT"]], ['PR_DETAIL_NAME_CREDIT','Đối tượng đối ứng',160,["PR_DETAIL_NAME_CREDIT"]], ['EXPENSE_ID_DEBIT','Mục chi phí',80,["EXPENSE_ID_DEBIT"]], ['EXPENSE_ID_CREDIT','MCP đối ứng',96,["EXPENSE_ID_CREDIT"]], ['JOB_ID_DEBIT','Công việc',80,["JOB_ID_DEBIT"]], ['JOB_ID_CREDIT','CV đối ứng',80,["JOB_ID_CREDIT"]], ['BANK_NAME_DEBIT','Ngân hàng',128,["BANK_NAME_DEBIT"]], ['BANK_ACCOUNT_DEBIT','TK Ngân hàng',112,["BANK_ACCOUNT_DEBIT"]], ['BANK_NAME_CREDIT','NH đối ứng',128,["BANK_NAME_CREDIT"]], ['BANK_ACCOUNT_CREDIT','TKNH đối ứng',112,["BANK_ACCOUNT_CREDIT"]], ['CONTACT_PERSON','Người nộp/nhận',144,["CONTACT_PERSON"]], ['ADDRESS','Địa chỉ',176,["ADDRESS"]], ['REFERENCE_NO','Tham chiếu',112,["REFERENCE_NO"]], ['EMPLOYEE_ID','Mã NV',80,["EMPLOYEE_ID"]], ['CURRENCY_ID','Tiền',64,["CURRENCY_ID"]], ['STATUS','Trạng thái',80,["STATUS"]]],
+            purchase: [['_stt','#',48,[]], ['ORGANIZATION_ID','Mã ĐV',80,["ORGANIZATION_ID"]], ['ORGANIZATION_NAME','Tên đơn vị',160,["ORGANIZATION_NAME"]], ['TRAN_ID','Mã CT',64,["TRAN_ID"]], ['TRAN_NAME','Tên chứng từ',160,["TRAN_NAME"]], ['TRAN_NO','Số CT',128,["TRAN_NO"]], ['TRAN_DATE','Ngày CT',96,["TRAN_DATE"]], ['VAT_TRAN_NO','Số HĐ',112,["VAT_TRAN_NO"]], ['VAT_TRAN_DATE','Ngày HĐ',96,["VAT_TRAN_DATE"]], ['PO_TRAN_NO','Số PO',96,["PO_TRAN_NO"]], ['WAREHOUSE_ID','Mã kho',80,["WAREHOUSE_ID"]], ['WAREHOUSE_NAME','Tên kho',144,["WAREHOUSE_NAME"]], ['ITEM_ID','Mã hàng',96,["ITEM_ID", "ITEM_NAME"]], ['DESCRIPTION','Diễn giải',224,["DESCRIPTION"]], ['UNIT_ID','ĐVT',64,["UNIT_ID"]], ['QUANTITY','Số lượng',96,["QUANTITY"]], ['UNIT_ID_WH','ĐVT kho',64,["UNIT_ID_WH"]], ['QUANTITY_WH','SL kho',96,["QUANTITY_WH"]], ['UNIT_PRICE','Đơn giá',112,["UNIT_PRICE"]], ['DISCOUNT_AMOUNT','Giảm giá',96,["DISCOUNT_AMOUNT"]], ['PURCHASE_COST','Chi phí',112,["PURCHASE_COST"]], ['VAT_TAX_RATE','Thuế %',64,["VAT_TAX_RATE"]], ['VAT_TAX_AMOUNT','Tiền thuế',112,["VAT_TAX_AMOUNT"]], ['TOTAL_AMOUNT','Tổng tiền',128,["TOTAL_AMOUNT"]], ['ACCOUNT_ID_COST','TK kho',80,["ACCOUNT_ID_COST"]], ['PR_DETAIL_ID','Mã ĐT',96,["PR_DETAIL_ID"]], ['PR_DETAIL_NAME','Tên đối tượng',160,["PR_DETAIL_NAME"]], ['EXPENSE_ID','Mã MCP',96,["EXPENSE_ID"]], ['EXPENSE_NAME','Tên MCP',144,["EXPENSE_NAME"]], ['JOB_ID','Mã CV',96,["JOB_ID"]], ['JOB_NAME','Tên công việc',144,["JOB_NAME"]]],
+            warehouse: [['_stt','#',48,[]], ['ISSUE_RECEIVE','N/X',56,["ISSUE_RECEIVE"]], ['ORGANIZATION_ID','Mã ĐV',80,["ORGANIZATION_ID"]], ['ORGANIZATION_NAME','Tên đơn vị',160,["ORGANIZATION_NAME"]], ['TRAN_ID','Mã CT',64,["TRAN_ID"]], ['TRAN_NAME','Tên chứng từ',160,["TRAN_NAME"]], ['TRAN_NO','Số CT',128,["TRAN_NO"]], ['TRAN_DATE','Ngày CT',96,["TRAN_DATE"]], ['WAREHOUSE_ID','Mã kho',80,["WAREHOUSE_ID"]], ['WAREHOUSE_NAME','Tên kho',144,["WAREHOUSE_NAME"]], ['WAREHOUSE_ID_ISSUE','Mã kho xuất',80,["WAREHOUSE_ID_ISSUE"]], ['WAREHOUSE_NAME_ISSUE','Tên kho xuất',144,["WAREHOUSE_NAME_ISSUE"]], ['ITEM_ID','Mã hàng',96,["ITEM_ID"]], ['ITEM_NAME','Tên hàng hóa',176,["ITEM_NAME"]], ['UNIT_ID_WH','ĐVT',64,["UNIT_ID_WH"]], ['QUANTITY','Số lượng',96,["QUANTITY"]], ['UNIT_ID_EXTRA','ĐVT QĐ',64,["UNIT_ID_EXTRA"]], ['QUANTITY_EXTRA','SL QĐ',96,["QUANTITY_EXTRA"]], ['UNIT_PRICE','Đơn giá',112,["UNIT_PRICE"]], ['AMOUNT','Thành tiền',128,["AMOUNT"]], ['ACCOUNT_ID','Tài khoản',96,["ACCOUNT_ID"]], ['ACCOUNT_ID_CONTRA','TK đối ứng',96,["ACCOUNT_ID_CONTRA"]], ['PR_DETAIL_ID','Mã ĐT',96,["PR_DETAIL_ID"]], ['PR_DETAIL_NAME','Tên đối tượng',160,["PR_DETAIL_NAME"]], ['EXPENSE_ID','Mã MCP',96,["EXPENSE_ID"]], ['EXPENSE_NAME','Tên MCP',144,["EXPENSE_NAME"]], ['JOB_ID','Mã CV',96,["JOB_ID"]], ['JOB_NAME','Tên công việc',144,["JOB_NAME"]]],
+            warehouse_balance: [['_stt','#',48,[]], ['TRAN_DATE','Ngày',96,["TRAN_DATE"]], ['ORGANIZATION_ID','Mã ĐV',80,["ORGANIZATION_ID"]], ['ORGANIZATION_NAME','Tên đơn vị',160,["ORGANIZATION_NAME"]], ['WAREHOUSE_ID','Mã kho',80,["WAREHOUSE_ID"]], ['WAREHOUSE_NAME','Tên kho',144,["WAREHOUSE_NAME"]], ['ITEM_ID','Mã hàng',96,["ITEM_ID"]], ['ITEM_NAME','Tên hàng',176,["ITEM_NAME"]], ['UNIT_ID','ĐVT',64,["UNIT_ID"]], ['QUANTITY','Số lượng',96,["QUANTITY"]], ['QUANTITY_ADJ','SL nguyên',96,["QUANTITY_ADJ"]], ['UNIT_ID_ADJ','ĐVT nguyên',80,["UNIT_ID_ADJ"]], ['USER_ID','Người thực hiện',112,["USER_ID"]], ['ACCOUNT_ID','Tài khoản',80,["ACCOUNT_ID"]], ['IS_APPROVED','Đã duyệt',96,["IS_APPROVED"]]],
+            btp_reconcile: [['_stt','#',48,[]], ['DON_VI','ĐV',64,["DON_VI", "TEN_DON_VI"]], ['NGAY_XUAT','Ngày xuất',96,["NGAY_XUAT"]], ['SO_PHIEU_XUAT','Phiếu xuất',112,["SO_PHIEU_XUAT"]], ['KHO_XUAT','Kho xuất',96,["KHO_XUAT", "TEN_KHO_XUAT"]], ['BTP','Mã BTP',96,["BTP"]], ['TEN_BTP','Tên BTP',160,["TEN_BTP"]], ['SL_SX','SL sản xuất',96,["SL_SX"]], ['DVT_BTP','ĐVT',64,["DVT_BTP"]], ['NVL','Mã NVL',112,["NVL"]], ['TEN_NVL','Tên nguyên liệu',176,["TEN_NVL"]], ['DVT_NVL','ĐVT',64,["DVT_NVL"]], ['SL_NVL_XUAT','SL NVL xuất',112,["SL_NVL_XUAT"]], ['TIEN_NVL','Tiền NVL',112,["TIEN_NVL"]], ['SO_PHIEU_NHAP','Phiếu nhập',128,["SO_PHIEU_NHAP"]], ['NGAY_NHAP','Ngày nhập',96,["NGAY_NHAP"]], ['KHO_NHAP','Kho nhập',96,["KHO_NHAP"]], ['SL_NHAP','SL nhập',96,["SL_NHAP"]], ['CHENH_SL','Chênh SL',96,["CHENH_SL"]], ['TRANG_THAI','Trạng thái',176,["TRANG_THAI"]], ['GHI_CHU','Ghi chú',384,["GHI_CHU"]]],
+            dcnb_reconcile: [['_stt','#',48,[]], ['DON_VI_XUAT','ĐV xuất',64,["DON_VI_XUAT", "TEN_DV_XUAT"]], ['NGAY_XUAT','Ngày xuất',96,["NGAY_XUAT"]], ['SO_PHIEU_XUAT','Phiếu xuất',112,["SO_PHIEU_XUAT"]], ['KHO_XUAT','Kho xuất',96,["KHO_XUAT", "TEN_KHO_XUAT"]], ['MA_HANG','Mã hàng',112,["MA_HANG"]], ['TEN_HANG','Tên hàng',176,["TEN_HANG"]], ['DVT','ĐVT',64,["DVT"]], ['SL_XUAT','SL xuất',112,["SL_XUAT"]], ['TIEN_XUAT','Tiền xuất',112,["TIEN_XUAT"]], ['DON_VI_NHAP','ĐV nhận',80,["DON_VI_NHAP"]], ['TEN_DV_NHAP','Tên đơn vị nhận',176,["TEN_DV_NHAP"]], ['SO_PHIEU_NHAP','Phiếu nhập',128,["SO_PHIEU_NHAP"]], ['NGAY_NHAP','Ngày nhập',96,["NGAY_NHAP"]], ['KHO_NHAP','Kho nhập',96,["KHO_NHAP", "TEN_KHO_NHAP"]], ['SL_NHAN','SL nhận',112,["SL_NHAN"]], ['CHENH_SL','Chênh SL',96,["CHENH_SL"]], ['TRANG_THAI','Trạng thái',176,["TRANG_THAI"]], ['GHI_CHU','Ghi chú',384,["GHI_CHU"]]],
+            po_list: [['_stt','#',48,[]], ['DON_VI','ĐV',64,["DON_VI"]], ['TEN_DON_VI','Tên đơn vị',176,["TEN_DON_VI"]], ['LOAI_PO','Loại',64,["LOAI_PO", "TEN_LOAI"]], ['SO_PHIEU','Số phiếu PO',160,["SO_PHIEU"]], ['NGAY','Ngày lập',96,["NGAY"]], ['NGAY_GIAO','Ngày giao',96,["NGAY_GIAO"]], ['KHO','Kho',112,["KHO", "TEN_KHO"]], ['MA_HANG','Mã hàng',112,["MA_HANG"]], ['TEN_HANG','Tên hàng',208,["TEN_HANG"]], ['DVT','ĐVT',64,["DVT"]], ['SL_DAT','SL đặt',112,["SL_DAT"]], ['DON_GIA','Đơn giá',112,["DON_GIA"]], ['THANH_TIEN','Thành tiền',128,["THANH_TIEN"]], ['TONG_TIEN','Tổng tiền',128,["TONG_TIEN"]], ['TRANG_THAI','Trạng thái',128,["TRANG_THAI"]], ['GHI_CHU','Ghi chú',320,["GHI_CHU"]]],
+        };
 
         // ===== ĐIỀU HƯỚNG 2 TẦNG — GĐ3 giao diện PROOFTRAIL (Đại Ca chốt 25/09/2026) =====
         // Tầng 1 = cột icon navy bên trái = PHÂN HỆ. Tầng 2 = hàng tab ngang = MÀN HÌNH của phân hệ đó.
@@ -6461,7 +6549,7 @@ const exportJournalCsv = (mode) => {
             };
 
             // Extractors trả về MẢNG giá trị theo thứ tự cột (nhanh hơn build object ~3-5x cho data lớn)
-            const extractLedgerRow = (r) => LEDGER_EXPORT_COLS.map(([key]) => {
+            const extractLedgerRow = (r, cols = LEDGER_EXPORT_COLS) => cols.map(([key]) => {
                 if (key === 'DEBIT')  return r.DEBIT_CREDIT === 'DEB' ? Number(r.AMOUNT || 0) : '';
                 if (key === 'CREDIT') return r.DEBIT_CREDIT === 'CRD' ? Number(r.AMOUNT || 0) : '';
                 const v = r[key];
@@ -6582,6 +6670,8 @@ const exportJournalCsv = (mode) => {
                     const q = buildExportQuery(kind);
                     q.set('total', String(total));
                     q.set('format', format);
+                    const boCot = anXuat(kind);   // cột đang ẩn trên màn hình ⇒ máy chủ bỏ khỏi file (_loc_cot_xuat)
+                    if (boCot.length) q.set('an_cot', boCot.join(','));
                     const r = await fetch(`/api/${kind}/stream_csv?${q.toString()}`, { method: 'POST' });
                     const res = await r.json();
                     if (res.status !== 'ok' || !res.job_id) {
@@ -6694,7 +6784,7 @@ const exportJournalCsv = (mode) => {
                     const rows = res.data || [];
                     if (!rows.length) { alert('Không có dữ liệu để xuất.'); return; }
 
-                    const cols = kind === 'ledger' ? LEDGER_EXPORT_COLS
+                    const colsGoc = kind === 'ledger' ? LEDGER_EXPORT_COLS
                                : kind === 'purchase' ? PURCHASE_EXPORT_COLS
                                : kind === 'sale' ? SALE_EXPORT_COLS
                                : kind === 'voucher' ? VOUCHER_EXPORT_COLS
@@ -6703,7 +6793,10 @@ const exportJournalCsv = (mode) => {
                                : kind === 'dcnb_reconcile' ? DCNB_EXPORT_COLS
                                : kind === 'po_list' ? PO_EXPORT_COLS
                                : WAREHOUSE_EXPORT_COLS;
-                    const extractor = kind === 'ledger' ? extractLedgerRow : (r) => extractRowGeneric(cols, r);
+                    // Bỏ cột đang ẩn trên màn hình (Đại Ca chốt 25/09: Excel xuất đúng các cột đang hiện).
+                    const boXuat = new Set(anXuat(kind));
+                    const cols = colsGoc.filter(([k]) => !boXuat.has(k));
+                    const extractor = kind === 'ledger' ? (r) => extractLedgerRow(r, cols) : (r) => extractRowGeneric(cols, r);
 
                     const prefix = kind === 'ledger' ? 'ChungTuTongHop_' : (kind === 'purchase' ? 'PhieuNhapKho_' : (kind === 'sale' ? 'ChungTuBanHang_' : (kind === 'voucher' ? 'ChungTuTien_' : (kind === 'warehouse_balance' ? 'TonKhoThucTe_' : (kind === 'btp_reconcile' ? 'DoiChieuXuatSX_NhapTP_' : (kind === 'dcnb_reconcile' ? 'DoiChieuDieuChuyenNoiBo_' : (kind === 'po_list' ? 'DanhSachPO_' : 'ChungTuKho_')))))));
                     const fname = prefix + filters.from_date.replace(/\//g,'') + '-' + filters.to_date.replace(/\//g,'') + '.xlsx';
@@ -7052,6 +7145,106 @@ const exportJournalCsv = (mode) => {
             // ⛔ Thêm ô lọc cho danh sách thì khai trong oLocDs — đừng viết thẳng vào hàng điều kiện.
             const TOI_DA_O_NGOAI_DS = 3;
             const [cauHinhLocDs, setCauHinhLocDs] = useState({});
+
+            // ===== CẤU HÌNH CỘT 9 BẢNG DANH SÁCH: ẩn/hiện + kéo giãn (Đại Ca chốt 25/09/2026) =====
+            // { [tab]: { an: [khoá cột đang ẩn], rong: { khoá: px } } } — nhớ riêng từng màn, TRÊN MÁY ('lr_cot_<tab>').
+            // Ẩn cột = CSS :nth-child theo vị trí trong COT_BANG; dòng gom nhóm (.dong-nhom) và dòng tổng tự tính
+            // lại colSpan qua hienCot / nhipCot. Excel (cả xuất 1 file ở máy chủ lẫn chia sheet) bỏ đúng các cột đang ẩn.
+            const [cauHinhCot, setCauHinhCot] = useState(() => {
+                const o = {};
+                Object.keys(COT_BANG).forEach(tab => {
+                    try {
+                        const v = JSON.parse(localStorage.getItem('lr_cot_' + tab) || 'null');
+                        if (v) o[tab] = { an: Array.isArray(v.an) ? v.an : [], rong: (v.rong && typeof v.rong === 'object') ? v.rong : {} };
+                    } catch (e) { /* ẩn danh / hỏng: về mặc định */ }
+                });
+                return o;
+            });
+            const cauHinhCotRef = useRef(cauHinhCot);
+            cauHinhCotRef.current = cauHinhCot;
+            const luuCot = (tab, moi) => {
+                setCauHinhCot(p => ({ ...p, [tab]: moi }));
+                try { localStorage.setItem('lr_cot_' + tab, JSON.stringify(moi)); } catch (e) { /* vẫn chạy, chỉ không nhớ */ }
+            };
+            const anCot = (tab) => new Set(((cauHinhCot[tab] || {}).an || []).filter(k => k !== '_stt'));   // cột # không bao giờ ẩn
+            const hienCot = (tab, i) => { const c = COT_BANG[tab]; return !c || !c[i] || !anCot(tab).has(c[i][0]); };
+            const nhipCot = (tab, a, b) => { let n = 0; for (let i = a; i <= b; i++) if (hienCot(tab, i)) n++; return n; };
+            const cotCua = (tab) => ({ hien: (i) => hienCot(tab, i), nhip: (a, b) => nhipCot(tab, a, b) });
+            // Khoá cột FILE XUẤT tương ứng các cột đang ẩn (một cột màn hình có thể = 2 cột file: mã + tên).
+            const anXuat = (tab) => { const s = anCot(tab); return (COT_BANG[tab] || []).filter(c => s.has(c[0])).flatMap(c => c[3]); };
+            const cssCot = Object.keys(COT_BANG).map(tab => {
+                const c = cauHinhCot[tab]; if (!c) return '';
+                const an = new Set(c.an || []), rong = c.rong || {}, b = `table[data-bang="${tab}"]`;
+                return COT_BANG[tab].map(([k], i) => {
+                    const n = i + 1;
+                    if (an.has(k) && k !== '_stt') return `${b}>thead>tr>:nth-child(${n}),${b}>tbody>tr:not(.dong-nhom)>:nth-child(${n}){display:none}`;
+                    if (rong[k]) return `${b}>thead>tr:first-child>:nth-child(${n}){width:${rong[k]}px;min-width:${rong[k]}px}`;
+                    return '';
+                }).join('');
+            }).join('');
+            // Kéo mép phải tiêu đề cột để đổi độ rộng; bấm đúp mép để về độ rộng gốc. Bảng tự nở theo nội dung
+            // (không cắt chữ) nên kéo HẸP chỉ tới mức vừa nội dung thì dừng — cố ý, để không mất số liệu.
+            // Lúc đang kéo ghi thẳng vào <style id="cot-keo"> (không setState mỗi lần rê chuột — vẽ lại cả App sẽ giật);
+            // thả chuột mới lưu vào state + máy.
+            useEffect(() => {
+                let keo = null, vuaKeo = false;
+                const tim = (e) => {
+                    const th = e.target && e.target.closest && e.target.closest('table[data-bang] > thead > tr:first-child > th');
+                    if (!th || th.cellIndex <= 0) return null;
+                    const r = th.getBoundingClientRect();
+                    if (e.clientX < r.right - 6) return null;               // chỉ ăn ở dải mép phải
+                    const bang = th.closest('table').dataset.bang, cot = (COT_BANG[bang] || [])[th.cellIndex];
+                    return cot ? { th, bang, n: th.cellIndex + 1, khoa: cot[0], w0: r.width } : null;
+                };
+                const theTam = () => { let s = document.getElementById('cot-keo'); if (!s) { s = document.createElement('style'); s.id = 'cot-keo'; document.head.appendChild(s); } return s; };
+                const xoaTam = () => { const s = document.getElementById('cot-keo'); if (s) s.textContent = ''; };
+                const xuong = (e) => {
+                    if (e.button !== 0) return;
+                    const h = tim(e); if (!h) return;
+                    e.preventDefault(); e.stopPropagation();
+                    keo = { ...h, x0: e.clientX, w: Math.round(h.w0) };
+                    document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none';
+                };
+                const di = (e) => {
+                    if (!keo) return;
+                    keo.w = Math.max(40, Math.round(keo.w0 + e.clientX - keo.x0));
+                    theTam().textContent = `table[data-bang="${keo.bang}"]>thead>tr:first-child>:nth-child(${keo.n}){width:${keo.w}px!important;min-width:${keo.w}px!important}`;
+                };
+                const len = () => {
+                    if (!keo) return;
+                    const { bang, khoa, w } = keo; keo = null; vuaKeo = true;
+                    document.body.style.cursor = ''; document.body.style.userSelect = '';
+                    const c = cauHinhCotRef.current[bang] || { an: [], rong: {} };
+                    luuCot(bang, { ...c, rong: { ...(c.rong || {}), [khoa]: w } });
+                    // ⚠️ Dọn thẻ tạm bằng setTimeout, KHÔNG dùng requestAnimationFrame: rAF không chạy khi trang đang ẩn
+                    //    (chuyển cửa sổ đúng lúc thả chuột) ⇒ thẻ tạm còn "!important" đè mãi, bấm đúp cũng không về gốc
+                    //    được (đã bắt được khi thử 25/09/2026).
+                    setTimeout(xoaTam, 30);
+                    setTimeout(() => { vuaKeo = false; }, 0);
+                };
+                // Thả chuột xong trình duyệt bắn 'click' lên tiêu đề ⇒ chặn ở pha capture, không thì cột bị sắp xếp.
+                const bam = (e) => { if (vuaKeo) { e.preventDefault(); e.stopPropagation(); vuaKeo = false; } };
+                const dup = (e) => {
+                    const h = tim(e); if (!h) return;
+                    e.preventDefault(); e.stopPropagation();
+                    const c = cauHinhCotRef.current[h.bang] || { an: [], rong: {} };
+                    const rong = { ...(c.rong || {}) }; delete rong[h.khoa];
+                    xoaTam();
+                    luuCot(h.bang, { ...c, rong });
+                };
+                const keoTha = (e) => { if (keo) e.preventDefault(); };   // tiêu đề kéo-thả để gom nhóm: đừng khởi động lúc đang giãn cột
+                document.addEventListener('mousedown', xuong, true);
+                document.addEventListener('mousemove', di, true);
+                document.addEventListener('mouseup', len, true);
+                document.addEventListener('click', bam, true);
+                document.addEventListener('dblclick', dup, true);
+                document.addEventListener('dragstart', keoTha, true);
+                return () => {
+                    document.removeEventListener('mousedown', xuong, true); document.removeEventListener('mousemove', di, true);
+                    document.removeEventListener('mouseup', len, true); document.removeEventListener('click', bam, true);
+                    document.removeEventListener('dblclick', dup, true); document.removeEventListener('dragstart', keoTha, true);
+                };
+            }, []);
             const oLocDs = (tab) => {
                 const ds = (id, ten, nguon, gt, chon, xoa) => ({ id, ten, loai: 'ds', nguon: nguon || [], gt: gt || [], chon, xoa });
                 const chung = (id, ten, khoa, nguon) => ds(id, ten, nguon, filters[khoa], v => toggleFilter(khoa, v), () => setFilters(p => ({ ...p, [khoa]: [] })));
@@ -7142,6 +7335,8 @@ const exportJournalCsv = (mode) => {
                                 className="h-[32px] px-4 rounded-lg bg-[#1e3a8a] hover:bg-[#172554] text-white text-[12px] font-bold flex items-center gap-1.5 disabled:opacity-60 shrink-0">
                                 {dangTai && <Icon name="loader" size={12} className="animate-spin" />}Lọc
                             </button>
+                            <CauHinhCot ds={COT_BANG[tab]} an={anCot(tab)} coDoiRong={Object.keys((cauHinhCot[tab] || {}).rong || {}).length > 0}
+                                onDoi={an => luuCot(tab, { ...(cauHinhCot[tab] || { rong: {} }), an })} onMacDinh={() => luuCot(tab, { an: [], rong: {} })} />
                             <ExportButton kind={tab} />
                         </div>
                     </div>
@@ -7376,6 +7571,8 @@ const exportJournalCsv = (mode) => {
             const isWarehouseGroupedOrSearched = groupByWarehouse.length > 0 || Object.values(warehouseColSearch).some(val => (val || '').trim() !== '');
             return (
                 <div className="h-screen flex flex-col">
+                    {/* CSS ẩn/hiện + độ rộng cột của 9 bảng danh sách — sinh từ cauHinhCot (xem COT_BANG) */}
+                    <style>{cssCot}</style>
                     {hienDoiMatKhau && nguoiDung && nguoiDung.app_user && (
                         <ModalDoiMatKhau uid={nguoiDung.app_user} onDong={() => setHienDoiMatKhau(false)} />
                     )}
@@ -7496,7 +7693,7 @@ const exportJournalCsv = (mode) => {
                                     <div className="flex-1 min-h-0 overflow-auto custom-scrollbar" ref={ledgerScrollRef}>
                                         {/* Wrapper relative — ép scrollHeight = totalHeight để user scroll qua hết phần data ảo.
                                             Table position absolute với top = topPadding → rows luôn ở đúng vị trí logic */}
-                                        <table className="w-max border-collapse" style={{ width: 'max-content', minWidth: '100%' }}>
+                                        <table data-bang="ledger" className="w-max border-collapse" style={{ width: 'max-content', minWidth: '100%' }}>
                                             <thead className="sticky top-0 bg-slate-50/95 backdrop-blur-md z-30 shadow-sm">
                                                 <tr className="text-slate-400 uppercase text-[9px] font-black tracking-widest text-center">
                                                     <th className="border-r w-14">#</th>
@@ -7551,19 +7748,19 @@ const exportJournalCsv = (mode) => {
                                                 {ledgerVS.topPadding > 0 && <tr><td colSpan={100} style={{ height: ledgerVS.topPadding, padding: 0, border: 0 }}></td></tr>}
                                                 {ledgerFlatData.slice(ledgerVS.startIndex, ledgerVS.endIndex + 1).map((row, i) => (
                                                     row.isGroup ?
-                                                    <LedgerGroupRow key={row.id} node={row} toggleExpand={handleToggleLedgerGroup} /> :
+                                                    <LedgerGroupRow key={row.id} node={row} toggleExpand={handleToggleLedgerGroup} cot={cotCua('ledger')} /> :
                                                     <LedgerRow key={ledgerVS.startIndex + i} r={row} idx={ledgerVS.startIndex + i + 1} />
                                                 ))}
                                                 {ledgerVS.bottomPadding > 0 && <tr><td colSpan={100} style={{ height: ledgerVS.bottomPadding, padding: 0, border: 0 }}></td></tr>}
                                             </tbody>
                                             <tfoot className="sticky-footer">
                                                 <tr className="text-slate-800 font-black text-[13px] bg-slate-50/95">
-                                                    <td colSpan="8" className="border-r text-right px-8 py-3.5 uppercase text-[10px] text-slate-400">
+                                                    {nhipCot('ledger', 0, 7) > 0 && <td colSpan={nhipCot('ledger', 0, 7)} className="border-r text-right px-8 py-3.5 uppercase text-[10px] text-slate-400">
                                                         Tổng toàn bộ truy vấn ({Number(pagination.total_rows||0).toLocaleString()} dòng):
-                                                    </td>
-                                                    <td className="border-r text-right px-4 text-emerald-700 bg-emerald-100/40">{summary.total_debit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                                    <td className="border-r text-right px-4 text-red-700 bg-red-100/40">{summary.total_credit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                                    <td colSpan="24"></td>
+                                                    </td>}
+                                                    {hienCot('ledger', 8) && <td className="border-r text-right px-4 text-emerald-700 bg-emerald-100/40">{summary.total_debit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>}
+                                                    {hienCot('ledger', 9) && <td className="border-r text-right px-4 text-red-700 bg-red-100/40">{summary.total_credit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>}
+                                                    {nhipCot('ledger', 10, 33) > 0 && <td colSpan={nhipCot('ledger', 10, 33)}></td>}
                                                 </tr>
                                             </tfoot>
                                         </table>
@@ -7650,7 +7847,7 @@ const exportJournalCsv = (mode) => {
                                 </div>
                                 <div className="flex-1 min-h-0 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden flex flex-col mx-0">
                                     <div className="flex-1 min-h-0 overflow-auto custom-scrollbar" ref={saleScrollRef}>
-                                        <table className="w-max border-collapse" style={{ width: 'max-content', minWidth: '100%' }}>
+                                        <table data-bang="sale" className="w-max border-collapse" style={{ width: 'max-content', minWidth: '100%' }}>
                                             <thead className="sticky top-0 bg-slate-50/95 backdrop-blur-md z-30 shadow-sm">
                                                 <tr className="text-slate-400 uppercase text-[9px] font-black tracking-widest text-center">
                                                     <th className="border-r w-12">#</th>
@@ -7715,25 +7912,25 @@ const exportJournalCsv = (mode) => {
                                                 {saleVS.topPadding > 0 && <tr><td colSpan={100} style={{ height: saleVS.topPadding, padding: 0, border: 0 }}></td></tr>}
                                                 {saleFlatData.slice(saleVS.startIndex, saleVS.endIndex + 1).map((row, i) => (
                                                     row.isGroup ?
-                                                    <SaleGroupRow key={row.id} node={row} toggleExpand={handleToggleSaleGroup} /> :
+                                                    <SaleGroupRow key={row.id} node={row} toggleExpand={handleToggleSaleGroup} cot={cotCua('sale')} /> :
                                                     <SaleRow key={saleVS.startIndex + i} r={row} idx={saleVS.startIndex + i + 1} />
                                                 ))}
                                                 {saleVS.bottomPadding > 0 && <tr><td colSpan={100} style={{ height: saleVS.bottomPadding, padding: 0, border: 0 }}></td></tr>}
                                             </tbody>
                                             <tfoot className="sticky-footer">
                                                 <tr className="text-slate-800 font-black text-[12px] bg-slate-50/95">
-                                                    <td colSpan="19" className="border-r text-right px-4 py-3 uppercase text-[10px] text-slate-400">
+                                                    {nhipCot('sale', 0, 18) > 0 && <td colSpan={nhipCot('sale', 0, 18)} className="border-r text-right px-4 py-3 uppercase text-[10px] text-slate-400">
                                                         Tổng toàn bộ truy vấn ({Number(salePagination.total_rows||0).toLocaleString()} dòng):
-                                                    </td>
-                                                    <td className="border-r text-right font-mono px-2 bg-slate-100/40">{Number(saleSummary.quantity||0).toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2})}</td>
-                                                    <td className="border-r"></td>
-                                                    <td className="border-r text-right font-mono px-2 bg-slate-100/40">{Math.round(Number(saleSummary.amount||0)).toLocaleString('en-US')}</td>
-                                                    <td className="border-r text-right font-mono px-2 text-orange-700 bg-orange-100/40">{Math.round(Number(saleSummary.discount||0)).toLocaleString('en-US')}</td>
-                                                    <td className="border-r"></td>
-                                                    <td className="border-r text-right font-mono px-2 text-violet-700 bg-violet-100/40">{Math.round(Number(saleSummary.vat_tax||0)).toLocaleString('en-US')}</td>
-                                                    <td className="border-r text-right font-mono px-2 text-emerald-700 bg-emerald-100/40">{Math.round(Number(saleSummary.total||0)).toLocaleString('en-US')}</td>
-                                                    <td className="border-r text-right font-mono px-2 text-rose-700 bg-rose-100/40">{Math.round(Number(saleSummary.cog||0)).toLocaleString('en-US')}</td>
-                                                    <td colSpan="17"></td>
+                                                    </td>}
+                                                    {hienCot('sale', 19) && <td className="border-r text-right font-mono px-2 bg-slate-100/40">{Number(saleSummary.quantity||0).toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2})}</td>}
+                                                    {hienCot('sale', 20) && <td className="border-r"></td>}
+                                                    {hienCot('sale', 21) && <td className="border-r text-right font-mono px-2 bg-slate-100/40">{Math.round(Number(saleSummary.amount||0)).toLocaleString('en-US')}</td>}
+                                                    {hienCot('sale', 22) && <td className="border-r text-right font-mono px-2 text-orange-700 bg-orange-100/40">{Math.round(Number(saleSummary.discount||0)).toLocaleString('en-US')}</td>}
+                                                    {hienCot('sale', 23) && <td className="border-r"></td>}
+                                                    {hienCot('sale', 24) && <td className="border-r text-right font-mono px-2 text-violet-700 bg-violet-100/40">{Math.round(Number(saleSummary.vat_tax||0)).toLocaleString('en-US')}</td>}
+                                                    {hienCot('sale', 25) && <td className="border-r text-right font-mono px-2 text-emerald-700 bg-emerald-100/40">{Math.round(Number(saleSummary.total||0)).toLocaleString('en-US')}</td>}
+                                                    {hienCot('sale', 26) && <td className="border-r text-right font-mono px-2 text-rose-700 bg-rose-100/40">{Math.round(Number(saleSummary.cog||0)).toLocaleString('en-US')}</td>}
+                                                    {nhipCot('sale', 27, 43) > 0 && <td colSpan={nhipCot('sale', 27, 43)}></td>}
                                                 </tr>
                                             </tfoot>
                                         </table>
@@ -7811,7 +8008,7 @@ const exportJournalCsv = (mode) => {
                                 </div>
                                 <div className="flex-1 min-h-0 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden flex flex-col mx-0">
                                     <div className="flex-1 min-h-0 overflow-auto custom-scrollbar" ref={voucherScrollRef}>
-                                        <table className="w-max border-collapse" style={{ width: 'max-content', minWidth: '100%' }}>
+                                        <table data-bang="voucher" className="w-max border-collapse" style={{ width: 'max-content', minWidth: '100%' }}>
                                             <thead className="sticky top-0 bg-slate-50/95 backdrop-blur-md z-30 shadow-sm">
                                                 <tr className="text-slate-400 uppercase text-[9px] font-black tracking-widest text-center">
                                                     <th className="border-r w-12">#</th>
@@ -7861,18 +8058,18 @@ const exportJournalCsv = (mode) => {
                                                 {voucherVS.topPadding > 0 && <tr><td colSpan={100} style={{ height: voucherVS.topPadding, padding: 0, border: 0 }}></td></tr>}
                                                 {voucherFlatData.slice(voucherVS.startIndex, voucherVS.endIndex + 1).map((row, i) => (
                                                     row.isGroup ?
-                                                    <VoucherGroupRow key={row.id} node={row} toggleExpand={handleToggleVoucherGroup} /> :
+                                                    <VoucherGroupRow key={row.id} node={row} toggleExpand={handleToggleVoucherGroup} cot={cotCua('voucher')} /> :
                                                     <VoucherRow key={voucherVS.startIndex + i} r={row} idx={voucherVS.startIndex + i + 1} />
                                                 ))}
                                                 {voucherVS.bottomPadding > 0 && <tr><td colSpan={100} style={{ height: voucherVS.bottomPadding, padding: 0, border: 0 }}></td></tr>}
                                             </tbody>
                                             <tfoot className="sticky-footer">
                                                 <tr className="text-slate-800 font-black text-[12px] bg-slate-50/95">
-                                                    <td colSpan="9" className="border-r text-right px-4 py-3 uppercase text-[10px] text-slate-400">
+                                                    {nhipCot('voucher', 0, 8) > 0 && <td colSpan={nhipCot('voucher', 0, 8)} className="border-r text-right px-4 py-3 uppercase text-[10px] text-slate-400">
                                                         Tổng toàn bộ truy vấn ({Number(voucherPagination.total_rows||0).toLocaleString()} dòng):
-                                                    </td>
-                                                    <td className="border-r text-right font-mono px-2 text-emerald-700 bg-emerald-100/40">{Math.round(Number(voucherSummary.amount||0)).toLocaleString('en-US')}</td>
-                                                    <td colSpan="19"></td>
+                                                    </td>}
+                                                    {hienCot('voucher', 9) && <td className="border-r text-right font-mono px-2 text-emerald-700 bg-emerald-100/40">{Math.round(Number(voucherSummary.amount||0)).toLocaleString('en-US')}</td>}
+                                                    {nhipCot('voucher', 10, 28) > 0 && <td colSpan={nhipCot('voucher', 10, 28)}></td>}
                                                 </tr>
                                             </tfoot>
                                         </table>
@@ -7961,7 +8158,7 @@ const exportJournalCsv = (mode) => {
                                 </div>
                                 <div className="flex-1 min-h-0 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden flex flex-col mx-0">
                                     <div className="flex-1 min-h-0 overflow-auto custom-scrollbar" ref={purchaseScrollRef}>
-                                        <table className="w-max border-collapse" style={{ width: 'max-content', minWidth: '100%' }}>
+                                        <table data-bang="purchase" className="w-max border-collapse" style={{ width: 'max-content', minWidth: '100%' }}>
                                             <thead className="sticky top-0 bg-slate-50/95 backdrop-blur-md z-30 shadow-sm">
                                                 <tr className="text-slate-400 uppercase text-[9px] font-black tracking-widest text-center">
                                                     <th className="border-r w-12">#</th>
@@ -8013,25 +8210,25 @@ const exportJournalCsv = (mode) => {
                                                 {purchaseVS.topPadding > 0 && <tr><td colSpan={100} style={{ height: purchaseVS.topPadding, padding: 0, border: 0 }}></td></tr>}
                                                 {purchaseFlatData.slice(purchaseVS.startIndex, purchaseVS.endIndex + 1).map((row, i) => (
                                                     row.isGroup ?
-                                                    <PurchaseGroupRow key={row.id} node={row} toggleExpand={handleTogglePurchaseGroup} /> :
+                                                    <PurchaseGroupRow key={row.id} node={row} toggleExpand={handleTogglePurchaseGroup} cot={cotCua('purchase')} /> :
                                                     <PurchaseRow key={purchaseVS.startIndex + i} r={row} idx={purchaseVS.startIndex + i + 1} />
                                                 ))}
                                                 {purchaseVS.bottomPadding > 0 && <tr><td colSpan={100} style={{ height: purchaseVS.bottomPadding, padding: 0, border: 0 }}></td></tr>}
                                             </tbody>
                                             <tfoot className="sticky-footer">
                                                 <tr className="text-slate-800 font-black text-[12px] bg-slate-50/95">
-                                                    <td colSpan="15" className="border-r text-right px-4 py-3 uppercase text-[10px] text-slate-400">
+                                                    {nhipCot('purchase', 0, 14) > 0 && <td colSpan={nhipCot('purchase', 0, 14)} className="border-r text-right px-4 py-3 uppercase text-[10px] text-slate-400">
                                                         Tổng toàn bộ truy vấn ({Number(purchasePagination.total_rows||0).toLocaleString()} dòng):
-                                                    </td>
-                                                    <td className="border-r text-right font-mono px-2 bg-slate-100/40">{Number(purchaseSummary.quantity||0).toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2})}</td>
-                                                    <td className="border-r"></td>
-                                                    <td className="border-r text-right font-mono px-2 bg-slate-100/40">{Number(purchaseSummary.quantity_wh||0).toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2})}</td>
-                                                    <td className="border-r"></td>
-                                                    <td className="border-r text-right font-mono px-2 text-orange-700 bg-orange-100/40">{Math.round(Number(purchaseSummary.discount||0)).toLocaleString('en-US')}</td>
-                                                    <td colSpan="2" className="border-r"></td>
-                                                    <td className="border-r text-right font-mono px-2 text-violet-700 bg-violet-100/40">{Math.round(Number(purchaseSummary.vat_tax||0)).toLocaleString('en-US')}</td>
-                                                    <td className="border-r text-right font-mono px-2 text-emerald-700 bg-emerald-100/40">{Math.round(Number(purchaseSummary.total||0)).toLocaleString('en-US')}</td>
-                                                    <td colSpan="7"></td>
+                                                    </td>}
+                                                    {hienCot('purchase', 15) && <td className="border-r text-right font-mono px-2 bg-slate-100/40">{Number(purchaseSummary.quantity||0).toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2})}</td>}
+                                                    {hienCot('purchase', 16) && <td className="border-r"></td>}
+                                                    {hienCot('purchase', 17) && <td className="border-r text-right font-mono px-2 bg-slate-100/40">{Number(purchaseSummary.quantity_wh||0).toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2})}</td>}
+                                                    {hienCot('purchase', 18) && <td className="border-r"></td>}
+                                                    {hienCot('purchase', 19) && <td className="border-r text-right font-mono px-2 text-orange-700 bg-orange-100/40">{Math.round(Number(purchaseSummary.discount||0)).toLocaleString('en-US')}</td>}
+                                                    {nhipCot('purchase', 20, 21) > 0 && <td colSpan={nhipCot('purchase', 20, 21)} className="border-r"></td>}
+                                                    {hienCot('purchase', 22) && <td className="border-r text-right font-mono px-2 text-violet-700 bg-violet-100/40">{Math.round(Number(purchaseSummary.vat_tax||0)).toLocaleString('en-US')}</td>}
+                                                    {hienCot('purchase', 23) && <td className="border-r text-right font-mono px-2 text-emerald-700 bg-emerald-100/40">{Math.round(Number(purchaseSummary.total||0)).toLocaleString('en-US')}</td>}
+                                                    {nhipCot('purchase', 24, 30) > 0 && <td colSpan={nhipCot('purchase', 24, 30)}></td>}
                                                 </tr>
                                             </tfoot>
                                         </table>
@@ -8120,7 +8317,7 @@ const exportJournalCsv = (mode) => {
                                 </div>
                                 <div className="flex-1 min-h-0 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden flex flex-col mx-0">
                                     <div className="flex-1 min-h-0 overflow-auto custom-scrollbar" ref={warehouseScrollRef}>
-                                        <table className="w-max border-collapse" style={{ width: 'max-content', minWidth: '100%' }}>
+                                        <table data-bang="warehouse" className="w-max border-collapse" style={{ width: 'max-content', minWidth: '100%' }}>
                                             <thead className="sticky top-0 bg-slate-50/95 backdrop-blur-md z-30 shadow-sm">
                                                 <tr className="text-slate-400 uppercase text-[9px] font-black tracking-widest text-center">
                                                     <th className="border-r w-12">#</th>
@@ -8169,22 +8366,22 @@ const exportJournalCsv = (mode) => {
                                                 {warehouseVS.topPadding > 0 && <tr><td colSpan={100} style={{ height: warehouseVS.topPadding, padding: 0, border: 0 }}></td></tr>}
                                                 {warehouseFlatData.slice(warehouseVS.startIndex, warehouseVS.endIndex + 1).map((row, i) => (
                                                     row.isGroup ?
-                                                    <WarehouseGroupRow key={row.id} node={row} toggleExpand={handleToggleWarehouseGroup} /> :
+                                                    <WarehouseGroupRow key={row.id} node={row} toggleExpand={handleToggleWarehouseGroup} cot={cotCua('warehouse')} /> :
                                                     <WarehouseRow key={warehouseVS.startIndex + i} r={row} idx={warehouseVS.startIndex + i + 1} />
                                                 ))}
                                                 {warehouseVS.bottomPadding > 0 && <tr><td colSpan={100} style={{ height: warehouseVS.bottomPadding, padding: 0, border: 0 }}></td></tr>}
                                             </tbody>
                                             <tfoot className="sticky-footer">
                                                 <tr className="text-slate-800 font-black text-[12px] bg-slate-50/95">
-                                                    <td colSpan="15" className="border-r text-right px-4 py-3 uppercase text-[10px] text-slate-400">
+                                                    {nhipCot('warehouse', 0, 14) > 0 && <td colSpan={nhipCot('warehouse', 0, 14)} className="border-r text-right px-4 py-3 uppercase text-[10px] text-slate-400">
                                                         Tổng toàn bộ truy vấn ({Number(warehousePagination.total_rows||0).toLocaleString()} dòng):
-                                                    </td>
-                                                    <td className="border-r text-right font-mono px-2 bg-slate-100/40">{Number(warehouseSummary.quantity||0).toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2})}</td>
-                                                    <td className="border-r"></td>
-                                                    <td className="border-r text-right font-mono px-2 bg-slate-100/40">{Number(warehouseSummary.quantity_extra||0).toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2})}</td>
-                                                    <td className="border-r"></td>
-                                                    <td className="border-r text-right font-mono px-2 text-emerald-700 bg-emerald-100/40">{Math.round(Number(warehouseSummary.amount||0)).toLocaleString('en-US')}</td>
-                                                    <td colSpan="8"></td>
+                                                    </td>}
+                                                    {hienCot('warehouse', 15) && <td className="border-r text-right font-mono px-2 bg-slate-100/40">{Number(warehouseSummary.quantity||0).toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2})}</td>}
+                                                    {hienCot('warehouse', 16) && <td className="border-r"></td>}
+                                                    {hienCot('warehouse', 17) && <td className="border-r text-right font-mono px-2 bg-slate-100/40">{Number(warehouseSummary.quantity_extra||0).toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2})}</td>}
+                                                    {hienCot('warehouse', 18) && <td className="border-r"></td>}
+                                                    {hienCot('warehouse', 19) && <td className="border-r text-right font-mono px-2 text-emerald-700 bg-emerald-100/40">{Math.round(Number(warehouseSummary.amount||0)).toLocaleString('en-US')}</td>}
+                                                    {nhipCot('warehouse', 20, 27) > 0 && <td colSpan={nhipCot('warehouse', 20, 27)}></td>}
                                                 </tr>
                                             </tfoot>
                                         </table>
@@ -8219,7 +8416,7 @@ const exportJournalCsv = (mode) => {
                                 {warehouseBalanceLoading && <div className="absolute inset-0 bg-white/40 z-50 flex flex-col items-center justify-center backdrop-blur-[2px] transition-all"><div className="bg-white p-6 rounded-3xl shadow-2xl flex flex-col items-center gap-4 border border-indigo-50"><Icon name="loader" size={48} className="animate-spin text-indigo-600"/><div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest animate-pulse">Đang truy vấn dữ liệu...</div></div></div>}
                                 <div className="flex-1 min-h-0 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden flex flex-col mx-0">
                                     <div className="flex-1 min-h-0 overflow-auto custom-scrollbar" ref={warehouseBalanceScrollRef}>
-                                        <table className="w-max border-collapse" style={{ width: 'max-content', minWidth: '100%' }}>
+                                        <table data-bang="warehouse_balance" className="w-max border-collapse" style={{ width: 'max-content', minWidth: '100%' }}>
                                             <thead className="sticky top-0 bg-slate-50/95 backdrop-blur-md z-30 shadow-sm">
                                                 <tr className="text-slate-400 uppercase text-[9px] font-black tracking-widest text-center">
                                                     <th className="border-r w-12">#</th>
@@ -8336,7 +8533,7 @@ const exportJournalCsv = (mode) => {
                                 {btpLoading && <div className="absolute inset-0 bg-white/40 z-50 flex flex-col items-center justify-center backdrop-blur-[2px] transition-all"><div className="bg-white p-6 rounded-3xl shadow-2xl flex flex-col items-center gap-4 border border-indigo-50"><Icon name="loader" size={48} className="animate-spin text-indigo-600"/><div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest animate-pulse">Đang đối chiếu...</div></div></div>}
                                 <div className="flex-1 min-h-0 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden flex flex-col mx-0">
                                     <div className="flex-1 min-h-0 overflow-auto custom-scrollbar" ref={btpScrollRef}>
-                                        <table className="w-max border-collapse" style={{ width: 'max-content', minWidth: '100%' }}>
+                                        <table data-bang="btp_reconcile" className="w-max border-collapse" style={{ width: 'max-content', minWidth: '100%' }}>
                                             <thead className="sticky top-0 bg-slate-50/95 backdrop-blur-md z-30 shadow-sm">
                                                 <tr className="text-slate-400 uppercase text-[9px] font-black tracking-widest text-center">
                                                     <th className="border-r w-12">#</th>
@@ -8480,7 +8677,7 @@ const exportJournalCsv = (mode) => {
                                 {dcnbLoading && <div className="absolute inset-0 bg-white/40 z-50 flex flex-col items-center justify-center backdrop-blur-[2px] transition-all"><div className="bg-white p-6 rounded-3xl shadow-2xl flex flex-col items-center gap-4 border border-indigo-50"><Icon name="loader" size={48} className="animate-spin text-indigo-600"/><div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest animate-pulse">Đang đối chiếu...</div></div></div>}
                                 <div className="flex-1 min-h-0 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden flex flex-col mx-0">
                                     <div className="flex-1 min-h-0 overflow-auto custom-scrollbar" ref={dcnbScrollRef}>
-                                        <table className="w-max border-collapse" style={{ width: 'max-content', minWidth: '100%' }}>
+                                        <table data-bang="dcnb_reconcile" className="w-max border-collapse" style={{ width: 'max-content', minWidth: '100%' }}>
                                             <thead className="sticky top-0 bg-slate-50/95 backdrop-blur-md z-30 shadow-sm">
                                                 <tr className="text-slate-400 uppercase text-[9px] font-black tracking-widest text-center">
                                                     <th className="border-r w-12">#</th>
@@ -8622,7 +8819,7 @@ const exportJournalCsv = (mode) => {
                                 {poLoading && <div className="absolute inset-0 bg-white/40 z-50 flex flex-col items-center justify-center backdrop-blur-[2px] transition-all"><div className="bg-white p-6 rounded-3xl shadow-2xl flex flex-col items-center gap-4 border border-indigo-50"><Icon name="loader" size={48} className="animate-spin text-indigo-600"/><div className="text-[10px] font-black text-indigo-600 uppercase tracking-widest animate-pulse">Đang tải danh sách PO...</div></div></div>}
                                 <div className="flex-1 min-h-0 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden flex flex-col mx-0">
                                     <div className="flex-1 min-h-0 overflow-auto custom-scrollbar" ref={poScrollRef}>
-                                        <table className="w-max border-collapse" style={{ width: 'max-content', minWidth: '100%' }}>
+                                        <table data-bang="po_list" className="w-max border-collapse" style={{ width: 'max-content', minWidth: '100%' }}>
                                             <thead className="sticky top-0 bg-slate-50/95 backdrop-blur-md z-30 shadow-sm">
                                                 <tr className="text-slate-400 uppercase text-[9px] font-black tracking-widest text-center">
                                                     <th className="border-r w-12">#</th>

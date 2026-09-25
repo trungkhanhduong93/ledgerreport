@@ -8,6 +8,8 @@
 > ✅ **GĐ3 (điều hướng + Báo cáo TC): Đại Ca xem và chốt OK sáng 25/09 — đã commit `fed091f`.**
 > ✅ **GĐ4 Trang chủ (khung, chưa số liệu): Đại Ca xem và chốt OK 25/09 — đã commit.**
 > ✅ **Tab Phân quyền — giao diện mới: Đại Ca xem và chốt OK 25/09 — đã commit** (việc 32).
+> 🟡 **GĐ5 (tên PROOFTRAIL) + thanh lọc mới 9 màn danh sách + ẩn/hiện/kéo giãn cột + Excel theo cột hiện: XONG ở mã nguồn,
+> đã commit từng chặng — CHỜ Đại Ca xem trên 5051.** ⚠️ Phần *Excel bỏ cột ẩn* có sửa `server.py` ⇒ phải **khởi động lại 5051** mới thấy.
 > 🩹 **Việc 31 (lỗi trong bản đang phát hành) ĐÃ VÁ trên `main` — commit `784d227`, CHƯA build, CHƯA push.**
 > Đại Ca chốt 25/09: *"vá trước nhưng chưa build, để build 1 lần luôn"*.
 > Phiên phát hành gần nhất: **24/09/2026** · ✅ **v1.12.3** — `main` = `62af287`,
@@ -90,22 +92,22 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 | ➕ | **Đăng nhập nhanh** (hướng A — Đại Ca chốt giữa chừng) | ✅ Xong, **Đại Ca đã thử thật: nhanh** — commit `c64540a` |
 | **3** | **Điều hướng**: cột phân hệ 64px + hàng tab ngang, 9 màn hình vào 5 phân hệ. **Báo cáo TC: trang liệt kê 16 thẻ + ô chọn có tìm kiếm, ô lọc dời phải, ô Thời gian gộp, Bộ lọc nâng cao** (Đại Ca đổi ý: bỏ 5 tab nhóm) | ✅ Xong — **Đại Ca xem và chốt OK 25/09**, đã commit (local, chưa push) |
 | **4** | **Trang chủ** — Đại Ca chốt 25/09: **chỉ khung + thẻ phân hệ, CHƯA lấy số liệu**; kỳ sau này = tháng hiện tại | ✅ **Khung xong — Đại Ca chốt OK 25/09** (sau khi cho lưới thẻ trải hết bề ngang), đã commit (local, chưa push). Khối số liệu (tải NGẦM, mỗi ô 6–8s) để sau |
-| **5** | **Đổi tên hiển thị** 4 chỗ: `APP_NAME`, `<title>`, `manifest.json`, `version_info.txt` | ⏳ Chưa làm. ⛔ **Giữ tên file `iPOS_Accounting_Report.exe`** — đổi là tự cập nhật đứt |
+| **5** | **Đổi tên hiển thị**: `APP_NAME`, `<title>` + 2 meta, 9 dòng chữ chìm, `manifest.json` (trước ghi nhầm *iPOS Ledger Studio*), Properties của EXE (`build_exe.py` + `version_info.txt`) | ✅ **Xong 25/09 — commit `ee5aed3`**. ⛔ **Giữ tên file `iPOS_Accounting_Report.exe`** — đổi là tự cập nhật đứt. Không đổi được tiêu đề Release trên GitHub (nằm trong `release.yml`, token thiếu scope `workflow` — việc 11) |
 
 **Việc còn chờ của dự án này:**
 
 | # | Việc | Ghi chú |
 |---|---|---|
 | 16 | ~~Đại Ca F5 xem lại màn danh sách~~ ✅ **Đại Ca đã xem 25/09** | Nhận xét: **cột bị hẹp** ⇒ thành việc 28 |
-| 17 | **Nút `TRUY VẤN` đang chuyển màu navy → tím** | Lớp gradient `indigo → purple` cũ. Hỏi 2 lần, **chưa chốt** đưa về navy đặc |
+| 17 | ~~Nút `TRUY VẤN` đang chuyển màu navy → tím~~ ✅ **XONG 25/09** | Đại Ca chốt: chữ **"Lọc"**, navy đặc, như mẫu iPOS. Nằm trong thanh lọc mới của 9 màn danh sách |
 | 18 | ~~Chốt mốc commit phần đăng nhập nhanh + sửa font~~ ✅ **commit `c64540a`** | Local, chưa push |
 | 19 | ~~Đại Ca xem GĐ3 rồi chốt commit~~ ✅ **Đại Ca chốt OK sáng 25/09** (*"cái đó thì ok rồi"*) ⇒ đã commit GĐ3 | ⚠️ Đại Ca chốt chung, **không nói rõ đã thử từng mục dưới đây chưa** — lần đầu dùng số liệu thật thì để ý. Danh sách cần xem ở mục *"Việc Đại Ca xem sáng 25/09"* trong nhật ký 25/09 (tiếp 3), ngay dưới § này. Ba việc tôi **không** tự thử được: hộp *"Chuyển mẫu báo cáo?"* khi có số liệu thật · menu **Xuất Excel / Xuất PDF** khi có số liệu (chưa có số liệu thì nút tắt) · kéo thả thứ tự ô lọc bằng chuột thật. Và **đọc lại mô tả 16 thẻ** — tôi tự viết |
 | 32 | ~~Giao diện mới cho tab Phân quyền~~ ✅ **XONG 25/09 — Đại Ca chốt OK, đã commit** (local, chưa push) | Mục **05 — PHÂN QUYỀN** của bản phác thảo. **Bản 2 (theo góp ý 25/09):** Chức vụ **bỏ ma trận** → danh sách + khung sửa bên phải, cùng kiểu tab Tài khoản · Tài khoản **bỏ ô mật khẩu và hộp tóm tắt quyền** (mật khẩu thu thành dòng *"Đặt lại mật khẩu"*; tài khoản mới vẫn có ô) · Đơn vị = **một danh sách tick**, có dòng *"Tất cả đơn vị"*. Thêm 2 khung **Thêm tài khoản** / **Thêm chức vụ** (Đại Ca hỏi *"màn hình thêm mới quyền thì sao"*). Dữ liệu trong khung là **minh hoạ**. Chưa sửa dòng mã nào |
 | 31 | 🩹 **Ô Số chứng từ của BC012 hỏng trong bản ĐANG PHÁT HÀNH v1.12.3** — ✅ **ĐÃ VÁ trên `main` 25/09 (`784d227`), ⏳ CHƯA build/push** | Gõ từng chữ `P` → `T` thì thành `P,PT` và lọc ra 0 dòng (`toggleFilter` coi `tran_no` là mảng). Sửa cả hai nhánh: `giaodien` (chưa commit) và `main`. Đại Ca chốt **build một lần** cùng đợt sau. Người dùng **vẫn gặp lỗi tới khi phát hành**. Dán nguyên số phiếu một lần thì chạy |
-| 30 | 🆕 **Áp Bộ lọc nâng cao + ô Thời gian gộp sang 9 màn danh sách** | Đại Ca chốt: *"làm báo cáo trước, có logic rồi làm danh sách sau"*. Ở đó nó thay nút "Bộ lọc" đang mở hàng lọc thứ 2. Màn danh sách nhiều ô hơn hẳn (Chứng từ tổng hợp: 11 ô) |
+| 30 | ~~Áp Bộ lọc nâng cao + ô Thời gian gộp sang 9 màn danh sách~~ ✅ **XONG 25/09 — commit `e071bb9`** | Theo ảnh mẫu iPOS *"Đặt mua hàng"*. **Tối đa 3 ô ngoài** (tính cả Thời gian — Đại Ca chốt), phần còn lại vào Bộ lọc nâng cao. 9/9 màn một hàng ở 1366 và 1280px |
 | 29 | ~~Nút Excel / PDF của BC003, BC004 sáng sẵn khi chưa có số liệu~~ ✅ **XONG 25/09/2026** | Sửa luôn khi gộp 2 nút thành nút tải xuống: điều kiện xét `initialReportData`. Đã thử: BC001/003/004/012/016 chưa tải số liệu ⇒ nút tắt, tooltip *"Chưa có số liệu — bấm Xem trước rồi mới xuất"* |
 | 20–21 | GĐ4 · GĐ5 | Theo bảng trên |
-| 28 | 🆕 **Cột bảng hẹp** — Đại Ca: *"sửa sau khi update toàn bộ giai đoạn"* | Số đo 25/09 cho lúc sửa: hàng lọc 5 màn danh sách **cần 1.393px** để mọi ô đủ rộng, màn 1366 chỉ có **1.254px** (bản cũ trước GĐ3: cần 1.473 / có 1.318 — **vốn đã bị ép co từ trước**). Ở 1280px tiêu đề **`MÃ CT` gãy 2 dòng**. Cột phân hệ ăn thêm 64px chiều ngang |
+| 28 | ~~Cột bảng hẹp~~ ✅ **XONG 25/09** — Đại Ca chốt **kéo giãn cột + nhớ**. Tiêu đề không gãy dòng nữa; kèm **ẩn/hiện cột** và **Excel xuất đúng cột đang hiện** · số đo cũ để tham khảo: | Số đo 25/09 cho lúc sửa: hàng lọc 5 màn danh sách **cần 1.393px** để mọi ô đủ rộng, màn 1366 chỉ có **1.254px** (bản cũ trước GĐ3: cần 1.473 / có 1.318 — **vốn đã bị ép co từ trước**). Ở 1280px tiêu đề **`MÃ CT` gãy 2 dòng**. Cột phân hệ ăn thêm 64px chiều ngang |
 | 22 | **Hướng B**: bỏ `LockService` cho lệnh chỉ đọc trong `Code.gs` (dòng 487) | 5 người mở app cùng lúc thì người thứ 5 chờ gần 1 phút. **Phải triển khai lại Apps Script** — theo đúng `chuan_bi_deploy.py` (Bẫy 19, 23) |
 | 23 | **Bị đá ra (đăng nhập nhanh) không có câu báo lý do** | Người dùng chỉ thấy quay về màn đăng nhập. Đại Ca: *"tính sau"* |
 | 24 | **Biên dịch sẵn JSX lúc đóng gói** | Mở app trắng màn hình **~7–13 giây** (Babel dịch 723 KB mỗi lần mở). Đo: `domInteractive` 152ms / `DOMContentLoaded` 6.926ms |
@@ -156,6 +158,71 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 | Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 25/09/2026 (tối) — GĐ5 PROOFTRAIL · thanh lọc 9 màn danh sách · ẩn/hiện + kéo giãn cột · Excel theo cột hiện
+
+Đại Ca gửi ảnh màn *"Đặt mua hàng"* của iPOS: *"làm tiếp GĐ5 đổi tên PROOFTRAIL, check luôn cột bảng bị
+hẹp, và chỗ bộ lọc làm giao diện như hình… danh sách nó sẽ nhiều hơn, với cả cho phép cấu hình bảng danh
+sách, chủ động ẩn hoặc hiện các cột cần"*. Hỏi 4 điểm, Đại Ca chọn cả 4 đề xuất: **kéo giãn cột + nhớ** ·
+**3 ô ngoài** như hình · nút **"Lọc" navy đặc** · **Excel xuất đúng các cột đang hiện**.
+
+### Chặng 1 — GĐ5 đổi tên (commit `ee5aed3`)
+
+`<title>`, 2 thẻ meta, `APP_NAME`, 9 dòng chữ chìm chân bảng, `manifest.json` (**trước ghi nhầm "iPOS Ledger
+Studio"** — copy từ Studio), Properties của EXE (`build_exe.py` thêm `DISPLAY_NAMES`, `version_info.txt`).
+**Giữ** tên file `iPOS_Accounting_Report.exe`, User-Agent gọi GitHub, thư mục xuất file. Kiểm bộ sinh
+`version_info` bằng cách chạy riêng đoạn mẫu — **không build thật** (build là tự tăng `version.txt`).
+
+### Chặng 2 — thanh lọc mới cho 9 màn (commit `e071bb9`)
+
+Trái *Kết quả N dòng · Hiển thị*; phải *Thời gian + 2 ô + phễu + **Lọc** + (cấu hình cột) + Excel*. Dùng
+lại `BoLocNangCao` / `docCauHinhLoc` của Báo cáo TC (thêm tham số `toiDa`, báo cáo vẫn 4). Ô lọc khai ở
+`oLocDs(tab)`, thứ tự mặc định = hàng 1 bản cũ. 3 màn đối chiếu giữ nguyên khối chip (script cắt nguyên
+khối `<div>` và đặt dưới thanh lọc). Bỏ 513 dòng hàng lọc cũ.
+
+🐛 Tự bắt khi rà: khai lại hằng `TOI_DA_O_NGOAI` trong thân `BoLocNangCao` trong khi tham số mặc định dùng
+chính tên đó — Babel có thể dịch ra lỗi TDZ. Đổi sang dùng thẳng `toiDa`.
+
+### Chặng 3–4 — ẩn/hiện cột, kéo giãn, Excel theo cột hiện
+
+- **`COT_BANG`** (9 bảng, sinh bằng script từ JSX + `*_EXPORT_COLS`, sửa tay 11 cột lệch tên / cặp mã-tên).
+  Trước khi làm **đã đếm**: mọi hàng tiêu đề, ô tìm, dòng dữ liệu của cả 9 bảng đều **đúng 1 ô / cột**
+  ⇒ ẩn bằng CSS `:nth-child` an toàn. 5 dòng gom nhóm + 5 dòng tổng tính lại `colSpan` (`hienCot`/`nhipCot`),
+  script `assert` colSpan cũ khớp đúng dải cột đã đếm.
+- **Kéo giãn**: dải 8px ở mép phải tiêu đề; lúc kéo ghi thẳng vào `<style id="cot-keo">` (không setState mỗi
+  lần rê chuột), thả mới lưu. Chặn `click` sau khi kéo (không bị sắp xếp nhầm). Bấm đúp mép = về gốc. Bảng
+  vẫn **tự nở theo nội dung** — kéo hẹp chỉ tới mức vừa chữ (cố ý, không cắt số liệu). Tiêu đề hết gãy dòng.
+- **Excel**: xuất 1 file đi qua **máy chủ** ⇒ `server.py` thêm `_loc_cot_xuat` + tham số `an_cot` cho 9 route
+  `stream_csv` (không gửi ⇒ file như cũ; không bao giờ ra file 0 cột). Chia sheet theo đơn vị lọc ở trình duyệt.
+- 🐛 **Lỗi CÓ SẴN sửa kèm:** dòng gom nhóm màn **Bán hàng** đặt tổng tiền dưới cột **Số lượng** (cột 19) —
+  nay nằm dưới **Tổng TT** (cột 25).
+
+### 🧪 Verify (server thử 5052, dữ liệu giả; `fetch` giả cho `/api/ledger`)
+
+| Kiểm | Kết quả |
+|---|---|
+| **M1** | Babel SUCCESSFUL · `server.py` **168 hàm** (+1 `_loc_cot_xuat`) / **69 route**, không trùng |
+| `_loc_cot_xuat` (gọi thẳng, cột thật `LEDGER_CSV_COLS`) | Không gửi ⇒ 33 cột như cũ · ẩn Nợ, Có ⇒ 31 cột, dữ liệu không lệch · khoá lạ ⇒ bỏ qua · ẩn hết ⇒ giữ nguyên |
+| Ẩn Mã CT + Nợ (Tổng hợp, 3 dòng giả) | 34 → 32 cột, **0 cột lệch** tiêu đề/dữ liệu · nhãn dòng tổng 8 → 7 · tổng Có vẫn đúng dưới cột Có · nút cấu hình số 2 · *"31/33 cột hiện"* |
+| Gom nhóm theo đơn vị | Nợ ẩn: dòng nhóm 3 ô, tổng Có đúng cột · hiện lại Nợ: tổng Nợ + Có đều đúng cột |
+| Kéo giãn | 112 → 192px, lưu `TRAN_DATE:192` · thả chuột **không** sắp xếp · bấm giữa tiêu đề vẫn sắp xếp · bấm đúp ⇒ về 112px |
+| Tải lại trang | Vẫn ẩn Mã CT + Nợ, vẫn nhớ cấu hình ô lọc |
+| Xuất 1 file | Yêu cầu gửi máy chủ có **`an_cot=TRAN_ID,DEBIT`** |
+| Xuất chia sheet | 31 cột, không Mã CT/Nợ, dòng 1 thẳng tiêu đề, 2 sheet *01-Kho tổng* / *35-Cửa hàng 35* |
+| 9 màn | Ẩn 1 cột ⇒ tiêu đề + ô tìm cùng giảm 1 · *Về mặc định* đủ lại · thanh lọc **một hàng ở 1366 và 1280px** |
+
+🐛 **Tự bắt khi thử:** thẻ CSS tạm dọn bằng `requestAnimationFrame` — rAF **không chạy khi trang đang ẩn** ⇒
+thẻ tạm còn `!important`, bấm đúp không về gốc. Đổi sang `setTimeout`.
+
+### 🔍 Điểm mù
+
+- **Chưa kéo bằng chuột thật** (mới giả lập sự kiện) và **chưa xuất Excel thật từ SQL** (server thử không có
+  DB) — Đại Ca thử giúp trên 5051.
+- **5051 đang chạy `server.py` cũ** ⇒ xuất 1 file trên 5051 **chưa bỏ cột ẩn** cho tới khi khởi động lại 5051.
+- Dòng gom nhóm của 4 màn còn lại chỉ kiểm bằng đọc mã + `assert` dải cột (mới thử thật ở Tổng hợp).
+- 9 biến `xxxRow2Count` (hàng lọc cũ) còn nằm lại, không dùng — vô hại, để dọn sau.
 
 ---
 

@@ -3,18 +3,19 @@
 > Toàn bộ những gì đã làm với **LedgerReport**, và **vì sao**. Đọc file này trước khi sửa tiếp.
 > Kiến trúc, ma trận báo cáo, phương án backup: [CLAUDE.md](CLAUDE.md).
 > Mổ xẻ sâu sự cố + 4 bài học: [SU_CO_15082026.md](SU_CO_15082026.md).
-> 🚀 **25/09/2026 tối: PHÁT HÀNH `v2.0.0` = GIAO DIỆN MỚI `DATA REPORT`** (Đại Ca: *"giao diện mới nên nó sẽ là Ver 2"*).
-> Nhánh `giaodien` (GĐ0–GĐ5, đăng nhập nhanh, tab Phân quyền, thanh lọc 9 màn, cột bảng, việc 7, việc 35–36) +
-> 2 bản vá trên `main` (việc 31, 34) **đã gộp hết vào `main` và push**. Chi tiết: mục *25/09/2026 — Phát hành v2.0.0* ngay dưới § VIỆC CẦN LÀM.
-> Bản trước: **v1.12.3** (24/09/2026).
-> 🔑 Phiên này chốt được **luật nghiệp vụ gốc**: iPOS **tự sinh** phiếu nhập `NDCNB` khi phiếu xuất
-> `XDCNB` ghi sổ — đổi hẳn cách đọc tab đối chiếu điều chuyển. Xem các mục 24/09.
-> ✅ **Tài khoản nhân viên trên Google Sheet: Đại Ca báo đã tạo xong 25/09/2026** (cùng đổi mật khẩu
-> `admin` và tick quyền 2 tab mới — việc 1, 3, 4).
-> 🟡 **Việc 7 — lọc 2 chiều tab điều chuyển: xong ở mã nguồn 25/09, chờ Đại Ca thử với số liệu thật.**
+> 🚀 **Bản mới nhất: `v2.0.2` (26/09/2026), là `Latest` trên GitHub.** Hai ngày ra ba bản:
+>   `v2.0.0` (25/09 tối) = **giao diện mới `DATA REPORT`** — Đại Ca chốt lên *Ver 2* ·
+>   `v2.0.1` (26/09) = **thông báo có bản mới kiểu mới** (hộp thoại + nút cam + thẻ nhắc, "Có gì mới" đọc `CO_GI_MOI.md`) ·
+>   `v2.0.2` (26/09) = **vá lỗi nhân viên thường không xuất được Excel Báo cáo TC** (có từ v2.0.0, Bẫy 30) + việc 9, 10, 23.
+> ✅ **EXE trên máy Đại Ca = đúng file CI v2.0.2** (SHA256 khớp digest) — lên bằng **chính hộp thoại cập nhật mới**, phép thử
+>   cập nhật thật đầu tiên chạy trọn vòng (2.0.1 → 2.0.2). Nhánh `giaodien` đã gộp hết vào `main`; thư mục làm việc đang ở `main`.
+> 🔑 Luật nghiệp vụ gốc chốt 24/09: iPOS **tự sinh** phiếu nhập `NDCNB` khi phiếu xuất `XDCNB` ghi sổ — đổi hẳn cách
+>   đọc tab đối chiếu điều chuyển. Xem các mục 24/09.
+> ✅ Tài khoản nhân viên trên Google Sheet + đổi mật khẩu `admin` + tick quyền 2 tab mới: **Đại Ca báo xong 25/09** (việc 1, 3, 4).
+> 🟡 **Việc 7 — lọc 2 chiều tab điều chuyển: đã phát hành trong v2.0.0, CHƯA có xác nhận thử với số liệu thật.**
 > Apps Script trên Google: **Version 5** (21/09/2026 19:33), mã bản `2026-09-21c` — **đã triển khai**.
 >
-> 📌 **Việc còn treo gom ở ngay dưới: [§ VIỆC CẦN LÀM](#-việc-cần-làm--cập-nhật-21092026).**
+> 📌 **Việc còn treo gom ở ngay dưới: [§ VIỆC CẦN LÀM](#-việc-cần-làm).**
 >
 > ---
 >
@@ -35,29 +36,29 @@
 
 ---
 
-## 📌 VIỆC CẦN LÀM — *cập nhật 25/09/2026*
+## 📌 VIỆC CẦN LÀM
 
-> Gom hết việc còn treo về một chỗ. Nhận việc mới thì **đọc mục này trước**.
-> Trạng thái: **v1.12.3 đã phát hành**, là `Latest` trên GitHub, và **EXE trên máy Đại Ca đã là
-> đúng file CI** (SHA256 khớp digest — kiểm lại 24/09 lúc 17:50).
+> *Cập nhật 26/09/2026.* Gom hết việc còn treo về một chỗ. Nhận việc mới thì **đọc mục này trước**.
+> ⚠️ Tiêu đề mục này **cố ý không ghi ngày** — mọi đường dẫn `#-việc-cần-làm` trỏ vào nó; ghi ngày là gãy link.
+> Trạng thái: **v2.0.2 đã phát hành**, là `Latest`, và **EXE trên máy Đại Ca = đúng file CI** (SHA256 khớp digest, 26/09).
 >
-> ✅ **Hết trạng thái `ahead N` giữ cố ý (25/09/2026):** 8 commit của `main` + toàn bộ commit của `giaodien` đã đi cùng
-> lần push phát hành **v2.0.0**. `version.txt` = **`2.0.0`** (đặt hẳn bằng `build_exe.py iPOS_Accounting_Report 2.0.0`),
-> lớn hơn `1.12.3` ⇒ máy đang chạy bản cũ **sẽ thấy nút cập nhật**.
+> 🚧 **`main` đang đi trước GitHub** — chỉ commit tài liệu (kết quả phát hành v2.0.2 + lần cập nhật nhật ký này). **Cố ý giữ
+> ở local, ĐỪNG push riêng**: push file `.md` là Actions build lại và **thay asset bằng binary khác SHA** ⇒ EXE vừa khớp trên
+> máy lệch ngay. Gộp vào lần sửa code tới (việc 11 `paths-ignore` sẽ gỡ hẳn vòng lặp này).
 >
-> ⛔ Luật cũ vẫn giữ: **push riêng file `.md` là Actions build lại và thay asset bằng binary khác SHA** ⇒ tài liệu viết
-> SAU lần phát hành này để ở local, gộp vào lần sửa code tới (việc 11 `paths-ignore` sẽ gỡ hẳn vòng lặp này).
+> 🔴 **Lần phát hành tới BẮT BUỘC:** viết mục `## vX.Y.Z` vào **`CO_GI_MOI.md`** (chỉ tính năng; hệ thống ⇒ *Cập nhật hệ thống*)
+> **trước khi push** · build bằng `build_exe.py` để số hiệu tự tăng · quét route `/api` chưa khai báo quyền phải ra `[]` (Bẫy 30)
+> · thử ít nhất một lần bằng tài khoản **không phải quản trị**.
 
-### 🎨 DỰ ÁN GIAO DIỆN MỚI — nhánh `giaodien` *(bắt đầu 24/09/2026)* — ✅ **ĐÃ PHÁT HÀNH `v2.0.0` 25/09/2026**
+### 🎨 DỰ ÁN GIAO DIỆN MỚI — *(24/09/2026)* — ✅ **ĐÃ PHÁT HÀNH `v2.0.0` 25/09/2026** (nhánh `giaodien` đã gộp vào `main`)
 
-> Phác thảo (ngoài repo): **https://claude.ai/artifact/7kiiWQ13PPR7eXN2AgPhtc** — 6 khung.
-> Đang chạy thử **local** trên cổng **5051** từ mã nguồn — Đại Ca chốt **KHÔNG build EXE**, xem local trước.
-> Nhật ký chi tiết: mục *24–25/09/2026 (đêm)* ngay dưới § này.
+> Phác thảo (ngoài repo): **https://claude.ai/artifact/7kiiWQ13PPR7eXN2AgPhtc** — 7 mục (01–07; 07 = thông báo có bản mới).
+> Nhật ký chi tiết: các mục 24–26/09/2026 ngay dưới § này.
 
 **Đại Ca đã chốt:** font **Arial toàn bộ** · màu chủ đạo **navy `#1E3A8A`** (nền tối `#172554`) ·
-**giữ nguyên logo** `icon.svg` `#FF9D3D` · icon **SVG, cấm emoji** · tên hiển thị **`PROOFTRAIL`**,
-dòng phụ *"Minh bạch tới từng chứng từ"* · điều hướng **2 tầng** (cột icon navy = phân hệ, hàng tab
-ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
+**giữ nguyên logo** `icon.svg` `#FF9D3D` · icon **SVG, cấm emoji** · tên hiển thị **`DATA REPORT`** (đổi từ
+`PROOFTRAIL` 25/09), dòng phụ *"Minh bạch tới từng chứng từ"* · điều hướng **2 tầng** (cột phân hệ navy **có tên**,
+kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 
 | GĐ | Việc | Trạng thái |
 |---|---|---|
@@ -65,8 +66,8 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 | **1** | **Nền**: Arial · navy · nhãn 11px `#475569` · `tabular-nums` · **sửa lỗi font** | ✅ Xong — commit `1dadaae` + `c64540a` |
 | **2** | **Màn đăng nhập**: tấm navy trái, `PROOFTRAIL`, logo gốc, mục 01/02 | ✅ Xong — commit `1dadaae` |
 | ➕ | **Đăng nhập nhanh** (hướng A — Đại Ca chốt giữa chừng) | ✅ Xong, **Đại Ca đã thử thật: nhanh** — commit `c64540a` |
-| **3** | **Điều hướng**: cột phân hệ 64px + hàng tab ngang, 9 màn hình vào 5 phân hệ. **Báo cáo TC: trang liệt kê 16 thẻ + ô chọn có tìm kiếm, ô lọc dời phải, ô Thời gian gộp, Bộ lọc nâng cao** (Đại Ca đổi ý: bỏ 5 tab nhóm) | ✅ Xong — **Đại Ca xem và chốt OK 25/09**, đã commit (local, chưa push) |
-| **4** | **Trang chủ** — Đại Ca chốt 25/09: **chỉ khung + thẻ phân hệ, CHƯA lấy số liệu**; kỳ sau này = tháng hiện tại | ✅ **Khung xong — Đại Ca chốt OK 25/09** (sau khi cho lưới thẻ trải hết bề ngang), đã commit (local, chưa push). Khối số liệu (tải NGẦM, mỗi ô 6–8s) để sau |
+| **3** | **Điều hướng**: cột phân hệ 64px + hàng tab ngang, 9 màn hình vào 5 phân hệ. **Báo cáo TC: trang liệt kê 16 thẻ + ô chọn có tìm kiếm, ô lọc dời phải, ô Thời gian gộp, Bộ lọc nâng cao** (Đại Ca đổi ý: bỏ 5 tab nhóm) | ✅ Xong — **Đại Ca xem và chốt OK 25/09** — phát hành v2.0.0 |
+| **4** | **Trang chủ** — Đại Ca chốt 25/09: **chỉ khung + thẻ phân hệ, CHƯA lấy số liệu**; kỳ sau này = tháng hiện tại | ✅ **Khung xong — Đại Ca chốt OK 25/09** (sau khi cho lưới thẻ trải hết bề ngang), phát hành v2.0.0. ⏳ **Khối số liệu (tải NGẦM, mỗi ô 6–8s) CHƯA làm** |
 | **5** | **Đổi tên hiển thị**: `APP_NAME`, `<title>` + 2 meta, 9 dòng chữ chìm, `manifest.json` (trước ghi nhầm *iPOS Ledger Studio*), Properties của EXE (`build_exe.py` + `version_info.txt`) | ✅ **Xong 25/09 — commit `ee5aed3`**. ⛔ **Giữ tên file `iPOS_Accounting_Report.exe`** — đổi là tự cập nhật đứt. Tiêu đề Release trên GitHub **giữ chữ cũ** *iPOS Accounting Report* — **Đại Ca chốt không cần đổi (25/09/2026)** |
 
 **Việc còn chờ của dự án này:**
@@ -75,18 +76,21 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 |---|---|---|
 | 16 | ~~Đại Ca F5 xem lại màn danh sách~~ ✅ **Đại Ca đã xem 25/09** | Nhận xét: **cột bị hẹp** ⇒ thành việc 28 |
 | 17 | ~~Nút `TRUY VẤN` đang chuyển màu navy → tím~~ ✅ **XONG 25/09** | Đại Ca chốt: chữ **"Lọc"**, navy đặc, như mẫu iPOS. Nằm trong thanh lọc mới của 9 màn danh sách |
-| 18 | ~~Chốt mốc commit phần đăng nhập nhanh + sửa font~~ ✅ **commit `c64540a`** | Local, chưa push |
+| 18 | ~~Chốt mốc commit phần đăng nhập nhanh + sửa font~~ ✅ **commit `c64540a`** | Phát hành v2.0.0 |
 | 19 | ~~Đại Ca xem GĐ3 rồi chốt commit~~ ✅ **Đại Ca chốt OK sáng 25/09** (*"cái đó thì ok rồi"*) ⇒ đã commit GĐ3 | ⚠️ Đại Ca chốt chung, **không nói rõ đã thử từng mục dưới đây chưa** — lần đầu dùng số liệu thật thì để ý. Danh sách cần xem ở mục *"Việc Đại Ca xem sáng 25/09"* trong nhật ký 25/09 (tiếp 3), ngay dưới § này. Ba việc tôi **không** tự thử được: hộp *"Chuyển mẫu báo cáo?"* khi có số liệu thật · menu **Xuất Excel / Xuất PDF** khi có số liệu (chưa có số liệu thì nút tắt) · kéo thả thứ tự ô lọc bằng chuột thật. Và **đọc lại mô tả 16 thẻ** — tôi tự viết |
-| 37 | ~~Làm lại thông báo "có bản mới" cho dễ thấy~~ ✅ **XONG ở mã nguồn 26/09 — phương án B + C** (Đại Ca chọn), "Có gì mới" đọc từ `CO_GI_MOI.md`, kiểm lại mỗi 2 giờ | Chi tiết: mục nhật ký *26/09/2026*. **CHƯA build, CHƯA push** — phát hành thì thành **v2.0.1**. Máy đang ở 1.12.x lên 2.0.0 vẫn thấy dải cũ (code của bản cũ) |
+| 40 | Nút **Tải lại** gặp phiên đã hết (401) thì **im lặng**, không đưa về màn đăng nhập | Phát hiện 26/09 khi thử việc 23. `loadPerms` gặp `!r.ok` là `return`. Người bị huỷ phiên chỉ về màn đăng nhập ở lần **tải số liệu** kế tiếp (khi đó lý do vẫn hiện đúng). Nhỏ, chưa chặn ai |
+| 39 | Ô lọc **Kho** vẫn liệt kê kho của **mọi đơn vị** | Cùng bệnh việc 10: tài khoản bị giới hạn chọn kho đơn vị khác ⇒ 0 dòng. Tab điều chuyển (Kho xuất / Kho nhận) phải **giữ đủ** như ô Đơn vị xuất. Cần xem `meta.warehouses` có mang mã đơn vị không |
+| 38 | ~~🔴 Nhân viên thường **không xuất được Excel** Báo cáo TC (403 *"Route chưa khai báo quyền"*)~~ ✅ **Phát hành v2.0.2** | Có từ **v2.0.0**: `/api/xuat_xlsx_bieu_mau` + `/api/tai_file_xuat` (việc 35) quên khai báo quyền; ADMIN qua được nên không ai thấy. Nay trong `PERM_PUBLIC`. **Bẫy 30** + lệnh quét trong CLAUDE.md |
+| 37 | ~~Làm lại thông báo "có bản mới" cho dễ thấy~~ ✅ **Phát hành v2.0.1 — phương án B + C** (Đại Ca chọn), "Có gì mới" đọc từ `CO_GI_MOI.md`, kiểm lại mỗi 2 giờ | ✅ **Chạy thật trọn vòng** ở lần cập nhật 2.0.1 → 2.0.2 (hộp thoại hiện đúng 4 dòng lấy từ GitHub). Máy đang ở 1.12.x vẫn lên bằng dải cũ (code bản cũ) |
 | 36 | ~~Chữ trong file Excel Báo cáo TC nhỏ (8,5pt)~~ ✅ **XONG 25/09 — thân bảng 11pt, cột/dòng nới cùng tỉ lệ** (Đại Ca chọn từ 4 file mẫu) | Chi tiết: mục nhật ký *25/09 (khuya, tiếp 4)*. ✅ **Đại Ca xuất thử trên 5051 và chốt OK 25/09** (*"xuất excel ok rồi đó"*) |
 | 35 | ~~Báo cáo TC xuất Excel ra `.xls` (HTML), không phải `.xlsx` thật~~ ✅ **XONG 25/09 — nay `.xlsx` thật, giữ y biểu mẫu** (Đại Ca: *"luôn luôn xuất xlsx, y chang biểu mẫu đang xem"*) | Chi tiết: mục nhật ký *25/09 (khuya, tiếp 3)*. ✅ **Đại Ca chốt OK 25/09** cùng việc 36. `/api/export_excel_backend` (BC007/BC008, không ai gọi) vẫn để nguyên |
-| 34 | ~~Lỗi cuộn ảo (Bẫy 29) có trong bản ĐANG PHÁT HÀNH v1.12.3~~ ✅ **Đã vá lên `main` 25/09 (`6907d78`), CHƯA build/push** — Đại Ca đồng ý | Vá trong worktree tạm (không đụng thư mục 5051 đang phục vụ); chỉ thay khi hàm trên `main` giống hệt bản `giaodien` trước khi sửa (so sau khi bỏ khác biệt xuống dòng). Gộp thử `main` → `giaodien`: chỉ 1 xung đột, đúng chỗ việc 31 đã biết |
-| 33 | ~~Cột phân hệ navy bên trái~~ ✅ **XONG 25/09 — kiểu 06C** (Đại Ca chọn, navy nhạt hơn 1 bậc) | Phác thảo = mục **06** của canvas. Chờ Đại Ca xem trên 5051 |
-| 32 | ~~Giao diện mới cho tab Phân quyền~~ ✅ **XONG 25/09 — Đại Ca chốt OK, đã commit** (local, chưa push) | Mục **05 — PHÂN QUYỀN** của bản phác thảo. **Bản 2 (theo góp ý 25/09):** Chức vụ **bỏ ma trận** → danh sách + khung sửa bên phải, cùng kiểu tab Tài khoản · Tài khoản **bỏ ô mật khẩu và hộp tóm tắt quyền** (mật khẩu thu thành dòng *"Đặt lại mật khẩu"*; tài khoản mới vẫn có ô) · Đơn vị = **một danh sách tick**, có dòng *"Tất cả đơn vị"*. Thêm 2 khung **Thêm tài khoản** / **Thêm chức vụ** (Đại Ca hỏi *"màn hình thêm mới quyền thì sao"*). Dữ liệu trong khung là **minh hoạ**. Chưa sửa dòng mã nào |
-| 31 | 🩹 **Ô Số chứng từ của BC012 hỏng trong bản ĐANG PHÁT HÀNH v1.12.3** — ✅ **ĐÃ VÁ trên `main` 25/09 (`784d227`), ⏳ CHƯA build/push** | Gõ từng chữ `P` → `T` thì thành `P,PT` và lọc ra 0 dòng (`toggleFilter` coi `tran_no` là mảng). Sửa cả hai nhánh: `giaodien` (chưa commit) và `main`. Đại Ca chốt **build một lần** cùng đợt sau. Người dùng **vẫn gặp lỗi tới khi phát hành**. Dán nguyên số phiếu một lần thì chạy |
+| 34 | ~~Lỗi cuộn ảo (Bẫy 29) có trong bản v1.12.3~~ ✅ **Phát hành v2.0.0** | Vá trên `main` (`6907d78`) rồi gộp vào `giaodien` — trùng khít, 0 dòng khác |
+| 33 | ~~Cột phân hệ navy bên trái~~ ✅ **Kiểu 06C — phát hành v2.0.0** | Phác thảo = mục **06**. Màu nền = tấm navy màn đăng nhập `#172554` |
+| 32 | ~~Giao diện mới cho tab Phân quyền~~ ✅ **Đại Ca chốt OK 25/09 — phát hành v2.0.0** | Mục **05 — PHÂN QUYỀN** của bản phác thảo. **Bản 2 (theo góp ý 25/09):** Chức vụ **bỏ ma trận** → danh sách + khung sửa bên phải, cùng kiểu tab Tài khoản · Tài khoản **bỏ ô mật khẩu và hộp tóm tắt quyền** (mật khẩu thu thành dòng *"Đặt lại mật khẩu"*; tài khoản mới vẫn có ô) · Đơn vị = **một danh sách tick**, có dòng *"Tất cả đơn vị"*. Thêm 2 khung **Thêm tài khoản** / **Thêm chức vụ** (Đại Ca hỏi *"màn hình thêm mới quyền thì sao"*). Dữ liệu trong khung là **minh hoạ**. Chưa sửa dòng mã nào |
+| 31 | ~~Ô Số chứng từ của BC012 hỏng trong bản v1.12.3~~ ✅ **Phát hành v2.0.0** | Gõ từng chữ `P` → `T` từng thành `P,PT`, lọc ra 0 dòng (`toggleFilter` coi `tran_no` là mảng). Vá `784d227` |
 | 30 | ~~Áp Bộ lọc nâng cao + ô Thời gian gộp sang 9 màn danh sách~~ ✅ **XONG 25/09 — commit `e071bb9`** | Theo ảnh mẫu iPOS *"Đặt mua hàng"*. **Tối đa 3 ô ngoài** (tính cả Thời gian — Đại Ca chốt), phần còn lại vào Bộ lọc nâng cao. 9/9 màn một hàng ở 1366 và 1280px |
 | 29 | ~~Nút Excel / PDF của BC003, BC004 sáng sẵn khi chưa có số liệu~~ ✅ **XONG 25/09/2026** | Sửa luôn khi gộp 2 nút thành nút tải xuống: điều kiện xét `initialReportData`. Đã thử: BC001/003/004/012/016 chưa tải số liệu ⇒ nút tắt, tooltip *"Chưa có số liệu — bấm Xem trước rồi mới xuất"* |
-| 20–21 | GĐ4 · GĐ5 | Theo bảng trên |
+| 20–21 | ~~GĐ4 · GĐ5~~ ✅ **Phát hành v2.0.0** | Theo bảng trên. Khối số liệu Trang chủ vẫn chưa làm |
 | 28 | ~~Cột bảng hẹp~~ ✅ **XONG 25/09** — Đại Ca chốt **kéo giãn cột + nhớ**. Tiêu đề không gãy dòng nữa; kèm **ẩn/hiện cột** và **Excel xuất đúng cột đang hiện** · số đo cũ để tham khảo: | Số đo 25/09 cho lúc sửa: hàng lọc 5 màn danh sách **cần 1.393px** để mọi ô đủ rộng, màn 1366 chỉ có **1.254px** (bản cũ trước GĐ3: cần 1.473 / có 1.318 — **vốn đã bị ép co từ trước**). Ở 1280px tiêu đề **`MÃ CT` gãy 2 dòng**. Cột phân hệ ăn thêm 64px chiều ngang |
 | 22 | **Hướng B**: bỏ `LockService` cho lệnh chỉ đọc trong `Code.gs` (dòng 487) | 5 người mở app cùng lúc thì người thứ 5 chờ gần 1 phút. **Phải triển khai lại Apps Script** — theo đúng `chuan_bi_deploy.py` (Bẫy 19, 23) |
 | 23 | ~~Bị đá ra (đăng nhập nhanh) không có câu báo lý do~~ ✅ **XONG 26/09** | Màn đăng nhập hiện lý do: đổi mật khẩu / bị khoá / đổi quyền (`/api/ly_do_dang_xuat`). Mục nhật ký *26/09 — việc 9, 10, 23, 26* |
@@ -115,7 +119,7 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 
 | # | Việc | Ghi chú |
 |---|---|---|
-| 7 | ~~Bộ lọc Đơn vị của tab điều chuyển nội bộ áp cho phía XUẤT~~ ✅ **XONG ở mã nguồn 25/09 (nhánh `giaodien`) — chờ thử số liệu thật** | Đại Ca chốt: thanh lọc có **Kho xuất** + **Kho nhận**; tài khoản bị giới hạn thấy dòng mà **một trong hai phía** thuộc quyền. Chi tiết: mục nhật ký *25/09/2026 (khuya)* |
+| 7 | ~~Bộ lọc Đơn vị của tab điều chuyển nội bộ áp cho phía XUẤT~~ ✅ **Phát hành v2.0.0** — ⏳ **chưa có xác nhận thử với số liệu thật** | Thanh lọc có **Kho xuất** + **Kho nhận**; tài khoản bị giới hạn thấy dòng mà **một trong hai phía** thuộc quyền. Chi tiết: mục nhật ký *25/09/2026 (khuya)* |
 | 8 | ~~Xoá file rác~~ ✅ **XONG 24/09/2026** | Đã xoá `phanquyen.json` (972 B) + `dist/phanquyen.json.cu` (1.002 B). Kiểm trước khi xoá: cả hai đều ghi `"note": "FILE TEST - mat khau tam, khong phai ban that"`, và `server.py` **chỉ nhắc chúng trong comment**, không còn dòng code nào đọc. Cả hai vốn đã `.gitignore` + git không theo dõi ⇒ không lộ |
 | 9 | ~~Màn đăng nhập chưa bắt buộc điền Tài khoản ứng dụng~~ ✅ **XONG 26/09** | Chặn ở cả trình duyệt lẫn máy chủ: báo ngay, không gọi Google |
 | 10 | ~~Dropdown lọc Đơn vị vẫn hiện tên đơn vị ngoài quyền~~ ✅ **XONG 26/09** | 9 màn danh sách + Báo cáo TC chỉ liệt kê đơn vị trong quyền; tab điều chuyển ("Đơn vị xuất") **cố ý giữ đủ**. ⚠️ Ô **Kho** vẫn liệt kê kho mọi đơn vị (chưa làm) |
@@ -153,7 +157,7 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 - 📦 Push `e9ff73f..410e5ef` ⇒ Actions run `36170397384` **`success`, 65 giây** ⇒ Release **`v2.0.2` là `Latest`**. `CO_GI_MOI.md` đọc được tại tag.
 - ✅ **Lần đầu hộp thoại MỚI chạy thật hết vòng** (đúng file CI 2.0.1 → 2.0.2): mở app ⇒ hộp thoại *DATA REPORT v2.0.2*, `v2.0.1 → v2.0.2`,
   **4 dòng "Có gì mới" đọc từ GitHub**, *Tải 12,5 MB* ⇒ bấm **Cập nhật ngay** ⇒ vài giây sau app tự mở lại: EXE trong `dist\`
-  **SHA256 = digest CI v2.0.2** (`bbfd8a4e…`), `.old` tự dọn, tiến trình mới 48 MB nghe cổng 5050, màn đăng nhập **V2.0.2**, không còn
+  **SHA256 = digest CI v2.0.2 lúc đó**, `.old` tự dọn, tiến trình mới 48 MB nghe cổng 5050, màn đăng nhập **V2.0.2**, không còn
   hộp thoại / nhãn cam. ⇒ **EXE trên máy Đại Ca = đúng file CI v2.0.2.**
 - Bản cất trong `dist\`: `…_v2.0.1.exe.bak` (CI) · `…_v2.0.2_build_local.exe.bak`.
 - Mục này commit ở local, **chưa push**.
@@ -209,7 +213,7 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
   6 dòng ("Cập nhật hệ thống" + 5 dòng v2.0.0, không lặp) · máy **2.0.1** ⇒ không báo. Mỗi lần hỏi 0,6–0,8 giây.
 - ✅ **Thử CẬP NHẬT THẬT 2.0.0 → 2.0.1 lần đầu** (điểm mù của mọi lần trước): chạy lại đúng file CI 2.0.0, dải cũ hiện *"Đã có phiên bản
   v2.0.1 (12.5 MB)"*, bấm **Cập nhật ngay** ⇒ vài giây sau app tự mở lại bản 2.0.1: EXE trong `dist\` **SHA256 = digest CI v2.0.1**
-  (`170bde67…`), file `.old` đã tự dọn, tiến trình mới 48 MB và nghe cổng 5050 (không dính Bẫy 13), màn đăng nhập hiện **V2.0.1**,
+  lúc đó, file `.old` đã tự dọn, tiến trình mới 48 MB và nghe cổng 5050 (không dính Bẫy 13), màn đăng nhập hiện **V2.0.1**,
   không còn dải/hộp thoại. ⇒ **EXE trên máy Đại Ca = đúng file CI v2.0.1**, đang chạy.
 - Bản cất trong `dist\`: `…_v2.0.0.exe.bak` (CI) · `…_v2.0.1_build_local.exe.bak`.
 - ⚠️ Máy nhân viên đang ở **1.12.x** lên thẳng 2.0.1 bằng **dải cũ** (code bản cũ) — hộp thoại mới chỉ thấy từ lần cập nhật sau 2.0.1.
@@ -1699,7 +1703,7 @@ Một ngày dài, **7 mục**. Tóm tắt để khỏi phải đọc hết:
 ### Trạng thái tại thời điểm đó *(giữa ngày 21/09 — ngày còn chạy tiếp sau mục này)*
 
 > 🕘 *Ảnh chụp lúc đó, **không** phải trạng thái hiện hành. Bản mới nhất xem đầu file
-> + [§ VIỆC CẦN LÀM](#-việc-cần-làm--cập-nhật-21092026).*
+> + [§ VIỆC CẦN LÀM](#-việc-cần-làm).*
 
 | | |
 |---|---|
@@ -1718,7 +1722,7 @@ Một ngày dài, **7 mục**. Tóm tắt để khỏi phải đọc hết:
    ➡️ Từ nay dùng `python phanquyen_gas/chuan_bi_deploy.py`. Xem **Bẫy 19** trong CLAUDE.md.
 
 ### Còn treo sang phiên sau
-> 🕘 *Ảnh chụp lúc đó — nhiều mục dưới đây nay đã xong. Danh sách còn treo THẬT ở [§ VIỆC CẦN LÀM](#-việc-cần-làm--cập-nhật-21092026).*
+> 🕘 *Ảnh chụp lúc đó — nhiều mục dưới đây nay đã xong. Danh sách còn treo THẬT ở [§ VIỆC CẦN LÀM](#-việc-cần-làm).*
 
 
 - ⛔ **Chưa commit/push.** Khi push, lệnh quét secret **sẽ báo động ở `_GS_URL_GHIM`/`_GS_TOKEN_GHIM`**
@@ -2154,7 +2158,7 @@ chỉ lấy mỗi `items` rồi **vứt phần còn lại**. Nay dùng hết.
 **Build EXE v1.11.6 → v1.11.7.**
 
 ### ⛔ Vẫn chờ Đại Ca: Triển khai `Code.gs`
-> 🕘 *Ảnh chụp lúc đó — nhiều mục dưới đây nay đã xong. Danh sách còn treo THẬT ở [§ VIỆC CẦN LÀM](#-việc-cần-làm--cập-nhật-21092026).*
+> 🕘 *Ảnh chụp lúc đó — nhiều mục dưới đây nay đã xong. Danh sách còn treo THẬT ở [§ VIỆC CẦN LÀM](#-việc-cần-làm).*
 
 
 Chừng nào chưa Triển khai thì **cả đổi mật khẩu lẫn rate limit đều chưa có tác dụng** — dù EXE đã
@@ -2304,7 +2308,7 @@ Hiệu quả đo được: không giới hạn thì dò ~1.800 lần/giờ; nay 
 Chưa đạt M3 — chưa build EXE, và **`Code.gs` mới chưa được triển khai lên Google**.
 
 ### ⛔ Hai việc Đại Ca phải tự làm (agent không làm thay được)
-> 🕘 *Ảnh chụp lúc đó — nhiều mục dưới đây nay đã xong. Danh sách còn treo THẬT ở [§ VIỆC CẦN LÀM](#-việc-cần-làm--cập-nhật-21092026).*
+> 🕘 *Ảnh chụp lúc đó — nhiều mục dưới đây nay đã xong. Danh sách còn treo THẬT ở [§ VIỆC CẦN LÀM](#-việc-cần-làm).*
 
 
 1. **Triển khai lại Apps Script**: mở Sheet → Extensions → Apps Script → dán `Code.gs` mới →
@@ -2314,7 +2318,7 @@ Chưa đạt M3 — chưa build EXE, và **`Code.gs` mới chưa được triể
    Đổi hay không thì kết quả cuối cũng như nhau (token mới cũng công khai) — nêu ra để Đại Ca biết.
 
 ### Còn treo
-> 🕘 *Ảnh chụp lúc đó — nhiều mục dưới đây nay đã xong. Danh sách còn treo THẬT ở [§ VIỆC CẦN LÀM](#-việc-cần-làm--cập-nhật-21092026).*
+> 🕘 *Ảnh chụp lúc đó — nhiều mục dưới đây nay đã xong. Danh sách còn treo THẬT ở [§ VIỆC CẦN LÀM](#-việc-cần-làm).*
 
 - **CHƯA build EXE, CHƯA commit/push.**
 - Nếu `Code.gs` mới chưa lên Google mà đã phát EXE: app vẫn chạy bình thường, chỉ là **chưa có
@@ -2407,7 +2411,7 @@ code chết, không ai gọi). Modal Sửa nay chỉ còn **dropdown chức vụ
 Chưa đạt M3 — chưa build EXE, chưa đăng nhập bằng SQL + Google Sheet thật.
 
 ### Còn treo sau việc này
-> 🕘 *Ảnh chụp lúc đó — nhiều mục dưới đây nay đã xong. Danh sách còn treo THẬT ở [§ VIỆC CẦN LÀM](#-việc-cần-làm--cập-nhật-21092026).*
+> 🕘 *Ảnh chụp lúc đó — nhiều mục dưới đây nay đã xong. Danh sách còn treo THẬT ở [§ VIỆC CẦN LÀM](#-việc-cần-làm).*
 
 
 - **Việc 3 chưa làm:** nhúng URL + TOKEN vào EXE để chỉ phát một file. ⚠️ **Giờ nó quan trọng
@@ -2668,7 +2672,7 @@ Apps Script tự sinh** dòng admin. Không còn chỗ cho sai sót.
 M4 không áp dụng — đây là phân quyền, không phải số liệu sổ sách.
 
 ### Còn treo
-> 🕘 *Ảnh chụp lúc đó — nhiều mục dưới đây nay đã xong. Danh sách còn treo THẬT ở [§ VIỆC CẦN LÀM](#-việc-cần-làm--cập-nhật-21092026).*
+> 🕘 *Ảnh chụp lúc đó — nhiều mục dưới đây nay đã xong. Danh sách còn treo THẬT ở [§ VIỆC CẦN LÀM](#-việc-cần-làm).*
 
 - **CHƯA commit/push.** `main` vẫn v1.10.7.
 - Thu hồi quyền chỉ có hiệu lực khi người đó **đăng nhập lại** (quyền chốt 1 lần lúc đăng nhập để

@@ -19,7 +19,7 @@
 > ✅ Tài khoản nhân viên trên Google Sheet + đổi mật khẩu `admin` + tick quyền 2 tab mới: **Đại Ca
 > báo đã làm xong 25/09/2026** (việc 1, 3, 4 trong nhật ký).
 >
-> 📌 **VIỆC CẦN LÀM đang treo: [NHAT_KY_CONG_VIEC.md § Việc cần làm](NHAT_KY_CONG_VIEC.md#-việc-cần-làm--cập-nhật-21092026)** — đọc trước khi nhận việc mới.
+> 📌 **VIỆC CẦN LÀM đang treo: [NHAT_KY_CONG_VIEC.md § Việc cần làm](NHAT_KY_CONG_VIEC.md#-việc-cần-làm)** — đọc trước khi nhận việc mới.
 
 ---
 

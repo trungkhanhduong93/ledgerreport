@@ -151,7 +151,17 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 - M3 chạy EXE thật: cổng 5050 lên sau 1s · `/api/version` 2.0.1 · trang có `HopThoaiCapNhat` + chu kỳ 2 giờ · `check_update` thấy GitHub
   đang v2.0.0 ⇒ không báo (đúng) · tắt EXE thử.
 - Cất file CI v2.0.0 thành `dist\iPOS_Accounting_Report_v2.0.0.exe.bak` để **thử cập nhật THẬT 2.0.0 → 2.0.1** sau khi Actions xong.
-- Kết quả Actions + phép thử cập nhật thật: ghi tiếp ở dưới (commit local, không push).
+- 📦 Push `ae1bf9d..e9ff73f` (7 commit) ⇒ Actions run `36167161529` **`success`, 63 giây** ⇒ Release **`v2.0.1` là `Latest`** (`.exe` + `.zip`).
+  `CO_GI_MOI.md` đọc được ngay tại tag v2.0.1 (raw.githubusercontent.com).
+- ✅ **"Có gì mới" chạy thật với GitHub** (code 2.0.1, giả số bản đang chạy): máy **2.0.0** ⇒ `['Cập nhật hệ thống']` · máy **1.12.3** ⇒
+  6 dòng ("Cập nhật hệ thống" + 5 dòng v2.0.0, không lặp) · máy **2.0.1** ⇒ không báo. Mỗi lần hỏi 0,6–0,8 giây.
+- ✅ **Thử CẬP NHẬT THẬT 2.0.0 → 2.0.1 lần đầu** (điểm mù của mọi lần trước): chạy lại đúng file CI 2.0.0, dải cũ hiện *"Đã có phiên bản
+  v2.0.1 (12.5 MB)"*, bấm **Cập nhật ngay** ⇒ vài giây sau app tự mở lại bản 2.0.1: EXE trong `dist\` **SHA256 = digest CI v2.0.1**
+  (`170bde67…`), file `.old` đã tự dọn, tiến trình mới 48 MB và nghe cổng 5050 (không dính Bẫy 13), màn đăng nhập hiện **V2.0.1**,
+  không còn dải/hộp thoại. ⇒ **EXE trên máy Đại Ca = đúng file CI v2.0.1**, đang chạy.
+- Bản cất trong `dist\`: `…_v2.0.0.exe.bak` (CI) · `…_v2.0.1_build_local.exe.bak`.
+- ⚠️ Máy nhân viên đang ở **1.12.x** lên thẳng 2.0.1 bằng **dải cũ** (code bản cũ) — hộp thoại mới chỉ thấy từ lần cập nhật sau 2.0.1.
+- Mục này commit ở local, **chưa push** (push `.md` là build lại, thay asset khác SHA).
 
 ---
 

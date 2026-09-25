@@ -141,6 +141,19 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 
 ---
 
+## 26/09/2026 — Phát hành v2.0.2 (vá lỗi xuất Excel của nhân viên + việc 9, 10, 23)
+
+Đại Ca: *"chơi lun"*.
+
+- M1: **176 hàm / 72 route**, so `origin/main` mất 0 / 0 · **route chưa khai báo quyền: `[]`** · Babel OK · quét secret sạch ·
+  `CO_GI_MOI.md` có mục `## v2.0.2` (4 dòng, đều là thứ nhân viên thấy).
+- Build ⇒ **2.0.2**. M3 chạy EXE thật: 5050 lên sau 0,5s · `/api/version` 2.0.2 · `/api/ly_do_dang_xuat` trả lời · trang có
+  `orgsTrongQuyen` + lời gọi lý do đăng xuất · tắt EXE thử.
+- Cất file CI v2.0.1 thành `dist\iPOS_Accounting_Report_v2.0.1.exe.bak` để thử **hộp thoại MỚI** cập nhật thật 2.0.1 → 2.0.2.
+- Kết quả Actions + phép thử: ghi tiếp ở dưới (commit local, không push).
+
+---
+
 ## 26/09/2026 — Việc 9, 10, 23, 26 + 🔴 phát hiện lỗi xuất Excel của nhân viên trong bản đang phát hành
 
 Đại Ca: *"làm đi m"* → chọn *"Việc code còn treo"*.

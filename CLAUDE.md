@@ -2,8 +2,9 @@
 
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
-> Cập nhật gần nhất: **26/09/2026** · **Bản mới nhất: `v2.0.1`** — thông báo có bản mới kiểu mới (hộp thoại + nút cam +
-> thẻ nhắc, việc 37) + mục "Có gì mới" đọc từ `CO_GI_MOI.md`. Kết quả phát hành: mục nhật ký *26/09/2026 — Phát hành v2.0.1*.
+> Cập nhật gần nhất: **26/09/2026** · **Bản mới nhất: `v2.0.2`** — vá lỗi nhân viên thường không xuất được Excel Báo cáo TC
+> (Bẫy 30, có từ v2.0.0) + việc 9, 10, 23. Kết quả: mục nhật ký *26/09/2026 — Phát hành v2.0.2*.
+> · v2.0.1: thông báo có bản mới kiểu mới (hộp thoại + nút cam + thẻ nhắc, việc 37) + "Có gì mới" đọc từ `CO_GI_MOI.md`.
 > · Bản trước: **`v2.0.0` = GIAO DIỆN MỚI `DATA REPORT`** (Đại Ca chốt lên Ver 2)
 > — push `main` 25/09/2026 tối, Actions tự tạo Release. Gồm: giao diện mới (GĐ0–GĐ5, đăng nhập nhanh, tab Phân quyền,
 > thanh lọc 9 màn, cột bảng, lọc 2 chiều tab điều chuyển) + Báo cáo TC xuất `.xlsx` thật chữ 11pt (việc 35–36)

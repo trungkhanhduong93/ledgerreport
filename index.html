@@ -4261,7 +4261,9 @@ const exportJournalCsv = (mode) => {
             );
         };
 
-        // ===== CỘT PHÂN HỆ — kiểu 06C (Đại Ca chốt 25/09/2026 tối): CÓ TÊN, thu gọn được, navy nhạt hơn 1 bậc =====
+        // ===== CỘT PHÂN HỆ — kiểu 06C (Đại Ca chốt 25/09/2026 tối): CÓ TÊN, thu gọn được =====
+        // Màu nền = ĐÚNG tấm navy màn đăng nhập (#172554). Đã thử nhạt 1 bậc (#1e3a8a) — Đại Ca: "hơi lạt tông", bỏ.
+        // Lưới mờ của màn đăng nhập KHÔNG kéo sang đây: nằm sau chữ 12–13px là rối mắt.
         // MỞ RỘNG 216px: phân hệ nhiều màn (Mua & bán, Kho) hiện sẵn màn con ⇒ bấm 1 lần tới bất kỳ màn nào (bấm tên
         //   nhóm = đóng/mở nhóm); phân hệ 1 màn (Tổng hợp, Tiền) bấm tên là vào thẳng. Hàng tab ngang của màn danh
         //   sách thành dòng đường dẫn (HangTab, prop duongDan).
@@ -4269,8 +4271,8 @@ const exportJournalCsv = (mode) => {
         // Bề ngang bảng: mở rộng mất 152px so với thu gọn (phác thảo 06C: 1.124 / 1.276px ở màn 1366).
         // ⚠️ Rê chuột CHỈ đổi màu chữ, KHÔNG tô nền: nền mờ trên navy trông gần y hệt nền mục đang chọn ⇒ rê qua là
         //    tưởng đang ở đó (đã thấy khi chụp thử GĐ3). Mục đang chọn = nền xanh sáng CPH.chon, chữ trắng.
-        // Tương phản chữ thường #bfdbfe trên nền #1e3a8a = 7,6:1; chữ trắng trên #1d4ed8 = 6,7:1.
-        const CPH = { nen: '#1e3a8a', vien: '#1e40af', chu: '#bfdbfe', chon: '#1d4ed8', ke: '#2e4a99' };
+        // Tương phản chữ thường #bfdbfe trên nền #172554 = 10,4:1; chữ trắng trên #1d4ed8 = 6,7:1.
+        const CPH = { nen: '#172554', vien: '#1e3a8a', chu: '#bfdbfe', chon: '#1d4ed8', ke: '#1e3a8a' };
         const LogoApp = ({ lop }) => (
             <svg viewBox="0 0 200 200" className={lop} role="img" aria-label="DATA REPORT">
                 <rect width="200" height="200" rx="45" fill="#FF9D3D"/>

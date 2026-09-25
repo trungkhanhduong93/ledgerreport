@@ -161,9 +161,10 @@ không cần biết lúc đó có mạng hay không.
 #### 🧭 Điều hướng 2 tầng *(nhánh `giaodien`, GĐ3 — 25/09/2026, CHƯA phát hành)*
 
 Cột navy bên trái = **phân hệ** · màn hình của phân hệ nằm ở cột (mở rộng) hoặc hàng tab ngang (thu gọn).
-**Kiểu 06C** (Đại Ca chốt 25/09/2026 tối, phác thảo mục 06 của canvas): cột **có tên, 216px**, nền navy nhạt hơn
-1 bậc (`#1e3a8a`, mục đang chọn `#1d4ed8` — hằng `CPH`). Phân hệ nhiều màn (Mua & bán, Kho) hiện sẵn màn con,
-bấm tên nhóm = đóng/mở; phân hệ 1 màn bấm tên là vào thẳng. Mở rộng thì hàng tab ngang của màn danh sách thành
+**Kiểu 06C** (Đại Ca chốt 25/09/2026 tối, phác thảo mục 06 của canvas): cột **có tên, 216px**, mục đang chọn
+nền `#1d4ed8` (hằng `CPH`). Phân hệ nhiều màn (Mua & bán, Kho) hiện sẵn màn con,
+bấm tên nhóm = đóng/mở; phân hệ 1 màn bấm tên là vào thẳng. **Màu nền = đúng tấm navy màn đăng nhập `#172554`**
+— bản nhạt 1 bậc `#1e3a8a` Đại Ca thấy *"lạt tông"*, đã bỏ (25/09). Mở rộng thì hàng tab ngang của màn danh sách thành
 **dòng đường dẫn** (`HangTab` prop `duongDan`); Báo cáo TC / Phân quyền / Trang chủ vẫn có tab riêng. Nút
 **Thu gọn cột** ⇒ 64px icon như GĐ3, hàng tab ngang quay lại. Nhớ trên máy: `lr_cot_phan_he_gon`,
 `lr_nhom_phan_he_dong`. ⚠️ Mở rộng ăn thêm 152px chiều ngang: ở 1280px, BC012 (4 ô lọc) ô bị ép còn 113px —

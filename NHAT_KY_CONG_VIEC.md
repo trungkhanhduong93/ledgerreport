@@ -189,8 +189,10 @@ và tên file `iPOS_Accounting_Report.exe`.
 
 ### 3. Cột phân hệ kiểu 06C
 
-Cột có tên 216px, navy `#1e3a8a` (trước `#172554`), mục chọn `#1d4ed8`; nhóm nhiều màn hiện sẵn màn con; hàng tab
+Cột có tên 216px, mục chọn `#1d4ed8`; nhóm nhiều màn hiện sẵn màn con; hàng tab
 ngang của màn danh sách thành dòng đường dẫn; nút Thu gọn ⇒ 64px + tab ngang như cũ. Chi tiết: CLAUDE.md § Điều hướng.
+🎨 **Màu:** thử nhạt 1 bậc `#1e3a8a` ⇒ Đại Ca: *"hơi lạt tông"* ⇒ về **đúng nền tấm navy màn đăng nhập `#172554`**
+(không kéo lưới mờ sang — rối chữ). Chữ thường trên nền mới 10,4:1.
 
 ### 🧪 Verify (server thử 5052)
 

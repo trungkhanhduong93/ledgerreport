@@ -3,17 +3,10 @@
 > Toàn bộ những gì đã làm với **LedgerReport**, và **vì sao**. Đọc file này trước khi sửa tiếp.
 > Kiến trúc, ma trận báo cáo, phương án backup: [CLAUDE.md](CLAUDE.md).
 > Mổ xẻ sâu sự cố + 4 bài học: [SU_CO_15082026.md](SU_CO_15082026.md).
-> 🎨 **ĐANG LÀM (24–25/09/2026):** giao diện mới **DATA REPORT** (tên cũ PROOFTRAIL, đổi 25/09) + đăng nhập nhanh — nhánh
-> **`giaodien`**, **CHƯA push**. Kế hoạch & tiến độ: § VIỆC CẦN LÀM → 🎨.
-> ✅ **GĐ3 (điều hướng + Báo cáo TC): Đại Ca xem và chốt OK sáng 25/09 — đã commit `fed091f`.**
-> ✅ **GĐ4 Trang chủ (khung, chưa số liệu): Đại Ca xem và chốt OK 25/09 — đã commit.**
-> ✅ **Tab Phân quyền — giao diện mới: Đại Ca xem và chốt OK 25/09 — đã commit** (việc 32).
-> 🟡 **GĐ5 (tên — nay là DATA REPORT) + thanh lọc mới 9 màn danh sách + ẩn/hiện/kéo giãn cột + Excel theo cột hiện: XONG ở mã nguồn,
-> đã commit từng chặng — CHỜ Đại Ca xem trên 5051.** ⚠️ Phần *Excel bỏ cột ẩn* có sửa `server.py` ⇒ phải **khởi động lại 5051** mới thấy.
-> 🩹 **Việc 31 (lỗi trong bản đang phát hành) ĐÃ VÁ trên `main` — commit `784d227`, CHƯA build, CHƯA push.**
-> Đại Ca chốt 25/09: *"vá trước nhưng chưa build, để build 1 lần luôn"*.
-> Phiên phát hành gần nhất: **24/09/2026** · ✅ **v1.12.3** — `main` = `62af287`,
-> Actions `success`, Release là `Latest`. Cả ngày ra **bốn** bản: v1.12.0 → v1.12.1 → v1.12.2 → v1.12.3.
+> 🚀 **25/09/2026 tối: PHÁT HÀNH `v2.0.0` = GIAO DIỆN MỚI `DATA REPORT`** (Đại Ca: *"giao diện mới nên nó sẽ là Ver 2"*).
+> Nhánh `giaodien` (GĐ0–GĐ5, đăng nhập nhanh, tab Phân quyền, thanh lọc 9 màn, cột bảng, việc 7, việc 35–36) +
+> 2 bản vá trên `main` (việc 31, 34) **đã gộp hết vào `main` và push**. Chi tiết: mục *25/09/2026 — Phát hành v2.0.0* ngay dưới § VIỆC CẦN LÀM.
+> Bản trước: **v1.12.3** (24/09/2026).
 > 🔑 Phiên này chốt được **luật nghiệp vụ gốc**: iPOS **tự sinh** phiếu nhập `NDCNB` khi phiếu xuất
 > `XDCNB` ghi sổ — đổi hẳn cách đọc tab đối chiếu điều chuyển. Xem các mục 24/09.
 > ✅ **Tài khoản nhân viên trên Google Sheet: Đại Ca báo đã tạo xong 25/09/2026** (cùng đổi mật khẩu
@@ -48,31 +41,12 @@
 > Trạng thái: **v1.12.3 đã phát hành**, là `Latest` trên GitHub, và **EXE trên máy Đại Ca đã là
 > đúng file CI** (SHA256 khớp digest — kiểm lại 24/09 lúc 17:50).
 >
-> ## 🚧 ĐANG CÓ COMMIT TÀI LIỆU GIỮ Ở LOCAL — **ĐỪNG PUSH RIÊNG**
+> ✅ **Hết trạng thái `ahead N` giữ cố ý (25/09/2026):** 8 commit của `main` + toàn bộ commit của `giaodien` đã đi cùng
+> lần push phát hành **v2.0.0**. `version.txt` = **`2.0.0`** (đặt hẳn bằng `build_exe.py iPOS_Accounting_Report 2.0.0`),
+> lớn hơn `1.12.3` ⇒ máy đang chạy bản cũ **sẽ thấy nút cập nhật**.
 >
-> Tính tới 25/09/2026 (khuya): **`main` đang `ahead 8`** so với `origin/main` = 6 commit `.md` +
-> **commit vá việc 31 `784d227`** (1 dòng `index.html`) + **commit vá việc 34 `6907d78`** (bảng chỉ vẽ ~87 dòng) — chưa build.
-> Nhánh **`giaodien`** tách từ `main` **trước** commit vá: tới tối 25/09 đã **hơn `origin/main` 15 commit**
-> (GĐ1 → GĐ5, tab Phân quyền, thanh lọc, cột bảng — xem `git log giaodien`), **chưa có** commit vá `784d227`.
-> **Không nhánh nào đã push.**
->
-> ⚠️ **Gộp `main` vào `giaodien` sẽ ĐỤNG ĐÚNG MỘT CHỖ** — ô Số chứng từ BC012: `main` sửa ở chỗ cũ,
-> `giaodien` đã dời ô đó vào `O_LOC_BAO_CAO` và sửa theo cùng một cách. Gặp xung đột thì **lấy bản
-> `giaodien`**, rồi dò lại: không còn chỗ nào gọi `onToggleFilter('tran_no'`.
->
-> **Đại Ca chốt: gộp cùng lần sửa code tiếp theo rồi push một thể.** Lý do: push file `.md` một
-> mình cũng kích hoạt Actions build lại, **thay asset bằng binary khác SHA**, và cái digest vừa
-> khớp với EXE trên máy Đại Ca sẽ lệch ngay — lại phải tải về đổi lần nữa. Muốn thoát hẳn vòng lặp
-> này thì làm **việc số 11** (thêm `paths-ignore`).
->
-> ⛔ **Thấy `ahead N` thì đừng "push cho sạch"** — đó là trạng thái cố ý, không phải quên push.
->
-> 🔴 **CÁI BẪY ĐI KÈM — lần push tới BẮT BUỘC tăng `version.txt`.** Hiện `version.txt` = `1.12.3`,
-> mà **`v1.12.3` đã phát hành rồi**. Push mà không tăng số thì `action-gh-release` **ghi đè Release
-> cũ bằng binary mới** dưới **đúng tag cũ** ⇒ `check_github_update()` chốt bằng `latest > current`
-> nên `1.12.3 > 1.12.3` là sai ⇒ **mọi máy đang ở 1.12.3 kẹt lại vĩnh viễn, app im lặng không báo
-> gì**. Đúng vết xe đổ 21/09 — xem mục *"Sửa code mà BỎ QUA B4"* trong [CLAUDE.md § 5](CLAUDE.md).
-> Chạy `python build_exe.py` là nó tự tăng; bỏ qua bước build thì **tăng tay**.
+> ⛔ Luật cũ vẫn giữ: **push riêng file `.md` là Actions build lại và thay asset bằng binary khác SHA** ⇒ tài liệu viết
+> SAU lần phát hành này để ở local, gộp vào lần sửa code tới (việc 11 `paths-ignore` sẽ gỡ hẳn vòng lặp này).
 
 ### 🎨 DỰ ÁN GIAO DIỆN MỚI — nhánh `giaodien` *(bắt đầu 24/09/2026)*
 
@@ -163,6 +137,39 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 | Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 25/09/2026 — Phát hành v2.0.0 (giao diện mới `DATA REPORT`)
+
+Đại Ca: *"ok xuất excel ok rồi đó"* → *"làm các mục cần làm rồi up github luôn nha"* → *"đây là giao diện mới nên nó sẽ là Ver 2"*.
+
+### Đã làm
+
+1. **Gộp `main` → `giaodien`** (commit `4f48a51`): xung đột **đúng 1 chỗ** đã biết (ô Số chứng từ BC012) — lấy bản `giaodien`.
+   Kết quả gộp **trùng khít `giaodien`** (0 dòng khác): bản vá việc 31 + 34 vốn đã có sẵn trên nhánh này, cùng cách sửa.
+   Dò lại: không còn chỗ nào gọi `onToggleFilter('tran_no'`.
+2. **`build_exe.py` nhận tham số thứ 2 = số hiệu đặt hẳn** (`2.0.0`) — trước chỉ biết tự cộng 1 (1.12.3 → 1.12.4).
+   Chặn số hiệu **không lớn hơn** bản hiện tại (bộ tự cập nhật chỉ báo khi bản mới > bản đang chạy).
+3. `version.txt` = `2.0.0`, `version_info.txt` = `2, 0, 0, 0` (CI build bằng **chính hai file đã commit này**).
+4. Sao lưu EXE v1.12.3 (file CI) thành `dist\iPOS_Accounting_Report_v1.12.3.exe.bak` trước khi build.
+
+### 🧪 Verify
+
+| Mức | Kết quả |
+|---|---|
+| **M1** | `server.py` + `build_exe.py` parse OK · Babel SUCCESSFUL · **173 hàm / 71 route**, không trùng tên · so với `origin/main`: **mất 0 hàm, 0 route**; mới 9 hàm, 2 route (`/api/xuat_xlsx_bieu_mau`, `/api/tai_file_xuat`) |
+| Quét secret | Diff `origin/main..HEAD`: không có credential (chỉ tên biến + chuỗi rỗng; `moi123` là mật khẩu giả của phép thử Google giả) |
+| **M3** | Build `build_exe.py iPOS_Accounting_Report 2.0.0` OK, EXE mới hơn `index.html`/`server.py` · chạy tách hẳn: cổng 5050 lên sau 0,5s · `/api/version` = **2.0.0** · trang chủ 200 (822.881 B, có `DATA REPORT`, có bản sửa cỡ chữ Excel) · màn đăng nhập hiện **V2.0.0** · `check_update` thấy GitHub đang `v1.12.3` ⇒ `has_update: false` (đúng: 2.0.0 > 1.12.3) · tắt EXE thử sau khi đo |
+| M2 / M4 | **Không chạy được ở đây** — không có DB/Google trong phiên. Phần số liệu của các màn: Đại Ca đã thử trên 5051 với số liệu thật (GĐ3, GĐ4, Phân quyền, xuất Excel) |
+
+### 🔍 Điểm mù
+
+- **Phát hành cho cả công ty ngay khi Actions xong** — máy nào đang 1.12.x mở app là thấy nút cập nhật lên giao diện mới.
+- Mục *"chờ Đại Ca xem"* còn lại trong bảng 🎨 (GĐ5, thanh lọc 9 màn, cột bảng, việc 7 lọc 2 chiều) **chưa có câu chốt riêng**
+  — Đại Ca chốt chung *"tạm thời ổn rồi"*. Người dùng báo gì thì sửa ở bản 2.0.x.
+- Tiêu đề + nội dung Release trên GitHub vẫn là chữ cũ *"iPOS Accounting Report"* (nằm trong `release.yml`, token thiếu scope `workflow` — việc 11).
+- Khởi động lại app sau cập nhật ⇒ **phải đăng nhập lại** (kho phiên trong RAM, Bẫy 17) — như mọi lần.
 
 ---
 

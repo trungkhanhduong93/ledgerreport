@@ -2,16 +2,13 @@
 
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
-> Cập nhật gần nhất: **24/09/2026** · **Bản mới nhất: `v1.12.3`** — đã push, Actions `success`,
-> **là `Latest` trên GitHub** (`main` = `62af287`)
-> · 🎨 **Đang làm (25/09/2026): giao diện mới `DATA REPORT`** (đổi từ `PROOFTRAIL` cùng ngày) **+ đăng nhập nhanh** trên nhánh
-> **`giaodien`** — chưa push. **GĐ0–GĐ5 đã commit** (GĐ3, GĐ4, tab Phân quyền Đại Ca chốt OK 25/09;
-> GĐ5 + thanh lọc 9 màn + cột bảng + lọc 2 chiều tab điều chuyển **chờ Đại Ca xem**).
-> Kế hoạch & tiến độ: **NHAT_KY_CONG_VIEC.md → § VIỆC CẦN LÀM → 🎨**
-> · 🩹 **`main` local có bản vá việc 31 (`784d227`) + việc 34 — bảng chỉ vẽ ~87 dòng, Bẫy 29 (`6907d78`) — CHƯA build,
-> CHƯA push.** Gộp `main` vào `giaodien` chỉ đụng đúng 1 chỗ (ô Số chứng từ BC012, lấy bản `giaodien`). Đại Ca chốt build một lần cùng đợt sau
-> (25/09/2026). `version.txt` vẫn `1.12.3` ⇒ **build bằng `build_exe.py` để nó tự lên `1.12.4`**, đừng push trần
-> · EXE trên máy Đại Ca **là đúng file CI đã phát hành** (SHA256 khớp digest, đổi 24/09/2026)
+> Cập nhật gần nhất: **25/09/2026** · **Bản mới nhất: `v2.0.0` = GIAO DIỆN MỚI `DATA REPORT`** (Đại Ca chốt lên Ver 2)
+> — push `main` 25/09/2026 tối, Actions tự tạo Release. Gồm: giao diện mới (GĐ0–GĐ5, đăng nhập nhanh, tab Phân quyền,
+> thanh lọc 9 màn, cột bảng, lọc 2 chiều tab điều chuyển) + Báo cáo TC xuất `.xlsx` thật chữ 11pt (việc 35–36)
+> + vá việc 31 (ô Số chứng từ BC012) + việc 34 (bảng chỉ vẽ ~87 dòng, Bẫy 29). Nhánh `giaodien` đã gộp hết vào `main`.
+> Kết quả Actions + đối chiếu EXE trên máy với file CI: xem mục nhật ký *25/09/2026 — Phát hành v2.0.0*.
+> · Lên số hiệu đời mới thì `python build_exe.py iPOS_Accounting_Report X.Y.Z` (tham số 2 — thêm 25/09/2026);
+> không truyền thì script tự tăng như cũ
 > · Tab đối chiếu điều chuyển **đã đạt M4** — Đại Ca bấm thử trên giao diện, đúng
 > · Apps Script: **Version 5** (`ban 2026-09-21c`)
 > ⚠️ **Đừng ghi cứng digest/kích thước của asset vào tài liệu** — mỗi lần push (kể cả push mỗi
@@ -159,7 +156,7 @@ không cần biết lúc đó có mạng hay không.
 > Tab `income_alloc` (doanh thu chờ phân bổ) đã **gỡ hẳn 16/08/2026** — nó vốn của LedgerStudio,
 > bị copy nhầm sang đây và chết hoàn toàn trên `IACC_CHULONG` vì cột `RECEIVE_DATE` không tồn tại.
 
-#### 🧭 Điều hướng 2 tầng *(nhánh `giaodien`, GĐ3 — 25/09/2026, CHƯA phát hành)*
+#### 🧭 Điều hướng 2 tầng *(GĐ3 — 25/09/2026, phát hành trong v2.0.0)*
 
 Cột navy bên trái = **phân hệ** · màn hình của phân hệ nằm ở cột (mở rộng) hoặc hàng tab ngang (thu gọn).
 **Kiểu 06C** (Đại Ca chốt 25/09/2026 tối, phác thảo mục 06 của canvas): cột **có tên, 216px**, mục đang chọn
@@ -990,6 +987,8 @@ print(c.get('/api/report?from_date=01/01/2026&to_date=31/01/2026&org_ids=&job_id
 # B4 — Build EXE (M3)
 taskkill /F /IM iPOS_Accounting_Report.exe /T
 python build_exe.py            # tự tăng version.txt, sinh version_info.txt
+# python build_exe.py iPOS_Accounting_Report 2.0.0   # lên đời: ĐẶT HẲN số hiệu (phải lớn hơn bản hiện tại)
+# ⚠️ CI build bằng version.txt + version_info.txt ĐÃ COMMIT ⇒ commit cả hai file sau khi build
 
 # B5 — Đồng bộ + push (Actions tự tạo Release)
 powershell -File Sync-And-Backup.ps1 -Commit -Message "fix: ..."

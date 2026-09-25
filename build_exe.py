@@ -72,7 +72,22 @@ else:
     with open(VERSION_FILE, 'w') as f:
         f.write(current_version)
 
-new_version = get_next_version(current_version)
+# Tham so thu 2 (tuy chon) = DAT HAN so hieu thay vi tu tang, dung khi len doi lon:
+#     python build_exe.py iPOS_Accounting_Report 2.0.0      (giao dien moi = Ver 2, Dai Ca chot 25/09/2026)
+# Phai LON HON ban hien tai: bo tu cap nhat chi bao khi ban moi > ban dang chay (check_github_update).
+if len(sys.argv) > 2 and sys.argv[2].strip():
+    new_version = sys.argv[2].strip().lstrip('vV')
+    try:
+        _moi = tuple(map(int, new_version.split('.')))
+        _cu = tuple(map(int, current_version.split('.')))
+    except ValueError:
+        print(f"[LOI] So hieu '{sys.argv[2]}' khong hop le — dang X.Y.Z, vd 2.0.0")
+        sys.exit(1)
+    if len(_moi) != 3 or _moi <= _cu:
+        print(f"[LOI] So hieu {new_version} phai dang X.Y.Z va LON HON ban hien tai {current_version}")
+        sys.exit(1)
+else:
+    new_version = get_next_version(current_version)
 
 print(f'\n====================================')
 print(f' Building {APP_NAME} v{new_version} ')

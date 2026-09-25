@@ -48,7 +48,7 @@
 > ⛔ Luật cũ vẫn giữ: **push riêng file `.md` là Actions build lại và thay asset bằng binary khác SHA** ⇒ tài liệu viết
 > SAU lần phát hành này để ở local, gộp vào lần sửa code tới (việc 11 `paths-ignore` sẽ gỡ hẳn vòng lặp này).
 
-### 🎨 DỰ ÁN GIAO DIỆN MỚI — nhánh `giaodien` *(bắt đầu 24/09/2026)*
+### 🎨 DỰ ÁN GIAO DIỆN MỚI — nhánh `giaodien` *(bắt đầu 24/09/2026)* — ✅ **ĐÃ PHÁT HÀNH `v2.0.0` 25/09/2026**
 
 > Phác thảo (ngoài repo): **https://claude.ai/artifact/7kiiWQ13PPR7eXN2AgPhtc** — 6 khung.
 > Đang chạy thử **local** trên cổng **5051** từ mã nguồn — Đại Ca chốt **KHÔNG build EXE**, xem local trước.
@@ -168,8 +168,12 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 - `main` fast-forward lên `giaodien` (`ae1bf9d`), push `62af287..ae1bf9d` — **29 commit**.
 - Actions run `36156142392`: **`success`, 62 giây**. Release **`v2.0.0` là `Latest`**, không draft/prerelease, có đủ `.exe` + `.zip`.
 - Vẫn cảnh báo Node 20 bị ép chạy Node 24 (việc 11) — build không sao.
-- ⚠️ EXE trong `dist\` lúc này là **bản build local** (cùng số 2.0.0 nhưng KHÁC file CI) ⇒ bản đó **không bao giờ tự cập nhật**
-  lên file CI (2.0.0 > 2.0.0 là sai). Phải thay bằng file CI — chờ Đại Ca đồng ý tải.
+- ✅ **EXE trên máy Đại Ca = đúng file CI** (Đại Ca: *"làm hết luôn đi"*): tải asset v2.0.0 → **SHA256 khớp digest GitHub** →
+  bản build local cất thành `dist\iPOS_Accounting_Report_v2.0.0_build_local.exe.bak` → thay vào `dist\` → chạy tách hẳn: cổng 5050 lên
+  sau 1s, `/api/version` 2.0.0, `check_update` current 2.0.0 = latest v2.0.0 ⇒ không đòi cập nhật (đúng). **Để app chạy cho Đại Ca dùng.**
+  (Bản build local cùng số 2.0.0 mà khác file CI thì **không bao giờ tự cập nhật** lên file CI — lý do phải thay.)
+- Thư mục làm việc **chuyển về `main`**; nhánh `giaodien` nằm trọn trong `main`, giữ lại làm mốc (chưa xoá).
+- Nhật ký ngoài repo (`Nhat Ky Lam Viec LedgerReport\`) bổ sung: bảng lịch sử push v1.11.9 → v2.0.0 (bỏ trống từ 15/09) + mục Ngày 8.
 - Mục nhật ký này commit ở local, **chưa push** (push `.md` là Actions build lại, thay asset bằng file khác SHA).
 
 ### 🔍 Điểm mù

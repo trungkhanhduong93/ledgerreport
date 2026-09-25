@@ -150,7 +150,13 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 - Build ⇒ **2.0.2**. M3 chạy EXE thật: 5050 lên sau 0,5s · `/api/version` 2.0.2 · `/api/ly_do_dang_xuat` trả lời · trang có
   `orgsTrongQuyen` + lời gọi lý do đăng xuất · tắt EXE thử.
 - Cất file CI v2.0.1 thành `dist\iPOS_Accounting_Report_v2.0.1.exe.bak` để thử **hộp thoại MỚI** cập nhật thật 2.0.1 → 2.0.2.
-- Kết quả Actions + phép thử: ghi tiếp ở dưới (commit local, không push).
+- 📦 Push `e9ff73f..410e5ef` ⇒ Actions run `36170397384` **`success`, 65 giây** ⇒ Release **`v2.0.2` là `Latest`**. `CO_GI_MOI.md` đọc được tại tag.
+- ✅ **Lần đầu hộp thoại MỚI chạy thật hết vòng** (đúng file CI 2.0.1 → 2.0.2): mở app ⇒ hộp thoại *DATA REPORT v2.0.2*, `v2.0.1 → v2.0.2`,
+  **4 dòng "Có gì mới" đọc từ GitHub**, *Tải 12,5 MB* ⇒ bấm **Cập nhật ngay** ⇒ vài giây sau app tự mở lại: EXE trong `dist\`
+  **SHA256 = digest CI v2.0.2** (`bbfd8a4e…`), `.old` tự dọn, tiến trình mới 48 MB nghe cổng 5050, màn đăng nhập **V2.0.2**, không còn
+  hộp thoại / nhãn cam. ⇒ **EXE trên máy Đại Ca = đúng file CI v2.0.2.**
+- Bản cất trong `dist\`: `…_v2.0.1.exe.bak` (CI) · `…_v2.0.2_build_local.exe.bak`.
+- Mục này commit ở local, **chưa push**.
 
 ---
 

@@ -51,6 +51,7 @@ $Files = @(
     'TOI_UU_DB_16082026.sql',
     'test.py',
     'test_sql.py',
+    'CO_GI_MOI.md',          # app đọc file này trên GitHub cho hộp thoại cập nhật (26/09/2026)
     # --- Tài liệu LIVE (chỉ 5 file này, xem docs-cu/ cho bản cũ) ---
     'CLAUDE.md',
     'GEMINI.md',

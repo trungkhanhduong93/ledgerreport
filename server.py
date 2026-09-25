@@ -9052,6 +9052,43 @@ def _parse_semver(v_str):
         return (0, 0, 0)
     return tuple(int(n) for n in nums[:3])
 
+# Mục "Có gì mới" của hộp thoại cập nhật (Đại Ca chốt 26/09/2026): đọc CO_GI_MOI.md NGAY TẠI TAG của bản mới trên GitHub
+# (raw.githubusercontent.com — repo công khai; ghi chú Release thì không dùng được: là đoạn văn cố định trong release.yml).
+# File đó: mỗi bản một mục "## vX.Y.Z", MỚI NHẤT Ở TRÊN, mỗi dòng "- " là một thay đổi. Lấy mọi mục có số bản LỚN HƠN bản
+# đang chạy và không vượt bản mới ⇒ máy nhảy cóc 2.0.0 → 2.0.3 thấy đủ cả ba bản.
+# ⛔ Hỏng mạng / chưa có file / quá 3 giây ⇒ trả rỗng, hộp thoại tự ẩn mục này — KHÔNG được làm hỏng việc báo có bản mới.
+_CO_GI_MOI_TOI_DA = 8
+
+
+def _tach_co_gi_moi(text, ban_dang_chay, ban_moi):
+    """Trả (các dòng thay đổi, số dòng bị cắt bớt) của mọi bản nằm trong (ban_dang_chay, ban_moi]."""
+    cu, moi = _parse_semver(ban_dang_chay), _parse_semver(ban_moi)
+    ds, lay = [], False
+    for dong in (text or '').splitlines():
+        d = dong.strip()
+        m = re.match(r'^##\s+v?(\d+\.\d+\.\d+)\b', d)
+        if m:
+            lay = cu < _parse_semver(m.group(1)) <= moi
+            continue
+        if lay and d.startswith('- '):
+            muc = d[2:].replace('**', '').replace('`', '').strip()
+            if muc:
+                ds.append(muc)
+    return ds[:_CO_GI_MOI_TOI_DA], max(0, len(ds) - _CO_GI_MOI_TOI_DA)
+
+
+def _doc_co_gi_moi(tag, ban_dang_chay):
+    if not re.match(r'^v?\d+\.\d+\.\d+$', tag or ''):
+        return [], 0
+    try:
+        url = f"https://raw.githubusercontent.com/trungkhanhduong93/ledgerreport/{tag}/CO_GI_MOI.md"
+        req = urllib.request.Request(url, headers={"User-Agent": f"iPOS-Accounting-Report/{APP_VERSION}"})
+        with urllib.request.urlopen(req, timeout=3.0) as resp:
+            return _tach_co_gi_moi(resp.read().decode('utf-8', errors='replace'), ban_dang_chay, tag)
+    except Exception:
+        return [], 0
+
+
 @app.route('/api/check_update', methods=['GET'])
 def check_github_update():
     """Kiểm tra bản release mới nhất từ GitHub Releases API (timeout 3.0s)."""
@@ -9093,7 +9130,11 @@ def check_github_update():
         if exe_asset and exe_asset.get('digest', '').startswith('sha256:'):
             sha256 = exe_asset['digest'].replace('sha256:', '')
 
+        co_gi_moi, co_gi_moi_them = _doc_co_gi_moi(latest_tag, APP_VERSION) if has_update else ([], 0)
+
         return jsonify({
+            "co_gi_moi": co_gi_moi,
+            "co_gi_moi_them": co_gi_moi_them,
             "status": "ok",
             "has_update": has_update,
             "current_version": APP_VERSION,

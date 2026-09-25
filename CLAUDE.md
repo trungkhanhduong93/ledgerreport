@@ -189,6 +189,17 @@ khẩu"** (admin đặt mk mới, không cần mk cũ; tài khoản MỚI luôn 
 ⛔ Giữ nguyên `kiemMucBiVutBo` (Bẫy 22): khung sửa chức vụ **chỉ đóng khi Google nhận đủ mã**, thiếu mã là
 giữ khung + cảnh báo. Chức vụ `ADMIN`: không có ô tick (app tự tính đủ), **không xoá được**.
 
+**Thông báo có bản mới** *(Đại Ca chốt 26/09/2026 — phương án B + C, mục 07 bản phác thảo; thay dải mỏng 36px cũ)*:
+app hỏi GitHub **1 giây sau khi mở, rồi mỗi 2 giờ** (`KIEM_CAP_NHAT_MS`, hook `useAutoUpdate`). Lần hỏi **lúc mở app** thấy bản
+mới ⇒ **hộp thoại giữa màn** `HopThoaiCapNhat` (lúc đó gần như luôn ở màn đăng nhập). Thấy bản mới **giữa ngày** ⇒ ⛔ **KHÔNG**
+bật hộp thoại đè lên việc đang làm, chỉ **nút cam** `NutCoBanMoi` trên thanh trên (không tắt được) + **thẻ nhắc** `TheNhacCapNhat`
+góc phải. "Để lần sau" / "Nhắc lại sau 2 giờ" / ✕ ⇒ thẻ quay lại **đúng 2 giờ sau**. Màn đăng nhập sau khi bấm "Để lần sau":
+nhãn cam *Có bản vX* cạnh số phiên bản, bấm là mở lại hộp thoại.
+Mục **"Có gì mới"** đọc từ **`CO_GI_MOI.md` tại tag của bản mới** trên GitHub (`_doc_co_gi_moi` / `_tach_co_gi_moi` trong
+`server.py`), gộp mọi bản nằm giữa bản đang chạy và bản mới, tối đa 8 dòng. Không đọc được ⇒ mục đó tự ẩn, **không** làm hỏng
+việc báo cập nhật. ⚠️ Ghi chú Release trên GitHub **không dùng được** — đó là đoạn văn cố định trong `release.yml`.
+⚠️ Máy đang ở bản cũ báo cập nhật bằng **code của bản cũ** ⇒ đổi giao diện thông báo chỉ có tác dụng từ **lần cập nhật sau đó**.
+
 **Báo cáo TC — KHÔNG chia nhóm** (Đại Ca chốt 25/09/2026, theo mẫu iPOS Inventory): vào là thấy
 **trang liệt kê 16 thẻ** (`DanhSachBaoCao`, mỗi thẻ = mã + `ten` + `mo_ta` trong `REPORT_TYPES`).
 Đang xem mà muốn đổi thì bấm **ô chọn ở đầu hàng điều kiện** (`ChonBaoCao`, có ô tìm, gõ không dấu
@@ -983,6 +994,8 @@ print(c.get('/api/report?from_date=01/01/2026&to_date=31/01/2026&org_ids=&job_id
 
 # B3 — QA trước khi push (thay đổi có logic)
 #      chạy skill pre-push-qa
+
+# B3.5 — Viết mục "## vX.Y.Z" vào CO_GI_MOI.md (app đọc file này TẠI TAG để hiện "Có gì mới" — push rồi là muộn)
 
 # B4 — Build EXE (M3)
 taskkill /F /IM iPOS_Accounting_Report.exe /T

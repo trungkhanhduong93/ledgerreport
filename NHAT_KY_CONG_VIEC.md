@@ -77,7 +77,7 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 | 17 | ~~Nút `TRUY VẤN` đang chuyển màu navy → tím~~ ✅ **XONG 25/09** | Đại Ca chốt: chữ **"Lọc"**, navy đặc, như mẫu iPOS. Nằm trong thanh lọc mới của 9 màn danh sách |
 | 18 | ~~Chốt mốc commit phần đăng nhập nhanh + sửa font~~ ✅ **commit `c64540a`** | Local, chưa push |
 | 19 | ~~Đại Ca xem GĐ3 rồi chốt commit~~ ✅ **Đại Ca chốt OK sáng 25/09** (*"cái đó thì ok rồi"*) ⇒ đã commit GĐ3 | ⚠️ Đại Ca chốt chung, **không nói rõ đã thử từng mục dưới đây chưa** — lần đầu dùng số liệu thật thì để ý. Danh sách cần xem ở mục *"Việc Đại Ca xem sáng 25/09"* trong nhật ký 25/09 (tiếp 3), ngay dưới § này. Ba việc tôi **không** tự thử được: hộp *"Chuyển mẫu báo cáo?"* khi có số liệu thật · menu **Xuất Excel / Xuất PDF** khi có số liệu (chưa có số liệu thì nút tắt) · kéo thả thứ tự ô lọc bằng chuột thật. Và **đọc lại mô tả 16 thẻ** — tôi tự viết |
-| 37 | **Làm lại thông báo "có bản mới" cho dễ thấy** — ⏳ **phác thảo xong, chờ Đại Ca chọn** | Mục **07** của bản phác thảo (https://claude.ai/artifact/7kiiWQ13PPR7eXN2AgPhtc): Hiện tại · **A** thẻ cam trên form đăng nhập · **B** hộp thoại giữa màn · **C** nút cam trên thanh trên + thẻ nhắc (dùng kèm A/B). Gốc: app chỉ kiểm 1 lần lúc mở ⇒ luôn thấy ở **màn đăng nhập**. ⚠️ Mục "Có gì mới" chưa có nguồn (ghi chú Release là đoạn văn cố định trong `release.yml`). Máy đang ở 1.12.x vẫn thấy dải cũ khi lên 2.0.0 — thiết kế mới chỉ có hiệu lực từ bản sau |
+| 37 | ~~Làm lại thông báo "có bản mới" cho dễ thấy~~ ✅ **XONG ở mã nguồn 26/09 — phương án B + C** (Đại Ca chọn), "Có gì mới" đọc từ `CO_GI_MOI.md`, kiểm lại mỗi 2 giờ | Chi tiết: mục nhật ký *26/09/2026*. **CHƯA build, CHƯA push** — phát hành thì thành **v2.0.1**. Máy đang ở 1.12.x lên 2.0.0 vẫn thấy dải cũ (code của bản cũ) |
 | 36 | ~~Chữ trong file Excel Báo cáo TC nhỏ (8,5pt)~~ ✅ **XONG 25/09 — thân bảng 11pt, cột/dòng nới cùng tỉ lệ** (Đại Ca chọn từ 4 file mẫu) | Chi tiết: mục nhật ký *25/09 (khuya, tiếp 4)*. ✅ **Đại Ca xuất thử trên 5051 và chốt OK 25/09** (*"xuất excel ok rồi đó"*) |
 | 35 | ~~Báo cáo TC xuất Excel ra `.xls` (HTML), không phải `.xlsx` thật~~ ✅ **XONG 25/09 — nay `.xlsx` thật, giữ y biểu mẫu** (Đại Ca: *"luôn luôn xuất xlsx, y chang biểu mẫu đang xem"*) | Chi tiết: mục nhật ký *25/09 (khuya, tiếp 3)*. ✅ **Đại Ca chốt OK 25/09** cùng việc 36. `/api/export_excel_backend` (BC007/BC008, không ai gọi) vẫn để nguyên |
 | 34 | ~~Lỗi cuộn ảo (Bẫy 29) có trong bản ĐANG PHÁT HÀNH v1.12.3~~ ✅ **Đã vá lên `main` 25/09 (`6907d78`), CHƯA build/push** — Đại Ca đồng ý | Vá trong worktree tạm (không đụng thư mục 5051 đang phục vụ); chỉ thay khi hàm trên `main` giống hệt bản `giaodien` trước khi sửa (so sau khi bỏ khác biệt xuống dòng). Gộp thử `main` → `giaodien`: chỉ 1 xung đột, đúng chỗ việc 31 đã biết |
@@ -138,6 +138,41 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 | Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 26/09/2026 — Thông báo có bản mới: hộp thoại + nút cam + thẻ nhắc (việc 37, phương án B + C)
+
+Đại Ca: *"t muốn làm lại cái màn hình thông báo cho dễ thấy hơn"* → xem 3 phương án ở mục **07** bản phác thảo → chọn **B + C**.
+Chốt thêm: *"Có gì mới"* lấy từ **file ghi chú trong repo**; đang mở app thì **kiểm lại mỗi 2 giờ**.
+
+### Đã làm
+
+- **`index.html`**: `useAutoUpdate` kiểm 1 giây sau khi mở + `setInterval` 2 giờ. Lúc mở app có bản mới ⇒ `HopThoaiCapNhat` (B).
+  Giữa ngày ⇒ **không** bật hộp thoại, chỉ `NutCoBanMoi` trên thanh trên + `TheNhacCapNhat` góc phải (C). "Để lần sau" /
+  "Nhắc lại sau 2 giờ" / ✕ ⇒ thẻ quay lại đúng 2 giờ sau (`setTimeout`, lần kiểm định kỳ không bật sớm hơn nhờ `nhacLuc`).
+  Màn đăng nhập: nhãn cam *Có bản vX* cạnh số phiên bản. Gỡ hẳn `AutoUpdateBanner` (dải 36px cũ). Thêm icon `arrow-right`, `refresh`.
+- **`server.py`**: `_doc_co_gi_moi` đọc `CO_GI_MOI.md` **tại tag bản mới** (raw.githubusercontent.com, 3 giây), `_tach_co_gi_moi`
+  lấy mọi mục `## vX.Y.Z` nằm giữa bản đang chạy và bản mới, tối đa 8 dòng. Chỉ gọi khi có bản mới; lỗi ⇒ rỗng. Tag lạ bị chặn.
+- **`CO_GI_MOI.md`** (file mới, có luật viết ở đầu file): mục v2.0.1 + v2.0.0. Đã thêm vào `$Files` của `Sync-And-Backup.ps1`.
+
+### 🧪 Verify
+
+| Mức | Kết quả |
+|---|---|
+| **M1** | `server.py` parse OK, **175 hàm / 71 route** (+2 hàm), không trùng · Babel SUCCESSFUL |
+| Hàm tách ghi chú | 7/7 ca đúng: nhảy 1 bản (3 dòng) · nhảy cóc 1.12.3 → 2.0.1 (8 dòng) · đã mới nhất (rỗng) · quá 8 dòng (cắt, báo *và 3 khác*) · bỏ `**` / `` ` `` · bỏ khối ghi chú `>` |
+| Mạng thật (GitHub) | Giả máy 1.12.3: `has_update` true, tag v2.0.0 chưa có file ⇒ `co_gi_moi` rỗng (hộp thoại ẩn mục), **1,72 giây** · máy 2.0.0: false · tag rác bị chặn |
+| Giao diện (server thử 5052, 2 giờ rút còn 15 giây CHỈ trong bản phục vụ thử) | Mở app ⇒ hộp thoại có 3 dòng *Có gì mới* · "Để lần sau" ⇒ đóng, nút cam còn · giây 9 chưa nhắc, giây 17 thẻ nhắc hiện · "Nhắc lại sau 2 giờ" ⇒ ẩn, giây 7 chưa hiện lại · bấm nút cam ⇒ mở lại hộp thoại · đăng xuất ⇒ nhãn cam ở màn đăng nhập, bấm ⇒ hộp thoại |
+| Bề ngang | 1280px, cột thu gọn, Kho 4 tab: nút cam cách tab cuối 86px, không tràn, không gãy chữ |
+
+### 🔍 Điểm mù
+
+- **Chưa bấm "Cập nhật ngay" thật** — phần tải + thay EXE giữ nguyên code cũ, chỉ thêm đóng hộp thoại/thẻ trước khi chạy.
+- **Chưa thấy "Có gì mới" đọc từ GitHub thật** — tag nào cũng chưa có `CO_GI_MOI.md`; lần phát hành v2.0.1 là lần đầu có.
+- F5 giữa phiên cũng tính là "mở app" ⇒ hộp thoại hiện đè lên màn đang xem (do người dùng tự bấm F5 nên chấp nhận được).
+- Mỗi máy gọi GitHub thêm 12 lần/ngày (mỗi 2 giờ). GitHub cho **60 lượt/giờ cho mỗi IP** không đăng nhập — cả văn phòng chung một IP
+  thì mỗi máy mở cả ngày tốn ~0,5 lượt/giờ (+1 lượt mỗi lần mở app) ⇒ khoảng 100 máy mới chạm trần; chạm trần thì app chỉ im lặng không báo (không lỗi). File `CO_GI_MOI.md` đọc qua raw.githubusercontent.com, không tính vào 60 lượt đó.
 
 ---
 

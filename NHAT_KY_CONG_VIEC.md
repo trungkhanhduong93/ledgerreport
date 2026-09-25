@@ -163,6 +163,15 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 | **M3** | Build `build_exe.py iPOS_Accounting_Report 2.0.0` OK, EXE mới hơn `index.html`/`server.py` · chạy tách hẳn: cổng 5050 lên sau 0,5s · `/api/version` = **2.0.0** · trang chủ 200 (822.881 B, có `DATA REPORT`, có bản sửa cỡ chữ Excel) · màn đăng nhập hiện **V2.0.0** · `check_update` thấy GitHub đang `v1.12.3` ⇒ `has_update: false` (đúng: 2.0.0 > 1.12.3) · tắt EXE thử sau khi đo |
 | M2 / M4 | **Không chạy được ở đây** — không có DB/Google trong phiên. Phần số liệu của các màn: Đại Ca đã thử trên 5051 với số liệu thật (GĐ3, GĐ4, Phân quyền, xuất Excel) |
 
+### 📦 Git + phát hành
+
+- `main` fast-forward lên `giaodien` (`ae1bf9d`), push `62af287..ae1bf9d` — **29 commit**.
+- Actions run `36156142392`: **`success`, 62 giây**. Release **`v2.0.0` là `Latest`**, không draft/prerelease, có đủ `.exe` + `.zip`.
+- Vẫn cảnh báo Node 20 bị ép chạy Node 24 (việc 11) — build không sao.
+- ⚠️ EXE trong `dist\` lúc này là **bản build local** (cùng số 2.0.0 nhưng KHÁC file CI) ⇒ bản đó **không bao giờ tự cập nhật**
+  lên file CI (2.0.0 > 2.0.0 là sai). Phải thay bằng file CI — chờ Đại Ca đồng ý tải.
+- Mục nhật ký này commit ở local, **chưa push** (push `.md` là Actions build lại, thay asset bằng file khác SHA).
+
 ### 🔍 Điểm mù
 
 - **Phát hành cho cả công ty ngay khi Actions xong** — máy nào đang 1.12.x mở app là thấy nút cập nhật lên giao diện mới.

@@ -251,10 +251,23 @@ window.showConnectionLost = function() {
                 }
             });
 
-            // Gắn scroll listener + ResizeObserver — KHÔNG phụ thuộc totalItems để tránh tear-down lặp
+            // Gắn scroll listener + ResizeObserver vào ĐÚNG khung đang nằm trên màn hình.
+            // ⛔ 25/09/2026: bản cũ dùng deps [containerRef.current] — giá trị đó đọc lúc RENDER, còn ref chỉ được
+            //    gán lúc COMMIT ⇒ đổi sang tab khác, có một lần vẽ lại ở đó, rồi quay về thì khung bảng MỚI không
+            //    được gắn gì: cuộn xuống chỉ thấy ~87 dòng đầu rồi trắng (Đại Ca báo, màn Chứng từ tiền), bấm Lọc
+            //    lại mới hết. Nay chạy sau MỌI lần commit, tự so khung đang gắn với khung hiện tại — rẻ, vì
+            //    trùng thì thoát ngay.
+            const ganRef = React.useRef({ node: null, go: null });
+            React.useEffect(() => () => { if (ganRef.current.go) ganRef.current.go(); }, []);
             React.useEffect(() => {
-                const container = containerRef.current;
+                const container = containerRef.current || null;
+                if (ganRef.current.node === container) return;
+                if (ganRef.current.go) ganRef.current.go();
+                ganRef.current = { node: container, go: null };
                 if (!container) return;
+                // Khung mới gắn vào đang ở vị trí cuộn của CHÍNH nó (thường là 0) ⇒ đồng bộ ngay, không thì
+                // scrollTop cũ còn trong state làm khối dòng vẽ lệch chỗ.
+                setScrollTop(container.scrollTop);
                 const handleScroll = () => setScrollTop(container.scrollTop);
                 container.addEventListener('scroll', handleScroll, { passive: true });
 
@@ -271,15 +284,14 @@ window.showConnectionLost = function() {
                 const onResize = () => measure();
                 window.addEventListener('resize', onResize);
 
-                return () => {
+                ganRef.current.go = () => {
                     container.removeEventListener('scroll', handleScroll);
                     ro.disconnect();
                     cancelAnimationFrame(raf1);
                     cancelAnimationFrame(raf2);
                     window.removeEventListener('resize', onResize);
                 };
-            // eslint-disable-next-line react-hooks/exhaustive-deps
-            }, [containerRef.current]);
+            });   // ⛔ CỐ Ý không có mảng deps — xem chú thích ở trên
 
             // Khi data đổi → reset scroll về đầu + đo lại để tránh state lệch DOM
             React.useLayoutEffect(() => {

@@ -164,7 +164,8 @@ Cột icon navy bên trái (64px) = **phân hệ** · hàng tab ngang = **màn h
 ở `PHAN_HE` trong `index.html`:
 Tổng hợp (`ledger`) · Tiền (`voucher`) · Mua & bán (`sale`, `purchase`, `po_list`) ·
 Kho (`warehouse`, `warehouse_balance`, `btp_reconcile`, `dcnb_reconcile`) · **Báo cáo TC**.
-Phân quyền + ô tài khoản (có Đăng xuất) nằm ở đáy cột.
+Phân quyền nằm **sát đáy cột**; ô tài khoản (có Đăng xuất) ở **góc phải trên cùng**, sau nút Tải lại
+(Đại Ca chốt 25/09/2026 tối — menu mở xuống, mép phải thẳng nút).
 
 **Trang chủ** *(GĐ4, 25/09/2026)* — nút **đầu** cột, `activeTab = 'home'`, component `TrangChu`. Mở app hoặc
 đăng nhập xong là vào đây. Hiện **chỉ lời chào + thẻ phân hệ** — Đại Ca chốt *"tạm thời lên mẫu, chưa lấy
@@ -209,10 +210,12 @@ vẫn áp dụng thì người xem tưởng số liệu là toàn bộ.
 ⚠️ Lớp nổi gắn vào `body` bằng portal (lịch của `IOSDatePicker`) phải mang **`data-lop-noi`** — không
 thì bấm vào nó bị tính là "bấm ra ngoài" và bảng Thời gian / Bộ lọc nâng cao tự đóng.
 
-**9 màn danh sách — thanh lọc mới** *(25/09/2026, theo mẫu iPOS "Đặt mua hàng")*: một hàng — trái
-*Kết quả N dòng · Hiển thị*; phải ô **Thời gian** + tối đa **2** ô khác (**tổng 3 ô**, Đại Ca chốt — ít
-hơn báo cáo vì còn nút) + phễu **Bộ lọc nâng cao** + nút **"Lọc"** navy đặc (thay TRUY VẤN) + nút **Cấu
-hình cột** + Excel (ô icon). Ô lọc khai ở **`oLocDs(tab)`** trong App — thêm ô lọc cho danh sách thì khai
+**9 màn danh sách — thanh lọc mới** *(25/09/2026, theo mẫu iPOS "Đặt mua hàng")*: một hàng dồn phải —
+ô **Thời gian** + các ô khác: **tối đa 4 ô, mặc định hiện 3** (cả hai tính cả Thời gian — Đại Ca chốt 25/09
+tối; `TOI_DA_O_NGOAI_DS` / `MAC_DINH_O_NGOAI_DS`) + phễu **Bộ lọc nâng cao** + nút **"Lọc"** navy đặc (thay
+TRUY VẤN) + nút **Cấu hình cột** + Excel (ô icon). *Kết quả N dòng · Hiển thị* nằm ở **chân bảng, góc trái**
+(`veKetQuaDs`, thay chữ chìm PROOFTRAIL; ô chọn số dòng mở LÊN). ⚠️ Khối chứa ô lọc phải `flex-1` — bỏ đi
+là ô nào cũng bị ép xuống mức sàn 120px dù hàng còn thừa chỗ (đo 1366/1280px: 4 ô đủ 160px, một hàng). Ô lọc khai ở **`oLocDs(tab)`** trong App — thêm ô lọc cho danh sách thì khai
 ở đó. Nhớ cấu hình ô ngoài: `lr_loc_ngoai_ds_<tab>`. 3 màn đối chiếu giữ hàng chip trạng thái ngay dưới.
 
 **Cột của 9 bảng — ẩn/hiện + kéo giãn** *(25/09/2026, việc 28)*: khai ở **`COT_BANG`** (khoá, nhãn, độ

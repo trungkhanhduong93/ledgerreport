@@ -103,6 +103,7 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 | 17 | ~~Nút `TRUY VẤN` đang chuyển màu navy → tím~~ ✅ **XONG 25/09** | Đại Ca chốt: chữ **"Lọc"**, navy đặc, như mẫu iPOS. Nằm trong thanh lọc mới của 9 màn danh sách |
 | 18 | ~~Chốt mốc commit phần đăng nhập nhanh + sửa font~~ ✅ **commit `c64540a`** | Local, chưa push |
 | 19 | ~~Đại Ca xem GĐ3 rồi chốt commit~~ ✅ **Đại Ca chốt OK sáng 25/09** (*"cái đó thì ok rồi"*) ⇒ đã commit GĐ3 | ⚠️ Đại Ca chốt chung, **không nói rõ đã thử từng mục dưới đây chưa** — lần đầu dùng số liệu thật thì để ý. Danh sách cần xem ở mục *"Việc Đại Ca xem sáng 25/09"* trong nhật ký 25/09 (tiếp 3), ngay dưới § này. Ba việc tôi **không** tự thử được: hộp *"Chuyển mẫu báo cáo?"* khi có số liệu thật · menu **Xuất Excel / Xuất PDF** khi có số liệu (chưa có số liệu thì nút tắt) · kéo thả thứ tự ô lọc bằng chuột thật. Và **đọc lại mô tả 16 thẻ** — tôi tự viết |
+| 33 | 🎨 **Cột phân hệ navy bên trái** — Đại Ca: *"nhìn hơi sao sao đó"*, xin đề xuất + phác thảo | Đang phác thảo phương án (25/09 khuya). Chưa sửa mã |
 | 32 | ~~Giao diện mới cho tab Phân quyền~~ ✅ **XONG 25/09 — Đại Ca chốt OK, đã commit** (local, chưa push) | Mục **05 — PHÂN QUYỀN** của bản phác thảo. **Bản 2 (theo góp ý 25/09):** Chức vụ **bỏ ma trận** → danh sách + khung sửa bên phải, cùng kiểu tab Tài khoản · Tài khoản **bỏ ô mật khẩu và hộp tóm tắt quyền** (mật khẩu thu thành dòng *"Đặt lại mật khẩu"*; tài khoản mới vẫn có ô) · Đơn vị = **một danh sách tick**, có dòng *"Tất cả đơn vị"*. Thêm 2 khung **Thêm tài khoản** / **Thêm chức vụ** (Đại Ca hỏi *"màn hình thêm mới quyền thì sao"*). Dữ liệu trong khung là **minh hoạ**. Chưa sửa dòng mã nào |
 | 31 | 🩹 **Ô Số chứng từ của BC012 hỏng trong bản ĐANG PHÁT HÀNH v1.12.3** — ✅ **ĐÃ VÁ trên `main` 25/09 (`784d227`), ⏳ CHƯA build/push** | Gõ từng chữ `P` → `T` thì thành `P,PT` và lọc ra 0 dòng (`toggleFilter` coi `tran_no` là mảng). Sửa cả hai nhánh: `giaodien` (chưa commit) và `main`. Đại Ca chốt **build một lần** cùng đợt sau. Người dùng **vẫn gặp lỗi tới khi phát hành**. Dán nguyên số phiếu một lần thì chạy |
 | 30 | ~~Áp Bộ lọc nâng cao + ô Thời gian gộp sang 9 màn danh sách~~ ✅ **XONG 25/09 — commit `e071bb9`** | Theo ảnh mẫu iPOS *"Đặt mua hàng"*. **Tối đa 3 ô ngoài** (tính cả Thời gian — Đại Ca chốt), phần còn lại vào Bộ lọc nâng cao. 9/9 màn một hàng ở 1366 và 1280px |
@@ -159,6 +160,39 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 | Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 25/09/2026 (khuya, tiếp) — Kết quả xuống chân bảng · ô tài khoản lên góc phải · 4 ô lọc (mặc định 3) · Phân quyền sát đáy
+
+Đại Ca gửi 3 ảnh chụp app thật (5051) khoanh đỏ, chốt 4 việc + hỏi phương án cho cột navy bên trái (việc 33).
+
+### Đã làm (`index.html`, không đụng `server.py`)
+
+- **Kết quả + Hiển thị** rời hàng lọc, xuống **chân bảng góc trái** của 9 màn (`veKetQuaDs`), thay đúng chỗ chữ
+  chìm PROOFTRAIL. Thay 9 chỗ bằng script khớp nguyên chuỗi, `assert` mỗi chân bảng nằm giữa lời gọi
+  `veHangLocDs` của màn đó và màn kế tiếp ⇒ đúng biến số dòng từng màn. `PageSizeDropdown` thêm `moLen`.
+- **Ô tài khoản** lên cuối hàng tab ngang, sau *Tải lại*; menu mở xuống, mép phải thẳng nút.
+- **Phân quyền** thành nút cuối, sát đáy cột phân hệ.
+- **Thanh lọc 9 màn**: `TOI_DA_O_NGOAI_DS` 3 → **4**, thêm `MAC_DINH_O_NGOAI_DS = 3`; `docCauHinhLoc` nhận thêm
+  tham số `macDinh`. Báo cáo TC giữ nguyên 4/4 (Đại Ca chọn *chỉ 9 màn danh sách*).
+- 🐛 **Tự bắt khi đo:** ô lọc ngoài của 9 màn **vốn bị ép xuống mức sàn 120px** (thiết kế 160px) dù hàng còn
+  thừa chỗ — khối chứa chỉ rộng bằng tổng mức sàn. Thêm `flex-1` ⇒ về 160px.
+
+### 🧪 Verify (server thử 5052, dữ liệu giả)
+
+| Kiểm | Kết quả |
+|---|---|
+| **M1** | Babel SUCCESSFUL |
+| Vị trí (1366px) | Ô tài khoản x 1322–1354, ngay sau Tải lại · Phân quyền y 706–756/768 · Kết quả ở chân bảng cả 9 màn |
+| 4 ô lọc | Mặc định hiện 3. Bật ô thứ 4 (Loại CT) ⇒ ra ngoài; ô thứ 5 **bị khoá**, hiện *"đã đủ 4 ô"* |
+| Bật 4 ô cả 9 màn | **1366px và 1280px: 9/9 một hàng**, ô rộng 200 / 160 / 144px (trước sửa `flex-1`: 186 / 120px), nút cuối cách mép phải 24px, trang không tràn ngang |
+| Menu | *Hiển thị* mở lên, mục 500.000 dòng bấm được (không bị bảng che) · menu tài khoản mở xuống, *Đăng xuất* bấm được |
+
+### 🔍 Điểm mù
+
+- Chưa xem với số liệu thật trên 5051 (5051 vẫn chạy mã cũ — phải khởi động lại).
+- Máy nào đã tự đổi cấu hình ô lọc (`lr_loc_ngoai_ds_*`) thì giữ cấu hình cũ, chỉ là được bật thêm tới 4.
 
 ---
 

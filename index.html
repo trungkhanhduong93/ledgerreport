@@ -1621,12 +1621,14 @@ window.showConnectionLost = function() {
         // Đọc cấu hình đã lưu; bỏ mã không còn áp dụng, mã MỚI (chưa có trong bản lưu) nối cuối và mặc định TẮT.
         // localStorage có thể ném lỗi / rỗng (cửa sổ ẩn danh, bị xoá) ⇒ luôn có đường về mặc định.
         // `toiDa` = số ô tối đa đứng ngoài, TÍNH CẢ ô Thời gian. Báo cáo TC = 4, danh sách = 3 (Đại Ca chốt 25/09).
-        const docCauHinhLoc = (bc, dsId, toiDa = TOI_DA_O_NGOAI) => {
+        // toiDa = số ô được phép ra ngoài · macDinh = số ô ra ngoài khi người dùng CHƯA chỉnh (cả hai tính cả
+        // ô Thời gian). Danh sách: tối đa 4, mặc định 3 (Đại Ca chốt 25/09/2026). Báo cáo: 4 và 4.
+        const docCauHinhLoc = (bc, dsId, toiDa = TOI_DA_O_NGOAI, macDinh = toiDa) => {
             let luu = null;
             try { luu = JSON.parse(localStorage.getItem('lr_loc_ngoai_' + bc) || 'null'); } catch (e) { luu = null; }
             const thuTu = (luu && Array.isArray(luu.thuTu)) ? luu.thuTu.filter(id => dsId.includes(id)) : [];
             dsId.forEach(id => { if (!thuTu.includes(id)) thuTu.push(id); });
-            const batSan = (luu && Array.isArray(luu.ngoai)) ? luu.ngoai : dsId.slice(0, toiDa - 1);
+            const batSan = (luu && Array.isArray(luu.ngoai)) ? luu.ngoai : dsId.slice(0, Math.min(macDinh, toiDa) - 1);
             return { thuTu, ngoai: thuTu.filter(id => batSan.includes(id)).slice(0, toiDa - 1) };
         };
 
@@ -1636,7 +1638,7 @@ window.showConnectionLost = function() {
         //    giấu mà vẫn đang áp dụng thì người xem tưởng số liệu là toàn bộ.
         const BoLocNangCao = ({ cfg, onDoiCfg, tenO, soDangLocTrong, veO, onXoaTatCa, onXem, nhanXem, dangTai, onMo,
                                 toiDa = TOI_DA_O_NGOAI, goiYThoiGian = 'Báo cáo nào cũng cần kỳ — luôn hiện ngoài' }) => {
-            // toiDa: báo cáo 4 ô, danh sách 3 ô (Đại Ca chốt 25/09) — tính cả ô Thời gian.
+            // toiDa: báo cáo 4 ô, danh sách 4 ô (mặc định hiện 3 — xem docCauHinhLoc) — tính cả ô Thời gian.
             const [mo, setMo] = useState(false);
             const [moCauHinh, setMoCauHinh] = useState(false);
             const [keo, setKeo] = useState(null);
@@ -4250,8 +4252,9 @@ const exportJournalCsv = (mode) => {
         );
 
         // Cột phân hệ, rộng 64px (Đại Ca chốt — cột bảng vốn đã hẹp, không lấy 84px như phác thảo).
-        // Đáy cột: Phân quyền (chỉ ai có quyền mới thấy) rồi tới ô tài khoản.
-        const ThanhPhanHe = ({ dsPhanHe, phanHeDangMo, onChon, dangOTrangChu, onTrangChu, coPhanQuyen, dangOPhanQuyen, onPhanQuyen, taiKhoan }) => (
+        // Đáy cột: Phân quyền (chỉ ai có quyền mới thấy), nằm SÁT ĐÁY — ô tài khoản đã lên góc phải
+        // trên cùng (Đại Ca chốt 25/09/2026, xem MenuTaiKhoan).
+        const ThanhPhanHe = ({ dsPhanHe, phanHeDangMo, onChon, dangOTrangChu, onTrangChu, coPhanQuyen, dangOPhanQuyen, onPhanQuyen }) => (
             <nav aria-label="Phân hệ" className="shrink-0 flex flex-col items-center gap-1 py-3 overflow-y-auto" style={{ width: 64, background: '#172554', borderRight: '1px solid #1e3a8a' }}>
                 <svg viewBox="0 0 200 200" className="w-8 h-8 shrink-0 mb-3" role="img" aria-label="PROOFTRAIL">
                     <rect width="200" height="200" rx="45" fill="#FF9D3D"/>
@@ -4263,7 +4266,6 @@ const exportJournalCsv = (mode) => {
                 ))}
                 <div className="flex-1"></div>
                 {coPhanQuyen && <NutPhanHe icon="lock" ten="Phân quyền" dangChon={dangOPhanQuyen} onClick={onPhanQuyen} />}
-                <div className="mt-2 shrink-0">{taiKhoan}</div>
             </nav>
         );
 
@@ -4289,7 +4291,8 @@ const exportJournalCsv = (mode) => {
             </div>
         );
         
-        const PageSizeDropdown = ({ value, onChange }) => {
+        // moLen: nằm ở chân bảng (sát đáy màn hình) ⇒ danh sách mở LÊN, mở xuống là tụt khỏi màn hình.
+        const PageSizeDropdown = ({ value, onChange, moLen }) => {
             const [open, setOpen] = useState(false);
             const ref = React.useRef(null);
             
@@ -4319,7 +4322,7 @@ const exportJournalCsv = (mode) => {
                     </div>
                     
                     {open && (
-                        <div className="absolute top-full mt-2 left-0 bg-white/90 backdrop-blur-xl border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-2xl z-[6000] min-w-[130px] overflow-hidden origin-top animate-in fade-in zoom-in-95 duration-200">
+                        <div className={`absolute ${moLen ? 'bottom-full mb-2 origin-bottom' : 'top-full mt-2 origin-top'} left-0 bg-white/90 backdrop-blur-xl border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-2xl z-[6000] min-w-[130px] overflow-hidden animate-in fade-in zoom-in-95 duration-200`}>
                             <div className="p-1 flex flex-col gap-0.5">
                                 {options.map(opt => (
                                     <div
@@ -4835,7 +4838,8 @@ const exportJournalCsv = (mode) => {
             );
         };
 
-        // ===== Ô TÀI KHOẢN Ở ĐÁY CỘT PHÂN HỆ (gốc: mẫu SYNA AI PORTAL) =====
+        // ===== Ô TÀI KHOẢN — GÓC PHẢI TRÊN CÙNG (gốc: mẫu SYNA AI PORTAL) =====
+        // 25/09/2026 (tối): Đại Ca chốt dời từ đáy cột phân hệ lên cuối hàng tab ngang, sau nút Tải lại.
         //
         // Luật gốc (Đại Ca chốt 2026-08-17): ô này cho biết đang ở tài khoản nào + đổi mật khẩu,
         // KHÔNG đưa Đăng xuất vào vì nút Đăng xuất đã nằm cạnh bên — bày hai chỗ chỉ tổ rối.
@@ -4850,7 +4854,7 @@ const exportJournalCsv = (mode) => {
         //    nhìn thấy mà bấm KHÔNG ăn.
         const MenuTaiKhoan = ({ nguoiDung, onDoiMatKhau, onDangXuat }) => {
             const [mo, setMo] = useState(false);
-            const [pos, setPos] = useState({ left: 0, bottom: 0 });
+            const [pos, setPos] = useState({ right: 0, top: 0 });
             const btnRef = useRef(null);
             const panelRef = useRef(null);
             useEffect(() => {
@@ -4874,9 +4878,8 @@ const exportJournalCsv = (mode) => {
             const bat = () => {
                 if (!mo && btnRef.current) {
                     const r = btnRef.current.getBoundingClientRect();
-                    // Nút nằm ở ĐÁY cột phân hệ ⇒ menu mở sang PHẢI, đáy menu ngang đáy nút
-                    // (mở xuống dưới như hồi còn ở header là tụt khỏi màn hình).
-                    setPos({ left: r.right + 10, bottom: Math.max(8, window.innerHeight - r.bottom) });
+                    // Nút nằm ở GÓC PHẢI TRÊN ⇒ menu mở XUỐNG, mép phải menu thẳng mép phải nút.
+                    setPos({ right: Math.max(8, window.innerWidth - r.right), top: r.bottom + 8 });
                 }
                 setMo(v => !v);
             };
@@ -4885,11 +4888,11 @@ const exportJournalCsv = (mode) => {
                 <>
                     <button ref={btnRef} onClick={bat} title={ten ? 'Tài khoản: ' + ten : 'Tài khoản'}
                         aria-label="Tài khoản" aria-haspopup="true" aria-expanded={mo}
-                        className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-[12px] transition-colors ${mo ? 'bg-white text-[#1e3a8a]' : 'bg-[#dbeafe] text-[#1e40af] hover:bg-white'}`}>
+                        className={`w-8 h-8 shrink-0 rounded-full flex items-center justify-center font-bold text-[12px] transition-colors ${mo ? 'bg-[#1e3a8a] text-white' : 'bg-[#dbeafe] text-[#1e40af] hover:bg-[#bfdbfe]'}`}>
                         {chuDau}
                     </button>
                     {mo && createPortal(
-                        <div ref={panelRef} style={{ position: 'fixed', left: pos.left, bottom: pos.bottom, zIndex: 99999, minWidth: 236 }}
+                        <div ref={panelRef} style={{ position: 'fixed', right: pos.right, top: pos.top, zIndex: 99999, minWidth: 236 }}
                              className="bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.35)] border border-slate-200 overflow-hidden">
                             <div className="px-4 py-3 bg-slate-50 border-b border-slate-100">
                                 <div className="font-black text-slate-800 text-[12px] truncate">{ten || '—'}</div>
@@ -7139,11 +7142,13 @@ const exportJournalCsv = (mode) => {
             };
 
             // ===== THANH LỌC 9 MÀN DANH SÁCH (Đại Ca chốt 25/09/2026, theo mẫu iPOS "Đặt mua hàng") =====
-            // Cùng khuôn Báo cáo TC: ô Thời gian gộp luôn ở ngoài + tối đa 2 ô khác = TỔNG 3 ô (danh sách chật
-            // hơn báo cáo vì còn nút Lọc / Excel), phần còn lại vào Bộ lọc nâng cao. Thứ tự khai dưới đây =
-            // thứ tự MẶC ĐỊNH (giữ đúng hàng 1 của bản cũ). Nhớ riêng từng màn, trên máy ('lr_loc_ngoai_ds_<tab>').
+            // Cùng khuôn Báo cáo TC: ô Thời gian gộp luôn ở ngoài. 25/09/2026 (tối) Đại Ca chốt: cho TỐI ĐA 4 ô
+            // ngoài nhưng MẶC ĐỊNH chỉ hiện 3 (cả hai tính cả Thời gian) — người dùng tự bật thêm / tắt bớt.
+            // Có chỗ cho ô thứ 4 vì Kết quả + Hiển thị đã xuống chân bảng (veKetQuaDs). Phần còn lại vào Bộ
+            // lọc nâng cao. Thứ tự khai dưới đây = thứ tự MẶC ĐỊNH. Nhớ riêng từng màn, trên máy ('lr_loc_ngoai_ds_<tab>').
             // ⛔ Thêm ô lọc cho danh sách thì khai trong oLocDs — đừng viết thẳng vào hàng điều kiện.
-            const TOI_DA_O_NGOAI_DS = 3;
+            const TOI_DA_O_NGOAI_DS = 4;
+            const MAC_DINH_O_NGOAI_DS = 3;
             const [cauHinhLocDs, setCauHinhLocDs] = useState({});
 
             // ===== CẤU HÌNH CỘT 9 BẢNG DANH SÁCH: ẩn/hiện + kéo giãn (Đại Ca chốt 25/09/2026) =====
@@ -7283,11 +7288,19 @@ const exportJournalCsv = (mode) => {
                 setPeriod(ky ? { year: ky.year, type: ky.type, value: ky.value } : { ...period, year: a.getFullYear(), type: 'custom', value: 1 });
                 setFilters(p => ({ ...p, from_date: TG.dmy(a), to_date: TG.dmy(b) }));
             };
-            // Hàm vẽ thường (KHÔNG phải component lồng — bài học OThoiGian): trái = kết quả + số dòng/trang;
-            // phải = Thời gian + ô ngoài + phễu + Lọc + Excel. Nút cấu hình cột thêm ở chặng sau.
-            const veHangLocDs = (tab, { onLoc, dangTai, tongDong }) => {
+            // "Kết quả N dòng · Hiển thị" ở CHÂN BẢNG, góc trái — chỗ chữ chìm PROOFTRAIL cũ (Đại Ca chốt 25/09/2026
+            // tối: dời từ đầu hàng lọc xuống để hàng lọc có chỗ cho ô thứ 4). Ô chọn số dòng mở LÊN vì nằm sát đáy.
+            const veKetQuaDs = (tongDong) => (
+                <div className="flex items-center gap-5 text-[12px] text-slate-500 whitespace-nowrap">
+                    <span>Kết quả <b className="text-[13px] text-slate-900 tabular-nums">{Number(tongDong || 0).toLocaleString('vi-VN')}</b> dòng</span>
+                    <span className="flex items-center gap-2">Hiển thị <PageSizeDropdown moLen value={filters.page_size} onChange={n => setFilters(p => ({ ...p, page_size: n, page: 1 }))} /> / trang</span>
+                </div>
+            );
+            // Hàm vẽ thường (KHÔNG phải component lồng — bài học OThoiGian): Thời gian + ô ngoài + phễu + Lọc +
+            // cấu hình cột + Excel, dồn hết sang PHẢI. Kết quả + Hiển thị nằm ở chân bảng (veKetQuaDs).
+            const veHangLocDs = (tab, { onLoc, dangTai }) => {
                 const dsO = oLocDs(tab);
-                const cfg = cauHinhLocDs[tab] || docCauHinhLoc('ds_' + tab, dsO.map(o => o.id), TOI_DA_O_NGOAI_DS);
+                const cfg = cauHinhLocDs[tab] || docCauHinhLoc('ds_' + tab, dsO.map(o => o.id), TOI_DA_O_NGOAI_DS, MAC_DINH_O_NGOAI_DS);
                 const luu = (moi) => {
                     setCauHinhLocDs(p => ({ ...p, [tab]: moi }));
                     try { localStorage.setItem('lr_loc_ngoai_ds_' + tab, JSON.stringify(moi)); } catch (e) { /* ẩn danh / bị chặn: vẫn chạy, chỉ không nhớ */ }
@@ -7314,18 +7327,10 @@ const exportJournalCsv = (mode) => {
                     );
                 };
                 return (
-                    <div className="flex items-end gap-3">
-                        <div className="flex items-end gap-4 mr-auto shrink-0">
-                            <div>
-                                <div className="label-text">Kết quả</div>
-                                <div className="h-[32px] flex items-center text-[13px] font-bold text-slate-900 tabular-nums whitespace-nowrap">{Number(tongDong || 0).toLocaleString('vi-VN')}<span className="ml-1 text-[12px] font-normal text-slate-500">dòng</span></div>
-                            </div>
-                            <div>
-                                <div className="label-text">Hiển thị</div>
-                                <div className="h-[32px] flex items-center"><PageSizeDropdown value={filters.page_size} onChange={n => setFilters(p => ({ ...p, page_size: n, page: 1 }))} /></div>
-                            </div>
-                        </div>
-                        <div className="flex items-end justify-end gap-3 min-w-0">
+                    <div className="flex items-end justify-end gap-3">
+                        {/* flex-1: không có nó thì khối này chỉ rộng bằng TỔNG MỨC SÀN của các ô ⇒ ô nào cũng bị ép
+                            xuống 120px dù hàng còn thừa chỗ (đo 25/09/2026 ở 1366px). */}
+                        <div className="flex-1 flex items-end justify-end gap-3 min-w-0">
                             <div className="basis-[200px] min-w-[186px]"><OThoiGian period={period} fromDate={filters.from_date} toDate={filters.to_date} onChon={datThoiGianDs} isActive={activeDropdown === 'period'} onToggle={setActiveDropdown} /></div>
                             {cfg.thuTu.filter(id => cfg.ngoai.includes(id)).map(id => veO(id, false, true))}
                         </div>
@@ -7604,7 +7609,6 @@ const exportJournalCsv = (mode) => {
                         coPhanQuyen={canSee('perm_admin')}
                         dangOPhanQuyen={activeTab === 'perm_admin'}
                         onPhanQuyen={() => setActiveTab('perm_admin')}
-                        taiKhoan={<MenuTaiKhoan nguoiDung={nguoiDung} onDoiMatKhau={() => setHienDoiMatKhau(true)} onDangXuat={handleLogout} />}
                     />
                     <div className="flex-1 min-w-0 min-h-0 flex flex-col">
                     <HangTab
@@ -7626,6 +7630,7 @@ const exportJournalCsv = (mode) => {
                                 <Icon name="loader" size={12} className={dangTaiLai ? 'animate-spin' : ''}/>
                                 {dangTaiLai ? 'Đang tải...' : 'Tải lại'}
                             </button>
+                            <div className="ml-1"><MenuTaiKhoan nguoiDung={nguoiDung} onDoiMatKhau={() => setHienDoiMatKhau(true)} onDangXuat={handleLogout} /></div>
                         </>}
                     />
 
@@ -7770,7 +7775,7 @@ const exportJournalCsv = (mode) => {
                                     </div>
                                     <div className="p-4 bg-white border-t flex justify-between items-center px-10 shrink-0 z-40 shadow-inner">
                                         <div className="flex items-center gap-8">
-                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PROOFTRAIL</div>
+                                            {veKetQuaDs(pagination.total_rows)}
                                         </div>
                                         <div className="flex items-center gap-6">
                                                 <div className="flex items-center gap-2">
@@ -7940,7 +7945,7 @@ const exportJournalCsv = (mode) => {
                                     </div>
                                     <div className="p-4 bg-white border-t flex justify-between items-center px-10 shrink-0 z-40 shadow-inner">
                                         <div className="flex items-center gap-8">
-                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PROOFTRAIL</div>
+                                            {veKetQuaDs(salePagination.total_rows)}
                                         </div>
                                         <div className="flex items-center gap-6">
                                             <div className="flex items-center gap-2">
@@ -8079,7 +8084,7 @@ const exportJournalCsv = (mode) => {
                                     </div>
                                     <div className="p-4 bg-white border-t flex justify-between items-center px-10 shrink-0 z-40 shadow-inner">
                                         <div className="flex items-center gap-8">
-                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PROOFTRAIL</div>
+                                            {veKetQuaDs(voucherPagination.total_rows)}
                                         </div>
                                         <div className="flex items-center gap-6">
                                             <div className="flex items-center gap-2">
@@ -8238,7 +8243,7 @@ const exportJournalCsv = (mode) => {
                                     </div>
                                     <div className="p-4 bg-white border-t flex justify-between items-center px-10 shrink-0 z-40 shadow-inner">
                                         <div className="flex items-center gap-8">
-                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PROOFTRAIL</div>
+                                            {veKetQuaDs(purchasePagination.total_rows)}
                                         </div>
                                         <div className="flex items-center gap-6">
                                                 <div className="flex items-center gap-2">
@@ -8391,7 +8396,7 @@ const exportJournalCsv = (mode) => {
                                     </div>
                                     <div className="p-4 bg-white border-t flex justify-between items-center px-10 shrink-0 z-40 shadow-inner">
                                         <div className="flex items-center gap-8">
-                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PROOFTRAIL</div>
+                                            {veKetQuaDs(warehousePagination.total_rows)}
                                         </div>
                                         <div className="flex items-center gap-6">
                                                 <div className="flex items-center gap-2">
@@ -8478,7 +8483,7 @@ const exportJournalCsv = (mode) => {
                                     </div>
                                     <div className="p-4 bg-white border-t flex justify-between items-center px-10 shrink-0 z-40 shadow-inner">
                                         <div className="flex items-center gap-8">
-                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PROOFTRAIL</div>
+                                            {veKetQuaDs(warehouseBalancePagination.total_rows)}
                                         </div>
                                         <div className="flex items-center gap-6">
                                             <div className="flex items-center gap-2">
@@ -8619,7 +8624,7 @@ const exportJournalCsv = (mode) => {
                                     </div>
                                     <div className="p-4 bg-white border-t flex justify-between items-center px-10 shrink-0 z-40 shadow-inner">
                                         <div className="flex items-center gap-8">
-                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PROOFTRAIL</div>
+                                            {veKetQuaDs(btpPagination.total_rows)}
                                         </div>
                                         <div className="flex items-center gap-6">
                                             <div className="flex items-center gap-2">
@@ -8759,7 +8764,7 @@ const exportJournalCsv = (mode) => {
                                     </div>
                                     <div className="p-4 bg-white border-t flex justify-between items-center px-10 shrink-0 z-40 shadow-inner">
                                         <div className="flex items-center gap-8">
-                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PROOFTRAIL</div>
+                                            {veKetQuaDs(dcnbPagination.total_rows)}
                                         </div>
                                         <div className="flex items-center gap-6">
                                             <div className="flex items-center gap-2">
@@ -8894,7 +8899,7 @@ const exportJournalCsv = (mode) => {
                                     </div>
                                     <div className="p-4 bg-white border-t flex justify-between items-center px-10 shrink-0 z-40 shadow-inner">
                                         <div className="flex items-center gap-8">
-                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PROOFTRAIL</div>
+                                            {veKetQuaDs(poPagination.total_rows)}
                                         </div>
                                         <div className="flex items-center gap-6">
                                             <div className="flex items-center gap-2">

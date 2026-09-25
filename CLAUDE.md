@@ -196,7 +196,8 @@ bật hộp thoại đè lên việc đang làm, chỉ **nút cam** `NutCoBanMoi
 góc phải. "Để lần sau" / "Nhắc lại sau 2 giờ" / ✕ ⇒ thẻ quay lại **đúng 2 giờ sau**. Màn đăng nhập sau khi bấm "Để lần sau":
 nhãn cam *Có bản vX* cạnh số phiên bản, bấm là mở lại hộp thoại.
 Mục **"Có gì mới"** đọc từ **`CO_GI_MOI.md` tại tag của bản mới** trên GitHub (`_doc_co_gi_moi` / `_tach_co_gi_moi` trong
-`server.py`), gộp mọi bản nằm giữa bản đang chạy và bản mới, tối đa 8 dòng. Không đọc được ⇒ mục đó tự ẩn, **không** làm hỏng
+`server.py`), gộp mọi bản nằm giữa bản đang chạy và bản mới, bỏ dòng trùng, tối đa 8 dòng. ⛔ **Chỉ ghi TÍNH NĂNG người dùng
+thấy**; thay đổi hệ thống / code / cách thông báo ⇒ đúng một dòng `- Cập nhật hệ thống` (Đại Ca chốt 26/09/2026). Không đọc được ⇒ mục đó tự ẩn, **không** làm hỏng
 việc báo cập nhật. ⚠️ Ghi chú Release trên GitHub **không dùng được** — đó là đoạn văn cố định trong `release.yml`.
 ⚠️ Máy đang ở bản cũ báo cập nhật bằng **code của bản cũ** ⇒ đổi giao diện thông báo chỉ có tác dụng từ **lần cập nhật sau đó**.
 

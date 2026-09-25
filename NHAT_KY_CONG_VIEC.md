@@ -155,6 +155,9 @@ Chốt thêm: *"Có gì mới"* lấy từ **file ghi chú trong repo**; đang m
 - **`server.py`**: `_doc_co_gi_moi` đọc `CO_GI_MOI.md` **tại tag bản mới** (raw.githubusercontent.com, 3 giây), `_tach_co_gi_moi`
   lấy mọi mục `## vX.Y.Z` nằm giữa bản đang chạy và bản mới, tối đa 8 dòng. Chỉ gọi khi có bản mới; lỗi ⇒ rỗng. Tag lạ bị chặn.
 - **`CO_GI_MOI.md`** (file mới, có luật viết ở đầu file): mục v2.0.1 + v2.0.0. Đã thêm vào `$Files` của `Sync-And-Backup.ps1`.
+- ✏️ Đại Ca chốt thêm: *"có gì mới nên ghi các tính năng update thôi, còn các hệ thống hay code thông báo thì chỉ cần ghi là update
+  hệ thống"* ⇒ v2.0.1 (toàn thay đổi cách thông báo) chỉ còn **`- Cập nhật hệ thống`**; luật ghi ở đầu `CO_GI_MOI.md`;
+  `_tach_co_gi_moi` **bỏ dòng trùng** (nhảy cóc nhiều bản thì "Cập nhật hệ thống" chỉ hiện một lần) — thử 4/4 ca đúng.
 
 ### 🧪 Verify
 

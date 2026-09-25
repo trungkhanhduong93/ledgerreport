@@ -3,16 +3,18 @@
 > **App đọc file này** để hiện mục *"Có gì mới"* trong hộp thoại cập nhật (`_doc_co_gi_moi` trong `server.py`).
 > Nó đọc **đúng bản file nằm ở tag của bản mới** trên GitHub, nên **phải sửa file này TRƯỚC lần push phát hành**.
 >
-> Luật viết:
+> Luật viết (Đại Ca chốt 26/09/2026):
+> - **Chỉ ghi TÍNH NĂNG** người dùng thấy được khi làm việc (màn hình mới, báo cáo mới, nút mới, lỗi họ từng gặp đã sửa).
+> - Thay đổi phía **hệ thống / code / cách thông báo cập nhật** ⇒ **KHÔNG kể chi tiết**, gộp thành đúng MỘT dòng
+>   `- Cập nhật hệ thống`. Bản chỉ có loại này thì mục đó chỉ có dòng ấy.
 > - Mỗi bản một mục `## vX.Y.Z`, **mới nhất ở trên**. Số bản phải khớp `version.txt` của lần phát hành đó.
 > - Mỗi dòng bắt đầu bằng `- ` là **một thay đổi**. Viết cho **nhân viên** đọc: nói cái họ thấy, không nói tên hàm/biến.
-> - Tối đa ~5 dòng mỗi bản. App hiện tối đa 8 dòng (gộp mọi bản người dùng nhảy qua), dư thì ghi "… và N thay đổi khác".
+> - Tối đa ~5 dòng mỗi bản. App gộp mọi bản người dùng nhảy qua, **bỏ dòng trùng** (nên "Cập nhật hệ thống" chỉ hiện
+>   một lần), hiện tối đa 8 dòng, dư thì ghi "… và N thay đổi khác".
 > - Dòng không bắt đầu bằng `- ` (như khối ghi chú này) app bỏ qua.
 
 ## v2.0.1
-- Báo có bản mới rõ hơn: mở app là hiện hộp thoại, ghi luôn bản mới có gì
-- Bấm "Để lần sau" thì vẫn còn nút cam trên thanh trên, 2 giờ sau nhắc lại
-- Đang mở app mà có bản mới cũng biết (app tự kiểm lại mỗi 2 giờ)
+- Cập nhật hệ thống
 
 ## v2.0.0
 - Giao diện mới DATA REPORT: cột phân hệ bên trái, trang chủ, thanh lọc mới cho 9 màn danh sách

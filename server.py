@@ -9072,7 +9072,7 @@ def _tach_co_gi_moi(text, ban_dang_chay, ban_moi):
             continue
         if lay and d.startswith('- '):
             muc = d[2:].replace('**', '').replace('`', '').strip()
-            if muc:
+            if muc and muc not in ds:      # nhảy cóc nhiều bản: "Cập nhật hệ thống" chỉ hiện MỘT lần
                 ds.append(muc)
     return ds[:_CO_GI_MOI_TOI_DA], max(0, len(ds) - _CO_GI_MOI_TOI_DA)
 

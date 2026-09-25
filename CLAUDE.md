@@ -8,7 +8,8 @@
 > **`giaodien`** — chưa push. **GĐ0–GĐ5 đã commit** (GĐ3, GĐ4, tab Phân quyền Đại Ca chốt OK 25/09;
 > GĐ5 + thanh lọc 9 màn + cột bảng + lọc 2 chiều tab điều chuyển **chờ Đại Ca xem**).
 > Kế hoạch & tiến độ: **NHAT_KY_CONG_VIEC.md → § VIỆC CẦN LÀM → 🎨**
-> · 🩹 **`main` local có bản vá việc 31 (`784d227`) — CHƯA build, CHƯA push.** Đại Ca chốt build một lần cùng đợt sau
+> · 🩹 **`main` local có bản vá việc 31 (`784d227`) + việc 34 — bảng chỉ vẽ ~87 dòng, Bẫy 29 (`6907d78`) — CHƯA build,
+> CHƯA push.** Gộp `main` vào `giaodien` chỉ đụng đúng 1 chỗ (ô Số chứng từ BC012, lấy bản `giaodien`). Đại Ca chốt build một lần cùng đợt sau
 > (25/09/2026). `version.txt` vẫn `1.12.3` ⇒ **build bằng `build_exe.py` để nó tự lên `1.12.4`**, đừng push trần
 > · EXE trên máy Đại Ca **là đúng file CI đã phát hành** (SHA256 khớp digest, đổi 24/09/2026)
 > · Tab đối chiếu điều chuyển **đã đạt M4** — Đại Ca bấm thử trên giao diện, đúng

@@ -50,8 +50,8 @@
 >
 > ## 🚧 ĐANG CÓ COMMIT TÀI LIỆU GIỮ Ở LOCAL — **ĐỪNG PUSH RIÊNG**
 >
-> Tính tới 25/09/2026 (sáng): **`main` đang `ahead 7`** so với `origin/main` = 6 commit `.md` +
-> **commit vá việc 31 `784d227`** (1 dòng `index.html`, chưa build).
+> Tính tới 25/09/2026 (khuya): **`main` đang `ahead 8`** so với `origin/main` = 6 commit `.md` +
+> **commit vá việc 31 `784d227`** (1 dòng `index.html`) + **commit vá việc 34 `6907d78`** (bảng chỉ vẽ ~87 dòng) — chưa build.
 > Nhánh **`giaodien`** tách từ `main` **trước** commit vá: tới tối 25/09 đã **hơn `origin/main` 15 commit**
 > (GĐ1 → GĐ5, tab Phân quyền, thanh lọc, cột bảng — xem `git log giaodien`), **chưa có** commit vá `784d227`.
 > **Không nhánh nào đã push.**
@@ -103,7 +103,8 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 | 17 | ~~Nút `TRUY VẤN` đang chuyển màu navy → tím~~ ✅ **XONG 25/09** | Đại Ca chốt: chữ **"Lọc"**, navy đặc, như mẫu iPOS. Nằm trong thanh lọc mới của 9 màn danh sách |
 | 18 | ~~Chốt mốc commit phần đăng nhập nhanh + sửa font~~ ✅ **commit `c64540a`** | Local, chưa push |
 | 19 | ~~Đại Ca xem GĐ3 rồi chốt commit~~ ✅ **Đại Ca chốt OK sáng 25/09** (*"cái đó thì ok rồi"*) ⇒ đã commit GĐ3 | ⚠️ Đại Ca chốt chung, **không nói rõ đã thử từng mục dưới đây chưa** — lần đầu dùng số liệu thật thì để ý. Danh sách cần xem ở mục *"Việc Đại Ca xem sáng 25/09"* trong nhật ký 25/09 (tiếp 3), ngay dưới § này. Ba việc tôi **không** tự thử được: hộp *"Chuyển mẫu báo cáo?"* khi có số liệu thật · menu **Xuất Excel / Xuất PDF** khi có số liệu (chưa có số liệu thì nút tắt) · kéo thả thứ tự ô lọc bằng chuột thật. Và **đọc lại mô tả 16 thẻ** — tôi tự viết |
-| 34 | 🔴 **Lỗi cuộn ảo (Bẫy 29) có trong bản ĐANG PHÁT HÀNH v1.12.3** — đã sửa trên `giaodien` (`9c37191`) | **Chờ Đại Ca chốt** có vá lên `main` như việc 31 không (chưa build, build một lần cùng đợt). Người dùng gặp khi: xem xong một màn, sang màn khác thao tác, quay lại cuộn ⇒ chỉ ~87 dòng. Bấm Lọc lại là hết |
+| 35 | ❓ **Báo cáo TC xuất Excel ra `.xls` (HTML), KHÔNG phải `.xlsx` thật** — Đại Ca hỏi 25/09 | 9 màn danh sách + BC007 đã là `.xlsx` thật. Còn lại 15 báo cáo ghi bảng HTML đuôi `.xls` (giữ form: tiêu đề gộp ô, in đậm, định dạng số) ⇒ Excel mở được nhưng **hỏi "định dạng và phần mở rộng không khớp"**. Đường `.xlsx` phía máy chủ (`/api/export_excel_backend`) chỉ làm BC007/BC008 và giao diện không gọi tới. **Chờ Đại Ca chốt** có chuyển không |
+| 34 | ~~Lỗi cuộn ảo (Bẫy 29) có trong bản ĐANG PHÁT HÀNH v1.12.3~~ ✅ **Đã vá lên `main` 25/09 (`6907d78`), CHƯA build/push** — Đại Ca đồng ý | Vá trong worktree tạm (không đụng thư mục 5051 đang phục vụ); chỉ thay khi hàm trên `main` giống hệt bản `giaodien` trước khi sửa (so sau khi bỏ khác biệt xuống dòng). Gộp thử `main` → `giaodien`: chỉ 1 xung đột, đúng chỗ việc 31 đã biết |
 | 33 | ~~Cột phân hệ navy bên trái~~ ✅ **XONG 25/09 — kiểu 06C** (Đại Ca chọn, navy nhạt hơn 1 bậc) | Phác thảo = mục **06** của canvas. Chờ Đại Ca xem trên 5051 |
 | 32 | ~~Giao diện mới cho tab Phân quyền~~ ✅ **XONG 25/09 — Đại Ca chốt OK, đã commit** (local, chưa push) | Mục **05 — PHÂN QUYỀN** của bản phác thảo. **Bản 2 (theo góp ý 25/09):** Chức vụ **bỏ ma trận** → danh sách + khung sửa bên phải, cùng kiểu tab Tài khoản · Tài khoản **bỏ ô mật khẩu và hộp tóm tắt quyền** (mật khẩu thu thành dòng *"Đặt lại mật khẩu"*; tài khoản mới vẫn có ô) · Đơn vị = **một danh sách tick**, có dòng *"Tất cả đơn vị"*. Thêm 2 khung **Thêm tài khoản** / **Thêm chức vụ** (Đại Ca hỏi *"màn hình thêm mới quyền thì sao"*). Dữ liệu trong khung là **minh hoạ**. Chưa sửa dòng mã nào |
 | 31 | 🩹 **Ô Số chứng từ của BC012 hỏng trong bản ĐANG PHÁT HÀNH v1.12.3** — ✅ **ĐÃ VÁ trên `main` 25/09 (`784d227`), ⏳ CHƯA build/push** | Gõ từng chữ `P` → `T` thì thành `P,PT` và lọc ra 0 dòng (`toggleFilter` coi `tran_no` là mảng). Sửa cả hai nhánh: `giaodien` (chưa commit) và `main`. Đại Ca chốt **build một lần** cùng đợt sau. Người dùng **vẫn gặp lỗi tới khi phát hành**. Dán nguyên số phiếu một lần thì chạy |

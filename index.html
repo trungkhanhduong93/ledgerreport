@@ -625,6 +625,8 @@ window.showConnectionLost = function() {
                 "filter": '<path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>',
                 "grip": '<path d="M4 8h16"/><path d="M4 12h16"/><path d="M4 16h16"/>',
                 "home": '<path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V20h14V9.5"/>',   // Trang chủ (GĐ4) — nét từ phác thảo
+                "shield": '<path d="M12 3l8 4v5c0 5-3.4 8.3-8 9-4.6-.7-8-4-8-9V7z"/><path d="M9.5 12l1.8 1.8 3.5-3.6"/>',   // tab Chức vụ
+                "plus": '<path d="M12 5v14"/><path d="M5 12h14"/>',
                 "x": '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>'
             };
             return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} dangerouslySetInnerHTML={{ __html: icons[name] || '' }} />;
@@ -4185,6 +4187,7 @@ const exportJournalCsv = (mode) => {
                                 style={on ? { borderBottomColor: '#1e3a8a' } : undefined}>
                                 <Icon name={t.icon} size={14} strokeWidth="1.8" />
                                 {t.ten}
+                                {t.so != null && <span className={`text-[11px] font-bold rounded-full px-[7px] py-[2px] tabular-nums ${on ? 'bg-blue-100 text-[#1e3a8a]' : 'bg-slate-100 text-slate-600'}`}>{t.so}</span>}
                             </button>
                         );
                     })}
@@ -4241,8 +4244,23 @@ const exportJournalCsv = (mode) => {
             );
         };
 
+        // Kiểu dùng chung cho tab Phân quyền (giao diện mới 25/09/2026). Khai ở ngoài component để màn
+        // Mở khoá (return sớm) cũng dùng được. Chỉ độ đậm 700 — Bẫy 27.
+        const PQ_NHAN = 'block text-[11px] font-bold text-slate-600 mb-1.5';
+        const PQ_O = 'w-full h-10 px-3 rounded-lg border border-slate-300 bg-white text-[13px] text-slate-900 outline-none focus:border-[#1e3a8a] focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-500';
+        const PQ_TICK = 'w-4 h-4 shrink-0 accent-[#1e3a8a] cursor-pointer';
+        const PQ_DONG_TICK = 'flex items-center gap-2.5 h-[30px] px-2 rounded-md text-[12.5px] text-slate-700 cursor-pointer hover:bg-slate-50 min-w-0';
+        const PQ_NUT = 'h-8 px-3 rounded-lg border border-slate-200 bg-white text-slate-700 text-[12px] font-bold hover:bg-slate-50 flex items-center gap-1.5 shrink-0';
+        const PQ_NUT_CHINH = 'h-8 px-3 rounded-lg bg-[#1e3a8a] text-white text-[12px] font-bold hover:bg-[#172554] disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0';
+        const PQ_TH = 'text-left px-4 h-10 text-[11px] font-bold text-slate-600';
+        const PQ_TD = 'px-4 h-[52px] text-[13px] text-slate-700';
+        const pqChip = (on) => `h-[30px] px-3 rounded-full border text-[12px] font-bold flex items-center gap-1.5 transition-colors ${on ? 'bg-[#1e3a8a] border-[#1e3a8a] text-white' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'}`;
+
         // ===== TAB PHÂN QUYỀN (chỉ ADMIN thấy) — quản lý người dùng + gán nhóm, app tự lưu file =====
-        const PermAdminPanel = ({ onPermsChanged, orgs = [] }) => {
+        // Giao diện mới (Đại Ca duyệt phác thảo 25/09/2026, mục 05 — PHÂN QUYỀN): hai màn Tài khoản /
+        // Chức vụ nằm trên HÀNG TAB NGANG của app (`tabCon` do App giữ), mỗi màn = danh sách bên trái +
+        // khung sửa bên phải (thay hộp thoại giữa màn). Mọi logic lưu/xoá/lưới an toàn giữ nguyên.
+        const PermAdminPanel = ({ onPermsChanged, orgs = [], tabCon = 'user', onDem }) => {
             const [cfg, setCfg] = useState({ users: [], groups: [] });
             const [loading, setLoading] = useState(false);
             const [editing, setEditing] = useState(null);
@@ -4254,8 +4272,15 @@ const exportJournalCsv = (mode) => {
             const [canMatKhau, setCanMatKhau] = useState(false);
             const [goMk, setGoMk] = useState('');
             const [roleEdit, setRoleEdit] = useState(null);
-            // Hai tab con: 'user' = quản lý tài khoản, 'role' = quản lý chức vụ.
-            const [tabCon, setTabCon] = useState('user');
+            // Lọc danh sách tài khoản: ô tìm + chip chức vụ + chip "Đang khoá".
+            const [locTk, setLocTk] = useState({ q: '', chucVu: '', khoa: false });
+            // Màn SỬA: ô mật khẩu ẩn sau dòng "Đặt lại mật khẩu" (admin đặt mk mới, không cần mk cũ —
+            // Đại Ca chốt giữ 25/09). Tài khoản MỚI thì ô mật khẩu luôn hiện.
+            const [datLaiMk, setDatLaiMk] = useState(false);
+            // Bản gốc lúc mở khung sửa — bấm dòng khác / Huỷ / ✕ mà có thay đổi chưa lưu thì HỎI trước.
+            const gocTk = useRef('');
+            const gocCv = useRef('');
+            useEffect(() => { setMsg(''); }, [tabCon]);
             // Mọi lệnh ghi đều đi vòng qua Google Apps Script, mất 4–7 GIÂY. Không có trạng thái
             // chờ thì nút đứng yên, người dùng tưởng hỏng rồi bấm lại → ghi hai lần.
             // Giá trị: '' | 'user' | 'role' | 'xoa:<uid>' | 'xoarole:<ma>'.
@@ -4263,10 +4288,18 @@ const exportJournalCsv = (mode) => {
             // Nhãn 24 mục để hiển thị checklist (lấy từ chính DOC_TABS + REPORT_TYPES + tab quản trị)
             const ITEM_LABEL = {}; DOC_TABS.forEach(t => ITEM_LABEL[t.id] = t.name); REPORT_TYPES.forEach(r => ITEM_LABEL[r.id] = r.id + ' — ' + r.name); ITEM_LABEL['perm_admin'] = 'Tab Phân quyền (quản trị)';
             const ITEM_SECTIONS = [
-                { title: 'Danh sách chứng từ', ids: DOC_TABS.map(t => t.id) },
-                { title: 'Báo cáo', ids: REPORT_TYPES.map(r => r.id) },
+                { title: 'Danh sách chứng từ', ids: DOC_TABS.map(t => t.id), cot2: true },
+                { title: 'Báo cáo tài chính', ids: REPORT_TYPES.map(r => r.id) },
                 { title: 'Quản trị', ids: ['perm_admin'] },
             ];
+            // Nhãn NGẮN cho ô tick trong khung sửa chức vụ (ITEM_LABEL giữ tên đầy đủ cho lời cảnh báo).
+            const nhanMuc = (code) => {
+                const t = DOC_TABS.find(x => x.id === code);
+                if (t) return <span className="truncate">{t.short || t.name}</span>;
+                const r = REPORT_TYPES.find(x => x.id === code);
+                if (r) return <><span className="w-[42px] shrink-0 text-[11px] text-slate-500 tabular-nums">{r.id}</span><span className="truncate">{r.ten || r.name}</span></>;
+                return <span className="truncate">{code === 'perm_admin' ? 'Tab Phân quyền' : code}</span>;
+            };
             // Đơn vị: editing.orgs === null nghĩa TẤT CẢ (không giới hạn, gồm cả đơn vị thêm sau này).
             const orgChecked = (id) => !editing || editing.orgs === null || editing.orgs.includes(id);
             const toggleOrg = (id) => setEditing(ed => { const cur = ed.orgs === null ? orgs.map(o => o.id) : ed.orgs; const has = cur.includes(id); return { ...ed, orgs: has ? cur.filter(x => x !== id) : [...cur, id] }; });
@@ -4280,6 +4313,7 @@ const exportJournalCsv = (mode) => {
                     const j = await r.json();
                     if (j.status === 'ok') {
                         setCfg({ users: j.users || [], groups: j.groups || [] });
+                        onDem && onDem((j.users || []).length, (j.groups || []).length);   // số trên hàng tab
                         setCanMatKhau(false);
                         if (mkThu !== undefined) { setAdmPass(mkThu); setMsg(''); }
                         return j;                       // trả về để chỗ gọi đối chiếu được (xem kiemMucBiVutBo)
@@ -4312,8 +4346,12 @@ const exportJournalCsv = (mode) => {
                 return true;
             };
             useEffect(() => { load(); }, []);
-            const startAdd = () => { setMsg(''); setEditing({ uid: '', name: '', group: '', items: [], orgs: null, active: true, password: '', isNew: true }); };
-            const startEdit = (u) => { setMsg(''); setEditing({ uid: u.uid, name: u.name, group: u.group || '', items: u.items ? [...u.items] : [], orgs: u.orgs ? [...u.orgs] : null, active: u.active, password: '', isNew: false }); };
+            const boThayDoiTk = () => !editing || JSON.stringify(editing) === gocTk.current || window.confirm('Tài khoản đang sửa có thay đổi CHƯA LƯU. Bỏ thay đổi đó?');
+            const boThayDoiCv = () => !roleEdit || JSON.stringify(roleEdit) === gocCv.current || window.confirm('Chức vụ đang sửa có thay đổi CHƯA LƯU. Bỏ thay đổi đó?');
+            const moTk = (ed) => { if (!boThayDoiTk()) return; setMsg(''); setDatLaiMk(false); gocTk.current = JSON.stringify(ed); setEditing(ed); };
+            const dongTk = () => { if (!boThayDoiTk()) return; setMsg(''); setEditing(null); };
+            const startAdd = () => moTk({ uid: '', name: '', group: '', items: [], orgs: null, active: true, password: '', isNew: true });
+            const startEdit = (u) => moTk({ uid: u.uid, name: u.name, group: u.group || '', items: u.items ? [...u.items] : [], orgs: u.orgs ? [...u.orgs] : null, active: u.active, password: '', isNew: false });
             const save = async () => {
                 if (dangLuu) return;                    // chặn bấm hai lần khi Google đang quay 4–7s
                 setMsg('');
@@ -4339,6 +4377,7 @@ const exportJournalCsv = (mode) => {
                     const r = await fetch('/api/perm/user/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uid, admin_pass: admPass }) });
                     const j = await r.json();
                     if (j.status !== 'ok') { alert(j.message || 'Lỗi xoá'); return; }
+                    setEditing(ed => (ed && ed.uid === uid) ? null : ed);   // vừa xoá đúng người đang mở ⇒ đóng khung
                     await load(); onPermsChanged && onPermsChanged();
                 } catch (e) { alert('Lỗi kết nối'); } finally { setDangLuu(''); }
             };
@@ -4346,8 +4385,10 @@ const exportJournalCsv = (mode) => {
             // ---- CHỨC VỤ (chỉ có khi nguồn là Google Sheet) ----
             // Chốt 19/09/2026: chức vụ quyết định quyền. Sửa 1 chức vụ = cả nhóm đổi theo,
             // nhưng chỉ có hiệu lực khi từng người ĐĂNG NHẬP LẠI.
-            const startAddRole = () => { setMsg(''); setRoleEdit({ ma: '', ten: '', items: [], isNew: true }); };
-            const startEditRole = (g) => { setMsg(''); setRoleEdit({ ma: g.id, ten: g.name, items: [...(g.items || [])], isNew: false }); };
+            const moCv = (rd) => { if (!boThayDoiCv()) return; setMsg(''); gocCv.current = JSON.stringify(rd); setRoleEdit(rd); };
+            const dongCv = () => { if (!boThayDoiCv()) return; setMsg(''); setRoleEdit(null); };
+            const startAddRole = () => moCv({ ma: '', ten: '', items: [], isNew: true });
+            const startEditRole = (g) => moCv({ ma: g.id, ten: g.name, items: [...(g.items || [])], isNew: false });
             const toggleRoleItem = (code) => setRoleEdit(rd => { const has = rd.items.includes(code); return { ...rd, items: has ? rd.items.filter(x => x !== code) : [...rd.items, code] }; });
             const saveRole = async () => {
                 if (dangLuu) return;                    // chặn bấm hai lần khi Google đang quay 4–7s
@@ -4376,6 +4417,7 @@ const exportJournalCsv = (mode) => {
                     const r = await fetch('/api/perm/role/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ma, admin_pass: admPass }) });
                     const j = await r.json();
                     if (j.status !== 'ok') { alert(j.message || 'Lỗi xoá'); return; }
+                    setRoleEdit(rd => (rd && rd.ma === ma) ? null : rd);
                     await load(); onPermsChanged && onPermsChanged();
                 } catch (e) { alert('Lỗi kết nối'); } finally { setDangLuu(''); }
             };
@@ -4383,212 +4425,318 @@ const exportJournalCsv = (mode) => {
             // được lưu trong phiên (luật từ đầu) nên phải hỏi lại đúng một lần ở đây.
             if (canMatKhau) {
                 return (
-                    <div className="max-w-md mx-auto mt-20 p-8 bg-white rounded-2xl border border-slate-200 shadow-sm">
-                        <h1 className="text-[16px] font-black text-slate-900 flex items-center gap-2 mb-1"><Icon name="lock" size={16} className="text-indigo-600"/> Xác nhận quyền quản trị</h1>
-                        <p className="text-[11px] font-bold text-slate-400 mb-5">Tài khoản dùng chung đang lưu trên Google Sheet. Nhập lại mật khẩu của chính bạn để mở tab này.</p>
-                        <form onSubmit={(e) => { e.preventDefault(); load(goMk); }}>
-                            <input type="password" autoFocus value={goMk} onChange={e => setGoMk(e.target.value)} placeholder="Mật khẩu quản trị"
-                                className="w-full border border-slate-300 rounded-xl px-4 py-3 text-[12px] font-bold focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"/>
-                            {msg && <div className="mt-3 text-[11px] font-black text-rose-600">{msg}</div>}
-                            <button type="submit" disabled={loading || !goMk}
-                                className="mt-4 w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white py-3 rounded-xl font-black text-[11px] uppercase tracking-wider shadow-lg shadow-indigo-500/30">
-                                {loading ? 'Đang kiểm tra...' : 'Mở tab Phân quyền'}
+                    <div className="flex-1 flex items-center justify-center p-6">
+                        <form onSubmit={(e) => { e.preventDefault(); load(goMk); }} className="w-[420px] max-w-full bg-white border border-slate-200 rounded-xl p-7 space-y-4">
+                            <div className="w-10 h-10 rounded-[10px] bg-blue-50 text-[#1e3a8a] flex items-center justify-center"><Icon name="lock" size={20} strokeWidth="1.8"/></div>
+                            <div>
+                                <h1 className="text-[20px] font-bold text-slate-900">Mở khoá tab Phân quyền</h1>
+                                <p className="text-[13px] text-slate-500 mt-1.5 leading-relaxed">Danh sách tài khoản nằm trên Google Sheet. Nhập lại mật khẩu của chính bạn để xem và sửa.</p>
+                            </div>
+                            <label className="block">
+                                <span className={PQ_NHAN}>Mật khẩu quản trị</span>
+                                <input type="password" autoFocus value={goMk} onChange={e => setGoMk(e.target.value)} placeholder="Mật khẩu của tài khoản đang đăng nhập" className={PQ_O + ' h-11'}/>
+                            </label>
+                            {msg && <div className="text-[12px] font-bold text-red-700">{msg}</div>}
+                            <button type="submit" disabled={loading || !goMk} className="w-full h-11 rounded-lg bg-[#1e3a8a] hover:bg-[#172554] text-white text-[13px] font-bold disabled:opacity-50">
+                                {loading ? 'Đang kiểm tra...' : 'Mở khoá'}
                             </button>
+                            <p className="text-[12px] text-slate-500 leading-relaxed border-t border-slate-100 pt-3.5">Mật khẩu chỉ giữ trong phiên làm việc này, không ghi xuống máy. Đóng app là mất.</p>
                         </form>
-                        <p className="mt-4 text-[10px] font-bold text-slate-400 leading-relaxed">Mật khẩu chỉ nằm trong bộ nhớ của phiên làm việc này, không ghi xuống máy. Đóng app là mất.</p>
                     </div>
                 );
             }
-            const tabHienTai = tabCon;
+
+            // ---- Dữ liệu dẫn xuất cho hai màn ----
+            const laAdmin = (ma) => (ma || '').toUpperCase() === 'ADMIN';   // app tự tính đủ mọi mục cho ADMIN (Bẫy 22)
+            const tenDonVi = (id) => { const o = orgs.find(x => x.id === id); return o ? o.name : ''; };
+            const chucVuCua = (ma) => cfg.groups.find(g => (g.id || '').toUpperCase() === (ma || '').toUpperCase());
+            const soNguoiGiu = (ma) => cfg.users.filter(u => (u.group || '').toUpperCase() === (ma || '').toUpperCase()).length;
+            const tongMuc = ITEM_SECTIONS.reduce((n, s) => n + s.ids.length, 0);
+            const tuKhoa = locTk.q.trim().toLowerCase();
+            const dsTk = cfg.users.filter(u =>
+                (!locTk.chucVu || (u.group || '').toUpperCase() === locTk.chucVu.toUpperCase()) &&
+                (!locTk.khoa || !u.active) &&
+                (!tuKhoa || (u.uid || '').toLowerCase().includes(tuKhoa) || (u.name || '').toLowerCase().includes(tuKhoa)));
+            const soKhoa = cfg.users.filter(u => !u.active).length;
+            // Hàm vẽ thường, KHÔNG phải component lồng trong component (bài học OThoiGian 25/09).
+            const veChucVu = (ma) => {
+                if (!ma) return <span className="text-slate-400">&mdash;</span>;
+                const g = chucVuCua(ma);
+                return (
+                    <span className="inline-flex items-center gap-2 min-w-0">
+                        <span className={`text-[11px] font-bold rounded-md px-[7px] py-[3px] shrink-0 ${laAdmin(ma) ? 'bg-amber-100 text-amber-800' : 'bg-blue-50 text-[#1e3a8a]'}`}>{ma}</span>
+                        <span className="truncate">{g ? g.name : '(chức vụ đã xoá)'}</span>
+                    </span>
+                );
+            };
+            const veDonVi = (u) => {
+                if (!u.orgs) return 'Tất cả đơn vị';
+                if (u.orgs.length === 0) return <span className="font-bold text-red-700">Chưa chọn đơn vị nào</span>;   // thấy 0 dòng ở mọi màn
+                if (u.orgs.length === 1) return <span><span className="tabular-nums">{u.orgs[0]}</span> <span className="text-[12px] text-slate-500">&middot; {tenDonVi(u.orgs[0])}</span></span>;
+                return <span><b className="tabular-nums text-slate-900">{u.orgs.length} đơn vị</b> <span className="text-[12px] text-slate-500">&middot; {u.orgs.slice(0, 3).join(', ')}{u.orgs.length > 3 ? '…' : ''}</span></span>;
+            };
+            const veMuiTen = (chon) => <Icon name="chevron-right" size={15} strokeWidth="2" className={chon ? 'text-[#1e3a8a]' : 'text-slate-300'} />;
+            const bamDong = (e, fn) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); } };
+            const loiNgoai = msg && !(tabCon === 'user' ? editing : roleEdit);   // lỗi tải danh sách, không có khung nào mở
+
             return (
-                <div className="max-w-4xl mx-auto p-8">
-                    <div className="mb-5">
-                        <h1 className="text-[20px] font-black text-slate-900 tracking-tight flex items-center gap-2"><Icon name="lock" size={18} className="text-indigo-600"/> Phân quyền người dùng</h1>
-                        <p className="text-[11px] font-bold text-slate-400 mt-1">Tài khoản dùng chung trên Google Sheet — QUYỀN DO CHỨC VỤ QUYẾT ĐỊNH. Sửa chức vụ là cả nhóm đổi theo, có hiệu lực khi từng người đăng nhập lại.</p>
-                    </div>
-
-                    <div className="flex items-center gap-6 border-b border-slate-200 mb-5">
-                        {[{ id: 'user', ten: 'Quản lý tài khoản', so: cfg.users.length }, { id: 'role', ten: 'Quản lý chức vụ', so: cfg.groups.length }].map(t => (
-                            <button key={t.id} onClick={() => { setMsg(''); setTabCon(t.id); }}
-                                className={`-mb-px px-1 pb-3 font-black text-[12px] tracking-tight transition-colors border-b-2 ${tabHienTai === t.id ? 'text-indigo-600 border-indigo-600' : 'text-slate-400 border-transparent hover:text-slate-600'}`}>
-                                {t.ten}
-                                <span className={`ml-2 px-1.5 py-0.5 rounded-md text-[10px] font-black ${tabHienTai === t.id ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-400'}`}>{t.so}</span>
-                            </button>
-                        ))}
-                    </div>
-
-                    {tabHienTai === 'user' && (<>
-                    <div className="flex items-center justify-between mb-3">
-                        <div>
-                            <h2 className="text-[15px] font-black text-slate-900">Tài khoản</h2>
-                            <p className="text-[10px] font-bold text-slate-400 mt-0.5">Mỗi người gán MỘT chức vụ (quyết định được xem mục nào) và danh sách đơn vị được xem.</p>
-                        </div>
-                        <button onClick={startAdd} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-wider shadow-lg shadow-indigo-500/30">+ Thêm người dùng</button>
-                    </div>
-                    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-                        <table className="w-full text-[12px]">
-                            <thead><tr className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[9px] tracking-widest">
-                                <th className="text-left px-4 py-3 font-black">Tài khoản</th>
-                                <th className="text-left px-4 py-3 font-black">Tên</th>
-                                <th className="text-left px-4 py-3 font-black">Quyền xem</th>
-                                <th className="text-center px-4 py-3 font-black">Trạng thái</th>
-                                <th className="text-right px-4 py-3 font-black">Thao tác</th>
-                            </tr></thead>
-                            <tbody>
-                                {cfg.users.length === 0 && (<tr><td colSpan={5} className="text-center py-10 text-slate-400 font-bold text-[11px]">{loading ? 'Đang tải...' : 'Chưa có tài khoản nào. Bấm "Thêm người dùng" — tài khoản đầu tiên nên áp mẫu "Admin" để còn vào lại tab này.'}</td></tr>)}
-                                {cfg.users.map(u => (
-                                    <tr key={u.uid} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/60">
-                                        <td className="px-4 py-3 font-black text-slate-800">{u.uid}</td>
-                                        <td className="px-4 py-3 text-slate-600 font-medium">{u.name || '—'}</td>
-                                        <td className="px-4 py-3"><span className="px-2 py-1 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-700 font-bold text-[10px]">{(u.items || []).length} mục</span><span className="ml-2 text-slate-400 text-[10px] font-bold">· {u.orgs ? (u.orgs.length + ' đơn vị') : 'tất cả ĐV'}</span></td>
-                                        <td className="px-4 py-3 text-center">{u.active ? <span className="text-emerald-600 font-black text-[10px]">● Hoạt động</span> : <span className="text-slate-400 font-black text-[10px]">○ Khoá</span>}</td>
-                                        <td className="px-4 py-3 text-right whitespace-nowrap">
-                                            <button onClick={() => startEdit(u)} className="text-indigo-600 hover:bg-indigo-50 px-2.5 py-1.5 rounded-lg font-bold text-[10px] uppercase">Sửa</button>
-                                            <button onClick={() => del(u.uid)} className="text-red-500 hover:bg-red-50 px-2.5 py-1.5 rounded-lg font-bold text-[10px] uppercase ml-1">Xoá</button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                    </>)}
-
-                    {tabHienTai === 'role' && (
-                        <div>
-                            <div className="flex items-center justify-between mb-3">
-                                <div>
-                                    <h2 className="text-[15px] font-black text-slate-900 flex items-center gap-2"><Icon name="lock" size={15} className="text-indigo-600"/> Chức vụ</h2>
-                                    <p className="text-[10px] font-bold text-slate-400 mt-0.5">Nguồn duy nhất quyết định quyền. Sửa một dòng ở đây là mọi người mang chức vụ đó đổi theo.</p>
+                <div className="flex-1 min-w-0 min-h-0 flex">
+                    {/* ===== CỘT TRÁI: danh sách ===== */}
+                    <div className="flex-1 min-w-0 overflow-auto px-7 py-6 space-y-4">
+                        {tabCon === 'user' ? (<>
+                            <div className="flex items-end gap-4">
+                                <div className="flex-1 min-w-0">
+                                    <h1 className="text-[22px] font-bold text-slate-900" style={{ letterSpacing: '-0.01em' }}>Tài khoản</h1>
+                                    <p className="text-[13px] text-slate-500 mt-1 leading-relaxed">Mỗi người mang <b className="text-slate-700">một chức vụ</b> (quyết định xem được mục nào) và danh sách <b className="text-slate-700">đơn vị</b> được xem. Thay đổi có hiệu lực khi người đó đăng nhập lại.</p>
                                 </div>
-                                <button onClick={startAddRole} className="bg-slate-800 hover:bg-slate-900 text-white px-3.5 py-2 rounded-xl font-black text-[10px] uppercase tracking-wider">+ Thêm chức vụ</button>
+                                {/* Nút đứng ngang tiêu đề (cùng chỗ với tab Chức vụ) — để ở hàng lọc thì 1366px bị đẩy xuống dòng 2 */}
+                                <button type="button" onClick={startAdd} className={PQ_NUT_CHINH + ' h-[34px]'}><Icon name="plus" size={14} strokeWidth="2.2"/>Thêm tài khoản</button>
                             </div>
-                            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-                                <table className="w-full text-[12px]">
-                                    <thead><tr className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[9px] tracking-widest">
-                                        <th className="text-left px-4 py-3 font-black">Mã</th>
-                                        <th className="text-left px-4 py-3 font-black">Tên chức vụ</th>
-                                        <th className="text-left px-4 py-3 font-black">Quyền xem</th>
-                                        <th className="text-center px-4 py-3 font-black">Đang dùng</th>
-                                        <th className="text-right px-4 py-3 font-black">Thao tác</th>
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <div className="relative w-[280px]">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"><Icon name="search" size={14} strokeWidth="2"/></span>
+                                    <input value={locTk.q} onChange={e => setLocTk({ ...locTk, q: e.target.value })} placeholder="Tìm theo tài khoản hoặc tên" aria-label="Tìm tài khoản"
+                                        className={PQ_O + ' h-[34px] pl-9 text-[12.5px]'}/>
+                                </div>
+                                <button type="button" onClick={() => setLocTk({ ...locTk, chucVu: '' })} className={pqChip(!locTk.chucVu)}>Tất cả <span className="tabular-nums opacity-80">{cfg.users.length}</span></button>
+                                {cfg.groups.map(g => {
+                                    const on = (locTk.chucVu || '').toUpperCase() === (g.id || '').toUpperCase();
+                                    return <button key={g.id} type="button" title={g.name} onClick={() => setLocTk({ ...locTk, chucVu: on ? '' : g.id })} className={pqChip(on)}>{g.id} <span className="tabular-nums opacity-80">{soNguoiGiu(g.id)}</span></button>;
+                                })}
+                                {soKhoa > 0 && <>
+                                    <span className="w-px h-5 bg-slate-200 mx-1"></span>
+                                    <button type="button" onClick={() => setLocTk({ ...locTk, khoa: !locTk.khoa })} className={pqChip(locTk.khoa)}>Đang khoá <span className="tabular-nums opacity-80">{soKhoa}</span></button>
+                                </>}
+                            </div>
+                            {loiNgoai && <div className="bg-red-50 border border-red-100 text-red-700 p-3 rounded-lg text-[12px]">{msg}</div>}
+                            <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                                <table className="w-full">
+                                    <thead><tr className="bg-slate-50 border-b border-slate-200">
+                                        <th className={PQ_TH} style={{ width: 150 }}>Tài khoản</th>
+                                        <th className={PQ_TH}>Tên hiển thị</th>
+                                        <th className={PQ_TH}>Chức vụ</th>
+                                        <th className={PQ_TH}>Đơn vị được xem</th>
+                                        <th className={PQ_TH} style={{ width: 120 }}>Trạng thái</th>
+                                        <th className={PQ_TH} style={{ width: 36 }}></th>
                                     </tr></thead>
                                     <tbody>
-                                        {cfg.groups.length === 0 && (<tr><td colSpan={5} className="text-center py-8 text-slate-400 font-bold text-[11px]">{loading ? 'Đang tải...' : 'Chưa có chức vụ nào.'}</td></tr>)}
-                                        {cfg.groups.map(g => {
-                                            const soNguoi = cfg.users.filter(u => (u.group || '').toUpperCase() === (g.id || '').toUpperCase()).length;
+                                        {dsTk.length === 0 && (<tr><td colSpan={6} className="text-center py-10 text-slate-500 text-[12.5px]">
+                                            {loading ? 'Đang tải...' : cfg.users.length === 0 ? 'Chưa có tài khoản nào. Bấm "Thêm tài khoản" — tài khoản đầu tiên nên mang chức vụ ADMIN để còn vào lại tab này.' : 'Không có tài khoản nào khớp bộ lọc.'}
+                                        </td></tr>)}
+                                        {dsTk.map(u => {
+                                            const chon = !!editing && !editing.isNew && editing.uid === u.uid;
+                                            const mo = u.active ? '' : ' text-slate-500';
                                             return (
-                                                <tr key={g.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/60">
-                                                    <td className="px-4 py-3 font-black text-slate-800">{g.id}</td>
-                                                    <td className="px-4 py-3 text-slate-600 font-medium">{g.name || '—'}</td>
-                                                    <td className="px-4 py-3"><span className="px-2 py-1 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-700 font-bold text-[10px]">{(g.items || []).length} mục</span>{(g.items || []).includes('perm_admin') && <span className="ml-2 px-2 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 font-black text-[9px] uppercase">Quản trị</span>}</td>
-                                                    <td className="px-4 py-3 text-center text-slate-500 font-bold text-[10px]">{soNguoi ? (soNguoi + ' người') : '—'}</td>
-                                                    <td className="px-4 py-3 text-right whitespace-nowrap">
-                                                        <button onClick={() => startEditRole(g)} className="text-indigo-600 hover:bg-indigo-50 px-2.5 py-1.5 rounded-lg font-bold text-[10px] uppercase">Sửa</button>
-                                                        <button onClick={() => delRole(g.id)} disabled={soNguoi > 0} title={soNguoi > 0 ? 'Còn người đang giữ chức vụ này' : ''} className="text-red-500 disabled:text-slate-300 hover:bg-red-50 disabled:hover:bg-transparent px-2.5 py-1.5 rounded-lg font-bold text-[10px] uppercase ml-1">Xoá</button>
-                                                    </td>
+                                                <tr key={u.uid} tabIndex={0} onClick={() => startEdit(u)} onKeyDown={e => bamDong(e, () => startEdit(u))}
+                                                    className={`cursor-pointer border-b border-slate-100 last:border-0 outline-none focus-visible:bg-slate-50 ${chon ? 'bg-blue-50' : 'hover:bg-slate-50'}`}>
+                                                    <td className={PQ_TD + ' font-bold text-slate-900' + mo} style={chon ? { boxShadow: 'inset 3px 0 0 #1e3a8a' } : undefined}>{u.uid}</td>
+                                                    <td className={PQ_TD + mo}>{u.name || '—'}</td>
+                                                    <td className={PQ_TD + mo}>{veChucVu(u.group)}</td>
+                                                    <td className={PQ_TD + mo}>{veDonVi(u)}</td>
+                                                    <td className={PQ_TD}>{u.active
+                                                        ? <span className="inline-flex items-center gap-1.5 text-[12px] font-bold text-green-700"><span className="w-[7px] h-[7px] rounded-full bg-green-600"></span>Hoạt động</span>
+                                                        : <span className="inline-flex items-center gap-1.5 text-[12px] font-bold text-slate-600"><span className="w-[7px] h-[7px] rounded-full border-[1.5px] border-slate-500"></span>Đang khoá</span>}</td>
+                                                    <td className={PQ_TD}>{veMuiTen(chon)}</td>
                                                 </tr>
                                             );
                                         })}
                                     </tbody>
                                 </table>
                             </div>
-                        </div>
-                    )}
-
-                    {roleEdit && (
-                        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[9999] px-4">
-                            <div className="bg-white rounded-3xl p-7 max-w-lg w-full shadow-2xl border border-slate-100 max-h-[92vh] overflow-auto">
-                                <h2 className="text-[16px] font-black text-slate-900 mb-5">{roleEdit.isNew ? 'Thêm chức vụ' : ('Sửa chức vụ: ' + roleEdit.ma)}</h2>
-                                <div className="space-y-4">
-                                    <div><div className="label-text mb-1.5 ml-1">Mã chức vụ (CHỮ HOA, không dấu)</div><input className="login-input" value={roleEdit.ma} disabled={!roleEdit.isNew} onChange={e => setRoleEdit({ ...roleEdit, ma: e.target.value.toUpperCase() })} placeholder="vd: KT03"/></div>
-                                    <div><div className="label-text mb-1.5 ml-1">Tên chức vụ</div><input className="login-input" value={roleEdit.ten} onChange={e => setRoleEdit({ ...roleEdit, ten: e.target.value })} placeholder="vd: Kế toán công nợ"/></div>
-                                    <div>
-                                        <div className="flex items-center justify-between mb-2 ml-1">
-                                            <div className="label-text">Được xem mục nào ({roleEdit.items.length}/{ITEM_SECTIONS.reduce((n, s) => n + s.ids.length, 0)})</div>
-                                            <div className="flex gap-3">
-                                                <button type="button" onClick={() => setRoleEdit(rd => ({ ...rd, items: ITEM_SECTIONS.flatMap(s => s.ids) }))} className="text-[10px] font-black text-indigo-600 hover:underline uppercase">Chọn hết</button>
-                                                <button type="button" onClick={() => setRoleEdit(rd => ({ ...rd, items: [] }))} className="text-[10px] font-black text-slate-400 hover:underline uppercase">Bỏ hết</button>
-                                            </div>
-                                        </div>
-                                        <div className="border border-slate-200 rounded-xl p-3 max-h-64 overflow-auto space-y-3 bg-slate-50/50">
-                                            {ITEM_SECTIONS.map(sec => (
-                                                <div key={sec.title}>
-                                                    <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{sec.title}</div>
-                                                    {sec.ids.map(code => (
-                                                        <label key={code} className="flex items-center gap-2 cursor-pointer px-2 py-1 rounded-lg hover:bg-white text-[11px] font-medium text-slate-700">
-                                                            <input type="checkbox" checked={roleEdit.items.includes(code)} onChange={() => toggleRoleItem(code)}/>
-                                                            <span className="truncate">{ITEM_LABEL[code] || code}</span>
-                                                        </label>
-                                                    ))}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
+                        </>) : (<>
+                            <div className="flex items-end gap-4">
+                                <div className="flex-1 min-w-0">
+                                    <h1 className="text-[22px] font-bold text-slate-900" style={{ letterSpacing: '-0.01em' }}>Chức vụ</h1>
+                                    <p className="text-[13px] text-slate-500 mt-1">Chức vụ quyết định được xem mục nào. Sửa một chức vụ là mọi người mang chức vụ đó đổi theo khi đăng nhập lại.</p>
                                 </div>
-                                {msg && <div className="bg-red-50 border border-red-100 text-red-600 p-3 rounded-xl text-[10px] font-bold mt-4 leading-tight">{msg}</div>}
-                                <div className="flex gap-3 mt-6">
-                                    <button onClick={() => setRoleEdit(null)} className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 font-black text-[11px] uppercase hover:bg-slate-50">Huỷ</button>
-                                    <button onClick={saveRole} disabled={!!dangLuu} className="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-black text-[11px] uppercase hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-                                        {dangLuu === 'role' && <Icon name="loader" size={12} className="animate-spin"/>}
-                                        {dangLuu === 'role' ? 'Đang lưu lên Google...' : 'Lưu'}
-                                    </button>
-                                </div>
+                                <button type="button" onClick={startAddRole} className={PQ_NUT_CHINH + ' h-[34px]'}><Icon name="plus" size={14} strokeWidth="2.2"/>Thêm chức vụ</button>
                             </div>
-                        </div>
-                    )}
+                            {loiNgoai && <div className="bg-red-50 border border-red-100 text-red-700 p-3 rounded-lg text-[12px]">{msg}</div>}
+                            <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                                <table className="w-full">
+                                    <thead><tr className="bg-slate-50 border-b border-slate-200">
+                                        <th className={PQ_TH} style={{ width: 130 }}>Mã</th>
+                                        <th className={PQ_TH}>Tên chức vụ</th>
+                                        <th className={PQ_TH} style={{ width: 170 }}>Được xem</th>
+                                        <th className={PQ_TH} style={{ width: 140 }}>Đang dùng</th>
+                                        <th className={PQ_TH} style={{ width: 36 }}></th>
+                                    </tr></thead>
+                                    <tbody>
+                                        {cfg.groups.length === 0 && (<tr><td colSpan={5} className="text-center py-10 text-slate-500 text-[12.5px]">{loading ? 'Đang tải...' : 'Chưa có chức vụ nào.'}</td></tr>)}
+                                        {cfg.groups.map(g => {
+                                            const chon = !!roleEdit && !roleEdit.isNew && (roleEdit.ma || '').toUpperCase() === (g.id || '').toUpperCase();
+                                            const soNguoi = soNguoiGiu(g.id);
+                                            return (
+                                                <tr key={g.id} tabIndex={0} onClick={() => startEditRole(g)} onKeyDown={e => bamDong(e, () => startEditRole(g))}
+                                                    className={`cursor-pointer border-b border-slate-100 last:border-0 outline-none focus-visible:bg-slate-50 ${chon ? 'bg-blue-50' : 'hover:bg-slate-50'}`}>
+                                                    <td className={PQ_TD} style={chon ? { boxShadow: 'inset 3px 0 0 #1e3a8a' } : undefined}>
+                                                        <span className={`text-[11px] font-bold rounded-md px-[7px] py-[3px] ${laAdmin(g.id) ? 'bg-amber-100 text-amber-800' : 'bg-blue-50 text-[#1e3a8a]'}`}>{g.id}</span>
+                                                    </td>
+                                                    <td className={PQ_TD + (chon ? ' font-bold text-slate-900' : '')}>{g.name || '—'}</td>
+                                                    <td className={PQ_TD + ' tabular-nums'}>{laAdmin(g.id) ? `Tất cả ${tongMuc} mục` : `${(g.items || []).length} mục`}</td>
+                                                    <td className={PQ_TD + ' tabular-nums'}>{soNguoi ? `${soNguoi} người` : '—'}</td>
+                                                    <td className={PQ_TD}>{veMuiTen(chon)}</td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </>)}
+                    </div>
 
-                    {editing && (
-                        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[9999] px-4">
-                            <div className="bg-white rounded-3xl p-7 max-w-lg w-full shadow-2xl border border-slate-100 max-h-[92vh] overflow-auto">
-                                <h2 className="text-[16px] font-black text-slate-900 mb-5">{editing.isNew ? 'Thêm người dùng' : ('Sửa: ' + editing.uid)}</h2>
-                                <div className="space-y-4">
-                                    <div><div className="label-text mb-1.5 ml-1">Tài khoản (mã đăng nhập)</div><input className="login-input" value={editing.uid} disabled={!editing.isNew} onChange={e => setEditing({ ...editing, uid: e.target.value })} placeholder="vd: ketoan1"/></div>
-                                    <div><div className="label-text mb-1.5 ml-1">Tên hiển thị</div><input className="login-input" value={editing.name} onChange={e => setEditing({ ...editing, name: e.target.value })} placeholder="Nguyễn Văn A"/></div>
-                                    <div><div className="label-text mb-1.5 ml-1">{editing.isNew ? 'Mật khẩu' : 'Mật khẩu mới (để trống nếu giữ nguyên)'}</div><input type="password" className="login-input" value={editing.password} onChange={e => setEditing({ ...editing, password: e.target.value })} placeholder="••••••••"/></div>
-                                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={editing.active} onChange={e => setEditing({ ...editing, active: e.target.checked })}/> <span className="text-[12px] font-bold text-slate-600">Cho phép đăng nhập (bỏ tick = khoá)</span></label>
+                    {/* ===== KHUNG PHẢI: sửa / thêm TÀI KHOẢN ===== */}
+                    {tabCon === 'user' && editing && (
+                        <aside aria-label={editing.isNew ? 'Thêm tài khoản' : 'Sửa tài khoản'} className="w-[460px] shrink-0 bg-white border-l border-slate-200 flex flex-col min-h-0">
+                            <div className="px-6 pt-[18px] pb-4 border-b border-slate-100 flex items-start gap-3">
+                                <div className="flex-1 min-w-0">
+                                    <div className="text-[12px] text-slate-500">{editing.isNew ? 'Thêm tài khoản' : 'Sửa tài khoản'}</div>
+                                    <div className="text-[20px] font-bold text-slate-900 mt-0.5 truncate">{editing.isNew ? 'Tài khoản mới' : editing.uid}</div>
+                                    {!editing.isNew && !datLaiMk && (
+                                        <button type="button" onClick={() => setDatLaiMk(true)} className="mt-1.5 text-[12px] font-bold text-[#1e3a8a] hover:underline">Đặt lại mật khẩu</button>
+                                    )}
+                                </div>
+                                <button type="button" aria-label="Đóng" onClick={dongTk} className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center shrink-0"><Icon name="x" size={15} strokeWidth="2"/></button>
+                            </div>
+                            <div className="flex-1 min-h-0 overflow-auto px-6 py-4 space-y-4">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <label className="block"><span className={PQ_NHAN}>Tài khoản</span>
+                                        <input className={PQ_O} value={editing.uid} disabled={!editing.isNew} autoFocus={editing.isNew} placeholder="vd: ketoan4" onChange={e => setEditing({ ...editing, uid: e.target.value })}/></label>
+                                    <label className="block"><span className={PQ_NHAN}>Tên hiển thị</span>
+                                        <input className={PQ_O} value={editing.name} placeholder="vd: Kế toán công nợ" onChange={e => setEditing({ ...editing, name: e.target.value })}/></label>
+                                </div>
+                                {(editing.isNew || datLaiMk) && (
+                                    <label className="block"><span className={PQ_NHAN}>{editing.isNew ? 'Mật khẩu' : 'Mật khẩu mới'}</span>
+                                        <input type="password" className={PQ_O} value={editing.password} autoFocus={!editing.isNew} autoComplete="new-password"
+                                            placeholder={editing.isNew ? 'Mật khẩu đăng nhập lần đầu' : 'Gõ mật khẩu mới rồi bấm Lưu'} onChange={e => setEditing({ ...editing, password: e.target.value })}/>
+                                        {!editing.isNew && <span className="block text-[11.5px] text-slate-500 mt-1">Không cần mật khẩu cũ. Lưu xong báo mật khẩu mới cho người dùng.</span>}
+                                    </label>
+                                )}
+                                <div className="flex items-start gap-3">
+                                    <button type="button" role="switch" aria-checked={!!editing.active} aria-label="Cho phép đăng nhập" onClick={() => setEditing({ ...editing, active: !editing.active })}
+                                        className={`relative w-9 h-5 rounded-full shrink-0 mt-0.5 transition-colors ${editing.active ? 'bg-[#1e3a8a]' : 'bg-slate-300'}`}>
+                                        <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${editing.active ? 'left-[18px]' : 'left-0.5'}`}></span>
+                                    </button>
                                     <div>
-                                        <div className="label-text mb-1.5 ml-1">Chức vụ — quyết định toàn bộ quyền xem</div>
-                                        <select className="login-input" value={editing.group} onChange={e => { const g = cfg.groups.find(x => x.id === e.target.value); setEditing({ ...editing, group: e.target.value, items: g ? [...(g.items || [])] : [] }); }}>
-                                            <option value="">— Chọn chức vụ —</option>
-                                            {cfg.groups.map(g => <option key={g.id} value={g.id}>{g.id} — {g.name}</option>)}
-                                        </select>
-                                        <div className="mt-2 border border-slate-200 rounded-xl p-3 max-h-40 overflow-auto bg-slate-50/50">
-                                            <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Chức vụ này được xem {editing.items.length} mục</div>
-                                            {editing.items.length === 0
-                                                ? <div className="text-[10px] font-bold text-slate-400">Chưa chọn chức vụ, hoặc chức vụ này chưa được cấp mục nào.</div>
-                                                : <div className="flex flex-wrap gap-1">{editing.items.map(code => <span key={code} className="px-2 py-0.5 rounded-md bg-white border border-slate-200 text-[10px] font-bold text-slate-600">{ITEM_LABEL[code] || code}</span>)}</div>}
-                                        </div>
-                                        <p className="text-[10px] font-bold text-slate-400 mt-1.5 ml-1">Đổi quyền thì sửa ở bảng <b className="text-slate-500">Chức vụ</b>, không sửa riêng từng người.</p>
+                                        <div className="text-[13px] font-bold text-slate-900">Cho phép đăng nhập</div>
+                                        <div className="text-[11.5px] text-slate-500 mt-0.5">Tắt = khoá tài khoản: lần đăng nhập sau sẽ bị từ chối.</div>
                                     </div>
-                                    <div>
-                                        <div className="flex items-center justify-between mb-2 ml-1">
-                                            <div className="label-text">Đơn vị được xem ({editing.orgs === null ? 'Tất cả' : (editing.orgs.length + '/' + orgs.length)})</div>
-                                            <div className="flex gap-3">
-                                                <button type="button" onClick={() => setAllOrgs(true)} className="text-[10px] font-black text-indigo-600 hover:underline uppercase">Tất cả</button>
-                                                <button type="button" onClick={() => setAllOrgs(false)} className="text-[10px] font-black text-slate-400 hover:underline uppercase">Bỏ hết</button>
-                                            </div>
-                                        </div>
-                                        {editing.orgs === null && <div className="text-[10px] font-bold text-emerald-600 mb-1.5 ml-1">✓ Thấy tất cả đơn vị (kể cả đơn vị thêm sau này)</div>}
-                                        <div className="border border-slate-200 rounded-xl p-3 max-h-44 overflow-auto space-y-1 bg-slate-50/50">
-                                            {orgs.length === 0 && <div className="text-[10px] text-slate-400 font-bold px-2">Không tải được danh sách đơn vị.</div>}
+                                </div>
+                                <label className="block"><span className={PQ_NHAN}>Chức vụ</span>
+                                    <select className={PQ_O + ' cursor-pointer'} value={editing.group} onChange={e => { const g = cfg.groups.find(x => x.id === e.target.value); setEditing({ ...editing, group: e.target.value, items: g ? [...(g.items || [])] : [] }); }}>
+                                        <option value="">— Chọn chức vụ —</option>
+                                        {cfg.groups.map(g => <option key={g.id} value={g.id}>{g.id} — {g.name}</option>)}
+                                    </select>
+                                </label>
+                                <div>
+                                    <div className="flex items-baseline justify-between">
+                                        <span className={PQ_NHAN}>Đơn vị được xem</span>
+                                        <span className="text-[12px] font-bold text-[#1e3a8a] tabular-nums">{editing.orgs === null ? 'Tất cả' : `${editing.orgs.length} đã chọn`}</span>
+                                    </div>
+                                    <div className="border border-slate-200 rounded-lg p-1.5">
+                                        <label className={PQ_DONG_TICK + ' font-bold text-slate-900 border-b border-slate-100 rounded-none mb-1'}>
+                                            <input type="checkbox" className={PQ_TICK} checked={editing.orgs === null} onChange={e => setAllOrgs(e.target.checked)}/>Tất cả đơn vị
+                                        </label>
+                                        {orgs.length === 0 && <div className="text-[12px] text-slate-500 px-2 py-1">Không tải được danh sách đơn vị.</div>}
+                                        <div className="grid grid-cols-2 gap-x-1">
                                             {orgs.map(o => (
-                                                <label key={o.id} className="flex items-center gap-2 cursor-pointer px-2 py-1 rounded-lg hover:bg-white text-[11px] font-medium text-slate-700">
-                                                    <input type="checkbox" checked={orgChecked(o.id)} onChange={() => toggleOrg(o.id)}/>
-                                                    <span className="truncate">{o.id} — {o.name}</span>
+                                                <label key={o.id} className={PQ_DONG_TICK} title={o.id + ' — ' + o.name}>
+                                                    <input type="checkbox" className={PQ_TICK} checked={orgChecked(o.id)} onChange={() => toggleOrg(o.id)}/>
+                                                    <b className="tabular-nums text-slate-900 shrink-0">{o.id}</b><span className="truncate">{o.name}</span>
                                                 </label>
                                             ))}
                                         </div>
                                     </div>
                                 </div>
-                                {msg && <div className="bg-red-50 border border-red-100 text-red-600 p-3 rounded-xl text-[10px] font-bold mt-4 leading-tight">{msg}</div>}
-                                <div className="flex gap-3 mt-6">
-                                    <button onClick={() => setEditing(null)} className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 font-black text-[11px] uppercase hover:bg-slate-50">Huỷ</button>
-                                    <button onClick={save} disabled={!!dangLuu} className="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-black text-[11px] uppercase hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-                                        {dangLuu === 'user' && <Icon name="loader" size={12} className="animate-spin"/>}
-                                        {dangLuu === 'user' ? 'Đang lưu lên Google...' : 'Lưu'}
+                            </div>
+                            {msg && <div className="mx-6 mb-3 bg-red-50 border border-red-100 text-red-700 p-3 rounded-lg text-[12px] leading-snug">{msg}</div>}
+                            <div className="px-6 py-3.5 border-t border-slate-200 flex items-center gap-2.5">
+                                {!editing.isNew && (
+                                    <button type="button" onClick={() => del(editing.uid)} disabled={!!dangLuu} className="h-8 text-[12px] font-bold text-red-700 hover:underline disabled:opacity-50">
+                                        {dangLuu === 'xoa:' + editing.uid ? 'Đang xoá...' : 'Xoá tài khoản'}
                                     </button>
+                                )}
+                                <div className="flex-1"></div>
+                                <button type="button" onClick={dongTk} className={PQ_NUT}>Huỷ</button>
+                                <button type="button" onClick={save} disabled={!!dangLuu} className={PQ_NUT_CHINH}>
+                                    {dangLuu === 'user' && <Icon name="loader" size={12} className="animate-spin"/>}
+                                    {dangLuu === 'user' ? 'Đang lưu...' : (editing.isNew ? 'Tạo tài khoản' : 'Lưu')}
+                                </button>
+                            </div>
+                        </aside>
+                    )}
+
+                    {/* ===== KHUNG PHẢI: sửa / thêm CHỨC VỤ ===== */}
+                    {tabCon === 'role' && roleEdit && (
+                        <aside aria-label={roleEdit.isNew ? 'Thêm chức vụ' : 'Sửa chức vụ'} className="w-[460px] shrink-0 bg-white border-l border-slate-200 flex flex-col min-h-0">
+                            <div className="px-6 pt-[18px] pb-4 border-b border-slate-100 flex items-start gap-3">
+                                <div className="flex-1 min-w-0">
+                                    <div className="text-[12px] text-slate-500">{roleEdit.isNew ? 'Thêm chức vụ' : 'Sửa chức vụ'}</div>
+                                    <div className="text-[20px] font-bold text-slate-900 mt-0.5 truncate">{roleEdit.isNew ? 'Chức vụ mới' : `${roleEdit.ma} · ${roleEdit.ten || ''}`}</div>
+                                </div>
+                                <button type="button" aria-label="Đóng" onClick={dongCv} className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center shrink-0"><Icon name="x" size={15} strokeWidth="2"/></button>
+                            </div>
+                            <div className="flex-1 min-h-0 overflow-auto px-6 py-4 space-y-4">
+                                <div>
+                                    <div className="grid grid-cols-[120px_minmax(0,1fr)] gap-3">
+                                        <label className="block"><span className={PQ_NHAN}>Mã</span>
+                                            <input className={PQ_O} value={roleEdit.ma} disabled={!roleEdit.isNew} autoFocus={roleEdit.isNew} placeholder="vd: KT03" onChange={e => setRoleEdit({ ...roleEdit, ma: e.target.value.toUpperCase() })}/></label>
+                                        <label className="block"><span className={PQ_NHAN}>Tên chức vụ</span>
+                                            <input className={PQ_O} value={roleEdit.ten} placeholder="vd: Kế toán công nợ" onChange={e => setRoleEdit({ ...roleEdit, ten: e.target.value })}/></label>
+                                    </div>
+                                    {roleEdit.isNew && <div className="text-[11.5px] text-slate-500 mt-1.5">Mã viết HOA, không dấu &mdash; tạo xong không đổi được.</div>}
+                                </div>
+                                <div>
+                                    <div className="flex items-baseline justify-between">
+                                        <span className={PQ_NHAN}>Được xem</span>
+                                        <span className="text-[12px] font-bold text-[#1e3a8a] tabular-nums">{laAdmin(roleEdit.ma) ? 'Tất cả' : `${roleEdit.items.length}/${tongMuc} đã chọn`}</span>
+                                    </div>
+                                    {laAdmin(roleEdit.ma) ? (
+                                        <div className="border border-slate-200 rounded-lg p-3 bg-slate-50 text-[12.5px] text-slate-600 leading-relaxed">Chức vụ <b className="text-slate-900">ADMIN</b> luôn thấy đủ mọi mục &mdash; app tự tính, không phụ thuộc ô tick.</div>
+                                    ) : (
+                                        <div className="border border-slate-200 rounded-lg p-1.5">
+                                            <label className={PQ_DONG_TICK + ' font-bold text-slate-900 border-b border-slate-100 rounded-none mb-1'}>
+                                                <input type="checkbox" className={PQ_TICK} checked={roleEdit.items.length === tongMuc}
+                                                    onChange={e => setRoleEdit(rd => ({ ...rd, items: e.target.checked ? ITEM_SECTIONS.flatMap(s => s.ids) : [] }))}/>Tất cả mục
+                                            </label>
+                                            {ITEM_SECTIONS.map((sec, i) => (
+                                                <div key={sec.title} className={i ? 'border-t border-slate-100 mt-1' : ''}>
+                                                    <div className="text-[11px] font-bold text-slate-600 px-2 pt-2 pb-1">{sec.title}</div>
+                                                    <div className={sec.cot2 ? 'grid grid-cols-2 gap-x-1' : ''}>
+                                                        {sec.ids.map(code => (
+                                                            <label key={code} className={PQ_DONG_TICK} title={ITEM_LABEL[code] || code}>
+                                                                <input type="checkbox" className={PQ_TICK} checked={roleEdit.items.includes(code)} onChange={() => toggleRoleItem(code)}/>
+                                                                {nhanMuc(code)}
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
-                        </div>
+                            {msg && <div className="mx-6 mb-3 bg-red-50 border border-red-100 text-red-700 p-3 rounded-lg text-[12px] leading-snug">{msg}</div>}
+                            <div className="px-6 py-3.5 border-t border-slate-200 flex items-center gap-2.5">
+                                {!roleEdit.isNew && (() => {
+                                    const soNguoi = soNguoiGiu(roleEdit.ma);
+                                    const khoaXoa = soNguoi > 0 || laAdmin(roleEdit.ma);
+                                    return (
+                                        <button type="button" onClick={() => delRole(roleEdit.ma)} disabled={!!dangLuu || khoaXoa}
+                                            title={laAdmin(roleEdit.ma) ? 'Không xoá được chức vụ ADMIN' : soNguoi > 0 ? `Còn ${soNguoi} người đang giữ chức vụ này` : ''}
+                                            className="h-8 text-[12px] font-bold text-red-700 hover:underline disabled:text-slate-400 disabled:no-underline disabled:cursor-not-allowed">
+                                            {dangLuu === 'xoarole:' + roleEdit.ma ? 'Đang xoá...' : 'Xoá chức vụ'}
+                                        </button>
+                                    );
+                                })()}
+                                <div className="flex-1"></div>
+                                <button type="button" onClick={dongCv} className={PQ_NUT}>Huỷ</button>
+                                <button type="button" onClick={saveRole} disabled={!!dangLuu} className={PQ_NUT_CHINH}>
+                                    {dangLuu === 'role' && <Icon name="loader" size={12} className="animate-spin"/>}
+                                    {dangLuu === 'role' ? 'Đang lưu...' : (roleEdit.isNew ? 'Tạo chức vụ' : 'Lưu')}
+                                </button>
+                            </div>
+                        </aside>
                     )}
                 </div>
             );
@@ -4911,6 +5059,10 @@ const exportJournalCsv = (mode) => {
             // ReportTab KHÔNG bị tháo khi về trang liệt kê — chỉ ẩn đi — nên số liệu, hộp xuất file
             // đang chạy… đều còn nguyên khi quay lại.
             const [xemDsBaoCao, setXemDsBaoCao] = useState(true);
+            // Tab Phân quyền: hai màn con nằm trên hàng tab ngang (giao diện mới 25/09/2026).
+            // Số đếm do PermAdminPanel báo lên sau mỗi lần tải danh sách từ Google (null = chưa tải).
+            const [tabPhanQuyen, setTabPhanQuyen] = useState('user');
+            const [demPhanQuyen, setDemPhanQuyen] = useState({ user: null, role: null });
             const [daMoBaoCao, setDaMoBaoCao] = useState(false);
             const phanHeDangMo = activeTab === 'report' ? 'baocao'
                 : ((PHAN_HE.find(p => p.tabs && p.tabs.includes(activeTab)) || {}).id || null);
@@ -4947,7 +5099,8 @@ const exportJournalCsv = (mode) => {
             const tabHangNgang = activeTab === 'home'
                 ? [{ id: 'home', ten: 'Trang chủ', icon: 'home' }]
                 : activeTab === 'perm_admin'
-                ? [{ id: 'perm_admin', ten: 'Phân quyền', icon: 'lock' }]
+                ? [{ id: 'pq_user', ten: 'Tài khoản', icon: 'user', so: demPhanQuyen.user },
+                   { id: 'pq_role', ten: 'Chức vụ', icon: 'shield', so: demPhanQuyen.role }]
                 : activeTab === 'report'
                     ? [{ id: 'ds_bao_cao', ten: 'Tất cả báo cáo', icon: 'grid' }].concat(
                         daMoBaoCao && !xemDsBaoCao && baoCaoDangMo && canSee(reportType)   // đang ở trang liệt kê thì ẩn (Đại Ca chốt 25/09)
@@ -4956,8 +5109,10 @@ const exportJournalCsv = (mode) => {
                         const t = DOC_TABS.find(x => x.id === id);
                         return { id, ten: t.short || t.name, icon: t.icon || 'table' };
                     });
-            const tabDangChon = activeTab === 'report' ? (xemDsBaoCao ? 'ds_bao_cao' : 'bao_cao') : activeTab;
+            const tabDangChon = activeTab === 'report' ? (xemDsBaoCao ? 'ds_bao_cao' : 'bao_cao')
+                : activeTab === 'perm_admin' ? (tabPhanQuyen === 'role' ? 'pq_role' : 'pq_user') : activeTab;
             const chonTab = (id) => {
+                if (activeTab === 'perm_admin') { setTabPhanQuyen(id === 'pq_role' ? 'role' : 'user'); return; }
                 if (activeTab === 'report') setXemDsBaoCao(id === 'ds_bao_cao');
                 else if (id !== 'perm_admin') setActiveTab(id);
             };
@@ -8883,8 +9038,9 @@ const exportJournalCsv = (mode) => {
                         </div>
                     )}
                     {activeTab === 'perm_admin' && canSee('perm_admin') && (
-                        <div className="flex-1 overflow-auto bg-slate-50">
-                            <PermAdminPanel onPermsChanged={loadPerms} orgs={meta.orgs} />
+                        <div className="flex-1 min-h-0 flex bg-slate-50">
+                            <PermAdminPanel onPermsChanged={loadPerms} orgs={meta.orgs} tabCon={tabPhanQuyen}
+                                onDem={(user, role) => setDemPhanQuyen({ user, role })} />
                         </div>
                     )}
                     </div>{/* hết cột nội dung (hàng tab + màn hình) */}

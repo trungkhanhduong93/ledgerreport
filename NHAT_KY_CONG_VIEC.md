@@ -7,7 +7,7 @@
 > **`giaodien`**, **CHƯA push**. Kế hoạch & tiến độ: § VIỆC CẦN LÀM → 🎨.
 > ✅ **GĐ3 (điều hướng + Báo cáo TC): Đại Ca xem và chốt OK sáng 25/09 — đã commit `fed091f`.**
 > ✅ **GĐ4 Trang chủ (khung, chưa số liệu): Đại Ca xem và chốt OK 25/09 — đã commit.**
-> 🎨 **Tab Phân quyền — giao diện mới: đã PHÁC THẢO 3 khung (mục 05 trong bản phác thảo), chờ Đại Ca chốt** (việc 32).
+> ✅ **Tab Phân quyền — giao diện mới: Đại Ca xem và chốt OK 25/09 — đã commit** (việc 32).
 > 🩹 **Việc 31 (lỗi trong bản đang phát hành) ĐÃ VÁ trên `main` — commit `784d227`, CHƯA build, CHƯA push.**
 > Đại Ca chốt 25/09: *"vá trước nhưng chưa build, để build 1 lần luôn"*.
 > Phiên phát hành gần nhất: **24/09/2026** · ✅ **v1.12.3** — `main` = `62af287`,
@@ -100,7 +100,7 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 | 17 | **Nút `TRUY VẤN` đang chuyển màu navy → tím** | Lớp gradient `indigo → purple` cũ. Hỏi 2 lần, **chưa chốt** đưa về navy đặc |
 | 18 | ~~Chốt mốc commit phần đăng nhập nhanh + sửa font~~ ✅ **commit `c64540a`** | Local, chưa push |
 | 19 | ~~Đại Ca xem GĐ3 rồi chốt commit~~ ✅ **Đại Ca chốt OK sáng 25/09** (*"cái đó thì ok rồi"*) ⇒ đã commit GĐ3 | ⚠️ Đại Ca chốt chung, **không nói rõ đã thử từng mục dưới đây chưa** — lần đầu dùng số liệu thật thì để ý. Danh sách cần xem ở mục *"Việc Đại Ca xem sáng 25/09"* trong nhật ký 25/09 (tiếp 3), ngay dưới § này. Ba việc tôi **không** tự thử được: hộp *"Chuyển mẫu báo cáo?"* khi có số liệu thật · menu **Xuất Excel / Xuất PDF** khi có số liệu (chưa có số liệu thì nút tắt) · kéo thả thứ tự ô lọc bằng chuột thật. Và **đọc lại mô tả 16 thẻ** — tôi tự viết |
-| 32 | 🎨 **Giao diện mới cho tab Phân quyền** — ⏳ **chờ Đại Ca chốt phác thảo BẢN 2** | Mục **05 — PHÂN QUYỀN** của bản phác thảo. **Bản 2 (theo góp ý 25/09):** Chức vụ **bỏ ma trận** → danh sách + khung sửa bên phải, cùng kiểu tab Tài khoản · Tài khoản **bỏ ô mật khẩu và hộp tóm tắt quyền** (mật khẩu thu thành dòng *"Đặt lại mật khẩu"*; tài khoản mới vẫn có ô) · Đơn vị = **một danh sách tick**, có dòng *"Tất cả đơn vị"*. Thêm 2 khung **Thêm tài khoản** / **Thêm chức vụ** (Đại Ca hỏi *"màn hình thêm mới quyền thì sao"*). Dữ liệu trong khung là **minh hoạ**. Chưa sửa dòng mã nào |
+| 32 | ~~Giao diện mới cho tab Phân quyền~~ ✅ **XONG 25/09 — Đại Ca chốt OK, đã commit** (local, chưa push) | Mục **05 — PHÂN QUYỀN** của bản phác thảo. **Bản 2 (theo góp ý 25/09):** Chức vụ **bỏ ma trận** → danh sách + khung sửa bên phải, cùng kiểu tab Tài khoản · Tài khoản **bỏ ô mật khẩu và hộp tóm tắt quyền** (mật khẩu thu thành dòng *"Đặt lại mật khẩu"*; tài khoản mới vẫn có ô) · Đơn vị = **một danh sách tick**, có dòng *"Tất cả đơn vị"*. Thêm 2 khung **Thêm tài khoản** / **Thêm chức vụ** (Đại Ca hỏi *"màn hình thêm mới quyền thì sao"*). Dữ liệu trong khung là **minh hoạ**. Chưa sửa dòng mã nào |
 | 31 | 🩹 **Ô Số chứng từ của BC012 hỏng trong bản ĐANG PHÁT HÀNH v1.12.3** — ✅ **ĐÃ VÁ trên `main` 25/09 (`784d227`), ⏳ CHƯA build/push** | Gõ từng chữ `P` → `T` thì thành `P,PT` và lọc ra 0 dòng (`toggleFilter` coi `tran_no` là mảng). Sửa cả hai nhánh: `giaodien` (chưa commit) và `main`. Đại Ca chốt **build một lần** cùng đợt sau. Người dùng **vẫn gặp lỗi tới khi phát hành**. Dán nguyên số phiếu một lần thì chạy |
 | 30 | 🆕 **Áp Bộ lọc nâng cao + ô Thời gian gộp sang 9 màn danh sách** | Đại Ca chốt: *"làm báo cáo trước, có logic rồi làm danh sách sau"*. Ở đó nó thay nút "Bộ lọc" đang mở hàng lọc thứ 2. Màn danh sách nhiều ô hơn hẳn (Chứng từ tổng hợp: 11 ô) |
 | 29 | ~~Nút Excel / PDF của BC003, BC004 sáng sẵn khi chưa có số liệu~~ ✅ **XONG 25/09/2026** | Sửa luôn khi gộp 2 nút thành nút tải xuống: điều kiện xét `initialReportData`. Đã thử: BC001/003/004/012/016 chưa tải số liệu ⇒ nút tắt, tooltip *"Chưa có số liệu — bấm Xem trước rồi mới xuất"* |
@@ -156,6 +156,61 @@ ngang = màn hình) · **có trang chủ** theo mẫu iACC Portal.
 | Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 25/09/2026 (chiều) — Tab Phân quyền: giao diện mới vào mã · nhánh `giaodien`, đã commit
+
+> ✅ **Đại Ca xem trên 5051 và chốt OK**, kèm một sửa: nút **"Lưu lên Google" → "Lưu"** (lúc chờ: *"Đang lưu..."*)
+> — *"lưu lại thôi chứ không để google"*. Chữ "Google" ở màn Mở khoá và trong lời cảnh báo bỏ sót mã **giữ nguyên**.
+
+Đại Ca duyệt phác thảo qua 3 vòng: *"không dùng ma trận, dựng 2 tab riêng"* · *"user nhiều thông tin quá,
+bỏ các thông tin t khoanh"* (ô mật khẩu + hộp tóm tắt quyền) · *"đơn vị làm đơn giản, xem cái nào chọn cái
+đó"* · hỏi thêm *"màn hình thêm mới quyền thì sao"* ⇒ vẽ 2 khung Thêm · chốt **giữ** dòng *"Đặt lại mật
+khẩu"* (admin đặt mk mới cho người quên, không cần mk cũ) ⇒ *"làm vào mã luôn"*.
+
+### Đã làm (`index.html`, không đụng `server.py`)
+
+| Chỗ | Việc |
+|---|---|
+| Hàng tab ngang | Tab *Phân quyền* → **Tài khoản · Chức vụ** kèm số đếm (`HangTab` nhận thêm `so`). Hai tab con cũ bên trong panel **gỡ** |
+| Màn Tài khoản | Ô tìm · chip lọc theo chức vụ + *Đang khoá* · bảng thêm cột **Chức vụ** và **tên đơn vị** · đơn vị = `[]` thì ghi đỏ *"Chưa chọn đơn vị nào"* (người đó thấy 0 dòng ở mọi màn) |
+| Khung sửa tài khoản | Bên phải 460px thay hộp thoại · *Đặt lại mật khẩu* bấm mới hiện ô · công tắc *Cho phép đăng nhập* · chức vụ · đơn vị = danh sách tick 2 cột + *Tất cả đơn vị* |
+| Màn Chức vụ | Bảng Mã · Tên · Được xem · Đang dùng · khung sửa bên phải: tick theo nhóm (Danh sách chứng từ 2 cột · Báo cáo tài chính · Quản trị) + *Tất cả mục* |
+| An toàn | Sửa dở mà bấm dòng khác / Huỷ / ✕ ⇒ **hỏi trước** · xoá đúng người đang mở ⇒ đóng khung · **ADMIN không xoá được** (mới — trước chỉ khoá khi còn người giữ) · `kiemMucBiVutBo` **giữ nguyên** |
+| Màn Mở khoá | Cùng nội dung, kiểu mới |
+
+Mọi lệnh gửi Google (`/api/perm/*`), `save` / `saveRole` / `del` / `delRole`, luật "tick hết đơn vị = `null`"
+**giữ nguyên** — chỉ thay phần vẽ. Đếm lại khai báo cấp component: **mất 0**, thêm đúng 9 hằng kiểu `PQ_*`.
+
+### 🧪 Verify — server thử 5052, **Google GIẢ trong RAM** (không gọi Apps Script thật)
+
+Thay 5 lệnh `/api/perm/*` bằng bản giả có đòi mật khẩu quản trị + chờ 1,5 giây như Google chậm, và ghi lại
+mọi thứ app gửi lên để đối chiếu.
+
+| Kiểm | Kết quả |
+|---|---|
+| **M1** | `check_babel.js` SUCCESSFUL · `server.py` không đổi · độ đậm 800/900 mới thêm: **0** |
+| Mở khoá | Sai mk ⇒ *"Sai mật khẩu quản trị"*, vẫn ở màn mở khoá · đúng ⇒ vào danh sách, tab ghi **Tài khoản 5 · Chức vụ 4** |
+| Hỏi trước khi bỏ | Chưa sửa gì ⇒ đổi dòng **không hỏi** · sửa dở rồi bấm dòng khác ⇒ hỏi, trả lời *Không* thì **ở lại** |
+| Sửa tài khoản | Bỏ tick 71 + đổi tên ⇒ gửi `orgs: ["01","35"]`, **không kèm `password`** · nút lúc chờ *"Đang lưu lên Google..."* và bị khoá |
+| Đặt lại mật khẩu | Ô chỉ hiện sau khi bấm · gõ `moi123` ⇒ gửi đúng `password: "moi123"` |
+| Thêm tài khoản | Có ô mật khẩu, không có nút Xoá, đơn vị mặc định *Tất cả* ⇒ gửi `orgs: null` + `password` · số trên tab lên 6 · xoá đi ⇒ khung đóng, dòng mất |
+| Lọc | Chip KT ⇒ `ketoan1, ketoan3` · tìm `kho` ⇒ `ketoan3, kho01` · *Đang khoá* ⇒ `ch71` |
+| Chức vụ | KT tick thêm *Đối chiếu điều chuyển* ⇒ 23 → **24/26**, gửi 24 mục có `dcnb_reconcile` · ADMIN: không ô tick, nút Xoá khoá · KHO còn người giữ ⇒ Xoá khoá · thêm `tm` ⇒ tự thành **`TM`**, *Tất cả mục* = 26/26 · xoá TM được |
+| **Lưới an toàn Bẫy 22** | Giả lập Google trả về **thiếu `po_list`** ⇒ khung **giữ lại** + cảnh báo *"Google chưa biết 1 mục nên đã BỎ QUA khi lưu: Danh sách PO – yêu cầu mua hàng…"* |
+| Bề rộng (đang mở khung sửa) | **1366px**: hàng chip một dòng, 0 ô gãy chữ, 0 cuộn ngang · **1280px**: chip xuống **2 hàng** (danh sách chỉ còn 756px), 0 ô gãy, 0 cuộn ngang |
+| Console | Chỉ ghi chú Babel >500 KB có sẵn |
+
+🐛 **Tự bắt khi nhìn ảnh:** ở 1366px nút *"+ Thêm tài khoản"* bị đẩy xuống dòng 2 của hàng lọc ⇒ dời lên
+**ngang tiêu đề**, cùng chỗ với nút *Thêm chức vụ*.
+
+### 🔍 Điểm mù
+
+- **Chưa chạy với Google thật** — cố ý, để khỏi ghi rác lên Sheet và dính lưới chống dò. Đại Ca xem trên 5051
+  là **Google thật**: bấm Lưu / Tạo / Xoá là **ghi thẳng lên Sheet**, y như bản EXE.
+- Lời cảnh báo *"bổ sung mã vào Code.gs (danh sách PERM) rồi Triển khai lại"* đã **cũ** so với Bẫy 22 tầng 2
+  (Google nay tự tạo cột cho mã lạ) — câu có sẵn từ trước, chưa sửa.
 
 ---
 

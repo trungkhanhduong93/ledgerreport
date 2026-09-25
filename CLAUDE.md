@@ -173,6 +173,15 @@ khai ở `PHAN_HE` (`mo_ta`, `mau`, `ten_day`) — thêm phân hệ mới thì �
 ⏭️ Khi thêm khối số liệu ("Việc cần xử lý" trong phác thảo): **kỳ = tháng hiện tại** (Đại Ca chốt), mỗi ô
 là truy vấn 6–8 giây ⇒ **tải ngầm**, đừng bắt trang chờ.
 
+**Tab Phân quyền** *(giao diện mới 25/09/2026)* — hai màn **Tài khoản / Chức vụ** nằm trên hàng tab ngang
+(`tabPhanQuyen` ở App ⇒ prop `tabCon` của `PermAdminPanel`; số trên tab báo lên qua `onDem`). Mỗi màn =
+danh sách bên trái + **khung sửa bên phải 460px** (thay hộp thoại giữa màn). Đại Ca chốt: **không ma trận**
+cho chức vụ · khung sửa tài khoản **không** có hộp tóm tắt quyền · ô mật khẩu ẩn sau dòng **"Đặt lại mật
+khẩu"** (admin đặt mk mới, không cần mk cũ; tài khoản MỚI luôn có ô) · đơn vị = danh sách tick + dòng
+"Tất cả đơn vị" (= `orgs: null`, thấy cả đơn vị mở sau này). Sửa dở mà bấm dòng khác / Huỷ / ✕ ⇒ **hỏi trước**.
+⛔ Giữ nguyên `kiemMucBiVutBo` (Bẫy 22): khung sửa chức vụ **chỉ đóng khi Google nhận đủ mã**, thiếu mã là
+giữ khung + cảnh báo. Chức vụ `ADMIN`: không có ô tick (app tự tính đủ), **không xoá được**.
+
 **Báo cáo TC — KHÔNG chia nhóm** (Đại Ca chốt 25/09/2026, theo mẫu iPOS Inventory): vào là thấy
 **trang liệt kê 16 thẻ** (`DanhSachBaoCao`, mỗi thẻ = mã + `ten` + `mo_ta` trong `REPORT_TYPES`).
 Đang xem mà muốn đổi thì bấm **ô chọn ở đầu hàng điều kiện** (`ChonBaoCao`, có ô tìm, gõ không dấu

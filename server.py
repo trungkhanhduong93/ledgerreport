@@ -2,6 +2,7 @@ import pyodbc
 import logging
 logger = logging.getLogger(__name__)
 import threading
+import unicodedata
 global_db_lock = threading.RLock()
 from functools import wraps
 
@@ -627,6 +628,20 @@ def _huy_phien_nen(sid, app_user, ly_do, cau_nguoi_dung=None):
     if con:
         logger.warning('Dang nhap nhanh: HUY phien cua "%s" — %s', app_user, ly_do)
 
+# ⚠️ `ok: false` từ Google KHÔNG có nghĩa là Google từ chối tài khoản (sửa 28/09/2026).
+#    Lệnh `dang_nhap` chỉ TỪ CHỐI bằng đúng 3 câu dưới (xem _apiDangNhap trong Code.gs). Mọi câu khác là Google
+#    CHƯA TRẢ LỜI ĐƯỢC: chờ ổ khoá quá 20 giây ("Máy khác đang ghi…", doPost trong Code.gs — sáng nhiều người mở
+#    app cùng lúc là gặp), lỗi dịch vụ Sheets, sai token… Bản trước coi mọi `ok: false` là từ chối ⇒ người đang
+#    làm việc bị ĐÁ RA vô cớ, kèm bị xoá bản lưu trên máy (lần sau phải chờ Google 12–35 giây).
+#    Đổi chữ 3 câu này trong Code.gs thì phải đổi ở đây — lệch là người bị khoá / đổi mật khẩu KHÔNG bị đá ra nữa.
+_GS_TU_CHOI_TK = ('Sai tài khoản hoặc mật khẩu', 'Tài khoản đã bị khóa', 'Tài khoản tạm khoá')
+
+def _gs_tu_choi_tai_khoan(loi):
+    """True nếu câu lỗi của `dang_nhap` là Google TỪ CHỐI tài khoản (chứ không phải chưa trả lời được).
+    Câu rỗng giữ nghĩa cũ = sai mật khẩu."""
+    loi = unicodedata.normalize('NFC', (loi or '').strip())
+    return (not loi) or loi.startswith(_GS_TU_CHOI_TK)
+
 def _kiem_lai_nen(sid, app_user, app_password, ttin_cu):
     """Luồng nền của đường nhanh: hỏi lại Google rồi quyết giữ hay huỷ phiên."""
     try:
@@ -638,6 +653,11 @@ def _kiem_lai_nen(sid, app_user, app_password, ttin_cu):
         return
     except Exception as e:
         logger.warning('Dang nhap nhanh: kiem lai loi (%s) — giu phien', e)
+        return
+    if not kq.get('ok') and not _gs_tu_choi_tai_khoan(kq.get('loi')):
+        # Google chưa trả lời được ⇒ xử như mất mạng: GIỮ phiên, KHÔNG xoá bản lưu, KHÔNG gia hạn bản lưu.
+        # Lần đăng nhập nhanh sau sẽ hỏi lại Google — lúc đó nếu tài khoản bị từ chối thật thì mới đá ra.
+        logger.warning('Dang nhap nhanh: Google chua tra loi duoc (%s) — giu phien', kq.get('loi'))
         return
     if not kq.get('ok'):
         loi = (kq.get('loi') or '').strip()

@@ -6890,12 +6890,16 @@ def report_export_csv():
 
         if report_type == "BC007" and mode == "detail":
             # NHẬT KÝ CHUNG CHI TIẾT — theo mẫu SQL người dùng cung cấp (bổ sung Tên đơn vị)
+            # Mã/Tên mục chi phí: Đại Ca thêm 28/09/2026, đặt cạnh Tên đối tượng. LEDGER_VIEW đã tự
+            # JOIN DM_EXPENSE (đo 28/09) ⇒ khỏi JOIN lại; nhưng view trả N' ' khi không có MCP ⇒ phải strip.
             headers = ["Bảng", "Mã đơn vị", "Tên đơn vị", "Công việc", "Mã chứng từ", "Ngày chứng từ",
                        "Số chứng từ", "Diễn giải", "Tài khoản", "Tài khoản đối ứng", "Mã đối tượng",
-                       "Tên đối tượng", "Số tiền nợ", "Số tiền có", "Ghi chú"]
+                       "Tên đối tượng", "Mã mục chi phí", "Tên mục chi phí",
+                       "Số tiền nợ", "Số tiền có", "Ghi chú"]
             sql = f"""SELECT 'NKC', LV.ORGANIZATION_ID, O.ORGANIZATION_NAME, LV.JOB_NAME, LV.TRAN_ID,
                              LV.TRAN_DATE, LV.TRAN_NO, LV.DESCRIPTION, LV.ACCOUNT_ID, LV.ACCOUNT_ID_CONTRA,
-                             LV.PR_DETAIL_ID, LV.PR_DETAIL_NAME, LV.DEBIT_CREDIT, LV.AMOUNT, LV.COMMENTS
+                             LV.PR_DETAIL_ID, LV.PR_DETAIL_NAME, LV.EXPENSE_ID, LV.EXPENSE_NAME,
+                             LV.DEBIT_CREDIT, LV.AMOUNT, LV.COMMENTS
                       FROM dbo.LEDGER_VIEW LV WITH (NOLOCK)
                       LEFT JOIN dbo.DM_ORGANIZATION O WITH (NOLOCK) ON LV.ORGANIZATION_ID = O.ORGANIZATION_ID
                       WHERE LV.TRAN_DATE >= ? AND LV.TRAN_DATE <= ? {org_where_lv}
@@ -6991,10 +6995,13 @@ def report_export_csv():
                 # Mã đơn vị ghi thẳng '05', KHÔNG bọc ="05" như CSV: mẹo đó chỉ để Excel
                 # khỏi ăn mất số 0 đầu lúc parse text, ô xlsx đã ép sẵn định dạng text.
                 if _is_detail:
-                    amt = float(r[13] or 0); is_deb = (r[12] == 'DEB')
-                    return [r[0] or '', r[1] or '', r[2] or '', r[3] or '', r[4] or '', r[5],
-                            r[6] or '', r[7] or '', r[8] or '', r[9] or '', r[10] or '', r[11] or '',
-                            amt if is_deb else 0, amt if not is_deb else 0, r[14] or '']
+                    # Công việc / Tên đối tượng / Tên MCP: LEDGER_VIEW trả N' ' khi trống ⇒ strip, không là
+                    # ô "trống" chứa dấu cách — lọc (Blanks) của Excel bỏ sót, COUNTA vẫn đếm (đo 28/09/2026).
+                    amt = float(r[15] or 0); is_deb = (r[14] == 'DEB')
+                    return [r[0] or '', r[1] or '', r[2] or '', (r[3] or '').strip(), r[4] or '', r[5],
+                            r[6] or '', r[7] or '', r[8] or '', r[9] or '', r[10] or '', (r[11] or '').strip(),
+                            (r[12] or '').strip(), (r[13] or '').strip(),
+                            amt if is_deb else 0, amt if not is_deb else 0, r[16] or '']
                 amt = float(r[9] or 0); is_deb = (r[8] == 'DEB')
                 if _jvm == "summary":
                     return [r[3] or '', r[4] or '', r[5] or '', r[6] or '', r[7] or '',
@@ -7074,11 +7081,12 @@ def report_export_csv():
                         if not batch: break
                         lines = []
                         for r in batch:
-                            amt = float(r[13] or 0); is_deb = (r[12] == 'DEB')
+                            amt = float(r[15] or 0); is_deb = (r[14] == 'DEB')
                             lines.append(','.join(_csv_escape(x) for x in [
-                                r[0] or '', _csv_text_cell(r[1]), r[2] or '', r[3] or '', r[4] or '', r[5],
-                                r[6] or '', r[7] or '', r[8] or '', r[9] or '', _csv_text_cell(r[10]), r[11] or '',
-                                _amt(amt if is_deb else 0), _amt(amt if not is_deb else 0), r[14] or '']))
+                                r[0] or '', _csv_text_cell(r[1]), r[2] or '', (r[3] or '').strip(), r[4] or '', r[5],
+                                r[6] or '', r[7] or '', r[8] or '', r[9] or '', _csv_text_cell(r[10]), (r[11] or '').strip(),
+                                _csv_text_cell(r[12]), (r[13] or '').strip(),
+                                _amt(amt if is_deb else 0), _amt(amt if not is_deb else 0), r[16] or '']))
                         yield '\r\n'.join(lines) + '\r\n'
                 else:  # BC007 TỔNG HỢP (như web)
                     cur.execute(sql, params)

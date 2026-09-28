@@ -571,6 +571,9 @@ python -c "import ast,collections;t=ast.parse(open('server.py',encoding='utf-8')
 `L.EXPENSE_NAME` không có trên bảng `LEDGER` (phải JOIN `DM_EXPENSE` lấy `E.EXPENSE_NAME`).
 Tương tự `ORGANIZATION_NAME`. **Đừng đoán tên cột** — introspect `INFORMATION_SCHEMA.COLUMNS`
 hoặc tra trong code đã chạy.
+⚠️ Ngược lại, **`LEDGER_VIEW` CÓ SẴN** `EXPENSE_NAME`, `JOB_NAME`, `PR_DETAIL_NAME`, `BANK_NAME`, `ITEM_NAME`… (view tự JOIN
+danh mục — đo `OBJECT_DEFINITION` 28/09/2026), **nhưng không có `ORGANIZATION_NAME`**. Các cột tên đó bọc
+`ISNULL(…, N' ')` ⇒ trống là **một dấu cách**, không phải rỗng: ghi ra file phải `.strip()`, không Excel lọc *(Blanks)* bỏ sót.
 
 ### Bẫy 4 — `TRAN_DATE` kiểu `smalldatetime`
 Cấm `SUBSTRING(TRAN_DATE, …)` (lỗi 8116). Dùng `CONVERT(VARCHAR(8), TRAN_DATE, 112)` hoặc `MONTH()/YEAR()`.

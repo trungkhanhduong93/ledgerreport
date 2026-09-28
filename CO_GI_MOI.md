@@ -13,6 +13,10 @@
 >   một lần), hiện tối đa 8 dòng, dư thì ghi "… và N thay đổi khác".
 > - Dòng không bắt đầu bằng `- ` (như khối ghi chú này) app bỏ qua.
 
+## v2.0.3
+- Xuất Excel Nhật ký chung chi tiết có thêm cột Mã mục chi phí và Tên mục chi phí
+- File Nhật ký chung chi tiết: ô Công việc, Tên đối tượng không có dữ liệu nay để trống thật — lọc ô trống trong Excel bắt được đủ
+
 ## v2.0.2
 - Sửa lỗi nhân viên không xuất được Excel ở Báo cáo tài chính (báo "Route chưa khai báo quyền")
 - Ô lọc Đơn vị chỉ hiện các đơn vị bạn được xem

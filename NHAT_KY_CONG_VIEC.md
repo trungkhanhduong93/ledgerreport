@@ -42,9 +42,11 @@
 > ⚠️ Tiêu đề mục này **cố ý không ghi ngày** — mọi đường dẫn `#-việc-cần-làm` trỏ vào nó; ghi ngày là gãy link.
 > Trạng thái: **v2.0.2 đã phát hành**, là `Latest`, và **EXE trên máy Đại Ca = đúng file CI** (SHA256 khớp digest, 26/09).
 >
-> 🚧 **`main` đang đi trước GitHub** — chỉ commit tài liệu (kết quả phát hành v2.0.2 + lần cập nhật nhật ký này). **Cố ý giữ
-> ở local, ĐỪNG push riêng**: push file `.md` là Actions build lại và **thay asset bằng binary khác SHA** ⇒ EXE vừa khớp trên
-> máy lệch ngay. Gộp vào lần sửa code tới (việc 11 `paths-ignore` sẽ gỡ hẳn vòng lặp này).
+> 🚧 **`main` đang đi trước GitHub** — commit tài liệu sau v2.0.2 **+ 1 commit CODE chưa phát hành (28/09/2026)**: file
+> xuất Nhật ký chung chi tiết thêm Mã/Tên mục chi phí + bỏ ô "trống" chứa dấu cách. `CO_GI_MOI.md` đã có sẵn mục `## v2.0.3`.
+> **Chưa build, chưa push** — Đại Ca chốt "commit luôn đi", chưa chốt phát hành. Lần phát hành tới: build bằng `build_exe.py`
+> (ra 2.0.3, khớp mục trong `CO_GI_MOI.md`), rồi push. ⚠️ Đừng push riêng file `.md`: Actions build lại và **thay asset bằng
+> binary khác SHA** ⇒ EXE vừa khớp trên máy lệch ngay (việc 11 `paths-ignore` sẽ gỡ hẳn vòng lặp này).
 >
 > 🔴 **Lần phát hành tới BẮT BUỘC:** viết mục `## vX.Y.Z` vào **`CO_GI_MOI.md`** (chỉ tính năng; hệ thống ⇒ *Cập nhật hệ thống*)
 > **trước khi push** · build bằng `build_exe.py` để số hiệu tự tăng · quét route `/api` chưa khai báo quyền phải ra `[]` (Bẫy 30)
@@ -142,6 +144,53 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 28/09/2026 — BC007: file xuất "Nhật ký chung chi tiết" thêm Mã/Tên mục chi phí · bỏ ô "trống" chứa dấu cách
+
+Đại Ca: *"cho t thêm 2 cột là mã mục chi phí (EXPENSE_ID) và Tên Mục chi phí (EXPENSE_NAME)"* — chỉ file xuất **chi tiết**
+(mode `detail` của `/api/report_export_csv`), không đụng màn hình BC007 hay bản xuất "như đang xem".
+
+### Đã làm
+- **2 cột mới** đặt **ngay sau Tên đối tượng** (Đại Ca chọn, thay vì cuối file) ⇒ file từ **15 → 17 cột**; Số tiền nợ /
+  Số tiền có / Ghi chú dịch phải 2 cột. Áp cả `.xlsx` lẫn `.csv`; mã MCP ở CSV bọc `="…"` như mã đối tượng (giữ số 0 đầu).
+- **Không JOIN `DM_EXPENSE`**: đo `OBJECT_DEFINITION` thì **`LEDGER_VIEW` đã tự JOIN danh mục**, có sẵn `EXPENSE_NAME`
+  (bản đầu em JOIN thêm — đã bỏ). Ghi vào Bẫy 3 của CLAUDE.md.
+- **Bỏ ô "trống" chứa dấu cách** ở Công việc / Tên đối tượng / Tên MCP: view bọc `ISNULL(…, N' ')`. Ngày 03/09/2026 có
+  **60.476/94.086** ô Công việc và **74.292/94.086** ô Tên đối tượng là một dấu cách — lọc *(Blanks)* của Excel bỏ sót,
+  `COUNTA` vẫn đếm. Lỗi có sẵn từ trước (bản đang phát hành cũng bị), nay `.strip()`.
+- Hộp thoại xuất (`index.html`): dòng mô tả "Nhật ký chung chi tiết" ghi thêm *Mã/Tên mục chi phí*.
+- `CO_GI_MOI.md`: mục **`## v2.0.3`** (2 dòng).
+
+### 🧪 Verify
+
+| Mức | Kết quả |
+|---|---|
+| M1 | parse OK, **176 hàm / 72 route** (bằng trước), không trùng tên · Babel OK |
+| M2 dữ liệu giả | CSV + xlsx: 17 cột, dòng nào cũng 17 ô, Nợ/Có đúng cột, mã `007` giữ số 0, ô `' '` ra rỗng |
+| M2 **DB thật** (`test_client`, phiên gieo tay) | Xuất ngày 03/09/2026 bằng **bản HEAD và bản mới**: cùng **94.086 dòng**, bỏ 2 cột mới ⇒ **0 dòng khác** · xlsx thật 94.086 dòng, 2 cột MCP trùng CSV |
+| Đối chiếu nguồn | Tổng số dòng + Nợ/Có **theo từng MCP** của file khớp `dbo.LEDGER` (ngày 03/09, loại đơn vị `66`) — **0 nhóm lệch**; tháng 08/2026: `LEDGER_VIEW` khớp `LEDGER` 111/111 nhóm (MCP × Nợ/Có) |
+| Nở dòng? | `DM_EXPENSE` 101 dòng / 101 mã, không trùng · tháng 08/2026 vẫn **2.856.882 dòng**, tổng Nợ/Có y nguyên |
+| Tốc độ | SQL cũ/mới chạy **xen kẽ 4 lượt** (1 ngày, 94k dòng): cũ 12,8–20,8s · mới 14,6–22,6s ⇒ chênh ~1,5s (dữ liệu nặng hơn ~10%). Lần đầu đo 16,1s vs 42,7s là **nhiễu máy chủ**, đừng trích con số đó |
+| M3 | ❌ **chưa build EXE** |
+
+⚠️ Bản cuối (thêm `.strip()` cho Công việc / Tên đối tượng) chỉ chạy lại M1 + M2 dữ liệu giả — mật khẩu SQL đã xoá khỏi
+`config.json` sau lần đo DB thật.
+
+### 🔎 Canh lề Excel các báo cáo KQKD — KHÔNG phải lỗi của bản hiện tại
+Đại Ca gửi ảnh file P&L (sheet `P&L CH_T7`) có tiêu đề cột không canh giữa, cột Chỉ tiêu canh phải, nhờ sửa cho các báo
+cáo KQKD. Dựng lại **BC001, BC002, BC003, BC004** trên server thử 5052 (số liệu giả), bấm Xuất Excel thật rồi đọc từng ô
+bằng `openpyxl`: **tiêu đề canh giữa 100%** (kể cả ô gộp 2 dòng), **Chỉ tiêu canh trái 27/27 dòng** ⇒ **không sửa gì**.
+File trong ảnh gần như chắc ra từ **bản cũ trước v2.0.0** (xuất `.xls` HTML): tiêu đề chữ thường "Mã số" trong khi bản mới
+luôn ra "MÃ SỐ" (`innerText` áp `text-transform: uppercase`), số 0 hiện `0` thay vì `-`. Đã báo Đại Ca: xuất lại bằng
+v2.0.2; máy nhân viên còn ở 1.x thì cập nhật.
+
+### 🔍 Điểm mù
+- Chưa build, chưa phát hành ⇒ chưa ai dùng được 2 cột mới.
+- Cả tháng (~2,86 triệu dòng) chưa xuất thử hết vòng với bản mới; ước chừng chậm thêm ~10% theo lượng dữ liệu.
+- Người đã dựng file mẫu / công thức Excel trỏ theo **vị trí cột** của file chi tiết cũ (15 cột) phải sửa lại vì Nợ/Có/Ghi
+  chú dịch phải 2 cột.
 
 ---
 

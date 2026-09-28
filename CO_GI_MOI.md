@@ -16,6 +16,10 @@
 >   một lần), hiện tối đa 8 dòng, dư thì ghi "… và N thay đổi khác".
 > - Dòng không bắt đầu bằng `- ` (như khối ghi chú này) app bỏ qua.
 
+## v2.0.6
+- Nhật ký chung: xuất Excel có đồng hồ đếm ngược thời gian còn lại, thanh tiến trình chạy đúng phần trăm công việc
+- Sửa lỗi thỉnh thoảng bị đăng xuất giữa chừng khi nhiều người mở app cùng lúc
+
 ## v2.0.5
 - Màn đăng nhập mới: chia rõ 2 phần Máy chủ SQL và Tài khoản ứng dụng, chữ tiếng Việt hết
 - Màn đăng nhập: bấm hình con mắt để xem lại mật khẩu vừa gõ

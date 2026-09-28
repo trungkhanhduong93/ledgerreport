@@ -48,6 +48,11 @@
 > riêng**: push file `.md` là Actions build lại và **thay asset bằng binary khác SHA** ⇒ EXE vừa khớp trên máy lệch ngay.
 > Gộp vào lần sửa code tới (việc 11 `paths-ignore` sẽ gỡ hẳn vòng lặp này).
 >
+> 🟢 **Việc 41 + 42 XONG, chờ phát hành v2.0.6** (28/09/2026 khuya). Việc 42 = commit `b887717`. Việc 41 đã **đo DB thật**
+> (bắt được lỗi làm hỏng hẳn xuất Excel chi tiết — Bẫy 31), số mặc định = số đo thật, đồng hồ hết nhảy ngược; **thử giao diện thật
+> trên DB thật** (server thử 5052, tháng 01/2026). `CO_GI_MOI.md` đã có mục `## v2.0.6`. Còn: commit việc 41 · build · M3 · **hỏi
+> Đại Ca rồi mới push** · cập nhật thật 2.0.5 → 2.0.6 · đối chiếu SHA. Chi tiết: mục *28/09/2026 (khuya, tiếp)*.
+>
 > 🔴 **Lần phát hành tới BẮT BUỘC:** viết mục `## vX.Y.Z` vào **`CO_GI_MOI.md`** (chỉ tính năng; hệ thống ⇒ *Cập nhật hệ thống*)
 > **trước khi push** · build bằng `build_exe.py` để số hiệu tự tăng · quét route `/api` chưa khai báo quyền phải ra `[]` (Bẫy 30)
 > · thử ít nhất một lần bằng tài khoản **không phải quản trị**.
@@ -81,6 +86,8 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | 17 | ~~Nút `TRUY VẤN` đang chuyển màu navy → tím~~ ✅ **XONG 25/09** | Đại Ca chốt: chữ **"Lọc"**, navy đặc, như mẫu iPOS. Nằm trong thanh lọc mới của 9 màn danh sách |
 | 18 | ~~Chốt mốc commit phần đăng nhập nhanh + sửa font~~ ✅ **commit `c64540a`** | Phát hành v2.0.0 |
 | 19 | ~~Đại Ca xem GĐ3 rồi chốt commit~~ ✅ **Đại Ca chốt OK sáng 25/09** (*"cái đó thì ok rồi"*) ⇒ đã commit GĐ3 | ⚠️ Đại Ca chốt chung, **không nói rõ đã thử từng mục dưới đây chưa** — lần đầu dùng số liệu thật thì để ý. Danh sách cần xem ở mục *"Việc Đại Ca xem sáng 25/09"* trong nhật ký 25/09 (tiếp 3), ngay dưới § này. Ba việc tôi **không** tự thử được: hộp *"Chuyển mẫu báo cáo?"* khi có số liệu thật · menu **Xuất Excel / Xuất PDF** khi có số liệu (chưa có số liệu thì nút tắt) · kéo thả thứ tự ô lọc bằng chuột thật. Và **đọc lại mô tả 16 thẻ** — tôi tự viết |
+| 42 | ✅ **Đăng nhập nhanh đá người ra VÔ CỚ khi Google bận** — **xong 28/09, đạt M2, commit `b887717`**, đi cùng v2.0.6 | Luồng hỏi lại Google (`_kiem_lai_nen`) coi **mọi** `ok: false` là từ chối ⇒ chờ ổ khoá quá 20 giây (*"Máy khác đang ghi…"*), lỗi dịch vụ Sheets, sai token… đều **huỷ phiên + xoá bản lưu**. Nay chỉ 3 câu từ chối thật mới đá ra (`_GS_TU_CHOI_TK`). Đối chứng với bản cũ bằng cùng phép thử: bản cũ đá ra ở cả 3 ca "chưa trả lời được" |
+| 41 | ✅ **Đồng hồ đếm ngược xuất Excel Nhật ký chung** — **xong 28/09 khuya, đã đo + thử giao diện trên DB thật**, chờ phát hành v2.0.6 (mục *28/09/2026 (khuya, tiếp)*) | Đại Ca hỏi *"ước tính thời gian xuất được không"* → chốt *"đếm ngược từ đầu, 1 đồng hồ thôi"*. % cũ là **giả** (30.000 dòng = 1%, chặn 95%). Việc còn lại + cách thử: mục nhật ký *28/09/2026 — Hộp xuất Excel Nhật ký chung* |
 | 40 | Nút **Tải lại** gặp phiên đã hết (401) thì **im lặng**, không đưa về màn đăng nhập | Phát hiện 26/09 khi thử việc 23. `loadPerms` gặp `!r.ok` là `return`. Người bị huỷ phiên chỉ về màn đăng nhập ở lần **tải số liệu** kế tiếp (khi đó lý do vẫn hiện đúng). Nhỏ, chưa chặn ai |
 | 39 | Ô lọc **Kho** vẫn liệt kê kho của **mọi đơn vị** | Cùng bệnh việc 10: tài khoản bị giới hạn chọn kho đơn vị khác ⇒ 0 dòng. Tab điều chuyển (Kho xuất / Kho nhận) phải **giữ đủ** như ô Đơn vị xuất. Cần xem `meta.warehouses` có mang mã đơn vị không |
 | 38 | ~~🔴 Nhân viên thường **không xuất được Excel** Báo cáo TC (403 *"Route chưa khai báo quyền"*)~~ ✅ **Phát hành v2.0.2** | Có từ **v2.0.0**: `/api/xuat_xlsx_bieu_mau` + `/api/tai_file_xuat` (việc 35) quên khai báo quyền; ADMIN qua được nên không ai thấy. Nay trong `PERM_PUBLIC`. **Bẫy 30** + lệnh quét trong CLAUDE.md |
@@ -95,7 +102,7 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | 29 | ~~Nút Excel / PDF của BC003, BC004 sáng sẵn khi chưa có số liệu~~ ✅ **XONG 25/09/2026** | Sửa luôn khi gộp 2 nút thành nút tải xuống: điều kiện xét `initialReportData`. Đã thử: BC001/003/004/012/016 chưa tải số liệu ⇒ nút tắt, tooltip *"Chưa có số liệu — bấm Xem trước rồi mới xuất"* |
 | 20–21 | ~~GĐ4 · GĐ5~~ ✅ **Phát hành v2.0.0** | Theo bảng trên. Khối số liệu Trang chủ vẫn chưa làm |
 | 28 | ~~Cột bảng hẹp~~ ✅ **XONG 25/09** — Đại Ca chốt **kéo giãn cột + nhớ**. Tiêu đề không gãy dòng nữa; kèm **ẩn/hiện cột** và **Excel xuất đúng cột đang hiện** · số đo cũ để tham khảo: | Số đo 25/09 cho lúc sửa: hàng lọc 5 màn danh sách **cần 1.393px** để mọi ô đủ rộng, màn 1366 chỉ có **1.254px** (bản cũ trước GĐ3: cần 1.473 / có 1.318 — **vốn đã bị ép co từ trước**). Ở 1280px tiêu đề **`MÃ CT` gãy 2 dòng**. Cột phân hệ ăn thêm 64px chiều ngang |
-| 22 | **Hướng B**: bỏ `LockService` cho lệnh chỉ đọc trong `Code.gs` (dòng 487) | 5 người mở app cùng lúc thì người thứ 5 chờ gần 1 phút. **Phải triển khai lại Apps Script** — theo đúng `chuan_bi_deploy.py` (Bẫy 19, 23) |
+| 22 | ⏸️ **Ổ khoá chung `LockService` trong `Code.gs` (dòng 487)** — **CHƯA LÀM, chờ số liệu** (Đại Ca chốt 28/09) | 5 người mở app cùng lúc thì người thứ 5 chờ gần 1 phút (ước tính cũ, chưa đo). ⚠️ **Đính chính 28/09:** cách ghi cũ *"bỏ khoá cho lệnh chỉ đọc"* **không giải quyết được gì** — `dang_nhap` **không** chỉ đọc (ghi ô `DANG_NHAP_LUC`, 1 dòng Nhật ký, bộ đếm gõ sai), mà xếp hàng buổi sáng chính là `dang_nhap`. Cách đúng: đăng nhập **đúng** mật khẩu thì không khoá; **chỉ khoá khi gõ sai** (bỏ hẳn thì kẻ dò gửi song song lách được giới hạn 8 lần) và khi **quản trị ghi** (2 lần lưu tài khoản mới cùng lúc cùng lấy `getLastRow()+1` ⇒ ghi đè nhau). Đo 28/09 lúc vắng: có khoá (`ping`) trung vị **2,11s** · không khoá (`doGet`) **2,47s** ⇒ khoá chỉ tốn khi đông người. **Trước khi làm: Đại Ca xem Apps Script → Executions khung 7h30–8h30** có `doPost` chồng giờ, chạy lâu không. **Phải triển khai lại Apps Script** — theo đúng `chuan_bi_deploy.py` (Bẫy 19, 23). Nút **Lưu tab Phân quyền** (~6–9s, ước từ code) ép được còn ~3–4s (gộp lưu + tải lại 1 lần gọi · đọc mỗi sheet 1 lần · ghi dòng tài khoản 1 lần) — **Đại Ca chốt KHÔNG làm** vì ít sửa phân quyền |
 | 23 | ~~Bị đá ra (đăng nhập nhanh) không có câu báo lý do~~ ✅ **XONG 26/09** | Màn đăng nhập hiện lý do: đổi mật khẩu / bị khoá / đổi quyền (`/api/ly_do_dang_xuat`). Mục nhật ký *26/09 — việc 9, 10, 23, 26* |
 | 24 | **Biên dịch sẵn JSX lúc đóng gói** | Mở app trắng màn hình **~7–13 giây** (Babel dịch 723 KB mỗi lần mở). Đo: `domInteractive` 152ms / `DOMContentLoaded` 6.926ms |
 | 25 | **Nhúng 5 thư viện còn tải từ Internet** vào EXE | React, ReactDOM, Babel, Tailwind, xlsx. Google Fonts **đã gỡ** ở GĐ1. Fallback hiện tại là giả: React hỏng ⇒ **màn trắng câm** |
@@ -141,10 +148,159 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | **Khởi động lại app là phải đăng nhập lại** | Kho phiên nằm trong RAM. Đổi lại là quay về [Bẫy 17](CLAUDE.md) — mật khẩu SQL nằm đọc được trong cookie |
 | Tab điều chuyển nội bộ **6–8,5 giây/tháng** | Dựng lại toàn bộ CTE mỗi lần gọi, ngang `btp_reconcile`. Nút thắt gốc là RAM của SQL Express, không phải code |
 | `PO.EMPLOYEE_ID` **trống** ⇒ cột Người lập luôn rỗng | iPOS không ghi. Giữ cột phòng sau này có |
-| **Tài khoản vừa bị khoá / xoá vẫn vào được 3–30 giây** *(từ 25/09, nhánh `giaodien`)* | Đánh đổi của **đăng nhập nhanh** — Đại Ca chốt. Google trả lời xong thì bị đá ra. Không làm thế thì mỗi lần đăng nhập chờ Google **~12–35 giây** |
+| **Tài khoản vừa bị khoá / xoá vẫn vào được 3–30 giây** *(từ 25/09, nhánh `giaodien`)* | Đánh đổi của **đăng nhập nhanh** — Đại Ca chốt. Google trả lời xong thì bị đá ra. Không làm thế thì mỗi lần đăng nhập chờ Google **~12–35 giây**. ⚠️ Từ việc 42 (28/09): lúc đó mà Google **chưa trả lời được** (bận, lỗi dịch vụ) thì người đó **dùng hết phiên đó**, lần đăng nhập nhanh sau mới bị đá — cùng mô hình với lúc mất mạng |
 | Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 28/09/2026 (khuya, tiếp) — Việc 41 đo DB THẬT: bắt lỗi làm hỏng hẳn xuất Excel chi tiết · số mặc định thật · đồng hồ hết nhảy ngược
+
+Đại Ca điền mật khẩu vào `config.json` (*"làm từng cái đi"*). Việc 42 commit trước: **`b887717`** (chỉ local, 11/11 ca thử lại
+trên đúng bản sắp commit). Đo xong đã **xoá lại ô `password`** (giữ `server`/`user`/`database`).
+
+### 1. 🔴 Lỗi thật chỉ DB thật mới lộ — câu đếm làm HỎNG HẲN xuất Excel Nhật ký chung chi tiết
+Chạy thử 1 ngày: `SELECT COUNT(*) FROM (<câu xuất>) t` lỗi **8155** — cột đầu câu chi tiết là chữ `'NKC'` **không tên**. Câu đếm
+chạy trước ⇒ **cả lần xuất báo lỗi**. DB giả của phiên trước không bắt được (cursor giả không dịch SQL). Phát hành nguyên như cũ là
+v2.0.6 làm hỏng hẳn tính năng đang chạy tốt. **Bẫy 31** trong CLAUDE.md. Sửa 2 lớp: `'NKC' AS BANG` + đếm hỏng thì **xuất tiếp
+không có tổng** (`_start_export_job`) + trình duyệt lấy tạm tổng trên màn (`sj.total || tongTam`).
+
+### 2. Số đo thật — T08/2026, 2.856.814 dòng (qua `test_client`, file ghi vào thư mục tạm rồi xoá)
+| Kiểu | Đếm | Lấy dữ liệu | Ghi | Đóng gói | **Cả quá trình** | File |
+|---|---|---|---|---|---|---|
+| **Chi tiết** (17 cột) | 2,7s | 15,6s | 398,6s — **7.167 dòng/s** (từng 30s: 4.171–9.026) | 36,1s | **453s = 7:33** | 196 MB |
+| **Tổng hợp** (10 cột) | 2,1s | 13,0s | 210,0s — **13.601 dòng/s** | 20,6s | **246s = 4:06** | 121 MB |
+| Chi tiết 1 ngày (01/08) | ⎯ 1,6s ⎯ | | 16,1s — 5.922 dòng/s | 1,0s | 18,7s | 6,5 MB |
+Tổng đếm **khớp đúng** số dòng ghi ra ở cả 4 lần. ⚠️ Ghi chú cũ *"2,85 triệu dòng mất 4–5 phút"* chỉ đúng cho **tổng hợp**; câu đó nằm
+cả trên hộp chọn kiểu xuất ⇒ đã sửa: *"tổng hợp khoảng 4 phút, chi tiết khoảng 7–8 phút"*.
+
+### 3. Sửa giao diện theo số thật (`exportJournalXlsx`)
+- **`MAC_DINH` = số đo thật**, **hồ sơ tốc độ RIÊNG từng kiểu** (`lr_toc_do_xuat_nkc_detail` / `_summary`): hai kiểu nhanh chậm
+  gần gấp đôi nhau, dùng chung thì xuất kiểu này xong kiểu kia đoán lệch ~40%. Số mặc định ước lại tháng 08: **7:29 / 4:04** (thật 7:33 / 4:06).
+- **Đồng hồ nhảy ngược** — thấy khi thử giao diện thật tháng 01: giây 30 *"Còn 4:40"*, giây 45 *"Còn 7:07"*. Tốc độ lấy theo ~15 giây
+  gần nhất mà tốc độ thật dao động 2 lần ⇒ nhảy. Đổi sang **trung bình cộng dồn từ lúc bắt đầu ghi + pha tốc độ lần trước như đã ghi
+  thêm 30 giây**. Mô phỏng trên timeline thật T08: lệch trung bình **45s → 12s**, cú nhảy lớn nhất giữa 2 lần xem cách 15 giây **174s → 33s**.
+
+### 4. ⚠️ Suýt đo nhầm — server thử CŨ còn sống
+Phiên trước để lại server thử **DB giả** ở cổng 5052 (PID 11516, bật 17:58, lẽ ra chết theo phiên). Server mới cũng bind 5052 được
+(Windows cho **hai tiến trình cùng LISTENING một cổng**) ⇒ trình duyệt vào nhầm server giả: *"Đang lấy 200.000 dòng"*, màn tháng 01 hiện
+dòng *"CH A · Chi tien dien · 03/08"*. Đã tắt (đối chiếu dòng lệnh là script trong scratchpad phiên cũ) + xoá hồ sơ tốc độ giả trong
+`localStorage`. ➡️ **Trước khi bật server thử: `netstat` cổng đó phải RỖNG** — có tiến trình cũ là tắt trước, đừng tin "bind được là cổng trống".
+
+### 5. 🧪 Thử GIAO DIỆN THẬT trên DB thật — BC007 tháng 01/2026 (2.287.832 dòng), xuất chi tiết, 1366×768
+Server thử 5052 (DB thật, phiên gieo sẵn), bấm đúng đường người dùng: Báo cáo TC → BC007 → Xem → Xuất → Excel → *Nhật ký chung chi
+tiết*; ghi chữ trên hộp mỗi 5 giây. ⚠️ Khung trình duyệt của em bị ẩn ⇒ nhịp hẹn giờ bị bóp; đồng hồ vẫn đúng vì tính theo mốc thời gian.
+| Lần | Code | Đồng hồ lúc bấm / lúc bắt đầu ghi | Thật | Trên đường đi |
+|---|---|---|---|---|
+| 1 | cách tính CŨ (~15s gần nhất), số mặc định T08 | lúc ghi: *Còn 5:47* (≈ 6:02) | **~388s (6:28)** | **nhảy ngược**: 4:40 @30s → 7:07 @45s → 6:20 @60s |
+| 2 | cách tính MỚI (cộng dồn), hồ sơ học từ lần 1 | lúc bấm: *Còn 6:25* | **~318s (5:18)** | **đếm lùi đều, không lần nào tăng**: 6:17 · 5:38 · 5:04 · 4:39 · 4:23 · … · 0:39 · đóng gói 0:23 · 0:08 · 0:03 · xong. Từ giây 205, thời điểm xong dự kiến lệch thật ≤ 2s |
+Hai lần cùng một tháng mà tốc độ máy chủ khác nhau **~25%** (6.584 vs 8.254 dòng/s) ⇒ con số lúc bấm **chỉ là ước lượng**, đồng hồ
+tự chỉnh trong lúc ghi. Hộp *"Xuất Excel hoàn tất · 100% · Mở file ngay"* hiện đúng; hồ sơ tốc độ lưu đúng khoá `…_detail`; câu nhắc
+mới trên hộp chọn kiểu xuất hiện đúng. Đã tắt server thử, xoá 2 file xuất (157 MB + 149 MB), trả khung về cỡ cũ.
+**Mức verify:** M1 (ast 177/72, Babel) · M2 (`test_client` DB thật: 4 lần xuất chi tiết/tổng hợp, 1 ngày/1 tháng) · **thử giao diện thật
+trên DB thật** (chưa phải EXE — M3 làm khi build v2.0.6).
+
+---
+
+## 28/09/2026 (khuya) — Bàn Supabase (giữ Google) · đo Apps Script · việc 42: đăng nhập nhanh không đá người ra vô cớ · ⚠️ CHƯA COMMIT
+
+### 1. Đại Ca hỏi thay Google Sheet bằng Supabase ⇒ **giữ Google** (Đại Ca nghiêng về giữ, 28/09)
+- **Bảo mật không phải lý do để đổi.** Làm đúng thì ngang hiện nay; làm sai một chỗ thì tệ hơn hẳn: nhúng khoá `service_role`
+  vào EXE (repo công khai ⇒ ai cũng tải được mã băm, tự làm ADMIN) hoặc quên bật RLS (khoá `anon` công khai theo thiết kế ⇒ đọc
+  được cả bảng). Muốn làm thì phải chép `Code.gs` sang **Edge Function**, bảng khoá kín, app chỉ gọi hàm — giữ mô hình hiện tại.
+- Gói miễn phí **dừng dự án sau 1 tuần không hoạt động** (nghỉ Tết là dính; bản lưu offline cũng chỉ 7 ngày) và **không tự sao
+  lưu**; Pro 25 USD/tháng (supabase.com/pricing, đọc 28/09).
+- Mã băm chép sang được nguyên: `_pbkdf2` trong `Code.gs` là PBKDF2-HMAC-SHA256 chuẩn (1 khối) ⇒ không ai phải đặt lại mật khẩu.
+- Xem lại khi: nhân viên phàn nàn chờ đăng nhập · nhiều người dùng cùng lúc hơn hẳn · Google siết hạn mức Apps Script.
+- ⚠️ **Câu hỏi còn mở, lớn hơn chuyện Google/Supabase:** phân quyền trong app chỉ quyết định app **cho xem gì**. Nhân viên tự gõ
+  thông tin SQL; nếu dùng chung tài khoản SQL (máy này là `ipchulong`) thì ai biết thông tin đó mở Excel → *Get Data → SQL
+  Server* là đọc được cả `IACC_CHULONG`, không qua app. **Chưa biết** nhân viên dùng tài khoản SQL chung hay riêng, quyền đến đâu.
+
+### 2. Đo Apps Script (lệnh không đọc Sheet)
+| Lần đo | Kết quả |
+|---|---|
+| `ping` 4 lần (qua ổ khoá) | 2,18 · 14,19 · 11,80 · 19,14 s |
+| Xen kẽ 6 lần: `doGet` (KHÔNG qua khoá) / `ping` (CÓ khoá) | trung vị **2,47s / 2,11s**, dải 1,6–3,7s cả hai |
+⇒ Sàn ~2s là **của bản thân Apps Script**, sửa `Code.gs` không bớt được. Khoá chỉ tốn khi đông người. Lần đo đầu 11–19s không lặp
+lại — chưa tách được do có người đang đăng nhập hay Google chậm thất thường. Việc 22 đính chính + để chờ số liệu (bảng § Việc cần làm).
+
+### 3. Việc 42 — đăng nhập nhanh đá người ra vô cớ (Đại Ca: *"làm cái đăng nhập trước đi, phương án A"*)
+**Lỗi (đọc code ra, chưa ai báo):** Google chờ ổ khoá quá 20 giây thì trả `ok: false` *"Máy khác đang ghi, thử lại sau vài giây"*
+(`doPost`, `Code.gs`). `_kiem_lai_nen` (luồng hỏi lại Google của đăng nhập nhanh) coi **mọi** `ok: false` là từ chối ⇒ **huỷ phiên**
+(màn đăng nhập hiện *"Máy khác đang ghi… Phiên đang dùng đã bị đăng xuất"*) + **xoá bản lưu trên máy** (lần sau chờ Google 12–35s).
+Cùng bệnh: lỗi dịch vụ Sheets, sai token.
+
+**Đã sửa (`server.py`, +1 hàm ⇒ 177 hàm / 72 route):** hằng `_GS_TU_CHOI_TK` + hàm `_gs_tu_choi_tai_khoan()` — chỉ **3 câu từ
+chối thật** của `_apiDangNhap` (sai mật khẩu · đã bị khoá · tạm khoá do gõ sai) + câu rỗng (giữ nghĩa cũ) mới đá ra. Câu khác ⇒ xử
+như mất mạng: **giữ phiên, không xoá bản lưu, không gia hạn bản lưu**, ghi log. So chữ sau khi chuẩn hoá NFC. ⚠️ Đổi chữ 3 câu đó
+trong `Code.gs` thì phải đổi hằng này. **Không đụng Google, không phải triển khai lại Apps Script.**
+
+**Đánh đổi đã biết:** tài khoản vừa bị khoá / đổi mật khẩu mà đúng lúc đó Google bận ⇒ người đó dùng hết phiên đó, lần đăng nhập
+nhanh sau mới bị đá (ghi vào bảng *Giới hạn thiết kế*). **Cố ý giữ** đường đăng nhập thường: Google bận thì vẫn báo nguyên câu
+*"Máy khác đang ghi…"*, không tự thử lại.
+
+### 🧪 Verify
+- **M1:** `ast` OK · 177 hàm / 72 route · không trùng tên. Không đổi `index.html`.
+- **M2** (nạp `server.py` bỏ dòng tắt cổng 5050, giả `_gs_goi`, không gọi Google): **11/11 ca đạt** — giữ phiên: bận · sai token ·
+  lỗi dịch vụ Sheets · mất mạng · ok quyền không đổi (có gia hạn bản lưu) · đá ra: sai mật khẩu · câu rỗng · đã bị khoá · tạm khoá ·
+  đã bị khoá viết dạng NFD · ok nhưng quyền đã đổi. Câu báo trên màn đăng nhập của 6 ca đá ra **giữ y bản cũ**.
+- **Đối chứng:** cùng phép thử trên `git show HEAD:server.py` ⇒ bản cũ **đá ra ở 3 ca bận / sai token / lỗi Sheets**, 8 ca kia giống hệt.
+- Chưa M3 (chưa build EXE) — đi cùng v2.0.6. **Chưa dựng được ca thật** (cần nhiều người đăng nhập cùng lúc để Google chờ khoá > 20s).
+
+### ⏭️ Phát hành v2.0.6 — gợi ý dòng `CO_GI_MOI.md`
+*"Sửa lỗi thỉnh thoảng bị đăng xuất khi nhiều người mở app cùng lúc"* (cùng dòng đồng hồ đếm ngược của việc 41).
+
+---
+
+## 28/09/2026 (tối) — Hộp xuất Excel Nhật ký chung: % thật + ĐỒNG HỒ ĐẾM NGƯỢC · ⚠️ CHƯA COMMIT (việc 41)
+
+Đại Ca gửi ảnh hộp *"Đang xuất file Excel … 43%"* (BC007 chi tiết): *"với cái này ước tính thời gian xuất được không"* →
+xem thử bản 2 đồng hồ → *"cho nó đếm ngược đi"* → *"làm đếm ngược từ đầu luôn đi và 1 đồng hồ thôi"*.
+Kèm: Đại Ca **đăng nhập thật trên màn đăng nhập mới v2.0.5 — OK** (*"t đăng nhập thử rồi, ok nha"*) ⇒ điểm mù cuối của v2.0.5 đã đóng.
+
+### Phát hiện: % cũ là GIẢ
+`exportJournalXlsx` bò theo số dòng đã ghi: **30.000 dòng = 1%, chặn 95%** (máy chủ không biết tổng). 43% trong ảnh ≈ 1,23 triệu
+dòng đã ghi, **không phải 43% việc**. Xuất 1 ngày (~94 nghìn dòng) thì đứng 5% rồi nhảy 100%.
+
+### Đã làm (working tree — CHƯA commit)
+- **`server.py`** — `_start_export_job(..., count_sql=, count_params=)`: đếm TỔNG trước ⇒ `job['total']` thật; `job['phase']` =
+  `dem` → `truy_van` → `ghi` → `dong_goi` (`_write_xlsx_to_disk` đặt `dong_goi` trước `workbook.close()`). Nhánh BC007 xlsx đếm bằng
+  `SELECT COUNT(*) FROM (<đúng câu xuất, bỏ ORDER BY>) t` ⇒ tổng luôn khớp số dòng sẽ ghi. Không đổi route nào (vẫn 176 hàm / 72 route).
+- **`index.html`** — `exportJournalXlsx`: % thật (đếm/truy vấn ⇒ 0%); **một** đồng hồ `DongHoXuat` (component cấp ngoài cùng, tự
+  nhảy 4 lần/giây — không kéo cả App vẽ lại) hiện `Còn m:ss` / `Đang ước tính…` / `Sắp xong…`; bên trái là việc đang làm
+  (*Đang đếm số dòng… · Đang lấy N dòng từ máy chủ… · Đang ghi x / N dòng · Đang đóng gói file Excel…*).
+  **Đếm ngược từ lúc bấm**: lấy tạm `reportData.pagination.total_rows` của màn BC007, ước cả quá trình (lấy dữ liệu + ghi + đóng gói)
+  theo **lần xuất trước trên chính máy đó** (`localStorage` khoá `lr_toc_do_xuat_nkc`: `tong`, `giayTruyVan`, `dongMoiGiay`,
+  `giayDongGoi` — chỉ lưu khi ≥ 20.000 dòng). Khi ghi: tốc độ theo ~15 giây gần nhất, hạn chót **làm mượt 30%/lần hỏi**; đang truy
+  vấn mà lâu hơn dự kiến thì hạn chót không được sớm hơn phần ghi + đóng gói còn nguyên (đồng hồ đứng chờ, không tụt về 0).
+  Hộp này dùng chung với vài chỗ xuất khác ⇒ chỉ bật khi có `giaiDoan`, chỗ khác giữ chữ cũ.
+
+### 🧪 Verify (server thử 5052, **DB GIẢ** chạy chậm như thật: đếm 1s, truy vấn 3s, ghi 200.000 dòng)
+| Thử | Kết quả |
+|---|---|
+| Bản 2 đồng hồ (trung gian) | lỗi 1: lúc đếm thanh nhảy 2% rồi tụt 0% ⇒ sửa · lỗi 2: "Còn khoảng 10 giây" đứng ~14s ⇒ bỏ làm tròn, thành đếm ngược |
+| Đếm ngược, lần 1 (máy chưa có số cũ, dùng mặc định tạm) | bấm là hiện **Còn 0:31**; về 0:01 ở giây 40, **xong giây 42** |
+| Lần 2 (dùng tốc độ lần 1 đã lưu) | bấm là hiện **Còn 0:39**; ghi chậm hơn lần 1 ~20% ⇒ đồng hồ đứng chờ ~5s rồi đếm tiếp; về 0:01 giây 50, **xong giây 53** |
+| M1 | `ast` OK 176/72 · Babel OK · không còn tham chiếu `uocTinhConLai` / `batDau` |
+⚠️ Khung trình duyệt của em bị ẩn thì trang chạy chậm (timer bị bóp) — đồng hồ đứng 0:00 vài giây ở lần thử đầu là do đó, không phải lỗi app.
+
+### ⏭️ Phiên sau làm tiếp — đúng 4 bước
+1. Đại Ca điền `password` vào `config.json` (xong nhớ **xoá lại đúng ô đó**).
+2. **Đo 1 tháng thật** (vd 08/2026, ~2,86 triệu dòng): gọi xuất xlsx qua `test_client` (gieo phiên như memory) rồi đọc `/api/export/status`
+   theo thời gian ⇒ ghi lại: giây đếm, giây truy vấn (`truy_van`→`ghi`), dòng/giây lúc ghi, giây đóng gói (`dong_goi`→`done`).
+   ⚠️ `import server` tắt app ở 5050 — kiểm cổng trước, hoặc nạp source bỏ dòng `kill_process_on_port(5050)`.
+3. Thay `MAC_DINH` trong `exportJournalXlsx` (đang là số **TẠM**: `tong 2856882, giayTruyVan 20, dongMoiGiay 10000, giayDongGoi 30`
+   ≈ 4:45 cả tháng — suy từ ghi chú cũ "2,85 triệu dòng mất 4–5 phút", **chưa đo**). Nếu đóng gói lâu bất thường thì ghi chú lại.
+4. Commit · `CO_GI_MOI.md` mục `## v2.0.6` (gợi ý: *"Nhật ký chung: xuất Excel có đồng hồ đếm ngược thời gian còn lại, thanh tiến
+   trình chạy đúng %"*) · build · M3 · push · cập nhật thật 2.0.5 → 2.0.6 · đối chiếu SHA · nhật ký + `GITHUB_LEDGERREPORT.md`.
+
+### 🔍 Điểm mù
+- Chưa đo DB thật ⇒ lần xuất **đầu tiên** trên mỗi máy dùng số tạm (từ lần 2 dùng số của chính máy đó).
+- Chỉ áp cho xuất **.xlsx** Nhật ký chung. Xuất CSV (tải thẳng) và các chỗ xuất khác không đổi.
+- Server thử 5052 + script DB giả nằm trong scratchpad của phiên này — **mất khi phiên đóng**; cách dựng lại: nạp `server.py` bỏ dòng
+  tắt cổng 5050, thay `_make_conn` bằng cursor giả (`execute` ngủ, `fetchmany` trả lô 1.000 dòng 17 cột), `_export_dir` về thư mục tạm,
+  `get_journal` trả `pagination.total_rows`.
 
 ---
 
@@ -166,6 +322,7 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
   ⇒ **EXE trên máy Đại Ca = đúng file CI v2.0.5.** App để đang chạy. Server xem 5052 đã tắt.
 - Bản cất `dist\`: `…_v2.0.4.exe.bak` (CI) · `…_v2.0.5_build_local.exe.bak`. Dòng *Lịch sử push* đã thêm vào `GITHUB_LEDGERREPORT.md`.
 - Mục này commit ở local, **chưa push** (lý do ở § Việc cần làm).
+- ✅ **Sau phát hành: Đại Ca đăng nhập thật (SQL + Google) trên màn mới — OK** (*"t đăng nhập thử rồi, ok nha"*).
 
 ---
 

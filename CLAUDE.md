@@ -5,6 +5,10 @@
 > Cập nhật gần nhất: **28/09/2026** · **Bản mới nhất: `v2.0.5`** — **màn đăng nhập mới 08A+** (ảnh nền minh hoạ, form tiếng Việt
 > 2 khối, nút xem mật khẩu). Luật màn này: § 1.1 *Màn đăng nhập — 08A+*. Mục nhật ký *28/09/2026 — Phát hành v2.0.5*.
 > · v2.0.4: code y `v2.0.3`, chỉ viết lại `CO_GI_MOI.md` (app đọc file đó **tại tag** ⇒ sửa câu sau khi phát hành phải ra bản kế tiếp).
+> 🟢 **Chờ phát hành v2.0.6** (28/09/2026 khuya): **việc 41** đồng hồ đếm ngược khi xuất Excel Nhật ký chung (đã đo + thử giao
+> diện trên DB thật; bắt được lỗi làm hỏng hẳn xuất Excel chi tiết — **Bẫy 31**) + **việc 42** đăng nhập nhanh không còn đá người
+> ra khi Google chỉ là chưa trả lời được (commit `b887717`). `CO_GI_MOI.md` đã có `## v2.0.6`. Việc còn lại: § Việc cần làm của
+> nhật ký. Mục *28/09/2026 (khuya)*: **Đại Ca giữ Google Sheet, không chuyển Supabase** — đọc lý do trước khi đề xuất lại.
 > · v2.0.3: file xuất *Nhật ký chung chi tiết* (BC007) thêm Mã/Tên mục chi phí + ô trống không còn chứa dấu cách.
 > · v2.0.2: vá lỗi nhân viên thường không xuất được Excel Báo cáo TC (Bẫy 30, có từ v2.0.0) + việc 9, 10, 23.
 > · v2.0.1: thông báo có bản mới kiểu mới (hộp thoại + nút cam + thẻ nhắc, việc 37) + "Có gì mới" đọc từ `CO_GI_MOI.md`.
@@ -147,6 +151,11 @@ dùng ngồi chờ thay vì đi bật VPN. Tiêu đề ngắn **thêm vào trư�
 loại: sai mật khẩu · **tạm khoá N giây** do gõ sai nhiều lần · **tài khoản đã bị khoá**. Chỉ ca
 đầu mới đổi chữ — nói "sai mật khẩu" với người đang bị khoá là họ gõ lại tiếp, càng khoá lâu.
 Xem nhánh `if not kq.get('ok')` trong `login()`.
+
+⛔ **Luồng hỏi lại Google của đăng nhập nhanh (`_kiem_lai_nen`) chỉ đá người ra khi Google TỪ CHỐI thật** — đúng 3 câu trên
+(hằng `_GS_TU_CHOI_TK`). `ok: false` với câu khác (*"Máy khác đang ghi…"* khi chờ ổ khoá quá 20 giây, lỗi dịch vụ Sheets, sai
+token) = Google **chưa trả lời được** ⇒ giữ phiên như lúc mất mạng. Bản trước 28/09/2026 đá người ra vô cớ (việc 42). Đổi chữ 3
+câu đó trong `Code.gs` thì phải đổi hằng này.
 
 Hai đường online (Google) và offline (bản cache trên máy) **dùng chung một câu** — người dùng
 không cần biết lúc đó có mạng hay không.
@@ -1022,6 +1031,21 @@ r={d.args[0].value for n in ast.walk(t) if isinstance(n,ast.FunctionDef) for d i
 dong={'/api/report','/api/report_by_job','/api/cash_flow','/api/export_excel_backend','/api/report_export_csv'}
 print(sorted(x for x in r if x.startswith('/api/') and '<' not in x and x not in ns['PERM_PUBLIC'] and x not in ns['PERM_ROUTE_STATIC'] and x not in dong))"
 ```
+
+---
+
+### Bẫy 31 — Bọc câu SQL trong `SELECT COUNT(*) FROM (…) t` ⇒ **cột nào cũng phải có tên** *(28/09/2026)*
+
+Việc 41 đếm tổng số dòng trước khi xuất bằng cách bọc nguyên câu xuất (`count_sql` của `_start_export_job`). Câu Nhật ký
+chung chi tiết có cột đầu là chữ cố định `'NKC'` **không đặt tên** ⇒ SQL Server báo **8155** *"No column name was specified
+for column 1 of 't'"* (cột trùng tên cũng lỗi, 8156). Câu đếm chạy **trước** ⇒ lỗi đếm **kéo chết cả lần xuất**.
+
+⚠️ **Thử bằng DB giả không bắt được** — cursor giả không dịch SQL. Chỉ lộ khi chạy DB thật; suýt phát hành v2.0.6 làm
+**hỏng hẳn xuất Excel Nhật ký chung chi tiết**.
+
+➡️ Đã sửa 2 lớp: đặt tên cột (`'NKC' AS BANG`) + đếm hỏng thì **xuất tiếp không có tổng** (trình duyệt lấy tạm tổng trên màn).
+Thêm cột vào câu xuất có `count_sql` thì **đặt tên cột**. Và **tính năng đụng tới câu SQL phải chạy ít nhất một lần trên DB
+thật trước khi phát hành** — DB giả chỉ đủ để thử giao diện.
 
 ---
 

@@ -2638,6 +2638,13 @@ def _write_xlsx_to_disk(job_id, headers, row_iter, filename, total_estimate, she
                             workbook.close()
                             raise RuntimeError("Cancelled by user")
 
+        # Ghi xong dòng ⇒ đóng gói file (nén xml thành .xlsx) — với vài triệu dòng mất một lúc, báo riêng để
+        # người dùng khỏi tưởng treo ở 100%.
+        with _export_jobs_lock:
+            job = _export_jobs.get(job_id)
+            if job is not None:
+                job['current'] = count
+                job['phase'] = 'dong_goi'
         workbook.close()
         with _export_jobs_lock:
             job = _export_jobs.get(job_id)
@@ -2917,18 +2924,23 @@ def _loc_cot_xuat(cols, transform, args):
     return headers, transform_loc
 
 
-def _start_export_job(filename, headers, sql, params, transform_row, total_estimate=0, sheet_limit=1000000):
+def _start_export_job(filename, headers, sql, params, transform_row, total_estimate=0, sheet_limit=1000000,
+                      count_sql=None, count_params=None):
     """Mở connection mới (cùng db_config session) → chạy query → ghi disk ở thread riêng.
 
     transform_row(raw_row, sql_cols) → list giá trị theo thứ tự headers.
     Trả về job_id ngay.
+
+    count_sql (thêm 28/09/2026): đếm TỔNG số dòng trước khi xuất ⇒ job['total'] thật ⇒ trình duyệt tính được
+    % thật + thời gian còn lại. job['phase'] báo giai đoạn: 'dem' → 'truy_van' → 'ghi' → 'dong_goi' (chỉ xlsx).
+    Đếm tháng 08/2026 (2,86 triệu dòng Nhật ký chung) mất ~2 giây — rẻ so với 4–5 phút xuất.
     """
     job_id = uuid.uuid4().hex
     with _export_jobs_lock:
         _export_jobs[job_id] = {
             'status': 'running', 'current': 0, 'total': total_estimate,
             'file_path': None, 'filename': filename, 'error': None,
-            'cancelled': False,
+            'cancelled': False, 'phase': 'dem' if count_sql else 'truy_van',
         }
     db_cfg = _db_cfg()
 
@@ -2940,7 +2952,25 @@ def _start_export_job(filename, headers, sql, params, transform_row, total_estim
             # Connection riêng cho thread — không dùng pool chung
             own_conn = _make_conn(db_cfg)
             cursor = own_conn.cursor()
+
+            def _dat(**kv):
+                with _export_jobs_lock:
+                    job = _export_jobs.get(job_id)
+                    if job is not None:
+                        job.update(kv)
+
+            if count_sql:
+                try:
+                    cursor.execute(count_sql, count_params or [])
+                    _dat(total=int(cursor.fetchone()[0] or 0), phase='truy_van')
+                except Exception as e:
+                    # Đếm hỏng KHÔNG được kéo chết cả lần xuất — chỉ mất % thật / đồng hồ (trình duyệt lấy tạm
+                    # tổng trên màn). Vấp thật 28/09/2026: câu xuất có cột không tên ⇒ đếm lỗi 8155 ⇒ xuất hỏng hẳn.
+                    logger.warning('Xuat file: dem tong so dong loi (%s) — xuat tiep khong co tong', e)
+                    cursor = own_conn.cursor()
+                    _dat(phase='truy_van')
             cursor.execute(sql, params)
+            _dat(phase='ghi')
             sql_cols = [c[0] for c in cursor.description]
 
             def row_iter():
@@ -6917,7 +6947,9 @@ def report_export_csv():
                        "Số chứng từ", "Diễn giải", "Tài khoản", "Tài khoản đối ứng", "Mã đối tượng",
                        "Tên đối tượng", "Mã mục chi phí", "Tên mục chi phí",
                        "Số tiền nợ", "Số tiền có", "Ghi chú"]
-            sql = f"""SELECT 'NKC', LV.ORGANIZATION_ID, O.ORGANIZATION_NAME, LV.JOB_NAME, LV.TRAN_ID,
+            # ⚠️ Cột nào cũng PHẢI có tên (kể cả chữ cố định 'NKC'): bản xlsx bọc câu này trong
+            #    SELECT COUNT(*) FROM (…) t để đếm tổng — cột không tên ⇒ lỗi SQL 8155 (vấp thật 28/09/2026).
+            sql = f"""SELECT 'NKC' AS BANG, LV.ORGANIZATION_ID, O.ORGANIZATION_NAME, LV.JOB_NAME, LV.TRAN_ID,
                              LV.TRAN_DATE, LV.TRAN_NO, LV.DESCRIPTION, LV.ACCOUNT_ID, LV.ACCOUNT_ID_CONTRA,
                              LV.PR_DETAIL_ID, LV.PR_DETAIL_NAME, LV.EXPENSE_ID, LV.EXPENSE_NAME,
                              LV.DEBIT_CREDIT, LV.AMOUNT, LV.COMMENTS
@@ -7030,8 +7062,11 @@ def report_export_csv():
                 return [r[0] or '', r[1] or '', r[2], r[3] or '', r[4] or '', r[5] or '',
                         r[6] or '', r[7] or '', amt if is_deb else 0, amt if not is_deb else 0]
 
+            # Đếm trên ĐÚNG câu xuất (bỏ ORDER BY) ⇒ tổng luôn khớp số dòng sẽ ghi, kể cả khi sau này thêm JOIN.
+            _dem_sql = "SELECT COUNT(*) FROM (" + sql.rsplit("ORDER BY", 1)[0] + ") t"
             job_id = _start_export_job(fname[:-4] + ".xlsx", headers, sql, params,
-                                       _tf_xlsx, sheet_limit=1000000)
+                                       _tf_xlsx, sheet_limit=1000000,
+                                       count_sql=_dem_sql, count_params=params)
             return jsonify({"status": "ok", "job_id": job_id})
 
         def _amt(a):

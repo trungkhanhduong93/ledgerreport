@@ -9,13 +9,19 @@
 >   `- Cập nhật hệ thống`. Bản chỉ có loại này thì mục đó chỉ có dòng ấy.
 > - Mỗi bản một mục `## vX.Y.Z`, **mới nhất ở trên**. Số bản phải khớp `version.txt` của lần phát hành đó.
 > - Mỗi dòng bắt đầu bằng `- ` là **một thay đổi**. Viết cho **nhân viên** đọc: nói cái họ thấy, không nói tên hàm/biến.
+>   Mở đầu bằng **tên màn hình / báo cáo** (vd *"Nhật ký chung: …"*), nói **việc họ làm được**. ⛔ Đừng dùng chữ kiểu
+>   *"thật / giả"*, *"để trống thật"*, *".xlsx thật"* — người đọc không hiểu (Đại Ca nhắc 28/09/2026).
+> - ⚠️ App đọc file này **tại tag** của bản mới ⇒ phát hành rồi mới sửa câu thì **phải ra bản kế tiếp** mới có tác dụng.
 > - Tối đa ~5 dòng mỗi bản. App gộp mọi bản người dùng nhảy qua, **bỏ dòng trùng** (nên "Cập nhật hệ thống" chỉ hiện
 >   một lần), hiện tối đa 8 dòng, dư thì ghi "… và N thay đổi khác".
 > - Dòng không bắt đầu bằng `- ` (như khối ghi chú này) app bỏ qua.
 
+## v2.0.4
+- Báo cáo tài chính: file Excel xuất ra giữ đúng mẫu đang xem — tiêu đề cột canh giữa, cột Chỉ tiêu canh trái
+
 ## v2.0.3
-- Xuất Excel Nhật ký chung chi tiết có thêm cột Mã mục chi phí và Tên mục chi phí
-- File Nhật ký chung chi tiết: ô Công việc, Tên đối tượng không có dữ liệu nay để trống thật — lọc ô trống trong Excel bắt được đủ
+- Nhật ký chung: file Excel chi tiết có thêm 2 cột Mã mục chi phí và Tên mục chi phí
+- Nhật ký chung: lọc ô trống ở cột Công việc, Tên đối tượng trong file Excel nay ra đủ dòng
 
 ## v2.0.2
 - Sửa lỗi nhân viên không xuất được Excel ở Báo cáo tài chính (báo "Route chưa khai báo quyền")
@@ -28,7 +34,7 @@
 
 ## v2.0.0
 - Giao diện mới DATA REPORT: cột phân hệ bên trái, trang chủ, thanh lọc mới cho 9 màn danh sách
-- Báo cáo tài chính xuất Excel .xlsx thật, giữ y biểu mẫu đang xem, chữ 11pt
+- Báo cáo tài chính xuất Excel (.xlsx) giống hệt mẫu đang xem: tiêu đề cột canh giữa, cột Chỉ tiêu canh trái, chữ cỡ 11
 - Bảng danh sách: ẩn/hiện và kéo giãn cột; Excel xuất đúng các cột đang hiện
 - Sửa ô Số chứng từ của Sổ tiền mặt & ngân hàng: gõ từng chữ bị lọc ra 0 dòng
 - Sửa bảng chỉ hiện khoảng 87 dòng rồi trắng khi đổi qua lại giữa các màn

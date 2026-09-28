@@ -3,13 +3,14 @@
 > Toàn bộ những gì đã làm với **LedgerReport**, và **vì sao**. Đọc file này trước khi sửa tiếp.
 > Kiến trúc, ma trận báo cáo, phương án backup: [CLAUDE.md](CLAUDE.md).
 > Mổ xẻ sâu sự cố + 4 bài học: [SU_CO_15082026.md](SU_CO_15082026.md).
-> 🚀 **Bản mới nhất: `v2.0.5` (28/09/2026), là `Latest` trên GitHub** — **màn đăng nhập mới 08A+**.
->   `v2.0.4` (28/09) = code y `v2.0.3`, chỉ viết lại mục "Có gì mới".
+> 🚀 **Bản mới nhất: `v2.0.6` (29/09/2026), là `Latest` trên GitHub** — **đồng hồ đếm ngược xuất Excel Nhật ký chung** (việc 41)
+>   + **đăng nhập nhanh không đá người ra khi Google bận** (việc 42).
+>   `v2.0.5` (28/09) = **màn đăng nhập mới 08A+**. `v2.0.4` (28/09) = code y `v2.0.3`, chỉ viết lại mục "Có gì mới".
 >   `v2.0.3` (28/09) = file xuất *Nhật ký chung chi tiết* (BC007) thêm **Mã/Tên mục chi phí** + ô trống không còn chứa dấu cách. Các bản trước:
 >   `v2.0.0` (25/09 tối) = **giao diện mới `DATA REPORT`** — Đại Ca chốt lên *Ver 2* ·
 >   `v2.0.1` (26/09) = **thông báo có bản mới kiểu mới** (hộp thoại + nút cam + thẻ nhắc, "Có gì mới" đọc `CO_GI_MOI.md`) ·
 >   `v2.0.2` (26/09) = **vá lỗi nhân viên thường không xuất được Excel Báo cáo TC** (có từ v2.0.0, Bẫy 30) + việc 9, 10, 23.
-> ✅ **EXE trên máy Đại Ca = đúng file CI v2.0.5** (SHA256 khớp digest) — lên bằng **đường cập nhật thật** từ file CI v2.0.4
+> ✅ **EXE trên máy Đại Ca = đúng file CI v2.0.6** (SHA256 khớp digest) — lên bằng **đường cập nhật thật** từ file CI v2.0.5
 >   (`/api/apply_update`). Thư mục làm việc đang ở `main`.
 > 🔑 Luật nghiệp vụ gốc chốt 24/09: iPOS **tự sinh** phiếu nhập `NDCNB` khi phiếu xuất `XDCNB` ghi sổ — đổi hẳn cách
 >   đọc tab đối chiếu điều chuyển. Xem các mục 24/09.
@@ -42,16 +43,14 @@
 
 > *Cập nhật 28/09/2026.* Gom hết việc còn treo về một chỗ. Nhận việc mới thì **đọc mục này trước**.
 > ⚠️ Tiêu đề mục này **cố ý không ghi ngày** — mọi đường dẫn `#-việc-cần-làm` trỏ vào nó; ghi ngày là gãy link.
-> Trạng thái: **v2.0.5 đã phát hành**, là `Latest`, và **EXE trên máy Đại Ca = đúng file CI** (SHA256 khớp digest, 28/09).
+> Trạng thái: **v2.0.6 đã phát hành** (29/09/2026 0h10), là `Latest`, và **EXE trên máy Đại Ca = đúng file CI** (SHA256 khớp digest).
 >
-> 🚧 **`main` đang đi trước GitHub** — chỉ 1 commit tài liệu (kết quả phát hành v2.0.5). **Cố ý giữ ở local, ĐỪNG push
+> 🚧 **`main` đang đi trước GitHub** — chỉ 1 commit tài liệu (kết quả phát hành v2.0.6). **Cố ý giữ ở local, ĐỪNG push
 > riêng**: push file `.md` là Actions build lại và **thay asset bằng binary khác SHA** ⇒ EXE vừa khớp trên máy lệch ngay.
 > Gộp vào lần sửa code tới (việc 11 `paths-ignore` sẽ gỡ hẳn vòng lặp này).
 >
-> 🟢 **Việc 41 + 42 XONG, chờ phát hành v2.0.6** (28/09/2026 khuya). Việc 42 = commit `b887717`. Việc 41 đã **đo DB thật**
-> (bắt được lỗi làm hỏng hẳn xuất Excel chi tiết — Bẫy 31), số mặc định = số đo thật, đồng hồ hết nhảy ngược; **thử giao diện thật
-> trên DB thật** (server thử 5052, tháng 01/2026). `CO_GI_MOI.md` đã có mục `## v2.0.6`. Còn: commit việc 41 · build · M3 · **hỏi
-> Đại Ca rồi mới push** · cập nhật thật 2.0.5 → 2.0.6 · đối chiếu SHA. Chi tiết: mục *28/09/2026 (khuya, tiếp)*.
+> 🟡 **Chờ Đại Ca thử v2.0.6 trên app thật:** đăng nhập một lần (M3 của em không đăng nhập được — cần tài khoản Google) + xuất Excel
+> Nhật ký chung một kỳ để xem đồng hồ đếm ngược.
 >
 > 🔴 **Lần phát hành tới BẮT BUỘC:** viết mục `## vX.Y.Z` vào **`CO_GI_MOI.md`** (chỉ tính năng; hệ thống ⇒ *Cập nhật hệ thống*)
 > **trước khi push** · build bằng `build_exe.py` để số hiệu tự tăng · quét route `/api` chưa khai báo quyền phải ra `[]` (Bẫy 30)
@@ -86,8 +85,8 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | 17 | ~~Nút `TRUY VẤN` đang chuyển màu navy → tím~~ ✅ **XONG 25/09** | Đại Ca chốt: chữ **"Lọc"**, navy đặc, như mẫu iPOS. Nằm trong thanh lọc mới của 9 màn danh sách |
 | 18 | ~~Chốt mốc commit phần đăng nhập nhanh + sửa font~~ ✅ **commit `c64540a`** | Phát hành v2.0.0 |
 | 19 | ~~Đại Ca xem GĐ3 rồi chốt commit~~ ✅ **Đại Ca chốt OK sáng 25/09** (*"cái đó thì ok rồi"*) ⇒ đã commit GĐ3 | ⚠️ Đại Ca chốt chung, **không nói rõ đã thử từng mục dưới đây chưa** — lần đầu dùng số liệu thật thì để ý. Danh sách cần xem ở mục *"Việc Đại Ca xem sáng 25/09"* trong nhật ký 25/09 (tiếp 3), ngay dưới § này. Ba việc tôi **không** tự thử được: hộp *"Chuyển mẫu báo cáo?"* khi có số liệu thật · menu **Xuất Excel / Xuất PDF** khi có số liệu (chưa có số liệu thì nút tắt) · kéo thả thứ tự ô lọc bằng chuột thật. Và **đọc lại mô tả 16 thẻ** — tôi tự viết |
-| 42 | ✅ **Đăng nhập nhanh đá người ra VÔ CỚ khi Google bận** — **xong 28/09, đạt M2, commit `b887717`**, đi cùng v2.0.6 | Luồng hỏi lại Google (`_kiem_lai_nen`) coi **mọi** `ok: false` là từ chối ⇒ chờ ổ khoá quá 20 giây (*"Máy khác đang ghi…"*), lỗi dịch vụ Sheets, sai token… đều **huỷ phiên + xoá bản lưu**. Nay chỉ 3 câu từ chối thật mới đá ra (`_GS_TU_CHOI_TK`). Đối chứng với bản cũ bằng cùng phép thử: bản cũ đá ra ở cả 3 ca "chưa trả lời được" |
-| 41 | ✅ **Đồng hồ đếm ngược xuất Excel Nhật ký chung** — **xong 28/09 khuya, đã đo + thử giao diện trên DB thật**, chờ phát hành v2.0.6 (mục *28/09/2026 (khuya, tiếp)*) | Đại Ca hỏi *"ước tính thời gian xuất được không"* → chốt *"đếm ngược từ đầu, 1 đồng hồ thôi"*. % cũ là **giả** (30.000 dòng = 1%, chặn 95%). Việc còn lại + cách thử: mục nhật ký *28/09/2026 — Hộp xuất Excel Nhật ký chung* |
+| 42 | ✅ **Đăng nhập nhanh đá người ra VÔ CỚ khi Google bận** — **phát hành v2.0.6** (commit `b887717`) | Luồng hỏi lại Google (`_kiem_lai_nen`) coi **mọi** `ok: false` là từ chối ⇒ chờ ổ khoá quá 20 giây (*"Máy khác đang ghi…"*), lỗi dịch vụ Sheets, sai token… đều **huỷ phiên + xoá bản lưu**. Nay chỉ 3 câu từ chối thật mới đá ra (`_GS_TU_CHOI_TK`). Đối chứng với bản cũ bằng cùng phép thử: bản cũ đá ra ở cả 3 ca "chưa trả lời được" |
+| 41 | ✅ **Đồng hồ đếm ngược xuất Excel Nhật ký chung** — **phát hành v2.0.6**, đã đo + thử giao diện trên DB thật (mục *28/09/2026 (khuya, tiếp)*). ⏳ Chờ Đại Ca thử trên app thật | Đại Ca hỏi *"ước tính thời gian xuất được không"* → chốt *"đếm ngược từ đầu, 1 đồng hồ thôi"*. % cũ là **giả** (30.000 dòng = 1%, chặn 95%). Việc còn lại + cách thử: mục nhật ký *28/09/2026 — Hộp xuất Excel Nhật ký chung* |
 | 40 | Nút **Tải lại** gặp phiên đã hết (401) thì **im lặng**, không đưa về màn đăng nhập | Phát hiện 26/09 khi thử việc 23. `loadPerms` gặp `!r.ok` là `return`. Người bị huỷ phiên chỉ về màn đăng nhập ở lần **tải số liệu** kế tiếp (khi đó lý do vẫn hiện đúng). Nhỏ, chưa chặn ai |
 | 39 | Ô lọc **Kho** vẫn liệt kê kho của **mọi đơn vị** | Cùng bệnh việc 10: tài khoản bị giới hạn chọn kho đơn vị khác ⇒ 0 dòng. Tab điều chuyển (Kho xuất / Kho nhận) phải **giữ đủ** như ô Đơn vị xuất. Cần xem `meta.warehouses` có mang mã đơn vị không |
 | 38 | ~~🔴 Nhân viên thường **không xuất được Excel** Báo cáo TC (403 *"Route chưa khai báo quyền"*)~~ ✅ **Phát hành v2.0.2** | Có từ **v2.0.0**: `/api/xuat_xlsx_bieu_mau` + `/api/tai_file_xuat` (việc 35) quên khai báo quyền; ADMIN qua được nên không ai thấy. Nay trong `PERM_PUBLIC`. **Bẫy 30** + lệnh quét trong CLAUDE.md |
@@ -152,6 +151,31 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 29/09/2026 — Phát hành v2.0.6 (việc 41 đồng hồ đếm ngược + việc 42 không đá người ra)
+
+Đại Ca: *"ok làm tất cả các bước còn lại rồi up github"*.
+
+- Commit: `b887717` (việc 42) · `6e8163c` (việc 41 + tài liệu + `CO_GI_MOI.md` mục v2.0.6) · `201f9b7` (số hiệu 2.0.6).
+  Trước commit: quét secret chỉ trúng chữ "password/token" trong câu chữ tài liệu · route chưa khai báo quyền `[]` · so `origin/main`
+  mất 0 hàm / 0 route, thêm `_gs_tu_choi_tai_khoan` (177 hàm / 72 route) · tiêu đề commit không BOM.
+- **Thử tài khoản KHÔNG quản trị** (Bẫy 30, `test_client`, không cần DB vì guard chạy trước khi nối SQL): có quyền `BC007` ⇒ xuất
+  200 + `job_id`, `/api/export/status` 200 · không có quyền ⇒ **403** *"Bạn không có quyền xem mục này"*.
+- Trước build: EXE `dist\` = file CI v2.0.5 (SHA `601030e9…` khớp digest) ⇒ cất `…_v2.0.5.exe.bak`. Build ⇒ **2.0.6**, EXE mới hơn
+  `server.py`/`index.html`. **M3** chạy EXE thật (mở tách hẳn bằng `Win32_Process.Create`): 5050 lên sau 2s · `/api/version` 2.0.6 ·
+  trang chủ có code việc 41 + màn đăng nhập 08A+ · `check_update` không báo nhầm (GitHub còn v2.0.5) · xuất khi chưa đăng nhập ⇒ 401 ·
+  `_tach_co_gi_moi` tách mục v2.0.6 đúng 2 dòng (máy ở 2.0.4 thấy 5 dòng).
+- Push `0a935e5..201f9b7` (4 commit, kèm commit nhật ký v2.0.5 để dành) ⇒ Actions run `36456128716` **`success` 72s** ⇒ **Release
+  `v2.0.6` = `Latest`**, **tag `v2.0.6` → `201f9b7`**, phát hành 00:10 ngày 29/09/2026. Digest EXE `sha256:afdf8d3e…`.
+  `CO_GI_MOI.md` đọc được tại tag (2 dòng). Cảnh báo Node 20 vẫn còn (việc 11).
+- ✅ **Cập nhật thật 2.0.5 → 2.0.6** từ file CI v2.0.5: `check_update` báo có v2.0.6 + đúng 2 dòng "Có gì mới" · `apply_update` ⇒
+  **11 giây** sau chạy 2.0.6 · EXE `dist\` **SHA256 = digest CI v2.0.6** · không sót `.old`/`.new` · hết báo cập nhật · trang chủ có
+  code mới. ⇒ **EXE trên máy Đại Ca = đúng file CI v2.0.6.** App để đang chạy.
+- Bản cất `dist\`: `…_v2.0.5.exe.bak` (CI) · `…_v2.0.6_build_local.exe.bak`. Dòng *Lịch sử push* đã thêm vào `GITHUB_LEDGERREPORT.md`.
+- Mục này commit ở local, **chưa push** (lý do ở § Việc cần làm).
+- ⏳ **Chưa thử được:** đăng nhập trên v2.0.6 (cần tài khoản Google của Đại Ca) · việc 42 ở ca thật (cần nhiều người đăng nhập cùng lúc).
 
 ---
 

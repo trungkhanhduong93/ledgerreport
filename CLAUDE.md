@@ -2,13 +2,12 @@
 
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
-> Cập nhật gần nhất: **28/09/2026** · **Bản mới nhất: `v2.0.5`** — **màn đăng nhập mới 08A+** (ảnh nền minh hoạ, form tiếng Việt
-> 2 khối, nút xem mật khẩu). Luật màn này: § 1.1 *Màn đăng nhập — 08A+*. Mục nhật ký *28/09/2026 — Phát hành v2.0.5*.
+> Cập nhật gần nhất: **29/09/2026** · **Bản mới nhất: `v2.0.6`** — **việc 41** đồng hồ đếm ngược khi xuất Excel Nhật ký chung
+> (đo + thử giao diện trên DB thật; bắt được lỗi làm hỏng hẳn xuất Excel chi tiết — **Bẫy 31**) + **việc 42** đăng nhập nhanh không
+> còn đá người ra khi Google chỉ là chưa trả lời được. Mục nhật ký *29/09/2026 — Phát hành v2.0.6*. EXE trên máy Đại Ca = đúng file CI.
+> Mục *28/09/2026 (khuya)*: **Đại Ca giữ Google Sheet, không chuyển Supabase** — đọc lý do trước khi đề xuất lại.
+> · v2.0.5: **màn đăng nhập mới 08A+** (ảnh nền minh hoạ, form tiếng Việt 2 khối, nút xem mật khẩu) — luật màn này: § 1.1 *Màn đăng nhập — 08A+*.
 > · v2.0.4: code y `v2.0.3`, chỉ viết lại `CO_GI_MOI.md` (app đọc file đó **tại tag** ⇒ sửa câu sau khi phát hành phải ra bản kế tiếp).
-> 🟢 **Chờ phát hành v2.0.6** (28/09/2026 khuya): **việc 41** đồng hồ đếm ngược khi xuất Excel Nhật ký chung (đã đo + thử giao
-> diện trên DB thật; bắt được lỗi làm hỏng hẳn xuất Excel chi tiết — **Bẫy 31**) + **việc 42** đăng nhập nhanh không còn đá người
-> ra khi Google chỉ là chưa trả lời được (commit `b887717`). `CO_GI_MOI.md` đã có `## v2.0.6`. Việc còn lại: § Việc cần làm của
-> nhật ký. Mục *28/09/2026 (khuya)*: **Đại Ca giữ Google Sheet, không chuyển Supabase** — đọc lý do trước khi đề xuất lại.
 > · v2.0.3: file xuất *Nhật ký chung chi tiết* (BC007) thêm Mã/Tên mục chi phí + ô trống không còn chứa dấu cách.
 > · v2.0.2: vá lỗi nhân viên thường không xuất được Excel Báo cáo TC (Bẫy 30, có từ v2.0.0) + việc 9, 10, 23.
 > · v2.0.1: thông báo có bản mới kiểu mới (hộp thoại + nút cam + thẻ nhắc, việc 37) + "Có gì mới" đọc từ `CO_GI_MOI.md`.

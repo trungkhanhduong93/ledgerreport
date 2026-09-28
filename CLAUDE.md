@@ -2,8 +2,9 @@
 
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
-> Cập nhật gần nhất: **28/09/2026** · **Bản mới nhất: `v2.0.4`** — code y `v2.0.3`, chỉ viết lại `CO_GI_MOI.md` cho
-> người dùng dễ hiểu (app đọc file đó **tại tag** ⇒ sửa câu sau khi phát hành phải ra bản kế tiếp). Mục nhật ký *28/09/2026 — Phát hành v2.0.4*.
+> Cập nhật gần nhất: **28/09/2026** · **Bản mới nhất: `v2.0.5`** — **màn đăng nhập mới 08A+** (ảnh nền minh hoạ, form tiếng Việt
+> 2 khối, nút xem mật khẩu). Luật màn này: § 1.1 *Màn đăng nhập — 08A+*. Mục nhật ký *28/09/2026 — Phát hành v2.0.5*.
+> · v2.0.4: code y `v2.0.3`, chỉ viết lại `CO_GI_MOI.md` (app đọc file đó **tại tag** ⇒ sửa câu sau khi phát hành phải ra bản kế tiếp).
 > · v2.0.3: file xuất *Nhật ký chung chi tiết* (BC007) thêm Mã/Tên mục chi phí + ô trống không còn chứa dấu cách.
 > · v2.0.2: vá lỗi nhân viên thường không xuất được Excel Báo cáo TC (Bẫy 30, có từ v2.0.0) + việc 9, 10, 23.
 > · v2.0.1: thông báo có bản mới kiểu mới (hộp thoại + nút cam + thẻ nhắc, việc 37) + "Có gì mới" đọc từ `CO_GI_MOI.md`.

@@ -3,12 +3,13 @@
 > Toàn bộ những gì đã làm với **LedgerReport**, và **vì sao**. Đọc file này trước khi sửa tiếp.
 > Kiến trúc, ma trận báo cáo, phương án backup: [CLAUDE.md](CLAUDE.md).
 > Mổ xẻ sâu sự cố + 4 bài học: [SU_CO_15082026.md](SU_CO_15082026.md).
-> 🚀 **Bản mới nhất: `v2.0.2` (26/09/2026), là `Latest` trên GitHub.** Hai ngày ra ba bản:
+> 🚀 **Bản mới nhất: `v2.0.3` (28/09/2026), là `Latest` trên GitHub** = file xuất *Nhật ký chung chi tiết* (BC007) thêm
+>   **Mã/Tên mục chi phí** + ô trống không còn chứa dấu cách. Các bản trước:
 >   `v2.0.0` (25/09 tối) = **giao diện mới `DATA REPORT`** — Đại Ca chốt lên *Ver 2* ·
 >   `v2.0.1` (26/09) = **thông báo có bản mới kiểu mới** (hộp thoại + nút cam + thẻ nhắc, "Có gì mới" đọc `CO_GI_MOI.md`) ·
 >   `v2.0.2` (26/09) = **vá lỗi nhân viên thường không xuất được Excel Báo cáo TC** (có từ v2.0.0, Bẫy 30) + việc 9, 10, 23.
-> ✅ **EXE trên máy Đại Ca = đúng file CI v2.0.2** (SHA256 khớp digest) — lên bằng **chính hộp thoại cập nhật mới**, phép thử
->   cập nhật thật đầu tiên chạy trọn vòng (2.0.1 → 2.0.2). Nhánh `giaodien` đã gộp hết vào `main`; thư mục làm việc đang ở `main`.
+> ✅ **EXE trên máy Đại Ca = đúng file CI v2.0.3** (SHA256 khớp digest) — lên bằng **đường cập nhật thật** từ file CI v2.0.2
+>   (`/api/apply_update`, ~9 giây). Thư mục làm việc đang ở `main`.
 > 🔑 Luật nghiệp vụ gốc chốt 24/09: iPOS **tự sinh** phiếu nhập `NDCNB` khi phiếu xuất `XDCNB` ghi sổ — đổi hẳn cách
 >   đọc tab đối chiếu điều chuyển. Xem các mục 24/09.
 > ✅ Tài khoản nhân viên trên Google Sheet + đổi mật khẩu `admin` + tick quyền 2 tab mới: **Đại Ca báo xong 25/09** (việc 1, 3, 4).
@@ -38,15 +39,13 @@
 
 ## 📌 VIỆC CẦN LÀM
 
-> *Cập nhật 26/09/2026.* Gom hết việc còn treo về một chỗ. Nhận việc mới thì **đọc mục này trước**.
+> *Cập nhật 28/09/2026.* Gom hết việc còn treo về một chỗ. Nhận việc mới thì **đọc mục này trước**.
 > ⚠️ Tiêu đề mục này **cố ý không ghi ngày** — mọi đường dẫn `#-việc-cần-làm` trỏ vào nó; ghi ngày là gãy link.
-> Trạng thái: **v2.0.2 đã phát hành**, là `Latest`, và **EXE trên máy Đại Ca = đúng file CI** (SHA256 khớp digest, 26/09).
+> Trạng thái: **v2.0.3 đã phát hành**, là `Latest`, và **EXE trên máy Đại Ca = đúng file CI** (SHA256 khớp digest, 28/09).
 >
-> 🚧 **`main` đang đi trước GitHub** — commit tài liệu sau v2.0.2 **+ 1 commit CODE chưa phát hành (28/09/2026)**: file
-> xuất Nhật ký chung chi tiết thêm Mã/Tên mục chi phí + bỏ ô "trống" chứa dấu cách. `CO_GI_MOI.md` đã có sẵn mục `## v2.0.3`.
-> **Chưa build, chưa push** — Đại Ca chốt "commit luôn đi", chưa chốt phát hành. Lần phát hành tới: build bằng `build_exe.py`
-> (ra 2.0.3, khớp mục trong `CO_GI_MOI.md`), rồi push. ⚠️ Đừng push riêng file `.md`: Actions build lại và **thay asset bằng
-> binary khác SHA** ⇒ EXE vừa khớp trên máy lệch ngay (việc 11 `paths-ignore` sẽ gỡ hẳn vòng lặp này).
+> 🚧 **`main` đang đi trước GitHub** — chỉ 1 commit tài liệu (kết quả phát hành v2.0.3). **Cố ý giữ ở local, ĐỪNG push
+> riêng**: push file `.md` là Actions build lại và **thay asset bằng binary khác SHA** ⇒ EXE vừa khớp trên máy lệch ngay.
+> Gộp vào lần sửa code tới (việc 11 `paths-ignore` sẽ gỡ hẳn vòng lặp này).
 >
 > 🔴 **Lần phát hành tới BẮT BUỘC:** viết mục `## vX.Y.Z` vào **`CO_GI_MOI.md`** (chỉ tính năng; hệ thống ⇒ *Cập nhật hệ thống*)
 > **trước khi push** · build bằng `build_exe.py` để số hiệu tự tăng · quét route `/api` chưa khai báo quyền phải ra `[]` (Bẫy 30)
@@ -144,6 +143,27 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 28/09/2026 — Phát hành v2.0.3 (BC007 chi tiết thêm Mã/Tên mục chi phí)
+
+Đại Ca: *"làm luôn các việc còn lại để up github lun nha"*.
+
+- Trước build: EXE trong `dist\` = file CI v2.0.2 (SHA256 khớp digest) ⇒ cất thành `…_v2.0.2.exe.bak` để thử cập nhật thật.
+- Build ⇒ **2.0.3** (EXE mới hơn `server.py` / `index.html`). M3 chạy EXE thật: 5050 lên ngay · `/api/version` 2.0.3 · trang
+  chủ có dòng mô tả mới · `check_update` không báo nhầm · xuất khi chưa đăng nhập ⇒ 401. Tắt EXE thử.
+- Commit `36d0dd5` (số hiệu). ⚠️ Lần đầu tiêu đề commit dính **BOM** (PowerShell chèn khi pipe chuỗi vào `git commit -F -`) —
+  đã `--amend` bằng file UTF-8 không BOM **trước khi push**. Commit qua PowerShell thì dùng `-F <file>`, đừng pipe.
+- 📦 Push `410e5ef..36d0dd5` (4 commit, gồm 2 commit tài liệu v2.0.2 giữ lại từ trước) ⇒ Actions run `36399947370`
+  **`success`, 82 giây** ⇒ Release **`v2.0.3` là `Latest`**, tag trỏ `36d0dd5`. `CO_GI_MOI.md` đọc được tại tag (2 dòng).
+- ✅ **Cập nhật thật 2.0.2 → 2.0.3**: chạy file CI v2.0.2 ⇒ `check_update` thấy v2.0.3 + đúng 2 dòng "Có gì mới" ⇒ gọi
+  `/api/apply_update` (lệnh nút *Cập nhật ngay*) ⇒ tải 12,5 MB ~7s, bản mới tự mở lại ở giây ~9. EXE trong `dist\`
+  **SHA256 = digest CI v2.0.3**, không sót `.old`/`.new`, tiến trình 51 MB nghe 5050, `check_update` hết báo.
+  ⇒ **EXE trên máy Đại Ca = đúng file CI v2.0.3.** App để đang chạy.
+- Bản cất trong `dist\`: `…_v2.0.2.exe.bak` (CI) · `…_v2.0.3_build_local.exe.bak`.
+- Thêm dòng vào bảng *Lịch sử push* (mục 8) của `GITHUB_LEDGERREPORT.md` ngoài repo.
+- Mục này commit ở local, **chưa push** (lý do ở § Việc cần làm).
 
 ---
 

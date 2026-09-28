@@ -924,11 +924,12 @@ def _loi_ket_noi_de_hieu(e, cau_hinh=None):
         return _tra('Máy chủ có trả lời nhưng quá chậm nên phải bỏ cuộc. Mạng đang chậm, hoặc '
                     'máy chủ SQL đang quá tải. Thử lại sau ít phút.')
     if 'login failed for user' in t or '28000' in t:
-        return _tra('Sai User ID hoặc Password của SQL Server — đây là nhóm ô thông tin máy '
-                    'chủ, KHÔNG phải ô tài khoản ứng dụng.')
+        # Tên ô phải KHỚP nhãn trên màn đăng nhập (đổi sang tiếng Việt 28/09/2026 — 08A+).
+        return _tra('Sai Tên đăng nhập hoặc Mật khẩu ở mục 01 — Máy chủ SQL, KHÔNG phải mục 02 — '
+                    'Tài khoản ứng dụng.')
     if 'cannot open database' in t:
-        return _tra('Không mở được database "%s". Kiểm tra tên database, hoặc tài khoản "%s" '
-                    'chưa được cấp quyền vào database này.' % (csdl, nguoi_dung))
+        return _tra('Không mở được cơ sở dữ liệu "%s". Kiểm tra ô Tên cơ sở dữ liệu, hoặc tài khoản "%s" '
+                    'chưa được cấp quyền vào cơ sở dữ liệu này.' % (csdl, nguoi_dung))
     if 'data source name not found' in t or 'im002' in t:
         return _tra('Máy này chưa cài driver ODBC cho SQL Server. Bấm nút cài driver ở màn hình '
                     'đăng nhập rồi thử lại.')

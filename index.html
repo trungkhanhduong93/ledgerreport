@@ -167,6 +167,56 @@ window.showConnectionLost = function() {
         .glass-login { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.3); }
         .login-input { width: 100%; background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 16px; font-size: 13px; font-weight: 600; outline: none; transition: all 0.3s; }
         .login-input:focus { border-color: #1e3a8a; box-shadow: 0 0 0 4px rgba(30, 58, 138, 0.12); }
+
+        /* Màn đăng nhập 08A+ (Đại Ca chốt 28/09/2026). Form 2 khối: 01 Máy chủ SQL · 02 Tài khoản ứng dụng. */
+        .dn-the { width: 100%; max-width: 460px; box-sizing: border-box; padding: 30px 32px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 18px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 28px 60px -18px rgba(15, 23, 42, 0.28); display: flex; flex-direction: column; gap: 16px; }
+        .dn-form { display: flex; flex-direction: column; gap: 16px; }
+        .dn-khoi { border: 1px solid #e6ebf2; background: #f8fafc; border-radius: 14px; padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+        .dn-dau { display: flex; align-items: center; gap: 10px; }
+        .dn-huy { width: 30px; height: 30px; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .dn-so { margin-left: auto; height: 20px; padding: 0 8px; border-radius: 10px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; display: flex; align-items: center; }
+        .dn-lbl { display: block; font-size: 12.5px; font-weight: 700; color: #334155; margin-bottom: 6px; }
+        .dn-o { position: relative; }
+        .dn-ic { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #64748b; pointer-events: none; display: flex; }
+        .dn-inp { width: 100%; height: 44px; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 10px; background: #ffffff; padding: 0 14px 0 40px; font-size: 14px; color: #0f172a; outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
+        .dn-inp.co-mat { padding-right: 44px; }
+        .dn-inp:hover { border-color: #94a3b8; }
+        .dn-inp:focus { border-color: #1e3a8a; box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.15); }
+        .dn-mat { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; border-radius: 8px; color: #64748b; display: flex; align-items: center; justify-content: center; }
+        .dn-mat:hover { background: #f1f5f9; color: #1e3a8a; }
+        .dn-nut { height: 48px; border-radius: 12px; background: #1e3a8a; color: #ffffff; font-size: 14.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 10px 24px -10px rgba(30, 58, 138, 0.75); transition: background 0.15s; }
+        .dn-nut:hover { background: #172554; }
+        .dn-nut:disabled { opacity: 0.75; cursor: wait; }
+        .dn-gt { display: flex; align-items: center; gap: 14px; }
+        .dn-gt-o { width: 38px; height: 38px; box-sizing: border-box; border-radius: 10px; background: rgba(96, 165, 250, 0.12); border: 1px solid rgba(96, 165, 250, 0.28); color: #93c5fd; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        /* Laptop 1366×768: trừ taskbar + thanh tiêu đề chỉ còn ~690px — thu gọn để form + thông báo lỗi vẫn vừa màn. */
+        /* Lớp đồ vật nền đăng nhập: cỡ gốc 886×768 căn giữa (= tâm form), --k phóng nhẹ theo chiều cao màn.
+           --gian: vùng phải càng rộng thì 4 thẻ dạt ra 2 bên, tối đa 150; tính sao cho mép thẻ luôn cách mép màn ≥24px.
+           Laptop 1366/1280 ra số âm ⇒ 0 ⇒ giữ nguyên bố cục (đo 28/09/2026). Hằng 470 ≈ nửa bề rộng cụm thẻ + lề. */
+        .dn-vung { container-type: size; }
+        .dn-vat { position: absolute; left: 50%; top: 50%; overflow: visible; transform-origin: center; --k: 1;
+                  transform: translate(-50%, -50%) scale(var(--k));
+                  --gian: clamp(0px, calc((50cqw - 24px) / var(--k) - 470px), 150px); }
+        @media (min-height: 880px) { .dn-vat { --k: 1.1; } }
+        @media (min-height: 1000px) { .dn-vat { --k: 1.2; } }
+        @media (max-height: 720px) { .dn-vat { --k: 0.92; } }
+        .dn-trai-g { transform: translateX(calc(-1 * var(--gian))); }
+        .dn-phai-g { transform: translateX(var(--gian)); }
+        .dn-quy-dao { rx: calc(405px + var(--gian)); }
+        .dn-cuon { padding: 24px; }
+        .dn-tieude { font-size: 24px; letter-spacing: -0.01em; }
+        @media (max-height: 740px) {
+            /* Đo 28/09/2026 ở 1366×690 lúc có thông báo lỗi: chưa thu gọn đoạn này thì cao 725px > 690 ⇒ phải cuộn */
+            .dn-cuon { padding: 12px; }
+            .dn-tieude { font-size: 20px; }
+            .dn-huy { width: 26px; height: 26px; }
+            .dn-lbl { margin-bottom: 4px; }
+            .dn-the { padding: 22px 26px; gap: 12px; }
+            .dn-form { gap: 12px; }
+            .dn-khoi { padding: 10px 14px 12px; gap: 9px; }
+            .dn-inp { height: 40px; }
+            .dn-phu { display: none; }
+        }
         
         @keyframes modal-pop {
             0% { opacity: 0; transform: scale(0.9) translateY(20px); }
@@ -666,10 +716,168 @@ window.showConnectionLost = function() {
                 "plus": '<path d="M12 5v14"/><path d="M5 12h14"/>',
                 "arrow-right": '<path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>',   // hộp thoại cập nhật: v cũ → v mới
                 "refresh": '<path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/>',
-                "x": '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>'
+                "x": '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+                // Màn đăng nhập 08A+ (28/09/2026): mỗi ô một icon riêng — Đại Ca chê 2 ô tài khoản trùng icon người
+                "server": '<rect x="3" y="4" width="18" height="7" rx="1.5"/><rect x="3" y="13" width="18" height="7" rx="1.5"/><path d="M7 7.5h.01M7 16.5h.01"/>',
+                "globe": '<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9s1.3-6.3 3.8-9z"/>',
+                "id-card": '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M5.8 16c.6-1.4 1.8-2.1 3.2-2.1s2.6.7 3.2 2.1"/><path d="M14.5 10h4M14.5 14h3"/>',
+                "users": '<circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8"/><path d="M18 14.4c1.8.8 3 2.8 3 5.6"/>',
+                "eye": '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+                "eye-off": '<path d="M10.6 5.1A10.8 10.8 0 0 1 12 5c6.4 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4.2"/><path d="M6.6 6.6C3.7 8.4 2 12 2 12s3.6 7 10 7c1.9 0 3.5-.6 4.9-1.4"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="M3 3l18 18"/>'
             };
             return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} dangerouslySetInnerHTML={{ __html: icons[name] || '' }} />;
         };
+
+        // ===== Hình minh hoạ MÀN ĐĂNG NHẬP — 08A+ (Đại Ca chốt 28/09/2026, bản phác thảo mục 08) =====
+        // ⛔ Chỉ vẽ thứ app CÓ THẬT: biểu mẫu báo cáo, sổ chứng từ, đối chiếu kho, file Excel, lịch chọn kỳ.
+        //    App KHÔNG có biểu đồ — Đại Ca đã bắt vẽ lại một lần vì bản đầu có biểu đồ cột/tròn/đường.
+        // SVG nhúng thẳng: không file ảnh, không mạng, không phải sửa cấu hình build trên GitHub (thiếu quyền workflow).
+        // Khai ở CẤP NGOÀI CÙNG (không trong App) ⇒ React không dựng lại mỗi lần gõ phím.
+        const HinhDangNhapTrai = () => (
+            <>
+            {/* Góc trên phải tấm navy: xấp 3 tờ biểu mẫu. Thu 0.8 + đẩy sát mép phải để KHÔNG chạm chữ "REPORT"
+                khi cửa sổ thấp (khối chữ giữa tự căn giữa theo chiều cao). */}
+            <svg width="180" height="330" viewBox="300 0 180 330" aria-hidden="true" className="absolute top-0 right-0 pointer-events-none">
+                <circle cx="478" cy="176" r="150" fill="none" stroke="#2548b8" strokeWidth="1.5" strokeDasharray="2 8" strokeLinecap="round"/>
+                <g transform="translate(392 50) rotate(18) scale(0.8)"><rect width="176" height="206" rx="14" fill="#1a2c6e" stroke="#2548b8"/></g>
+                <g transform="translate(380 43) rotate(13) scale(0.8)"><rect width="176" height="206" rx="14" fill="#1d3280" stroke="#2548b8"/></g>
+                <g transform="translate(368 36) rotate(8) scale(0.8)">
+                    <rect width="180" height="210" rx="14" fill="#21398f" stroke="#3b62c4" strokeWidth="1.5"/>
+                    <path d="M0.75 14A13.25 13.25 0 0 1 14 0.75H166A13.25 13.25 0 0 1 179.25 14V34H0.75z" fill="#2b4fc0"/>
+                    <rect x="16" y="13" width="70" height="8" rx="4" fill="#93c5fd"/>
+                    <circle cx="152" cy="17" r="4" fill="#FF9D3D"/><circle cx="165" cy="17" r="4" fill="#60a5fa"/>
+                    <rect x="1" y="34" width="178" height="19" fill="#27449f"/>
+                    <rect x="12" y="40" width="22" height="6" rx="3" fill="#60a5fa"/><rect x="56" y="40" width="40" height="6" rx="3" fill="#60a5fa"/><rect x="134" y="40" width="34" height="6" rx="3" fill="#60a5fa"/>
+                    <rect x="1" y="163" width="178" height="22" fill="#2b4fc0"/>
+                    <path d="M46 34V185M124 34V185M1 75H179M1 97H179M1 119H179M1 141H179M1 163H179M1 185H179" stroke="#2b4fc0" strokeWidth="1"/>
+                    <rect x="12" y="61" width="20" height="5" rx="2.5" fill="#3b62c4"/><rect x="56" y="61" width="52" height="5" rx="2.5" fill="#3b62c4"/><rect x="138" y="61" width="30" height="5" rx="2.5" fill="#60a5fa"/>
+                    <rect x="12" y="83" width="20" height="5" rx="2.5" fill="#3b62c4"/><rect x="56" y="83" width="40" height="5" rx="2.5" fill="#3b62c4"/><rect x="144" y="83" width="24" height="5" rx="2.5" fill="#60a5fa"/>
+                    <rect x="12" y="105" width="20" height="5" rx="2.5" fill="#3b62c4"/><rect x="56" y="105" width="58" height="5" rx="2.5" fill="#3b62c4"/><rect x="132" y="105" width="36" height="5" rx="2.5" fill="#60a5fa"/>
+                    <rect x="12" y="127" width="20" height="5" rx="2.5" fill="#3b62c4"/><rect x="56" y="127" width="34" height="5" rx="2.5" fill="#3b62c4"/><rect x="148" y="127" width="20" height="5" rx="2.5" fill="#60a5fa"/>
+                    <rect x="12" y="149" width="20" height="5" rx="2.5" fill="#3b62c4"/><rect x="56" y="149" width="48" height="5" rx="2.5" fill="#3b62c4"/><rect x="140" y="149" width="28" height="5" rx="2.5" fill="#60a5fa"/>
+                    <rect x="12" y="171" width="20" height="5" rx="2.5" fill="#93c5fd"/><rect x="56" y="171" width="50" height="5" rx="2.5" fill="#93c5fd"/><rect x="134" y="171" width="34" height="5" rx="2.5" fill="#FF9D3D"/>
+                    <rect x="122" y="192" width="50" height="20" rx="6" fill="#15803d"/>
+                    <text x="147" y="206" textAnchor="middle" fontSize="10" fontWeight="700" letterSpacing="0.06em" fill="#ffffff">XLSX</text>
+                </g>
+                <path d="M322 96v16M314 104h16" stroke="#FF9D3D" strokeWidth="2.5" strokeLinecap="round"/>
+                <path d="M452 286v12M446 292h12" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            <svg width="260" height="260" viewBox="220 508 260 260" aria-hidden="true" className="absolute bottom-0 right-0 pointer-events-none">
+                <circle cx="470" cy="712" r="190" fill="none" stroke="#1e40af" strokeWidth="1"/>
+                <circle cx="470" cy="712" r="128" fill="none" stroke="#2548b8" strokeWidth="1.5" strokeDasharray="2 8" strokeLinecap="round"/>
+                <circle cx="470" cy="712" r="66" fill="#1e3a8a"/>
+                <circle cx="452" cy="540" r="3" fill="#60a5fa"/>
+                <circle cx="420" cy="590" r="3.5" fill="#FF9D3D"/>
+            </svg>
+            </>
+        );
+        // Nền phải: 2 lớp — màu phủ kín + đồ vật giữ cỡ gốc quanh form (xem chú thích trong component).
+        const HinhDangNhapPhai = () => (
+            <>
+            {/* Lớp MÀU: chấm lưới + khối màu tròn — "slice" để màn cỡ nào cũng phủ kín. */}
+            <svg viewBox="0 0 886 768" preserveAspectRatio="xMidYMid slice" aria-hidden="true" className="absolute inset-0 w-full h-full pointer-events-none">
+            <defs>
+            <pattern id="dn-cham" width="18" height="18" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.1" fill="#cbd5e1"/></pattern>
+            </defs>
+            <rect width="886" height="768" fill="url(#dn-cham)" opacity="0.5"/>
+            <circle cx="120" cy="100" r="175" fill="#e0e7ff"/>
+            <circle cx="850" cy="64" r="100" fill="#ffedd5"/>
+            <circle cx="830" cy="700" r="215" fill="#dbeafe"/>
+            <circle cx="30" cy="770" r="130" fill="#e0e7ff"/>
+            </svg>
+            {/* Lớp ĐỒ VẬT: 4 thẻ + quỹ đạo + quầng sáng. GIỮ CỠ GỐC 886×768, căn giữa (= tâm form), chỉ phóng nhẹ
+                theo chiều cao (.dn-vat). ⛔ Đừng cho lớp này "slice": màn 2K bị phóng ~1,8 lần, thẻ to quá khổ và bị
+                cắt mất phần trên — Đại Ca gửi ảnh 28/09/2026. */}
+            <svg width="886" height="768" viewBox="0 0 886 768" aria-hidden="true" className="dn-vat pointer-events-none">
+            <defs>
+            <filter id="dn-bong" x="-20%" y="-20%" width="140%" height="170%"><feDropShadow dx="0" dy="12" stdDeviation="14" floodColor="#1e3a8a" floodOpacity="0.12"/></filter>
+            <filter id="dn-mo" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="40"/></filter>
+            </defs>
+            <ellipse className="dn-quy-dao" cx="443" cy="384" rx="405" ry="320" fill="none" stroke="#a5b4fc" strokeWidth="1.6" strokeDasharray="2 9" strokeLinecap="round"/>
+            <ellipse cx="443" cy="384" rx="270" ry="340" fill="#ffffff" opacity="0.7" filter="url(#dn-mo)"/>
+            {/* Màn rộng: nhóm trái dạt sang trái, nhóm phải dạt sang phải (--gian, xem CSS .dn-vat) */}
+            <g className="dn-trai-g">
+            <path d="M300 14v16M292 22h16" stroke="#FF9D3D" strokeWidth="2.5" strokeLinecap="round"/>
+            <path d="M24 392v12M18 398h12" stroke="#1e3a8a" strokeWidth="2" strokeLinecap="round"/>
+            <circle cx="236" cy="724" r="3.5" fill="#FF9D3D"/>
+            <g transform="translate(30 58) rotate(-6)">
+            <rect x="10" y="12" width="236" height="164" rx="16" fill="#c7d2fe"/>
+            <g filter="url(#dn-bong)">
+            <rect width="236" height="164" rx="16" fill="#ffffff" stroke="#1e3a8a" strokeWidth="1.5"/>
+            <path d="M0.75 16A15.25 15.25 0 0 1 16 0.75H220A15.25 15.25 0 0 1 235.25 16V36H0.75z" fill="#1e3a8a"/>
+            <rect x="16" y="14" width="64" height="8" rx="4" fill="#93c5fd"/>
+            <circle cx="204" cy="18" r="4" fill="#FF9D3D"/><circle cx="218" cy="18" r="4" fill="#60a5fa"/>
+            <rect x="1" y="36" width="234" height="18" fill="#eff6ff"/>
+            <rect x="14" y="42" width="24" height="5" rx="2.5" fill="#93c5fd"/><rect x="58" y="42" width="36" height="5" rx="2.5" fill="#93c5fd"/><rect x="152" y="42" width="24" height="5" rx="2.5" fill="#93c5fd"/><rect x="200" y="42" width="24" height="5" rx="2.5" fill="#93c5fd"/>
+            <rect x="1" y="98" width="234" height="22" fill="#ffedd5"/>
+            <path d="M48 36V142M140 36V142M188 36V142" stroke="#e0e7ff" strokeWidth="1"/>
+            <path d="M1 76H235M1 98H235M1 120H235M1 142H235" stroke="#e0e7ff" strokeWidth="1"/>
+            <rect x="14" y="62" width="24" height="6" rx="3" fill="#bfdbfe"/><rect x="58" y="62" width="44" height="6" rx="3" fill="#bfdbfe"/><rect x="152" y="62" width="24" height="6" rx="3" fill="#93c5fd"/>
+            <rect x="14" y="84" width="24" height="6" rx="3" fill="#bfdbfe"/><rect x="58" y="84" width="52" height="6" rx="3" fill="#bfdbfe"/><rect x="200" y="84" width="26" height="6" rx="3" fill="#60a5fa"/>
+            <rect x="14" y="106" width="24" height="6" rx="3" fill="#fdba74"/><rect x="58" y="106" width="40" height="6" rx="3" fill="#fdba74"/><rect x="148" y="106" width="28" height="6" rx="3" fill="#FF9D3D"/>
+            <rect x="14" y="128" width="24" height="6" rx="3" fill="#bfdbfe"/><rect x="58" y="128" width="48" height="6" rx="3" fill="#bfdbfe"/><rect x="204" y="128" width="22" height="6" rx="3" fill="#60a5fa"/>
+            <rect x="14" y="150" width="30" height="6" rx="3" fill="#1e3a8a"/><rect x="184" y="150" width="40" height="6" rx="3" fill="#1e3a8a"/>
+            </g>
+            </g>
+            <g transform="translate(46 512) rotate(-8)">
+            <path transform="translate(18 -6) rotate(6)" d="M10 0H88L120 32V146a10 10 0 0 1-10 10H10A10 10 0 0 1 0 146V10A10 10 0 0 1 10 0z" fill="#dcfce7" stroke="#15803d" strokeWidth="1.5"/>
+            <g filter="url(#dn-bong)">
+            <path d="M10 0H88L120 32V146a10 10 0 0 1-10 10H10A10 10 0 0 1 0 146V10A10 10 0 0 1 10 0z" fill="#ffffff" stroke="#1e3a8a" strokeWidth="1.5"/>
+            <path d="M88 0V22a10 10 0 0 0 10 10H120" fill="#dbeafe" stroke="#1e3a8a" strokeWidth="1.5" strokeLinejoin="round"/>
+            <rect x="16" y="46" width="88" height="18" fill="#e0e7ff"/>
+            <rect x="46" y="65" width="29" height="15" fill="#eff6ff"/><rect x="75" y="81" width="28" height="15" fill="#ffedd5"/>
+            <rect x="16" y="46" width="88" height="66" rx="3" fill="none" stroke="#a5b4fc"/>
+            <path d="M45 46V112M75 46V112M16 64H104M16 80H104M16 96H104" stroke="#c7d2fe" strokeWidth="1"/>
+            <rect x="16" y="124" width="50" height="20" rx="6" fill="#15803d"/>
+            <text x="41" y="138" textAnchor="middle" fontSize="10" fontWeight="700" letterSpacing="0.06em" fill="#ffffff">XLSX</text>
+            </g>
+            <circle cx="112" cy="142" r="17" fill="#FF9D3D" stroke="#ffffff" strokeWidth="3"/>
+            <path d="M112 134v13M106.5 141.5l5.5 5.5 5.5-5.5" fill="none" stroke="#ffffff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
+            </g>
+            </g>
+            <g className="dn-phai-g">
+            <path d="M592 728v14M585 735h14" stroke="#60a5fa" strokeWidth="2.2" strokeLinecap="round"/>
+            <path d="M866 400v12M860 406h12" stroke="#FF9D3D" strokeWidth="2" strokeLinecap="round"/>
+            <circle cx="690" cy="30" r="3" fill="#60a5fa"/><circle cx="870" cy="300" r="3" fill="#1e3a8a"/>
+            <g transform="translate(632 66) rotate(5)">
+            <rect x="10" y="12" width="228" height="156" rx="16" fill="#c7d2fe"/>
+            <g filter="url(#dn-bong)">
+            <rect width="228" height="156" rx="16" fill="#ffffff" stroke="#1e3a8a" strokeWidth="1.5"/>
+            <rect x="18" y="18" width="84" height="8" rx="4" fill="#bfdbfe"/>
+            <path d="M38 54L56 44L74 54L56 64Z" fill="#dbeafe" stroke="#1e3a8a" strokeWidth="1.5" strokeLinejoin="round"/><path d="M38 54V78L56 88V64Z" fill="#93c5fd" stroke="#1e3a8a" strokeWidth="1.5" strokeLinejoin="round"/><path d="M74 54V78L56 88V64Z" fill="#60a5fa" stroke="#1e3a8a" strokeWidth="1.5" strokeLinejoin="round"/><path d="M47 49L65 59" stroke="#1e3a8a" strokeWidth="1.2" strokeLinecap="round"/>
+            <path d="M154 54L172 44L190 54L172 64Z" fill="#dbeafe" stroke="#1e3a8a" strokeWidth="1.5" strokeLinejoin="round"/><path d="M154 54V78L172 88V64Z" fill="#93c5fd" stroke="#1e3a8a" strokeWidth="1.5" strokeLinejoin="round"/><path d="M190 54V78L172 88V64Z" fill="#60a5fa" stroke="#1e3a8a" strokeWidth="1.5" strokeLinejoin="round"/><path d="M163 49L181 59" stroke="#1e3a8a" strokeWidth="1.2" strokeLinecap="round"/>
+            <path d="M82 52C104 26 128 26 148 52" fill="none" stroke="#FF9D3D" strokeWidth="2" strokeDasharray="5 5" strokeLinecap="round"/>
+            <path d="M141 49L148 53L149 45" fill="none" stroke="#FF9D3D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <rect x="38" y="98" width="36" height="5" rx="2.5" fill="#bfdbfe"/><rect x="154" y="98" width="36" height="5" rx="2.5" fill="#bfdbfe"/>
+            <rect x="18" y="116" width="92" height="20" rx="10" fill="#1e3a8a"/>
+            <circle cx="30" cy="126" r="5" fill="#ffffff"/><path d="M27.6 126l1.7 1.7 3.2-3.3" fill="none" stroke="#1e3a8a" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+            <rect x="40" y="123" width="58" height="6" rx="3" fill="#93c5fd"/>
+            <rect x="116" y="116" width="60" height="20" rx="10" fill="#FF9D3D"/>
+            <circle cx="127" cy="126" r="3.5" fill="#ffffff"/><rect x="135" y="123" width="32" height="6" rx="3" fill="#ffedd5"/>
+            <rect x="182" y="116" width="30" height="20" rx="10" fill="#e0e7ff"/><rect x="190" y="123" width="14" height="6" rx="3" fill="#a5b4fc"/>
+            </g>
+            </g>
+            <g transform="translate(680 480) rotate(6)">
+            <rect x="10" y="12" width="184" height="158" rx="16" fill="#c7d2fe"/>
+            <g filter="url(#dn-bong)">
+            <rect width="184" height="158" rx="16" fill="#ffffff" stroke="#1e3a8a" strokeWidth="1.5"/>
+            <path d="M0.75 16A15.25 15.25 0 0 1 16 0.75H168A15.25 15.25 0 0 1 183.25 16V34H0.75z" fill="#1e3a8a"/>
+            <path d="M22 12l-5 5 5 5M162 12l5 5-5 5" fill="none" stroke="#93c5fd" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            <rect x="66" y="13" width="52" height="8" rx="4" fill="#93c5fd"/>
+            <rect x="17" y="44" width="12" height="5" rx="2.5" fill="#bfdbfe"/><rect x="39" y="44" width="12" height="5" rx="2.5" fill="#bfdbfe"/><rect x="61" y="44" width="12" height="5" rx="2.5" fill="#bfdbfe"/><rect x="83" y="44" width="12" height="5" rx="2.5" fill="#bfdbfe"/><rect x="105" y="44" width="12" height="5" rx="2.5" fill="#bfdbfe"/><rect x="127" y="44" width="12" height="5" rx="2.5" fill="#bfdbfe"/><rect x="149" y="44" width="12" height="5" rx="2.5" fill="#bfdbfe"/>
+            <rect x="15" y="58" width="16" height="16" rx="5" fill="#f1f5f9"/><rect x="37" y="58" width="16" height="16" rx="5" fill="#f1f5f9"/><rect x="59" y="58" width="16" height="16" rx="5" fill="#f1f5f9"/><rect x="81" y="58" width="16" height="16" rx="5" fill="#f1f5f9"/><rect x="103" y="58" width="16" height="16" rx="5" fill="#f1f5f9"/><rect x="125" y="58" width="16" height="16" rx="5" fill="#f1f5f9"/><rect x="147" y="58" width="16" height="16" rx="5" fill="#f1f5f9"/>
+            <rect x="15" y="80" width="16" height="16" rx="5" fill="#f1f5f9"/><rect x="37" y="80" width="104" height="16" rx="8" fill="#dbeafe"/><rect x="37" y="80" width="16" height="16" rx="8" fill="#1e3a8a"/><rect x="125" y="80" width="16" height="16" rx="8" fill="#1e3a8a"/><rect x="147" y="80" width="16" height="16" rx="5" fill="#f1f5f9"/>
+            <rect x="15" y="102" width="16" height="16" rx="5" fill="#f1f5f9"/><rect x="37" y="102" width="16" height="16" rx="5" fill="#f1f5f9"/><rect x="59" y="102" width="16" height="16" rx="5" fill="#f1f5f9"/><rect x="81" y="102" width="16" height="16" rx="5" fill="#f1f5f9"/><rect x="103" y="102" width="16" height="16" rx="5" fill="#f1f5f9"/><rect x="125" y="102" width="16" height="16" rx="5" fill="#f1f5f9"/><rect x="147" y="102" width="16" height="16" rx="5" fill="#f1f5f9"/>
+            <rect x="15" y="124" width="16" height="16" rx="5" fill="#f1f5f9"/><rect x="37" y="124" width="16" height="16" rx="5" fill="#f1f5f9"/><rect x="59" y="124" width="16" height="16" rx="5" fill="#ffedd5"/><rect x="81" y="124" width="16" height="16" rx="5" fill="#f1f5f9"/><rect x="103" y="124" width="16" height="16" rx="5" fill="#f1f5f9"/><rect x="125" y="124" width="16" height="16" rx="5" fill="#f1f5f9"/><rect x="147" y="124" width="16" height="16" rx="5" fill="#f1f5f9"/>
+            <circle cx="67" cy="132" r="3" fill="#FF9D3D"/>
+            </g>
+            <rect x="46" y="-9" width="9" height="20" rx="4.5" fill="#ffffff" stroke="#1e3a8a" strokeWidth="1.5"/>
+            <rect x="129" y="-9" width="9" height="20" rx="4.5" fill="#ffffff" stroke="#1e3a8a" strokeWidth="1.5"/>
+            </g>
+            </g>
+            </svg>
+            </>
+        );
 
         const IOSDatePicker = ({ label, value, onChange, disabled }) => {
             const [isOpen, setIsOpen] = useState(false);
@@ -5179,6 +5387,8 @@ const exportJournalCsv = (mode) => {
             const [meta, setMeta] = useState({ accounts: [], orgs: [], pr_details: [], tran_ids: [], jobs: [], items: [], products: [], expenses: [], warehouses: [], db_info: {}, global_total: 0 });
             const [loading, setLoading] = useState(false);
             const [loginLoading, setLoginLoading] = useState(false);
+            const [hienMkSql, setHienMkSql] = useState(false);   // nút con mắt 2 ô mật khẩu — màn đăng nhập 08A+
+            const [hienMkApp, setHienMkApp] = useState(false);
             const [loginError, setLoginError] = useState("");
             // Nguyên văn lỗi ODBC — giấu sau nút "Chi tiết", chỉ mở khi cần chẩn đoán.
             const [loginErrorChiTiet, setLoginErrorChiTiet] = useState("");
@@ -7532,6 +7742,25 @@ const exportJournalCsv = (mode) => {
             };
 
             if (!isLoggedIn) {
+                // Một ô nhập của màn đăng nhập. GỌI NHƯ HÀM ({oNhapDN(...)}), ĐỪNG viết <ONhap/>: khai component
+                // bên trong App ⇒ mỗi lần gõ React coi là loại mới, dựng lại ô ⇒ ô mất con trỏ sau mỗi phím.
+                const oNhapDN = (id, nhan, icon, truong, batBuoc = true, hien, datHien) => (
+                    <div>
+                        <label className="dn-lbl" htmlFor={id}>{nhan}</label>
+                        <div className="dn-o">
+                            <span className="dn-ic"><Icon name={icon} size={16} strokeWidth="1.8"/></span>
+                            <input id={id} required={batBuoc} className={'dn-inp' + (datHien ? ' co-mat' : '')}
+                                type={datHien && !hien ? 'password' : 'text'} value={loginData[truong]}
+                                onChange={e => setLoginData({ ...loginData, [truong]: e.target.value })}/>
+                            {datHien && (
+                                <button type="button" tabIndex={-1} className="dn-mat" onClick={() => datHien(v => !v)}
+                                    aria-label={hien ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} title={hien ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}>
+                                    <Icon name={hien ? 'eye-off' : 'eye'} size={16} strokeWidth="1.8"/>
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                );
                 return (
                     <div className="h-screen bg-white flex flex-col relative overflow-hidden">
                         {autoUpdate.moHopThoai && !autoUpdate.isUpdating && (
@@ -7539,12 +7768,11 @@ const exportJournalCsv = (mode) => {
                         )}
                         <div className="flex-1 flex relative overflow-hidden">
 
-                            {/* Tam trai: navy, hoa tiet luoi 24px + hinh hoc. Khong dung do bong. */}
+                            {/* Tấm trái navy — 08A+ (Đại Ca chốt 28/09/2026): bỏ dòng khẩu hiệu dưới chữ DATA REPORT (Đại Ca bỏ),
+                                3 dòng giới thiệu có tiêu đề + mô tả. Hình minh hoạ: HinhDangNhapTrai (cấp ngoài cùng). */}
                             <div className="hidden lg:flex shrink-0 w-[480px] flex-col justify-between relative overflow-hidden"
                                  style={{ background: '#172554', backgroundImage: 'linear-gradient(#1e3a8a 1px, transparent 1px), linear-gradient(90deg, #1e3a8a 1px, transparent 1px)', backgroundSize: '24px 24px', padding: '52px' }}>
-                                <div className="absolute rounded-full" style={{ top: '210px', right: '-120px', width: '300px', height: '300px', border: '1px solid #1e40af' }}></div>
-                                <div className="absolute" style={{ top: '262px', right: '-68px', width: '196px', height: '196px', border: '1px solid #1e40af' }}></div>
-                                <div className="absolute" style={{ bottom: '112px', left: '52px', width: '140px', height: '56px', backgroundImage: 'radial-gradient(#1e40af 1.4px, transparent 1.4px)', backgroundSize: '14px 14px' }}></div>
+                                <HinhDangNhapTrai />
 
                                 <div className="flex items-center gap-3 relative">
                                     <svg viewBox="0 0 200 200" className="h-[34px] w-[34px] shrink-0">
@@ -7558,28 +7786,21 @@ const exportJournalCsv = (mode) => {
                                     <h1 className="text-white font-bold m-0" style={{ fontSize: '70px', lineHeight: '0.92', letterSpacing: '-0.035em' }}>
                                         DATA<br/><span style={{ color: '#60a5fa' }}>REPORT</span>
                                     </h1>
-                                    <div className="text-[11px] font-bold uppercase mt-[18px]" style={{ letterSpacing: '0.18em', color: '#93c5fd' }}>Minh bạch tới từng chứng từ</div>
-                                    <div style={{ height: '3px', width: '64px', background: '#FF9D3D', margin: '26px 0' }}></div>
-
-                                    <div className="flex flex-col gap-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="shrink-0 flex items-center justify-center" style={{ width: '34px', height: '34px', border: '1px solid #1e3a8a', color: '#93c5fd' }}>
-                                                <Icon name="file-text" size={16}/>
+                                    <div style={{ height: '3px', width: '64px', background: '#FF9D3D', margin: '26px 0 28px' }}></div>
+                                    <div className="flex flex-col gap-[18px]">
+                                        {[
+                                            ['file-text', '16 báo cáo tài chính', 'KQKD, cân đối, lưu chuyển tiền tệ, công nợ, thuế'],
+                                            ['table', '9 bảng dữ liệu', 'Lọc theo cột, xuất Excel đúng cột đang hiện'],
+                                            ['arrows-updown', 'Đối chiếu kho tự động', 'Điều chuyển nội bộ, sản xuất bán thành phẩm'],
+                                        ].map(([ic, tieuDe, moTa]) => (
+                                            <div key={tieuDe} className="dn-gt">
+                                                <span className="dn-gt-o"><Icon name={ic} size={17} strokeWidth="1.8"/></span>
+                                                <div>
+                                                    <div className="text-[14px] font-bold" style={{ color: '#f1f5f9' }}>{tieuDe}</div>
+                                                    <div className="text-[12px] mt-[3px]" style={{ color: '#94a3b8' }}>{moTa}</div>
+                                                </div>
                                             </div>
-                                            <div className="text-[13.5px] text-slate-300">16 báo cáo tài chính theo TT200</div>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <div className="shrink-0 flex items-center justify-center" style={{ width: '34px', height: '34px', border: '1px solid #1e3a8a', color: '#93c5fd' }}>
-                                                <Icon name="table" size={16}/>
-                                            </div>
-                                            <div className="text-[13.5px] text-slate-300">9 bảng dữ liệu, lọc theo cột và xuất Excel</div>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <div className="shrink-0 flex items-center justify-center" style={{ width: '34px', height: '34px', border: '1px solid #1e3a8a', color: '#93c5fd' }}>
-                                                <Icon name="arrows-updown" size={16}/>
-                                            </div>
-                                            <div className="text-[13.5px] text-slate-300">Đối chiếu xuất &ndash; nhập kho tự động</div>
-                                        </div>
+                                        ))}
                                     </div>
                                 </div>
 
@@ -7635,67 +7856,81 @@ const exportJournalCsv = (mode) => {
                             </div>
                         )}
 
-                        <div className="m-auto w-full max-w-md p-10 z-10 relative">
-                            <div className="text-center mb-8 lg:hidden">
-                                <svg viewBox="0 0 200 200" className="h-16 w-16 mx-auto mb-4">
-                                    <rect width="200" height="200" rx="45" fill="#FF9D3D"/>
-                                    <rect x="40" y="40" width="120" height="120" rx="30" fill="none" stroke="white" strokeWidth="20"/>
-                                </svg>
-                                <h1 className="text-2xl font-black text-slate-900 tracking-tight">{APP_NAME}</h1>
-                                <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest mt-1">{appVersion}</p>
-                            </div>
+                        {/* Bên phải — 08A+: nền minh hoạ (HinhDangNhapPhai) + thẻ form. Khung ngoài CUỘN ĐƯỢC: laptop 1366×768
+                            chỉ còn ~690px chiều cao, hiện thông báo lỗi là form dài hơn màn. Dùng m-auto chứ KHÔNG justify-center:
+                            tràn thì cuộn từ đầu form, không bị cắt mất phần trên. */}
+                        <div className="dn-vung flex-1 min-w-0 relative overflow-hidden" style={{ background: '#eef2f7' }}>
+                            <HinhDangNhapPhai />
+                            <div className="dn-cuon absolute inset-0 overflow-y-auto flex flex-col z-10">
+                              <div className="dn-the m-auto">
+                              <div className="text-center mb-8 lg:hidden">
+                                  <svg viewBox="0 0 200 200" className="h-16 w-16 mx-auto mb-4">
+                                      <rect width="200" height="200" rx="45" fill="#FF9D3D"/>
+                                      <rect x="40" y="40" width="120" height="120" rx="30" fill="none" stroke="white" strokeWidth="20"/>
+                                  </svg>
+                                  <h1 className="text-2xl font-black text-slate-900 tracking-tight">{APP_NAME}</h1>
+                                  <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest mt-1">{appVersion}</p>
+                              </div>
 
-                            <form onSubmit={handleLogin} className="space-y-4">
-
-                                <div className="flex items-baseline gap-3 mb-1">
-                                    <span className="text-[13px] font-bold text-indigo-600">01</span>
-                                    <span className="text-[15px] font-bold text-slate-900">Máy chủ SQL</span>
-                                    <span className="flex-1 h-px bg-slate-200"></span>
-                                </div>
-                                <div><div className="label-text mb-1.5 ml-1">Server Address</div><input required className="login-input" value={loginData.server} onChange={e => setLoginData({...loginData, server: e.target.value})}/></div>
-                                <div><div className="label-text mb-1.5 ml-1">Database Name</div><input required className="login-input" value={loginData.database} onChange={e => setLoginData({...loginData, database: e.target.value})}/></div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div><div className="label-text mb-1.5 ml-1">User ID</div><input required className="login-input" value={loginData.user} onChange={e => setLoginData({...loginData, user: e.target.value})} placeholder="sa"/></div>
-                                    <div><div className="label-text mb-1.5 ml-1">Password</div><input required type="password" className="login-input" value={loginData.password} onChange={e => setLoginData({...loginData, password: e.target.value})} placeholder="••••••••"/></div>
+                                <div className="flex flex-col gap-1.5">
+                                    <div className="dn-tieude font-bold text-slate-900">Đăng nhập</div>
+                                    <div className="dn-phu text-[13px] text-slate-600">Nhập thông tin máy chủ SQL và tài khoản được cấp</div>
                                 </div>
 
-                                <div className="pt-3 mt-1 border-t border-slate-200/70">
-                                    <div className="flex items-baseline gap-3 mb-3">
-                                        <span className="text-[13px] font-bold text-indigo-600">02</span>
-                                        <span className="text-[15px] font-bold text-slate-900">Tài khoản ứng dụng</span>
-                                        <span className="flex-1 h-px bg-slate-200"></span>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div><div className="label-text mb-1.5 ml-1">Tài khoản</div><input className="login-input" value={loginData.app_user} onChange={e => setLoginData({...loginData, app_user: e.target.value})} placeholder="vd: ketoan1"/></div>
-                                        <div><div className="label-text mb-1.5 ml-1">Mật khẩu</div><input type="password" className="login-input" value={loginData.app_password} onChange={e => setLoginData({...loginData, app_password: e.target.value})} placeholder="••••••••"/></div>
-                                    </div>
-                                </div>
-
-                                {loginError && (
-                                    <div className="bg-red-50 border border-red-100 text-red-600 p-3 rounded-xl text-[10px] font-bold mt-2 leading-relaxed animate-shake">
-                                        <div className="flex items-start gap-2">
-                                            <Icon name="lock" size={12} className="mt-0.5 shrink-0"/>
-                                            <span className="whitespace-pre-line">{loginError}</span>
+                                <form onSubmit={handleLogin} className="dn-form">
+                                    <div className="dn-khoi">
+                                        <div className="dn-dau">
+                                            <span className="dn-huy" style={{ background: '#dbeafe', color: '#1e3a8a' }}><Icon name="server" size={16} strokeWidth="1.8"/></span>
+                                            <span className="text-[15px] font-bold text-slate-900">Máy chủ SQL</span>
+                                            <span className="dn-so" style={{ background: '#e0e7ff', color: '#1e3a8a' }}>01</span>
                                         </div>
-                                        {loginErrorChiTiet && (
-                                            <div className="mt-2 pt-2 border-t border-red-100">
-                                                <button type="button" onClick={() => setHienChiTietLoi(v => !v)}
-                                                    className="text-[9px] font-black uppercase tracking-wider text-red-400 hover:text-red-600">
-                                                    {hienChiTietLoi ? '− Ẩn chi tiết kỹ thuật' : '+ Chi tiết kỹ thuật'}
-                                                </button>
-                                                {hienChiTietLoi && <div className="mt-1.5 text-[9px] font-mono font-normal text-red-400 break-all leading-snug">{loginErrorChiTiet}</div>}
-                                            </div>
-                                        )}
+                                        {oNhapDN('dn-sv', 'Địa chỉ máy chủ', 'globe', 'server')}
+                                        {oNhapDN('dn-db', 'Tên cơ sở dữ liệu', 'database', 'database')}
+                                        <div className="grid grid-cols-2 gap-3.5">
+                                            {oNhapDN('dn-us', 'Tên đăng nhập', 'key', 'user')}
+                                            {oNhapDN('dn-pw', 'Mật khẩu', 'lock', 'password', true, hienMkSql, setHienMkSql)}
+                                        </div>
                                     </div>
-                                )}
 
-                                <button disabled={loginLoading} type="submit" className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-[12px] uppercase tracking-widest shadow-xl shadow-indigo-500/30 hover:bg-indigo-700 active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-6">
-                                    {loginLoading ? <Icon name="loader" className="animate-spin"/> : <><Icon name="database" size={14}/> KẾT NỐI NGAY</>}
-                                </button>
-                            </form>
-                            
-                            <div className="mt-8 pt-8 border-t border-slate-200 text-center">
-                                <p className="text-slate-400 font-bold text-[9px] uppercase tracking-widest italic">Designed for iPOS/IACC Performance</p>
+                                    <div className="dn-khoi">
+                                        <div className="dn-dau">
+                                            <span className="dn-huy" style={{ background: '#ffedd5', color: '#c2410c' }}><Icon name="users" size={16} strokeWidth="1.8"/></span>
+                                            <span className="text-[15px] font-bold text-slate-900">Tài khoản ứng dụng</span>
+                                            <span className="dn-so" style={{ background: '#ffedd5', color: '#c2410c' }}>02</span>
+                                        </div>
+                                        {/* 2 ô này KHÔNG required: bỏ trống thì handleLogin báo bằng câu tiếng Việt (việc 9) */}
+                                        <div className="grid grid-cols-2 gap-3.5">
+                                            {oNhapDN('dn-tk', 'Tài khoản', 'id-card', 'app_user', false)}
+                                            {oNhapDN('dn-mk', 'Mật khẩu', 'lock', 'app_password', false, hienMkApp, setHienMkApp)}
+                                        </div>
+                                    </div>
+
+                                    {loginError && (
+                                        <div className="bg-red-50 border border-red-100 text-red-600 p-3 rounded-xl text-[10px] font-bold mt-2 leading-relaxed animate-shake">
+                                            <div className="flex items-start gap-2">
+                                                <Icon name="lock" size={12} className="mt-0.5 shrink-0"/>
+                                                <span className="whitespace-pre-line">{loginError}</span>
+                                            </div>
+                                            {loginErrorChiTiet && (
+                                                <div className="mt-2 pt-2 border-t border-red-100">
+                                                    <button type="button" onClick={() => setHienChiTietLoi(v => !v)}
+                                                        className="text-[9px] font-black uppercase tracking-wider text-red-400 hover:text-red-600">
+                                                        {hienChiTietLoi ? '− Ẩn chi tiết kỹ thuật' : '+ Chi tiết kỹ thuật'}
+                                                    </button>
+                                                    {hienChiTietLoi && <div className="mt-1.5 text-[9px] font-mono font-normal text-red-400 break-all leading-snug">{loginErrorChiTiet}</div>}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    <button disabled={loginLoading} type="submit" className="dn-nut">
+                                        {loginLoading
+                                            ? <><Icon name="loader" size={16} className="animate-spin"/>Đang kết nối…</>
+                                            : <>Đăng nhập<Icon name="arrow-right" size={16} strokeWidth="2.2"/></>}
+                                    </button>
+                                    <div className="text-center text-[12.5px] text-slate-500">Chưa có tài khoản? Liên hệ quản trị để được cấp.</div>
+                                </form>
+                              </div>
                             </div>
                         </div>
                         {exportNoticeModal && (

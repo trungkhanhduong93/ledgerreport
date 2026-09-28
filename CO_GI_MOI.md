@@ -16,6 +16,11 @@
 >   một lần), hiện tối đa 8 dòng, dư thì ghi "… và N thay đổi khác".
 > - Dòng không bắt đầu bằng `- ` (như khối ghi chú này) app bỏ qua.
 
+## v2.0.5
+- Màn đăng nhập mới: chia rõ 2 phần Máy chủ SQL và Tài khoản ứng dụng, chữ tiếng Việt hết
+- Màn đăng nhập: bấm hình con mắt để xem lại mật khẩu vừa gõ
+- Màn đăng nhập: các ô để trống sạch, không còn chữ mờ ví dụ dễ tưởng là đã điền sẵn
+
 ## v2.0.4
 - Báo cáo tài chính: file Excel xuất ra giữ đúng mẫu đang xem — tiêu đề cột canh giữa, cột Chỉ tiêu canh trái
 

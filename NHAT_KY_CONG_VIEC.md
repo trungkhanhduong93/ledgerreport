@@ -53,12 +53,13 @@
 
 ### 🎨 DỰ ÁN GIAO DIỆN MỚI — *(24/09/2026)* — ✅ **ĐÃ PHÁT HÀNH `v2.0.0` 25/09/2026** (nhánh `giaodien` đã gộp vào `main`)
 
-> Phác thảo (ngoài repo): **https://claude.ai/artifact/7kiiWQ13PPR7eXN2AgPhtc** — 7 mục (01–07; 07 = thông báo có bản mới).
+> Phác thảo (ngoài repo): **https://claude.ai/artifact/7kiiWQ13PPR7eXN2AgPhtc** — 8 mục (01–08; 07 = thông báo có bản mới;
+> 08 = màn đăng nhập mới, bản **08A+** đã làm vào app ở v2.0.5).
 > Nhật ký chi tiết: các mục 24–26/09/2026 ngay dưới § này.
 
 **Đại Ca đã chốt:** font **Arial toàn bộ** · màu chủ đạo **navy `#1E3A8A`** (nền tối `#172554`) ·
 **giữ nguyên logo** `icon.svg` `#FF9D3D` · icon **SVG, cấm emoji** · tên hiển thị **`DATA REPORT`** (đổi từ
-`PROOFTRAIL` 25/09), dòng phụ *"Minh bạch tới từng chứng từ"* · điều hướng **2 tầng** (cột phân hệ navy **có tên**,
+`PROOFTRAIL` 25/09), ~~dòng phụ *"Minh bạch tới từng chứng từ"*~~ (**Đại Ca bỏ 28/09, v2.0.5**) · điều hướng **2 tầng** (cột phân hệ navy **có tên**,
 kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 
 | GĐ | Việc | Trạng thái |
@@ -143,6 +144,42 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 28/09/2026 — Màn đăng nhập mới 08A+ (ảnh nền minh hoạ + form tiếng Việt 2 khối)
+
+Đại Ca: *"chỉnh chút xíu về màn hình đăng nhập, có thể làm cho nó đẹp hơn và thêm hình ảnh"* → *"mô phỏng thôi, kiểu ảnh nền
+cho nó đỡ trống"* · *"làm lại tiếng việt hết, và bỏ mấy cái ví dụ ẩn ẩn đi nhìn tưởng đã nhập rồi"*.
+
+### Phác thảo trước (mục 08 của canvas phác thảo) — 6 vòng góp ý
+Hiện tại · **A** (giữ tấm navy, nền sáng bên phải) · **B** (nền navy phủ cả màn) → Đại Ca: bỏ khẩu hiệu, 2 ô tài khoản đang
+**trùng icon người** ⇒ tách **2 khối** + icon riêng từng ô → chọn A, *"làm nó xịn hơn"* ⇒ **A+** → *"thực tế đâu có biểu đồ"* ⇒
+thay mọi biểu đồ bằng **thứ app có thật** → *"cách điệu hơn chút"* ⇒ thẻ nghiêng, lớp giấy lót, thùng hàng 3D, quỹ đạo chấm → chốt.
+
+### Đã làm (`index.html` + 2 câu `server.py`)
+- Tấm trái: bỏ khẩu hiệu; 3 dòng giới thiệu có tiêu đề + mô tả; xấp tờ biểu mẫu (`HinhDangNhapTrai`, 2 SVG neo góc).
+- Vùng phải: `HinhDangNhapPhai` = lớp màu (`slice`) + lớp đồ vật `.dn-vat` (cỡ gốc, căn giữa, `--k` theo chiều cao,
+  `--gian` theo bề rộng) · thẻ form `.dn-the`: 2 khối 01/02, nhãn Việt, không placeholder, icon mới `server` `globe`
+  `id-card` `users` `eye` `eye-off`, nút con mắt, nút *Đăng nhập →*, dòng *"Chưa có tài khoản? Liên hệ quản trị để được cấp."*
+  Giữ nguyên `handleLogin`, khối báo lỗi (nút *Chi tiết kỹ thuật*), hộp cập nhật, nhãn cam *Có bản*, hộp cài driver.
+- `server.py`: 2 câu hướng dẫn lỗi SQL đổi theo nhãn mới (*"Sai Tên đăng nhập hoặc Mật khẩu ở mục 01 — Máy chủ SQL…"*,
+  *"Kiểm tra ô Tên cơ sở dữ liệu…"*). Dòng tiêu đề `_LOI_KET_NOI` giữ nguyên.
+- `CO_GI_MOI.md` mục `## v2.0.5` (3 dòng, mô phỏng đúng hàm của app: máy 2.0.4 thấy 3 dòng). Luật màn đăng nhập ghi vào CLAUDE.md.
+
+### 🧪 Verify (server xem 5052 — nạp `server.py` **bỏ dòng tắt cổng 5050**)
+| Đo | Kết quả |
+|---|---|
+| 1366×690 (laptop thật) | form 599px vừa màn; **có thông báo lỗi**: lần đầu 725px ⇒ tràn 35px ⇒ thu gọn thêm ⇒ **655px, vừa** |
+| 1280×650 có lỗi | tràn 29px, cuộn được, đầu form không bị cắt |
+| 900px (tấm trái ẩn) | tiêu đề DATA REPORT trên form, không tràn ngang |
+| Tờ biểu mẫu vs chữ REPORT | không chạm ở mọi chiều cao |
+| Bấm Đăng nhập thiếu tài khoản ứng dụng | đúng câu việc 9, chữ đã gõ còn nguyên · con mắt: password ↔ text |
+| 🔴 **Màn 2K (ảnh Đại Ca)** | cả khối hình `slice` phóng ~1,8 lần ⇒ thẻ to quá khổ, **bị cắt mép** — em chỉ đo SỐ ở 1920, không nhìn ảnh ⇒ sót. Tách 2 lớp ⇒ hết cắt; rồi Đại Ca chọn **giãn thẻ ở màn rộng**: 2K dạt 150 mỗi bên, **form che 0px**; laptop giữ nguyên |
+
+### 🔍 Điểm mù
+- Chưa đăng nhập thật (SQL + Google) trên giao diện mới — phần gửi đi không đổi (`handleLogin` cũ).
+- `--gian` dùng container query (`cqw`) — Chrome ≥105; máy dùng Chrome quá cũ thì thẻ không giãn (vẫn hiện đúng như laptop).
 
 ---
 

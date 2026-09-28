@@ -206,6 +206,20 @@ thấy**; thay đổi hệ thống / code / cách thông báo ⇒ đúng một d
 việc báo cập nhật. ⚠️ Ghi chú Release trên GitHub **không dùng được** — đó là đoạn văn cố định trong `release.yml`.
 ⚠️ Máy đang ở bản cũ báo cập nhật bằng **code của bản cũ** ⇒ đổi giao diện thông báo chỉ có tác dụng từ **lần cập nhật sau đó**.
 
+**Màn đăng nhập — 08A+** *(Đại Ca chốt 28/09/2026, phát hành v2.0.5; bản phác thảo mục 08)*: tấm navy trái (bỏ khẩu hiệu
+*"Minh bạch tới từng chứng từ"*) + vùng phải có **hình minh hoạ** + thẻ form **2 khối**: `01 Máy chủ SQL` · `02 Tài khoản ứng dụng`,
+nhãn **tiếng Việt hết**, **không placeholder** (chữ mờ bị tưởng đã điền sẵn), mỗi ô một icon riêng, nút con mắt ở 2 ô mật khẩu.
+⛔ **Hình chỉ vẽ thứ app CÓ THẬT** (biểu mẫu báo cáo, sổ chứng từ, đối chiếu kho, file Excel, lịch chọn kỳ) — **app không có biểu
+đồ**, Đại Ca đã bắt vẽ lại. Hình = SVG nhúng (`HinhDangNhapTrai` / `HinhDangNhapPhai`, khai **cấp ngoài cùng**) ⇒ không file ảnh,
+không mạng, không phải sửa `release.yml`.
+⛔ Nền phải **2 lớp**: lớp màu `slice` phủ kín + lớp đồ vật `.dn-vat` **giữ cỡ gốc 886×768 căn giữa**. Cho cả khối `slice` là màn
+2K phóng ~1,8 lần, thẻ to quá khổ và bị cắt mép (Đại Ca gửi ảnh). Màn rộng thì 2 nhóm thẻ dạt ra (`--gian`, tính bằng `cqw` của
+`.dn-vung`); laptop ra 0 ⇒ giữ nguyên.
+⛔ Ô nhập vẽ bằng **hàm** `oNhapDN(...)` gọi trực tiếp — **đừng** đổi thành `<ONhap/>` khai trong App: mỗi phím gõ ô bị dựng lại, mất con trỏ.
+⚠️ Nhãn ô phải **khớp câu hướng dẫn lỗi** ở `_loi_ket_noi_de_hieu` (`server.py`) — đổi nhãn thì đổi cả câu đó.
+⚠️ Laptop 1366×768 chỉ còn ~690px cao: `@media (max-height: 740px)` thu gọn để form + thông báo lỗi vừa màn (đo: 655/690px).
+**Đo bằng ẢNH ở cả màn to** — chỉ đo số ở 1920 đã để lọt lỗi thẻ quá khổ ở 2K.
+
 **Báo cáo TC — KHÔNG chia nhóm** (Đại Ca chốt 25/09/2026, theo mẫu iPOS Inventory): vào là thấy
 **trang liệt kê 16 thẻ** (`DanhSachBaoCao`, mỗi thẻ = mã + `ten` + `mo_ta` trong `REPORT_TYPES`).
 Đang xem mà muốn đổi thì bấm **ô chọn ở đầu hàng điều kiện** (`ChonBaoCao`, có ô tìm, gõ không dấu

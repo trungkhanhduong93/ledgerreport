@@ -3,13 +3,13 @@
 > Toàn bộ những gì đã làm với **LedgerReport**, và **vì sao**. Đọc file này trước khi sửa tiếp.
 > Kiến trúc, ma trận báo cáo, phương án backup: [CLAUDE.md](CLAUDE.md).
 > Mổ xẻ sâu sự cố + 4 bài học: [SU_CO_15082026.md](SU_CO_15082026.md).
-> 🚀 **Bản mới nhất: `v2.0.3` (28/09/2026), là `Latest` trên GitHub** = file xuất *Nhật ký chung chi tiết* (BC007) thêm
->   **Mã/Tên mục chi phí** + ô trống không còn chứa dấu cách. Các bản trước:
+> 🚀 **Bản mới nhất: `v2.0.4` (28/09/2026), là `Latest` trên GitHub** — code y `v2.0.3`, chỉ viết lại mục "Có gì mới".
+>   `v2.0.3` (28/09) = file xuất *Nhật ký chung chi tiết* (BC007) thêm **Mã/Tên mục chi phí** + ô trống không còn chứa dấu cách. Các bản trước:
 >   `v2.0.0` (25/09 tối) = **giao diện mới `DATA REPORT`** — Đại Ca chốt lên *Ver 2* ·
 >   `v2.0.1` (26/09) = **thông báo có bản mới kiểu mới** (hộp thoại + nút cam + thẻ nhắc, "Có gì mới" đọc `CO_GI_MOI.md`) ·
 >   `v2.0.2` (26/09) = **vá lỗi nhân viên thường không xuất được Excel Báo cáo TC** (có từ v2.0.0, Bẫy 30) + việc 9, 10, 23.
-> ✅ **EXE trên máy Đại Ca = đúng file CI v2.0.3** (SHA256 khớp digest) — lên bằng **đường cập nhật thật** từ file CI v2.0.2
->   (`/api/apply_update`, ~9 giây). Thư mục làm việc đang ở `main`.
+> ✅ **EXE trên máy Đại Ca = đúng file CI v2.0.4** (SHA256 khớp digest) — lên bằng **đường cập nhật thật** từ file CI v2.0.3
+>   (`/api/apply_update`). Thư mục làm việc đang ở `main`.
 > 🔑 Luật nghiệp vụ gốc chốt 24/09: iPOS **tự sinh** phiếu nhập `NDCNB` khi phiếu xuất `XDCNB` ghi sổ — đổi hẳn cách
 >   đọc tab đối chiếu điều chuyển. Xem các mục 24/09.
 > ✅ Tài khoản nhân viên trên Google Sheet + đổi mật khẩu `admin` + tick quyền 2 tab mới: **Đại Ca báo xong 25/09** (việc 1, 3, 4).
@@ -41,9 +41,9 @@
 
 > *Cập nhật 28/09/2026.* Gom hết việc còn treo về một chỗ. Nhận việc mới thì **đọc mục này trước**.
 > ⚠️ Tiêu đề mục này **cố ý không ghi ngày** — mọi đường dẫn `#-việc-cần-làm` trỏ vào nó; ghi ngày là gãy link.
-> Trạng thái: **v2.0.3 đã phát hành**, là `Latest`, và **EXE trên máy Đại Ca = đúng file CI** (SHA256 khớp digest, 28/09).
+> Trạng thái: **v2.0.4 đã phát hành**, là `Latest`, và **EXE trên máy Đại Ca = đúng file CI** (SHA256 khớp digest, 28/09).
 >
-> 🚧 **`main` đang đi trước GitHub** — chỉ 1 commit tài liệu (kết quả phát hành v2.0.3). **Cố ý giữ ở local, ĐỪNG push
+> 🚧 **`main` đang đi trước GitHub** — chỉ 1 commit tài liệu (kết quả phát hành v2.0.4). **Cố ý giữ ở local, ĐỪNG push
 > riêng**: push file `.md` là Actions build lại và **thay asset bằng binary khác SHA** ⇒ EXE vừa khớp trên máy lệch ngay.
 > Gộp vào lần sửa code tới (việc 11 `paths-ignore` sẽ gỡ hẳn vòng lặp này).
 >
@@ -143,6 +143,33 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 28/09/2026 — Phát hành v2.0.4 (chỉ viết lại "Có gì mới", code y v2.0.3)
+
+Đại Ca: *"Chổ có gì mới viết sao cho người dùng đọc vào hiểu á, đừng ghi mấy từ thật giả vào đây, với lại t nhớ update
+canh giữa canh lề nữa mà"*.
+
+- **Canh lề**: đã báo thật — lần này **không sửa code canh lề**; Excel Báo cáo TC canh đúng từ **v2.0.0** (BC001–BC004 đã
+  đo ở mục v2.0.3 bên dưới). Đại Ca vẫn muốn nhân viên **đọc được** ý đó ⇒ đưa vào mục **v2.0.4**, câu nói sự thật
+  (*"giữ đúng mẫu đang xem"*), không xưng là sửa lỗi.
+- ⚠️ **Em từng giải thích sai rồi tự đính chính** trước khi làm: nói dòng ghi ở `## v2.0.0` thì "người ở 1.x nhảy lên sẽ thấy"
+  — **sai**: máy 1.x / 2.0.0 báo cập nhật bằng code cũ, **không có** mục "Có gì mới" (có từ v2.0.1); máy ≥ 2.0.1 thì đã qua
+  v2.0.0. ⇒ Dòng ghi ở `## v2.0.0` **hộp thoại không bao giờ hiện**. Chạy đúng `_tach_co_gi_moi` lên file (không `import
+  server`) để thấy điều này — **mô phỏng trước khi viết `CO_GI_MOI.md`**.
+- **Vì sao phải ra bản mới**: app đọc `raw.githubusercontent.com/…/<tag>/CO_GI_MOI.md` — tag `v2.0.3` đã khoá ở `36d0dd5`,
+  sửa trên `main` vô tác dụng. Dời tag (force push) thì Actions build lại + thay asset ⇒ không làm.
+- `CO_GI_MOI.md`: v2.0.4 = 1 dòng canh lề · v2.0.3 viết lại 2 dòng (*"Nhật ký chung: …"*, bỏ chữ "thật") · dòng v2.0.0 bỏ
+  *".xlsx thật"* · thêm luật viết ở đầu file (mở đầu bằng tên màn hình, cấm chữ kiểu thật/giả, sửa câu sau phát hành ⇒ ra bản kế).
+- Build 2.0.4 (M3: EXE lên, `/api/version` 2.0.4, `check_update` không báo nhầm, xuất chưa đăng nhập ⇒ 401) · commit `5ce8beb`
+  · push `36d0dd5..5ce8beb` (kèm commit nhật ký v2.0.3) ⇒ Actions run `36401422055` **`success` 61s** ⇒ **`v2.0.4` = `Latest`**.
+- ✅ **Cập nhật thật 2.0.3 → 2.0.4** từ file CI v2.0.3: hộp thoại hiện **đúng 1 dòng** canh lề · `apply_update` ⇒ ~31s sau chạy
+  2.0.4 · EXE `dist\` **SHA256 = digest CI v2.0.4** · không sót `.old`/`.new` · hết báo cập nhật. App để đang chạy.
+- Người ở **2.0.2** lên thẳng 2.0.4 sẽ thấy 3 dòng: canh lề + 2 dòng Nhật ký chung. Ai đã lên 2.0.3 trong ~1 tiếng giữa hai bản
+  thì đã đọc câu cũ (có chữ "thật") — không sửa được nữa.
+- Bản cất `dist\`: `…_v2.0.3.exe.bak` (CI) · `…_v2.0.4_build_local.exe.bak`. Dòng *Lịch sử push* đã thêm vào `GITHUB_LEDGERREPORT.md`.
+- Mục này commit ở local, **chưa push**.
 
 ---
 

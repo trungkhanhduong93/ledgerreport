@@ -89,7 +89,7 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | 17 | ~~Nút `TRUY VẤN` đang chuyển màu navy → tím~~ ✅ **XONG 25/09** | Đại Ca chốt: chữ **"Lọc"**, navy đặc, như mẫu iPOS. Nằm trong thanh lọc mới của 9 màn danh sách |
 | 18 | ~~Chốt mốc commit phần đăng nhập nhanh + sửa font~~ ✅ **commit `c64540a`** | Phát hành v2.0.0 |
 | 19 | ~~Đại Ca xem GĐ3 rồi chốt commit~~ ✅ **Đại Ca chốt OK sáng 25/09** (*"cái đó thì ok rồi"*) ⇒ đã commit GĐ3 | ⚠️ Đại Ca chốt chung, **không nói rõ đã thử từng mục dưới đây chưa** — lần đầu dùng số liệu thật thì để ý. Danh sách cần xem ở mục *"Việc Đại Ca xem sáng 25/09"* trong nhật ký 25/09 (tiếp 3), ngay dưới § này. Ba việc tôi **không** tự thử được: hộp *"Chuyển mẫu báo cáo?"* khi có số liệu thật · menu **Xuất Excel / Xuất PDF** khi có số liệu (chưa có số liệu thì nút tắt) · kéo thả thứ tự ô lọc bằng chuột thật. Và **đọc lại mô tả 16 thẻ** — tôi tự viết |
-| 43 | ✅ **Nút Hủy xuất + hộp xuất Excel Nhật ký chung theo mẫu DataStudio** — **phát hành v2.0.7**. ⏳ Chưa bấm Huỷ trên giao diện EXE với số liệu thật | Đại Ca 29/09: *"nên cho thêm nút hủy tiến trình nếu t test t muốn ngưng"* + *"cơ chế tính giây sao nó cứ tăng giảm 1 chổ vậy … hoặc làm theo hình thì sao"* (ảnh hộp xuất DataStudio). Hộp mới: 4 bước · Đã ghi / Tốc độ / Thời gian *đã chạy · còn ~* · Hủy xuất. Mục nhật ký *29/09/2026 — Việc 43* |
+| 43 | ✅ **Nút Hủy xuất + hộp xuất Excel Nhật ký chung theo mẫu DataStudio** — **phát hành v2.0.7**. ✅ **Đại Ca bấm Hủy xuất trên EXE v2.0.7 với số liệu thật: OK (29/09)** | Đại Ca 29/09: *"nên cho thêm nút hủy tiến trình nếu t test t muốn ngưng"* + *"cơ chế tính giây sao nó cứ tăng giảm 1 chổ vậy … hoặc làm theo hình thì sao"* (ảnh hộp xuất DataStudio). Hộp mới: 4 bước · Đã ghi / Tốc độ / Thời gian *đã chạy · còn ~* · Hủy xuất. Mục nhật ký *29/09/2026 — Việc 43* |
 | 42 | ✅ **Đăng nhập nhanh đá người ra VÔ CỚ khi Google bận** — **phát hành v2.0.6** (commit `b887717`) | Luồng hỏi lại Google (`_kiem_lai_nen`) coi **mọi** `ok: false` là từ chối ⇒ chờ ổ khoá quá 20 giây (*"Máy khác đang ghi…"*), lỗi dịch vụ Sheets, sai token… đều **huỷ phiên + xoá bản lưu**. Nay chỉ 3 câu từ chối thật mới đá ra (`_GS_TU_CHOI_TK`). Đối chứng với bản cũ bằng cùng phép thử: bản cũ đá ra ở cả 3 ca "chưa trả lời được" |
 | 41 | ✅ **Đồng hồ đếm ngược xuất Excel Nhật ký chung** — **phát hành v2.0.6**, đã đo + thử giao diện trên DB thật (mục *28/09/2026 (khuya, tiếp)*). ✅ Đại Ca đã dùng thật 29/09 — góp ý thành **việc 43** | Đại Ca hỏi *"ước tính thời gian xuất được không"* → chốt *"đếm ngược từ đầu, 1 đồng hồ thôi"*. % cũ là **giả** (30.000 dòng = 1%, chặn 95%). Việc còn lại + cách thử: mục nhật ký *28/09/2026 — Hộp xuất Excel Nhật ký chung* |
 | 40 | Nút **Tải lại** gặp phiên đã hết (401) thì **im lặng**, không đưa về màn đăng nhập | Phát hiện 26/09 khi thử việc 23. `loadPerms` gặp `!r.ok` là `return`. Người bị huỷ phiên chỉ về màn đăng nhập ở lần **tải số liệu** kế tiếp (khi đó lý do vẫn hiện đúng). Nhỏ, chưa chặn ai |
@@ -196,8 +196,8 @@ Xong: xoá ô `password` trong `config.json` (giữ các ô khác).
 - `b85ba14` feat (server.py + index.html + `CO_GI_MOI.md` mục `## v2.0.7`, 2 dòng tính năng).
 - Trước commit: M1 (ast + Babel) · **179 hàm / 72 route**, không trùng · quét route chưa khai quyền = `[]` · quét secret sạch.
 - `build_exe.py` ⇒ **v2.0.7**. **M3:** chạy EXE tách hẳn ⇒ LISTENING 5050, `/api/version` = `2.0.7`, trang chủ có chữ *Hủy xuất*,
-  vẫn sống sau 1 phút. ⚠️ **Chưa bấm thử nút Huỷ trên giao diện EXE bằng DB thật** — đường máy chủ đã thử ở trên, giao diện đã thử ở
-  server giả.
+  vẫn sống sau 1 phút. ✅ **Đại Ca đã bấm Hủy xuất trên EXE v2.0.7 (file CI) với số liệu thật 29/09: OK** — trước đó đường máy chủ đã thử ở trên,
+  giao diện đã thử ở server giả.
 
 Đại Ca dùng v2.0.6 xuất *Sổ nhật ký chung* (tổng hợp) T01/2026, gửi 3 ảnh:
 1. Hộp đang *"Đang lấy 2.287.832 dòng từ máy chủ… · Còn 3:12"*, khoanh chỗ trống dưới đồng hồ: *"nên cho thêm nút hủy tiến trình

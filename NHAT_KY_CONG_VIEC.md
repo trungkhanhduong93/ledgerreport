@@ -45,7 +45,7 @@
 
 > *Cập nhật 29/09/2026.* Gom hết việc còn treo về một chỗ. Nhận việc mới thì **đọc mục này trước**.
 > ⚠️ Tiêu đề mục này **cố ý không ghi ngày** — mọi đường dẫn `#-việc-cần-làm` trỏ vào nó; ghi ngày là gãy link.
-> Trạng thái: **v2.0.7 đã phát hành** (29/09/2026 12h40), là `Latest`, và **EXE trên máy Đại Ca = đúng file CI** (SHA256 khớp digest).
+> Trạng thái: **v2.0.8 đã phát hành** (29/09/2026 14h31), là `Latest`, và **EXE trên máy Đại Ca = đúng file CI** (SHA256 khớp digest).
 >
 > 📤 **29/09/2026: Đại Ca bảo đẩy luôn các commit tài liệu** (kết quả phát hành v2.0.7 + dọn `dist\`). Push file `.md` làm Actions
 > build lại v2.0.7 ⇒ asset EXE **đổi SHA** (code y hệt) ⇒ sau push **tải asset mới về thay `dist\`**, đối chiếu digest — kết quả ghi ở
@@ -195,6 +195,13 @@ việc 43 chỉ đếm file **sau khi job dừng** nên không bắt được.
 Mọi ca: **0 file `tmp*` / `lr_xuat_*` còn lại trong `%TEMP%`**. Không đụng SQL ⇒ không cần DB thật (Bẫy 31 chỉ áp cho câu SQL).
 `_tach_co_gi_moi`: máy 2.0.7 thấy 2 dòng v2.0.8, máy 2.0.6 thấy 4 dòng. Quét route chưa khai quyền `[]`, secret sạch.
 **M3:** build **v2.0.8**, EXE chạy, `/api/version` 2.0.8, sống sau 45s. Bản CI v2.0.7 (`2d6d9c76…`) cất ở scratchpad để cập nhật thật.
+
+**📦 Phát hành:** push `25772c3..4593870` (kèm 2 commit nhật ký) ⇒ Actions run `36537053085` **`success`**, 0 cảnh báo PyInstaller ⇒
+**Release `v2.0.8` = `Latest`**, tag → `4593870`, digest EXE `sha256:a20f1d4a…`. `CO_GI_MOI.md` tại tag đúng 2 dòng.
+✅ **Cập nhật thật 2.0.7 → 2.0.8** từ file CI v2.0.7: hộp báo đúng 2 dòng · `apply_update` ⇒ **~6 giây** chạy 2.0.8 · EXE `dist\`
+**SHA256 = digest CI v2.0.8** · `dist\` chỉ còn EXE + `ketnoi.json` + `phanquyen_cache.json` (không sót `.old`/`.new`, không cất `.bak`
+trong `dist\` nữa — bản cũ lấy từ Releases) · hết báo cập nhật. App để đang chạy.
+⏳ Chưa thử: Đại Ca bấm Hủy xuất trên v2.0.8 với số liệu thật (đường máy chủ đã thử bằng hàm thật + dữ liệu giả).
 
 ---
 

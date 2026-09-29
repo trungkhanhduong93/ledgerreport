@@ -242,6 +242,8 @@ Em báo rõ: Tải lại cũ chỉ đọc quyền trong PHIÊN (chốt lúc đă
 - **Thử giao diện** (server 5056, 1366×768): ở Chứng từ bán hàng, chưa Lọc, bấm Tải lại ⇒ trang nạp lại thật, **về đúng màn**, vẫn đăng
   nhập, **0** truy vấn `/api/sale`, dấu nhớ đã xoá · bật "quyền đổi" ⇒ Tải lại ⇒ màn đăng nhập + *"Quyền của tài khoản vừa được thay
   đổi…"* · 7 màn con có icon, **không màn nào cắt chữ** (dài nhất "PO – yêu cầu mua hàng" 135px).
+- **Build lại v2.0.9 (M3)** — commit `2919b5d`: EXE chạy, trang có `/api/tai_lai_kiem_quyen` + nhớ màn + icon mới + popup Hủy xuất, 0
+  `daLocRef`, 0 thẻ Babel · `POST /api/tai_lai_kiem_quyen` chưa đăng nhập ⇒ **401** (không phải 403 ⇒ đã khai quyền). Chờ Đại Ca thử.
 
 ### Thêm lúc Đại Ca thử EXE v2.0.9 — Hủy xuất: popup giữa màn Có / Không + TẠM DỪNG trong lúc hỏi
 Đại Ca (ảnh hộp *"localhost:5050 says — Hủy xuất file Excel?"* của `window.confirm`): *"thông báo bạn có chắc chắn hủy … popup ở

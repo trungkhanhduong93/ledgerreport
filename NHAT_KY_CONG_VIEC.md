@@ -94,7 +94,7 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | 44 | ✅ **Hủy xuất không còn thoáng hiện file `.xlsx` dở trong thư mục xuất** — **v2.0.8** | Đại Ca bắt gặp 29/09. Gốc: huỷ giữa chừng thì `workbook.close()` đóng gói phần đã ghi **ngay trong thư mục xuất** rồi mới xoá. Nay ghi + đóng gói ở `%TEMP%`, xong hẳn mới chuyển sang; huỷ lúc ghi thì **bỏ đóng gói**, chỉ xoá file tạm từng sheet (`_bo_workbook_do`). Mục nhật ký *29/09/2026 — Việc 44* |
 | 42 | ✅ **Đăng nhập nhanh đá người ra VÔ CỚ khi Google bận** — **phát hành v2.0.6** (commit `b887717`) | Luồng hỏi lại Google (`_kiem_lai_nen`) coi **mọi** `ok: false` là từ chối ⇒ chờ ổ khoá quá 20 giây (*"Máy khác đang ghi…"*), lỗi dịch vụ Sheets, sai token… đều **huỷ phiên + xoá bản lưu**. Nay chỉ 3 câu từ chối thật mới đá ra (`_GS_TU_CHOI_TK`). Đối chứng với bản cũ bằng cùng phép thử: bản cũ đá ra ở cả 3 ca "chưa trả lời được" |
 | 41 | ✅ **Đồng hồ đếm ngược xuất Excel Nhật ký chung** — **phát hành v2.0.6**, đã đo + thử giao diện trên DB thật (mục *28/09/2026 (khuya, tiếp)*). ✅ Đại Ca đã dùng thật 29/09 — góp ý thành **việc 43** | Đại Ca hỏi *"ước tính thời gian xuất được không"* → chốt *"đếm ngược từ đầu, 1 đồng hồ thôi"*. % cũ là **giả** (30.000 dòng = 1%, chặn 95%). Việc còn lại + cách thử: mục nhật ký *28/09/2026 — Hộp xuất Excel Nhật ký chung* |
-| 40 | Nút **Tải lại** gặp phiên đã hết (401) thì **im lặng**, không đưa về màn đăng nhập | Phát hiện 26/09 khi thử việc 23. `loadPerms` gặp `!r.ok` là `return`. Người bị huỷ phiên chỉ về màn đăng nhập ở lần **tải số liệu** kế tiếp (khi đó lý do vẫn hiện đúng). Nhỏ, chưa chặn ai |
+| 40 | ✅ ~~Nút **Tải lại** gặp phiên đã hết (401) thì **im lặng**~~ — **XONG 29/09 (v2.0.9)**: về màn đăng nhập kèm *"Phiên đăng nhập đã hết…"*; máy chủ có lý do cụ thể hơn (việc 23) thì câu đó thay vào | Mục nhật ký *29/09/2026 — Việc 11, 40, 24, 25* |
 | 39 | Ô lọc **Kho** vẫn liệt kê kho của **mọi đơn vị** | Cùng bệnh việc 10: tài khoản bị giới hạn chọn kho đơn vị khác ⇒ 0 dòng. Tab điều chuyển (Kho xuất / Kho nhận) phải **giữ đủ** như ô Đơn vị xuất. Cần xem `meta.warehouses` có mang mã đơn vị không |
 | 38 | ~~🔴 Nhân viên thường **không xuất được Excel** Báo cáo TC (403 *"Route chưa khai báo quyền"*)~~ ✅ **Phát hành v2.0.2** | Có từ **v2.0.0**: `/api/xuat_xlsx_bieu_mau` + `/api/tai_file_xuat` (việc 35) quên khai báo quyền; ADMIN qua được nên không ai thấy. Nay trong `PERM_PUBLIC`. **Bẫy 30** + lệnh quét trong CLAUDE.md |
 | 37 | ~~Làm lại thông báo "có bản mới" cho dễ thấy~~ ✅ **Phát hành v2.0.1 — phương án B + C** (Đại Ca chọn), "Có gì mới" đọc từ `CO_GI_MOI.md`, kiểm lại mỗi 2 giờ | ✅ **Chạy thật trọn vòng** ở lần cập nhật 2.0.1 → 2.0.2 (hộp thoại hiện đúng 4 dòng lấy từ GitHub). Máy đang ở 1.12.x vẫn lên bằng dải cũ (code bản cũ) |
@@ -110,8 +110,8 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | 28 | ~~Cột bảng hẹp~~ ✅ **XONG 25/09** — Đại Ca chốt **kéo giãn cột + nhớ**. Tiêu đề không gãy dòng nữa; kèm **ẩn/hiện cột** và **Excel xuất đúng cột đang hiện** · số đo cũ để tham khảo: | Số đo 25/09 cho lúc sửa: hàng lọc 5 màn danh sách **cần 1.393px** để mọi ô đủ rộng, màn 1366 chỉ có **1.254px** (bản cũ trước GĐ3: cần 1.473 / có 1.318 — **vốn đã bị ép co từ trước**). Ở 1280px tiêu đề **`MÃ CT` gãy 2 dòng**. Cột phân hệ ăn thêm 64px chiều ngang |
 | 22 | ⏸️ **Ổ khoá chung `LockService` trong `Code.gs` (dòng 487)** — **CHƯA LÀM, chờ số liệu** (Đại Ca chốt 28/09) | 5 người mở app cùng lúc thì người thứ 5 chờ gần 1 phút (ước tính cũ, chưa đo). ⚠️ **Đính chính 28/09:** cách ghi cũ *"bỏ khoá cho lệnh chỉ đọc"* **không giải quyết được gì** — `dang_nhap` **không** chỉ đọc (ghi ô `DANG_NHAP_LUC`, 1 dòng Nhật ký, bộ đếm gõ sai), mà xếp hàng buổi sáng chính là `dang_nhap`. Cách đúng: đăng nhập **đúng** mật khẩu thì không khoá; **chỉ khoá khi gõ sai** (bỏ hẳn thì kẻ dò gửi song song lách được giới hạn 8 lần) và khi **quản trị ghi** (2 lần lưu tài khoản mới cùng lúc cùng lấy `getLastRow()+1` ⇒ ghi đè nhau). Đo 28/09 lúc vắng: có khoá (`ping`) trung vị **2,11s** · không khoá (`doGet`) **2,47s** ⇒ khoá chỉ tốn khi đông người. **Trước khi làm: Đại Ca xem Apps Script → Executions khung 7h30–8h30** có `doPost` chồng giờ, chạy lâu không. **Phải triển khai lại Apps Script** — theo đúng `chuan_bi_deploy.py` (Bẫy 19, 23). Nút **Lưu tab Phân quyền** (~6–9s, ước từ code) ép được còn ~3–4s (gộp lưu + tải lại 1 lần gọi · đọc mỗi sheet 1 lần · ghi dòng tài khoản 1 lần) — **Đại Ca chốt KHÔNG làm** vì ít sửa phân quyền |
 | 23 | ~~Bị đá ra (đăng nhập nhanh) không có câu báo lý do~~ ✅ **XONG 26/09** | Màn đăng nhập hiện lý do: đổi mật khẩu / bị khoá / đổi quyền (`/api/ly_do_dang_xuat`). Mục nhật ký *26/09 — việc 9, 10, 23, 26* |
-| 24 | **Biên dịch sẵn JSX lúc đóng gói** | Mở app trắng màn hình **~7–13 giây** (Babel dịch 723 KB mỗi lần mở). Đo: `domInteractive` 152ms / `DOMContentLoaded` 6.926ms |
-| 25 | **Nhúng 5 thư viện còn tải từ Internet** vào EXE | React, ReactDOM, Babel, Tailwind, xlsx. Google Fonts **đã gỡ** ở GĐ1. Fallback hiện tại là giả: React hỏng ⇒ **màn trắng câm** |
+| 24 | ✅ ~~**Biên dịch sẵn JSX lúc đóng gói**~~ — **XONG 29/09 (v2.0.9)**: `dich_giao_dien.js` dịch lúc build, EXE nhúng `web_dich_san/index.html`. Đo cùng máy: **7,8s → 0,26s** lần đầu, **6,8s → 0,11s** mở lại; code dịch sẵn **trùng từng byte** code trình duyệt tự dịch | Mục nhật ký *29/09/2026 — Việc 11, 40, 24, 25* |
+| 25 | ✅ ~~**Nhúng 5 thư viện còn tải từ Internet** vào EXE~~ — **XONG 29/09 (v2.0.9)**: `thu-vien/` (Babel chỉ để build, không vào EXE); cảnh báo "không tải được giao diện" nay hiện thật (xét `.version`) | Mục nhật ký *29/09/2026 — Việc 11, 40, 24, 25* |
 | 26 | ~~BC015, BC016 chưa có trong ma trận báo cáo của `CLAUDE.md`~~ ✅ **XONG 26/09** | Đã thêm, kèm endpoint + nguồn đọc từ code |
 | 27 | Muốn chữ tiêu đề bảng **> 10px** | Phải nới các cột hẹp `w-16` trước — 10,5px là `MÃ CT` gãy dòng (đã đo) |
 
@@ -143,7 +143,7 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | 15 | ~~Bấm chip chậm gấp ~4 lần~~ ✅ **XONG 24/09/2026** | Dựng `DC` ra bảng tạm `#dc` một lần. Chip `Đã nhận đủ` **42,9s → 7,9s**, trang 2 **50,1s → 6,6s**, đổi cột sắp xếp **45,9s → 7,3s**. Đánh đổi: ô tìm mã hàng chậm thêm ~2s |
 | 13 | ~~Phiếu `POSTED` mà 0 dòng `WAREHOUSE` bị tab giấu~~ ✅ **ĐÓNG 24/09/2026 — KHÔNG phải lỗi** | Đo cả năm 2026: chỉ **5/20.089** `XDCNB` · **4/19.479** `NDCNB` · **2/21.848** `XKHOSXBTP` · **1/21.561** `NSP` (≤0,02%), và **cả 12 phiếu đều có số lượng = 0** — phiếu rỗng. Phiếu rỗng thì không có gì để đối chiếu ⇒ giấu đi là **đúng**. Không sửa dòng code nào |
 | 14 | ~~Hai chip tên gần giống nhau nằm cách xa~~ ✅ **XONG 24/09/2026** | Đã đưa `Không thấy phiếu xuất` lên ngay sau `Không thấy phiếu nhập` — hai chiều ngược của cùng một việc thì để cạnh nhau |
-| 11 | **Nâng 3 GitHub Action lên bản chạy Node 24** | Kẹt vì token `gh` thiếu scope `workflow`. Đại Ca chạy `gh auth refresh -h github.com -s workflow` hoặc sửa thẳng trên web GitHub. Tiện tay thêm `paths-ignore` — [chi tiết](#-việc-còn-treo--nâng-3-action-lên-bản-chạy-node-24) |
+| 11 | ✅ ~~**Nâng 3 GitHub Action lên bản chạy Node 24**~~ — **XONG 29/09**: token `gh` đã có scope `workflow` (cấp 29/09, 14:40); `checkout@v7` · `setup-python@v7` · `action-gh-release@v3` + `paths-ignore` (`**.md`, `docs/**`, `docs-cu/**`) | Từ nay push chỉ tài liệu **không** build lại EXE ⇒ hết vòng lặp "push .md là lệch SHA". Mục nhật ký *29/09/2026 — Việc 11, 40, 24, 25* |
 
 ### ⚠️ Giới hạn thiết kế — KHÔNG phải lỗi, đừng "sửa giúp"
 
@@ -158,6 +158,83 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 29/09/2026 — Việc 11, 40, 24, 25: mở app nhanh (dịch sẵn giao diện + nhúng thư viện) · nâng GitHub Actions · Tải lại khi hết phiên
+
+Đại Ca: *"làm việc 40, 24, 25 luôn nha"* → hỏi chỉnh quyền `workflow` ở đâu → cấp quyền → *"làm hết 4 mục luôn đi"* (kèm cho tải 5 thư viện).
+
+**Cấp scope `workflow` cho token `gh`** (mở khoá việc 11 + cho sửa `release.yml`): `gh auth refresh -h github.com -s workflow` sinh mã
+thiết bị; Đại Ca tự đăng nhập GitHub trong trình duyệt tích hợp, em nhập mã, trang xác nhận ghi đúng *GitHub CLI* xin thêm đúng
+**Workflow** (yêu cầu lúc 14:40 từ máy này). Bước bấm Authorize: hệ thống an toàn của app chặn em thao tác tiếp ⇒ để Đại Ca; sau đó
+`gh` báo *Authentication complete*, scope nay `gist, read:org, repo, workflow`.
+
+**Vì sao phải có quyền này mới làm gọn được 24/25:** CI gọi thẳng PyInstaller với danh sách `--add-data` cố định trong `release.yml`
+(chỉ `index.html`, không chạy `build_exe.py`) ⇒ thư viện hay bản dịch sẵn không có đường vào EXE nếu không sửa được file đó.
+
+### Việc 25 — nhúng thư viện
+5 file tải về `thu-vien/`, **đúng bản app đang chạy hôm đó** (`cdn.tailwindcss.com` không ghi số ⇒ chuyển hướng tới `/3.4.17`;
+`react@18` ⇒ `18.3.1`):
+
+| File | Nguồn | Byte | SHA256 |
+|---|---|---|---|
+| `tailwind-3.4.17.js` | cdn.tailwindcss.com/3.4.17 | 407.279 | `176e8946…c50d15` |
+| `react-18.3.1.production.min.js` | unpkg.com | 10.751 | `d949f1c3…d4c4dd` |
+| `react-dom-18.3.1.production.min.js` | unpkg.com | 131.835 | `35f4f974…98f66f0d` |
+| `babel-standalone-7.29.7.min.js` | unpkg.com | 3.140.250 | `7f55bd5c…4739798e` — **chỉ để build, KHÔNG vào EXE** |
+| `xlsx-0.18.5.full.min.js` | cdn.jsdelivr.net | 881.727 | `c9506197…d8623c99` |
+
+- `index.html` trỏ `/thu-vien/…`; route tĩnh có sẵn (`serve_static`) phục vụ luôn ⇒ **không thêm route** (Bẫy 30 không dính). File
+  trong `thu-vien/` gắn `Cache-Control: immutable` (tên có số phiên bản) ⇒ mở lại lấy từ bộ nhớ đệm, 0 byte tải.
+- `.gitattributes`: `thu-vien/*.js -text` — giữ nguyên byte (runner Windows bật `core.autocrlf`).
+- Cảnh báo *"Không tải được giao diện"* (thay *"Không thể kết nối CDN"*) nay **hiện thật**: xét `React.version`; bản cũ xét `typeof`
+  mà khối "Fallback" ở `<head>` gán React giả ⇒ không bao giờ hiện, chỉ còn màn trắng câm.
+- Rà cả trang: **0 địa chỉ `http(s)://`** còn lại.
+
+### Việc 24 — dịch sẵn giao diện
+- **`dich_giao_dien.js`** (node, không cần `npm install`): lấy khối `<script type="text/babel">` của `index.html`, dịch bằng **đúng file
+  Babel 7.29.7 + đúng tuỳ chọn** mà `@babel/standalone` tự dùng cho thẻ đó (presets `react` + `env`, 3 plugin class-properties /
+  object-rest-spread / flow-strip-types — đọc từ chính file thư viện), bỏ sourcemap, ghi `web_dich_san/index.html` (gỡ thẻ Babel,
+  thêm `<meta name="giao-dien-dich-san">` = sha256 nguồn). `web_dich_san/` trong `.gitignore` — **sinh lúc build, không commit**.
+- `build_exe.py` chạy script đó **trước khi tăng `version.txt`** (dịch hỏng ⇒ dừng, không để lại số hiệu đã tăng) và nhúng bản dịch sẵn +
+  4 thư viện. `release.yml` thêm bước *Dich san giao dien (viec 24)* + đổi `--add-data` tương ứng. ⛔ Hai danh sách phải khớp nhau.
+- Chạy `server.py` từ mã nguồn **vẫn** dùng `index.html` gốc (Babel dịch trong trình duyệt) ⇒ sửa giao diện vẫn chỉ sửa `index.html`.
+
+**🧪 Verify (M2, trình duyệt tích hợp, 3 server thử 5052/5053/5054 dựng đúng như gói trong EXE):**
+- **Code dịch sẵn TRÙNG TỪNG BYTE code trình duyệt tự dịch**: lấy script Babel chèn vào `<head>` trên trang mã nguồn, bỏ dòng sourcemap
+  ⇒ SHA256 `cfeb6f3a…d77914`, 721.024 ký tự — đúng bằng bản `dich_giao_dien.js` sinh ra.
+- Thời gian (mốc `DOMContentLoaded` kết thúc — bao cả lúc dịch lẫn lúc chạy code giao diện; trình duyệt tích hợp không ghi FCP/LCP):
+
+| Bản | Lần đầu | Mở lại |
+|---|---|---|
+| Cũ v2.0.8 (CDN + Babel trong trình duyệt) | **7,79s** | **6,83s** |
+| Mã nguồn mới (thư viện trong app, Babel trong trình duyệt) | — | 6,89s |
+| **Dịch sẵn (= EXE mới)** | **0,26s** | **0,11s** |
+
+- Màn đăng nhập bản dịch sẵn và bản cũ: form cùng vị trí/cỡ (155, 252, 406×489) ở cùng khung 731×706, cùng 235 quy tắc CSS
+  (Tailwind), ảnh chụp trùng nhau. Console chỉ có 401 (chưa đăng nhập — bình thường). `typeof Babel` = `undefined`, React 18.3.1.
+
+### Việc 40 — Tải lại khi phiên đã hết
+`loadPerms` trả `'het_phien'` khi `/api/my_perms` 401; `taiLaiTrang` gặp vậy ⇒ đặt câu *"Phiên đăng nhập đã hết\nĐăng nhập lại để tiếp
+tục — thường do ứng dụng vừa được mở lại hoặc vừa cập nhật."* rồi `setIsLoggedIn(false)`; `useEffect` việc 23 hỏi
+`/api/ly_do_dang_xuat` và thay bằng lý do cụ thể nếu máy chủ có. **Thử trên giao diện** (server 5055, phiên giả): vào Trang chủ → xoá
+phiên ở máy chủ → bấm Tải lại ⇒ về màn đăng nhập, dòng đỏ đúng câu trên.
+
+### Việc 11 — GitHub Actions
+`checkout@v4 → v7` (7.0.1) · `setup-python@v5 → v7` (7.0.0) · `action-gh-release@v2 → v3` (3.0.3) — đã kiểm các tag tồn tại; breaking
+change đã đối chiếu 14/09 (không vướng). `paths-ignore: '**.md', 'docs/**', 'docs-cu/**'` ⇒ push chỉ tài liệu không build lại EXE.
+YAML kiểm bằng `yaml.safe_load`: 8 bước đúng thứ tự.
+
+**Kiểm chung:** M1 (ast `server.py` + `build_exe.py`, Babel parse) · 180 hàm / 72 route, không trùng · route chưa khai quyền `[]` ·
+secret sạch.
+
+**📦 Commit `f24d7b5` + build v2.0.9 (M3):** `build_exe.py` chạy bước dịch sẵn (9,0s) rồi PyInstaller ⇒ EXE **15,27 MB** (v2.0.8:
+14,78 MB — thêm ~0,5 MB thư viện). Chạy EXE thật: `/api/version` 2.0.9 · trang chủ có `<meta name="giao-dien-dich-san">`, **0** thẻ
+Babel, **0** thẻ `text/babel`, **0** `src="http` · 4 thư viện trả 200 đúng byte, Babel **404** (không nhúng — đúng thiết kế) ·
+đo trên EXE: **0,39s** lần đầu, **0,19s** mở lại · màn đăng nhập hiện đủ. ⚠️ `dist\` lúc build đang là file CI v2.0.8 — bị ghi đè (bản
+đó còn trên Releases, `a20f1d4a…`). `Sync-And-Backup.ps1`: thêm 7 file mới vào `$Files`. ⚠️ Phát hiện: file này đang là UTF-8 **không BOM** dù có tiếng Việt
+(Bẫy 12) — **chưa sửa**, script vốn không chạy trên máy này.
 
 ---
 

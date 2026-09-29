@@ -6,7 +6,10 @@
 > (đo + thử giao diện trên DB thật; bắt được lỗi làm hỏng hẳn xuất Excel chi tiết — **Bẫy 31**) + **việc 42** đăng nhập nhanh không
 > còn đá người ra khi Google chỉ là chưa trả lời được. Mục nhật ký *29/09/2026 — Phát hành v2.0.6*. EXE trên máy Đại Ca = đúng file CI.
 > Mục *28/09/2026 (khuya)*: **Đại Ca giữ Google Sheet, không chuyển Supabase** — đọc lý do trước khi đề xuất lại.
-> ✅ **v2.0.8** (29/09/2026) — **việc 44** Hủy xuất không còn thoáng hiện file `.xlsx` dở: ghi ở `%TEMP%`, xong mới chuyển sang thư mục
+> 🟠 **v2.0.9 (build, CHƯA push)** — **mở app ~0,2s thay vì 7–13s**: dịch sẵn giao diện lúc build (việc 24) + 5 thư viện trong
+> `thu-vien/` (việc 25) + Tải lại khi hết phiên (việc 40) + GitHub Actions Node 24 & `paths-ignore` (việc 11). Chờ Đại Ca thử EXE.
+> Mục nhật ký *29/09/2026 — Việc 11, 40, 24, 25*.
+> · ✅ **v2.0.8** (29/09/2026) — **việc 44** Hủy xuất không còn thoáng hiện file `.xlsx` dở: ghi ở `%TEMP%`, xong mới chuyển sang thư mục
 > xuất (`_write_xlsx_to_disk` / `_bo_workbook_do`). Mục nhật ký *29/09/2026 — Việc 44*.
 > · **v2.0.7** (29/09/2026) — **việc 43** nút **Hủy xuất** + hộp xuất Excel Nhật ký chung theo mẫu DataStudio (thử huỷ trên DB thật).
 > EXE trên máy Đại Ca = đúng file CI v2.0.7. Mục nhật ký *29/09/2026 — Phát hành v2.0.7*.
@@ -129,10 +132,17 @@ Trình duyệt (Chrome --app)  ──HTTP──>  Flask (server.py, cổng 5050)
 ```
 
 - **Backend** — [server.py](server.py) (~5.900 dòng, Python 3.12 + Flask 3 + pyodbc). Một file duy nhất.
-- **Frontend** — [index.html](index.html) (~575 KB, một file duy nhất). React + Babel standalone + Tailwind CDN.
-  Không có bước build; sửa file là chạy được ngay.
+- **Frontend** — [index.html](index.html) (~880 KB, một file duy nhất). React + Tailwind + xlsx, **thư viện nằm trong
+  [thu-vien/](thu-vien)** (việc 25, 29/09/2026 — trước đó tải từ CDN mỗi lần mở). Chạy `server.py` từ mã nguồn thì Babel dịch
+  JSX ngay trong trình duyệt như cũ ⇒ sửa `index.html` là chạy được ngay.
 - **Đóng gói** — PyInstaller one-file no-console qua [build_exe.py](build_exe.py) → `dist\iPOS_Accounting_Report.exe`.
-  `index.html`, `version.txt`, `icon`, `manifest.json` được nhúng vào EXE bằng `--add-data`.
+  ⛔ **Có một bước build giao diện** (việc 24): [dich_giao_dien.js](dich_giao_dien.js) dịch sẵn JSX ⇒ `web_dich_san/index.html`
+  (không commit); **EXE nhúng file đó THAY `index.html`**, kèm 4 thư viện trong `thu-vien/` (Babel không nhúng), `version.txt`,
+  `icon`, `manifest.json`. Mở app **~0,1–0,3s** thay vì 7–13s. CI **không** chạy `build_exe.py` — danh sách `--add-data` nằm riêng
+  trong [release.yml](.github/workflows/release.yml), **hai nơi phải khớp**. Code dịch sẵn = code trình duyệt tự dịch, **trùng
+  từng byte** (đã đo) — đổi tuỳ chọn Babel trong `dich_giao_dien.js` là đổi cách app chạy.
+  ⛔ Đổi phiên bản thư viện: tải file **tên mới** vào `thu-vien/` (file ở đó được trình duyệt giữ hẳn theo tên — ghi đè cùng tên là
+  máy người dùng dùng mãi bản cũ), rồi sửa tên ở `index.html` + `build_exe.py` (`THU_VIEN_NHUNG`) + `release.yml`.
 - **Phiên đăng nhập** — chỉ lưu `session['db_config']`. **KHÔNG có khoá `session['logged_in']`** (xem Bẫy 1).
 
 #### 🗣️ Thông báo lỗi đăng nhập — **đúng HAI tiêu đề, đừng trộn** *(chốt 24/09/2026)*
@@ -1073,8 +1083,9 @@ print(c.get('/api/report?from_date=01/01/2026&to_date=31/01/2026&org_ids=&job_id
 
 # B4 — Build EXE (M3)
 taskkill /F /IM iPOS_Accounting_Report.exe /T
-python build_exe.py            # tự tăng version.txt, sinh version_info.txt
+python build_exe.py            # CHẠY node dich_giao_dien.js trước (cần node), rồi tự tăng version.txt, sinh version_info.txt
 # python build_exe.py iPOS_Accounting_Report 2.0.0   # lên đời: ĐẶT HẲN số hiệu (phải lớn hơn bản hiện tại)
+# Kiểm EXE chạy bản dịch sẵn: trang chủ phải có <meta name="giao-dien-dich-san"> và KHÔNG có "babel-standalone"
 # ⚠️ CI build bằng version.txt + version_info.txt ĐÃ COMMIT ⇒ commit cả hai file sau khi build
 
 # B5 — Đồng bộ + push (Actions tự tạo Release)
@@ -1113,7 +1124,13 @@ app crash. Đã vấp 24/09/2026.
 CI: [.github/workflows/release.yml](.github/workflows/release.yml) — push `main` là build EXE trên
 `windows-latest` rồi tạo Release theo `version.txt`.
 
-### ⏳ VIỆC CÒN TREO — nâng 3 action lên bản chạy Node 24 *(ghi 14/09/2026)*
+### ✅ ĐÃ XONG 29/09/2026 — nâng 3 action lên bản chạy Node 24 + `paths-ignore` (việc 11)
+
+Token `gh` trên máy nay có scope **`workflow`** (Đại Ca cấp 29/09/2026). `release.yml` đã dùng `checkout@v7` · `setup-python@v7` ·
+`action-gh-release@v3`, có `paths-ignore` (`**.md`, `docs/**`, `docs-cu/**`) ⇒ **push chỉ tài liệu KHÔNG build lại EXE** — hết cảnh
+"push .md là asset đổi SHA" (việc treo số 11 cũ). Lẫn một file code là vẫn build. Phần dưới giữ làm lịch sử.
+
+<details><summary>Ghi chép cũ 14/09/2026 (lúc còn kẹt)</summary>
 
 GitHub đã báo **Node 20 hết vòng đời**; 3 action trong workflow đang bị **ép** chạy trên Node 24
 (xem phần ANNOTATIONS của mọi lần build gần đây). Build vẫn thành công, nhưng khi GitHub gỡ hẳn
@@ -1181,6 +1198,8 @@ on:
 ⚠️ Đẩy thay đổi này lên là Actions chạy lại với `version.txt` hiện tại. Tag đã tồn tại thì
 `action-gh-release` **cập nhật lại Release cũ** chứ không tạo bản trùng — vô hại, và chính lần build
 đó là phép thử cho 3 action mới. Build hỏng thì dừng trước bước publish, Release đang có vẫn nguyên.
+
+</details>
 
 ---
 

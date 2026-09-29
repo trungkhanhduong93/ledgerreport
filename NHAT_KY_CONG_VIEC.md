@@ -170,6 +170,9 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
   nút Hủy xuất. App để đang chạy.
 - Không thêm route mới ⇒ không cần thử lại tài khoản không quản trị (quét route chưa khai quyền = `[]`).
 - Dòng *Lịch sử push* đã thêm vào `GITHUB_LEDGERREPORT.md`. Mục này commit ở local, **chưa push**.
+- **Dọn `dist\`** (Đại Ca bảo, sau khi kiểm lại lần push: 11/11 bước `success`, 0 cảnh báo PyInstaller, zip đúng EXE, `CO_GI_MOI.md`
+  tại tag đúng): **22 file `.bak` (~297 MB) chuyển vào Thùng rác** — bản CI nào cũng còn trên GitHub Releases. `dist\` nay chỉ còn
+  EXE v2.0.7 + `ketnoi.json` + `phanquyen_cache.json`. Từ nay cần EXE cũ thì tải từ Releases.
 
 ---
 

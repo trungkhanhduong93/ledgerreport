@@ -691,6 +691,10 @@ window.showConnectionLost = function() {
         const Icon = ({ name, size = 12, className = "", strokeWidth = "2.5" }) => {
             const icons = {
                 "search": '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+                // 29/09/2026: hộp "Bạn có chắc chắn muốn hủy xuất?". alert-triangle vốn đã được gọi ở hộp lỗi xuất file mà
+                // chưa từng khai ⇒ trước nay vẽ ra ô trống.
+                "alert-triangle": '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+                "pause": '<rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/>',
                 "chevron-down": '<path d="m6 9 6 6 6-6"/>',
                 "chevron-left": '<path d="m15 18-6-6 6-6"/>',
                 "chevron-right": '<path d="m9 18 6-6-6-6"/>',   // bản cũ "6-6 6-6" vẽ ra gạch chéo "/" (sửa 25/09/2026)
@@ -790,15 +794,18 @@ window.showConnectionLost = function() {
         // đơn của 28/09). Tốc độ ghi thật dao động ±40% ⇒ số "còn" không thể giảm đều mãi; thời gian đã chạy thì luôn nhảy
         // ⇒ người xem luôn thấy việc đang tiến. Component riêng, tự nhảy 4 lần/giây: chỉ nó vẽ lại, không kéo cả App vẽ lại.
         // batDau = lúc bấm (ms) · hanChot = thời điểm dự kiến xong (ms), tính + làm mượt ở vòng hỏi tiến trình (exportJournalXlsx).
-        const DongHoXuat = ({ batDau, hanChot }) => {
+        // tamDungTu = lúc bấm Hủy xuất (ms) — đang hỏi "có chắc không" thì máy chủ TẠM DỪNG ⇒ đồng hồ đứng yên ở mốc đó
+        // (không đếm tiếp thời gian "đã chạy" khi chẳng có gì chạy). Chọn Không thì exportJournalXlsx dời batDau/hanChot
+        // đúng bằng khoảng đã dừng, như thể chưa dừng lần nào.
+        const DongHoXuat = ({ batDau, hanChot, tamDungTu }) => {
             const [, nhip] = useState(0);
             useEffect(() => { const h = setInterval(() => nhip(n => n + 1), 250); return () => clearInterval(h); }, []);
-            const bay = Date.now();
+            const bay = tamDungTu || Date.now();
             const conLai = hanChot ? (hanChot - bay) / 1000 : null;
             return (
                 <span className="tabular-nums">
                     <span className="text-slate-900">{dinhDangThoiGian((bay - (batDau || bay)) / 1000)}</span>
-                    <span className="text-slate-400 font-medium"> · {conLai == null ? 'đang ước tính' : conLai >= 1 ? 'còn ~' + dinhDangThoiGian(conLai) : 'sắp xong'}</span>
+                    <span className="text-slate-400 font-medium"> · {tamDungTu ? 'tạm dừng' : conLai == null ? 'đang ước tính' : conLai >= 1 ? 'còn ~' + dinhDangThoiGian(conLai) : 'sắp xong'}</span>
                 </span>
             );
         };
@@ -2866,7 +2873,10 @@ const exportJournalCsv = (mode) => {
                 const batDau = Date.now();
                 moc.dem = batDau;
                 // Nút Hủy xuất đặt cờ vào đây (huyXuat); bấm trước khi máy chủ kịp trả job_id thì gửi huỷ ngay khi có.
-                const huy = { jobId: null, huy: false };
+                // tamDung / dungTu / daDung: đang hỏi "Bạn có chắc chắn muốn hủy xuất?" (máy chủ tạm dừng) · lúc bắt đầu
+                // hỏi · tổng số ms đã tạm dừng (chọn Không thì cộng vào — vòng hỏi dưới dời mọi mốc thời gian đúng bằng chừng đó).
+                const huy = { jobId: null, huy: false, tamDung: false, dungTu: null, daDung: 0 };
+                let daDoiMoc = 0;   // phần daDung đã dời vào batDau / hanChot / moc
                 huyXuatRef.current = huy;
                 setExportModal({ open: true, progress: 0, status: 'exporting', filename: fname, giaiDoan: 'dem', hanChot, batDau,
                     tieuDe: mode === 'detail' ? 'Nhật ký chung chi tiết' : 'Sổ nhật ký chung (S03a-DN)',
@@ -2878,9 +2888,19 @@ const exportJournalCsv = (mode) => {
                     if (res.status !== 'ok' || !res.job_id) { setExportModal(null); alert('Lỗi khởi tạo xuất file: ' + (res.message || '')); return; }
                     huy.jobId = res.job_id;
                     if (huy.huy) { guiHuyXuat(res.job_id); return; }
+                    if (huy.tamDung) guiTamDungXuat(res.job_id, true);   // bấm Hủy trước khi có job_id: hộp hỏi đang mở
                     while (true) {
                         await new Promise(k => setTimeout(k, 700));
                         if (huy.huy) return;                    // hộp đã đóng lúc bấm Hủy xuất
+                        if (huy.tamDung) continue;              // đang hỏi "có chắc không": máy chủ đứng yên, khỏi hỏi tiến độ
+                        if (huy.daDung > daDoiMoc) {
+                            // Vừa chọn Không: dời mọi mốc thời gian đúng bằng khoảng đã dừng ⇒ tốc độ, "đã chạy", "còn ~"
+                            // tính như chưa từng dừng (không thì tốc độ tụt, "còn ~" nhảy vọt sau mỗi lần hỏi).
+                            const d = huy.daDung - daDoiMoc; daDoiMoc = huy.daDung;
+                            Object.keys(moc).forEach(k => { moc[k] += d; });
+                            if (hanChot != null) hanChot += d;
+                            setExportModal(m => m ? { ...m, batDau: m.batDau + d, hanChot } : m);
+                        }
                         const sr = await fetch(`/api/export/status?job_id=${res.job_id}`);
                         if (sr.status === 404) { setExportModal(null); alert('Job xuất file đã bị xoá.'); return; }
                         const sj = await sr.json();
@@ -2950,15 +2970,33 @@ const exportJournalCsv = (mode) => {
             };
             const guiHuyXuat = (jobId) => fetch('/api/export/cancel', { method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ job_id: jobId }) }).catch(() => { /* máy chủ không nhận được thì job chạy nốt — vô hại */ });
-            // Nút "Hủy xuất" (Đại Ca xin 29/09/2026 — thử mà muốn ngưng). Đóng hộp NGAY; máy chủ dừng ở lần kiểm kế tiếp
-            // (đang ghi: tối đa 2.000 dòng; đang lấy dữ liệu: khi câu SQL trả về, ~15 giây) và xoá file dở.
+            const guiTamDungXuat = (jobId, tamDung) => fetch('/api/export/pause', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ job_id: jobId, tam_dung: tamDung }) }).catch(() => { /* không tới được máy chủ thì job chạy tiếp — vô hại */ });
+            // Nút "Hủy xuất" (Đại Ca xin 29/09/2026 — thử mà muốn ngưng). Đại Ca chốt cùng ngày (kèm ảnh): KHÔNG dùng hộp
+            // window.confirm của trình duyệt ("localhost:5050 says…") mà popup GIỮA MÀN của app "Bạn có chắc chắn muốn hủy
+            // xuất?" với Có / Không; TRONG LÚC HỎI tiến độ phải DỪNG ⇒ báo máy chủ tạm dừng (_cho_neu_tam_dung) ngay khi mở hộp.
+            // Có ⇒ huỷ như cũ: đóng hộp NGAY, máy chủ dừng ở lần kiểm kế tiếp, xoá file dở. Không ⇒ bỏ tạm dừng, xuất tiếp.
+            // ⚠️ Câu SQL / bước đóng gói ĐANG chạy thì không dừng ngang được — máy chủ dừng ngay khi chúng xong.
             const huyXuat = () => {
                 const h = huyXuatRef.current;
-                if (!h || h.huy) return;
-                if (!window.confirm('Hủy xuất file Excel?\nPhần đã ghi sẽ bị bỏ, không để lại file dở.')) return;
-                h.huy = true;
-                if (h.jobId) guiHuyXuat(h.jobId);
-                setExportModal(null);
+                if (!h || h.huy || h.tamDung) return;
+                h.tamDung = true; h.dungTu = Date.now();
+                if (h.jobId) guiTamDungXuat(h.jobId, true);
+                setExportModal(m => m ? { ...m, hoiHuy: true, tamDungTu: h.dungTu } : m);
+            };
+            const chonHuyXuat = (co) => {
+                const h = huyXuatRef.current;
+                if (h && co) {
+                    h.huy = true;
+                    if (h.jobId) guiHuyXuat(h.jobId);
+                    setExportModal(null);
+                    return;
+                }
+                if (h && h.tamDung) {
+                    h.daDung += Date.now() - h.dungTu; h.tamDung = false; h.dungTu = null;
+                    if (h.jobId) guiTamDungXuat(h.jobId, false);
+                }
+                setExportModal(m => m ? { ...m, hoiHuy: false, tamDungTu: null } : m);
             };
 
             // ── Xuất .xlsx GIỮ NGUYÊN FORM cho báo cáo CÓ PHÂN TRANG (BC008 / BC012 / BC013) ──
@@ -4069,7 +4107,8 @@ const exportJournalCsv = (mode) => {
                                         const soVN = (n) => (n || 0).toLocaleString('vi-VN');
                                         const soSheet = tong > 1000000 ? Math.ceil(tong / 1000000) : 0;    // máy chủ sang sheet mới mỗi 1.000.000 dòng
                                         const sheetDangGhi = Math.min(soSheet, Math.floor(daGhi / 1000000) + 1);
-                                        const cauGiaiDoan = { dem: 'Đang chuẩn bị…', truy_van: 'Đang lấy dữ liệu từ máy chủ…',
+                                        const cauGiaiDoan = exportModal.hoiHuy ? 'Đã tạm dừng — chờ bạn chọn có hủy hay không'
+                                            : { dem: 'Đang chuẩn bị…', truy_van: 'Đang lấy dữ liệu từ máy chủ…',
                                             ghi: 'Đang ghi file Excel…', dong_goi: 'Đang đóng gói file Excel…' }[exportModal.giaiDoan] || 'Đang xuất…';
                                         return (
                                         <div>
@@ -4097,7 +4136,7 @@ const exportJournalCsv = (mode) => {
                                                     <span className="text-[22px] font-black text-indigo-700 tabular-nums leading-none">{exportModal.progress}%</span>
                                                 </div>
                                                 <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                                                    <div className="h-full bg-indigo-600 rounded-full transition-all duration-300" style={{ width: `${exportModal.progress}%` }}></div>
+                                                    <div className={'h-full rounded-full transition-all duration-300 ' + (exportModal.hoiHuy ? 'bg-amber-400' : 'bg-indigo-600')} style={{ width: `${exportModal.progress}%` }}></div>
                                                 </div>
 
                                                 <div className="flex items-center gap-1.5 text-[11px] font-semibold">
@@ -4125,7 +4164,7 @@ const exportJournalCsv = (mode) => {
                                                     </div>
                                                     <div className="rounded-xl border border-slate-200 px-3 py-2">
                                                         <p className="text-[10px] font-semibold text-slate-400">Thời gian</p>
-                                                        <p className="text-[13px] font-bold"><DongHoXuat batDau={exportModal.batDau} hanChot={exportModal.hanChot} /></p>
+                                                        <p className="text-[13px] font-bold"><DongHoXuat batDau={exportModal.batDau} hanChot={exportModal.hanChot} tamDungTu={exportModal.tamDungTu} /></p>
                                                     </div>
                                                 </div>
 
@@ -4141,8 +4180,8 @@ const exportJournalCsv = (mode) => {
                                             </div>
 
                                             <div className="flex justify-end pt-4 mt-4 border-t border-slate-100">
-                                                <button onClick={huyXuat}
-                                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-300 text-rose-600 text-[12px] font-bold hover:bg-rose-50 transition-colors">
+                                                <button onClick={huyXuat} disabled={!!exportModal.hoiHuy}
+                                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-300 text-rose-600 text-[12px] font-bold hover:bg-rose-50 transition-colors disabled:opacity-50">
                                                     <Icon name="x" size={13} /> Hủy xuất
                                                 </button>
                                             </div>
@@ -4234,6 +4273,40 @@ const exportJournalCsv = (mode) => {
                                         </div>
                                     )}
                                 </div>
+
+                                {/* Popup hỏi lại GIỮA MÀN (Đại Ca chốt 29/09/2026 — thay window.confirm của trình duyệt). Mở là máy chủ đã
+                                    tạm dừng. Không bấm ra ngoài để đóng: phải chọn hẳn Có / Không. Nút Không được chọn sẵn (Enter = xuất
+                                    tiếp) — lỡ tay là ít hại nhất.
+                                    ⛔ Phải nằm NGOÀI thẻ hộp xuất ở trên: thẻ đó có .animate-modal (animation ... forwards giữ lại transform)
+                                    ⇒ mọi con position:fixed bên trong bị giam trong khung thẻ, không nằm giữa màn được. */}
+                                {exportModal.hoiHuy && (
+                                    <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-slate-900/40 px-4" onClick={e => e.stopPropagation()}>
+                                        <div role="alertdialog" aria-modal="true" aria-labelledby="hoi-huy-xuat" className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl border border-slate-100 animate-modal">
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                                                    <Icon name="alert-triangle" size={20} strokeWidth="2" />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <h3 id="hoi-huy-xuat" className="text-[15px] font-bold text-slate-900 leading-snug">Bạn có chắc chắn muốn hủy xuất?</h3>
+                                                    <p className="text-[12px] text-slate-500 mt-1.5 leading-relaxed">Phần đã ghi sẽ bị bỏ, không để lại file dở.</p>
+                                                    <p className="text-[12px] text-amber-700 mt-2 flex items-center gap-1.5 font-semibold">
+                                                        <Icon name="pause" size={12} strokeWidth="2" /> Việc xuất đang tạm dừng trong lúc chờ bạn chọn.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-end gap-2 mt-5">
+                                                <button autoFocus onClick={() => chonHuyXuat(false)}
+                                                    className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 text-[13px] font-bold hover:bg-slate-50 transition-colors">
+                                                    Không, xuất tiếp
+                                                </button>
+                                                <button onClick={() => chonHuyXuat(true)}
+                                                    className="px-4 py-2 rounded-lg bg-rose-600 text-white text-[13px] font-bold hover:bg-rose-700 transition-colors">
+                                                    Có, hủy xuất
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
 

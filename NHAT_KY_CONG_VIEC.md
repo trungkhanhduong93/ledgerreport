@@ -221,6 +221,28 @@ tục — thường do ứng dụng vừa được mở lại hoặc vừa cập
 `/api/ly_do_dang_xuat` và thay bằng lý do cụ thể nếu máy chủ có. **Thử trên giao diện** (server 5055, phiên giả): vào Trang chủ → xoá
 phiên ở máy chủ → bấm Tải lại ⇒ về màn đăng nhập, dòng đỏ đúng câu trên.
 
+### Thêm lúc Đại Ca thử EXE v2.0.9 — Hủy xuất: popup giữa màn Có / Không + TẠM DỪNG trong lúc hỏi
+Đại Ca (ảnh hộp *"localhost:5050 says — Hủy xuất file Excel?"* của `window.confirm`): *"thông báo bạn có chắc chắn hủy … popup ở
+giữa và cho chọn là có hoặc không, có thì ngưng, không thì xuất tiếp. lúc bật thông báo thì tiến độ phải tạm ngưng không xuất nữa."*
+- **Máy chủ:** job có cờ `tam_dung`; route mới **`/api/export/pause`** `{job_id, tam_dung}` (khai `PERM_PUBLIC` cạnh `/api/export/cancel`
+  — Bẫy 30, quét `[]`). `_cho_neu_tam_dung(job_id)` đứng chờ ở: mỗi 2.000 dòng (xlsx + csv) · trước câu SQL lấy dữ liệu · sau câu SQL,
+  trước khi ghi · sau đóng gói, trước khi chuyển file sang thư mục xuất (file nằm chờ ở `%TEMP%`). Chọn Có ⇒ cờ huỷ ⇒ ném lỗi như cũ.
+  Bỏ mặc quá **10 phút** (`_TAM_DUNG_TOI_DA_S`) ⇒ tự huỷ, job `error` kèm câu giải thích (khỏi giữ kết nối SQL + file tạm mãi).
+  ⚠️ Câu SQL / bước đóng gói **đang chạy** thì không dừng ngang — dừng ở điểm kế. Câu xuất Nhật ký chung đều `WITH (NOLOCK)` ⇒ đứng giữa
+  lúc đọc dở không giữ khoá.
+- **Giao diện:** `huyXuat` mở popup (không `window.confirm` nữa) + báo máy chủ tạm dừng; `chonHuyXuat(co)`: Có ⇒ huỷ + đóng hộp · Không ⇒
+  bỏ tạm dừng. Đang hỏi thì vòng theo dõi ngừng hỏi tiến độ; chọn Không ⇒ dời `batDau` / `hanChot` / mốc giai đoạn đúng bằng khoảng
+  đã dừng (tốc độ + "còn ~" không bị lệch). `DongHoXuat` nhận `tamDungTu`: đồng hồ đứng + chữ *tạm dừng*; thanh tiến độ sang màu hổ phách.
+  Popup `role="alertdialog"`, nút **Không, xuất tiếp** được chọn sẵn, không bấm ra ngoài để đóng. ⛔ Popup nằm **NGOÀI** thẻ hộp xuất:
+  `.animate-modal` (`forwards`) giữ `transform` ⇒ con `position:fixed` bên trong bị giam trong khung thẻ.
+  Thêm icon `alert-triangle` (hộp lỗi xuất file vốn gọi mà chưa khai ⇒ trước nay ô trống) + `pause`.
+- **Thử máy chủ** (hàm thật, dữ liệu giả): tạm dừng ⇒ đứng yên **42.000** dòng suốt 3s · Không ⇒ xong 200.000 · tạm dừng rồi Có ⇒
+  `cancelled` sau 0,15s · bỏ mặc (rút hạn 2s) ⇒ tự huỷ, đúng câu · tạm dừng lúc đóng gói ⇒ file chờ ở TEMP, thư mục xuất trống; Không ⇒
+  file sang · 0 rác TEMP.
+- **Thử giao diện** (server 5056: code xuất THẬT, kết nối SQL giả 250.000 dòng, 1366×768): popup tâm (683, 394) ≈ giữa màn · máy chủ
+  đứng yên 40.000 dòng suốt 3s · nút Không được chọn sẵn · Không ⇒ chạy tiếp (52.000) · đồng hồ đứng **00:31 · tạm dừng** suốt 5s, chọn
+  Không 1,5s sau ⇒ 00:33 (không cộng 5s dừng), "còn ~" 0:42 → 0:41 · Có ⇒ hộp đóng, `cancelled` 114.000 · 0 file sót.
+
 ### Thêm lúc Đại Ca thử EXE v2.0.9 — chữ phiên bản + khung Google Dịch
 - Đại Ca (kèm ảnh màn đăng nhập): *"sẵn chữ phiên bản cho thành màu khác luôn cho nó bật lên"*. Chữ *PHIÊN BẢN V2.0.9* xám `#64748b`
   chìm vào nền navy ⇒ thành **viên nhãn xanh** cùng tông chữ *REPORT*: chữ `#93c5fd`, nền `rgba(96,165,250,.14)`, viền

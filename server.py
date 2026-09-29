@@ -258,6 +258,7 @@ PERM_ROUTE_STATIC = {
 PERM_PUBLIC = {
     '/api/version', '/api/check_driver', '/api/install_driver', '/api/login', '/api/logout',
     '/api/metadata', '/api/metadata/refresh', '/api/export/status', '/api/export/cancel',
+    '/api/export/pause',             # 29/09/2026: tạm dừng lúc hỏi "có chắc hủy xuất không" — cùng nhóm với cancel
     '/api/save_export', '/api/open_file', '/api/open_folder',
     '/api/check_update', '/api/update_progress', '/api/apply_update', '/api/my_perms',
     # Xuất Excel Báo cáo TC (việc 35): ghi LẠI bảng người dùng ĐANG XEM (đã qua quyền của báo cáo đó) + tải file
@@ -2564,6 +2565,7 @@ def _write_csv_to_disk(job_id, headers, row_iter, filename, total_estimate):
                             job['current'] = count
                             if job.get('cancelled'):
                                 raise RuntimeError("Cancelled by user")
+                    _cho_neu_tam_dung(job_id)
             if buf:
                 f.write('\r\n'.join(buf) + '\r\n')
                 count += len(buf)
@@ -2589,6 +2591,34 @@ def _kiem_huy_xuat(job_id):
         job = _export_jobs.get(job_id)
         if job is not None and job.get('cancelled'):
             raise RuntimeError("Cancelled by user")
+
+
+# Tạm dừng tối đa bao lâu thì tự huỷ — hộp "Bạn có chắc chắn muốn hủy xuất?" bỏ đó (tắt cửa sổ, đi chỗ khác) thì job
+# không được giữ kết nối SQL + file tạm mãi.
+_TAM_DUNG_TOI_DA_S = 600
+
+def _cho_neu_tam_dung(job_id):
+    """Đại Ca 29/09/2026: bấm Hủy xuất ⇒ app hỏi "Bạn có chắc chắn muốn hủy xuất?" và trong lúc hỏi thì TIẾN ĐỘ PHẢI
+    DỪNG. Trình duyệt đặt job['tam_dung'] (/api/export/pause); hàm này đứng chờ tới khi: chọn Không (bỏ cờ ⇒ chạy tiếp)
+    · chọn Có (cờ huỷ ⇒ ném lỗi như _kiem_huy_xuat) · quá _TAM_DUNG_TOI_DA_S (ném lỗi ⇒ job 'error', có câu giải thích).
+    Gọi ở các điểm kiểm huỷ: mỗi 2.000 dòng ghi, trước câu SQL lấy dữ liệu, trước khi bắt đầu ghi, trước khi đưa file đã
+    đóng gói sang thư mục xuất. ⚠️ Câu SQL ĐANG CHẠY / bước đóng gói ĐANG CHẠY thì không dừng ngang được — dừng ở điểm kế.
+    Câu xuất Nhật ký chung đều WITH (NOLOCK) ⇒ đứng giữa lúc đọc dở không giữ khoá, không chặn ai ghi sổ."""
+    bat_dau = None
+    while True:
+        with _export_jobs_lock:
+            job = _export_jobs.get(job_id)
+            if job is None:
+                return
+            if job.get('cancelled'):
+                raise RuntimeError("Cancelled by user")
+            if not job.get('tam_dung'):
+                return
+        if bat_dau is None:
+            bat_dau = time.time()
+        elif time.time() - bat_dau > _TAM_DUNG_TOI_DA_S:
+            raise RuntimeError("Đã tạm dừng quá 10 phút nên ứng dụng tự hủy lần xuất này — xuất lại khi cần.")
+        time.sleep(0.2)
 
 
 def _dat_loi_xuat(job_id, e):
@@ -2683,6 +2713,7 @@ def _write_xlsx_to_disk(job_id, headers, row_iter, filename, total_estimate, she
                         if job.get('cancelled'):
                             # KHÔNG close(): đóng gói phần đã ghi chỉ để xoá ngay là phí — chỗ bắt lỗi bên dưới dọn file tạm
                             raise RuntimeError("Cancelled by user")
+                _cho_neu_tam_dung(job_id)   # đang hỏi "có chắc hủy không" ⇒ đứng đây, không ghi thêm dòng nào
 
         # Ghi xong dòng ⇒ đóng gói file (nén xml thành .xlsx) — với vài triệu dòng mất một lúc, báo riêng để
         # người dùng khỏi tưởng treo ở 100%.
@@ -2694,6 +2725,7 @@ def _write_xlsx_to_disk(job_id, headers, row_iter, filename, total_estimate, she
         da_dong = True
         workbook.close()
         _kiem_huy_xuat(job_id)      # huỷ đúng lúc đang đóng gói (không ngắt được) ⇒ xong thì xoá, đừng để lại file
+        _cho_neu_tam_dung(job_id)   # còn đang hỏi thì file nằm chờ ở thư mục tạm; chọn Có ⇒ xoá, Không ⇒ chuyển sang
         # Xong hẳn mới đưa sang thư mục xuất. Cùng ổ ⇒ os.replace tức thì; khác ổ (TEMP ở C:, thư mục xuất ở ổ khác) ⇒
         # os.replace báo lỗi ⇒ shutil.move chép sang. Trùng tên file cũ thì ghi đè — y như trước khi có việc 44.
         try:
@@ -2729,6 +2761,19 @@ def get_export_status():
         if not job:
             return jsonify({"status": "not_found"}), 404
         return jsonify({k: v for k, v in job.items() if k != 'cancelled'})
+
+
+@app.route("/api/export/pause", methods=["POST"])
+def pause_export():
+    """Tạm dừng / chạy tiếp job xuất file (29/09/2026). Trình duyệt gọi {tam_dung: true} khi mở hộp "Bạn có chắc chắn
+    muốn hủy xuất?", {tam_dung: false} khi chọn Không. Chọn Có thì gọi /api/export/cancel như cũ.
+    ⛔ Route public cùng nhóm /api/export/cancel — khai trong PERM_PUBLIC (Bẫy 30)."""
+    d = request.get_json(silent=True) or {}
+    with _export_jobs_lock:
+        job = _export_jobs.get(d.get('job_id') or '')
+        if job and job.get('status') == 'running':
+            job['tam_dung'] = bool(d.get('tam_dung'))
+    return jsonify({"status": "ok"})
 
 
 @app.route("/api/export/cancel", methods=["POST"])
@@ -2997,6 +3042,7 @@ def _start_export_job(filename, headers, sql, params, transform_row, total_estim
             'status': 'running', 'current': 0, 'total': total_estimate,
             'file_path': None, 'filename': filename, 'error': None,
             'cancelled': False, 'phase': 'dem' if count_sql else 'truy_van',
+            'tam_dung': False,       # đang hỏi "Bạn có chắc chắn muốn hủy xuất?" — xem _cho_neu_tam_dung
         }
     db_cfg = _db_cfg()
 
@@ -3028,8 +3074,10 @@ def _start_export_job(filename, headers, sql, params, transform_row, total_estim
             # Nút "Hủy xuất" (29/09/2026): câu SQL đang chạy thì không ngắt ngang được — kiểm cờ huỷ NGAY SAU mỗi câu
             # (đếm ~2s, lấy dữ liệu ~15s), đừng để người dùng đã huỷ mà máy chủ còn chạy tiếp câu kế.
             _kiem_huy_xuat(job_id)
+            _cho_neu_tam_dung(job_id)    # đang hỏi "có chắc hủy không" ⇒ đừng bắt đầu câu SQL lấy dữ liệu (~15s)
             cursor.execute(sql, params)
             _kiem_huy_xuat(job_id)
+            _cho_neu_tam_dung(job_id)    # câu SQL xong giữa lúc đang hỏi ⇒ chờ trả lời rồi mới ghi dòng nào
             _dat(phase='ghi')
             sql_cols = [c[0] for c in cursor.description]
 

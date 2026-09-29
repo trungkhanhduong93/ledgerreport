@@ -52,14 +52,21 @@ window.showConnectionLost = function() {
     <meta name="application-name" content="DATA REPORT">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="DATA REPORT">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Việc 25 (29/09/2026): 5 thư viện nằm sẵn trong thu-vien/ (nhúng vào EXE) — mở app KHÔNG cần Internet.
+         Trước đó tải từ cdn.tailwindcss.com / unpkg.com / cdn.jsdelivr.net mỗi lần mở; mạng chậm là màn trắng.
+         Đúng bản đã chạy trước khi nhúng: tailwind 3.4.17 (cdn.tailwindcss.com không ghi số), react + react-dom 18.3.1
+         (unpkg @18), babel 7.29.7, xlsx 0.18.5. Đổi phiên bản = tải file mới vào thu-vien/ + đổi tên ở đây + dich_giao_dien.js
+         + build_exe.py + release.yml. -->
+    <script src="/thu-vien/tailwind-3.4.17.js"></script>
+    <script src="/thu-vien/react-18.3.1.production.min.js"></script>
+    <script src="/thu-vien/react-dom-18.3.1.production.min.js"></script>
     <!-- Ghim Babel v7 (classic runtime: React.createElement). KHÔNG dùng latest/v8:
          preset-react v8 mặc định automatic runtime → chèn import "react/jsx-runtime"
-         gây lỗi "Cannot use import statement outside a module" trong script type="text/babel". -->
-    <script src="https://unpkg.com/@babel/standalone@7.29.7/babel.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+         gây lỗi "Cannot use import statement outside a module" trong script type="text/babel".
+         Việc 24: bản trong EXE đã DỊCH SẴN lúc đóng gói (dich_giao_dien.js) ⇒ thẻ Babel dưới bị gỡ khỏi bản đó;
+         chỉ còn khi chạy server.py từ mã nguồn. -->
+    <script src="/thu-vien/babel-standalone-7.29.7.min.js"></script>
+    <script src="/thu-vien/xlsx-0.18.5.full.min.js"></script>
     <script>
         // Fallback nếu CDN không load
         window.React = window.React || { createElement: () => null, useState: () => [null, () => {}], useEffect: () => {}, useRef: () => ({current: null}), useCallback: () => () => {} };
@@ -272,15 +279,17 @@ window.showConnectionLost = function() {
     <div id="offline-warning" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:#f1f5f9; z-index:10000; padding:40px; text-align:center; font-family:Arial,sans-serif;">
         <div style="background:white; border-radius:16px; padding:40px; max-width:500px; margin:auto; margin-top:100px; box-shadow:0 10px 40px rgba(0,0,0,0.1);">
             <div style="font-size:48px; margin-bottom:20px;">⚠️</div>
-            <h1 style="color:#334155; font-weight:bold; margin:0 0 16px 0;">Không thể kết nối CDN</h1>
-            <p style="color:#64748b; margin:0 0 24px 0; font-size:14px;">Ứng dụng cần internet để tải React, Tailwind CSS từ CDN.<br/><br/>Giải pháp:<br/>1. Kiểm tra kết nối internet<br/>2. Hoặc liên hệ quản trị viên để cấu hình bản offline</p>
+            <h1 style="color:#334155; font-weight:bold; margin:0 0 16px 0;">Không tải được giao diện</h1>
+            <p style="color:#64748b; margin:0 0 24px 0; font-size:14px;">Thư viện giao diện nằm sẵn trong ứng dụng nhưng không nạp được — thường do ứng dụng vừa bị tắt hoặc đang khởi động lại.<br/><br/>Bấm <b>Thử lại</b>. Vẫn lỗi thì tắt hẳn ứng dụng rồi mở lại.</p>
             <button onclick="location.reload()" style="background:#1e3a8a; color:white; border:none; padding:12px 24px; border-radius:8px; cursor:pointer; font-weight:bold;">Thử lại</button>
         </div>
     </div>
     <script>
-        // Kiểm tra xem React đã load chưa (timeout 5 giây)
+        // Kiểm tra xem React đã load chưa (timeout 5 giây).
+        // Xét .version chứ KHÔNG xét typeof: khối "Fallback" ở <head> gán React/ReactDOM giả khi thư viện hỏng ⇒ typeof
+        // luôn khác 'undefined' ⇒ bản cũ không bao giờ hiện cảnh báo, chỉ còn màn trắng câm (việc 25).
         setTimeout(() => {
-            if (typeof React === 'undefined' || typeof ReactDOM === 'undefined') {
+            if (!(window.React && React.version) || !(window.ReactDOM && ReactDOM.version)) {
                 document.getElementById('offline-warning').style.display = 'block';
             }
         }, 5000);
@@ -5797,6 +5806,7 @@ const exportJournalCsv = (mode) => {
             const loadPerms = async () => {
                 try {
                     const r = await fetch('/api/my_perms');
+                    if (r.status === 401) return 'het_phien';   // việc 40: nút Tải lại dựa vào đây để về màn đăng nhập
                     if (!r.ok) return;
                     const j = await r.json();
                     if (j.status === 'ok') {
@@ -5890,7 +5900,15 @@ const exportJournalCsv = (mode) => {
                 if (dangTaiLai) return;
                 setDangTaiLai(true);
                 try {
-                    await loadPerms();
+                    // Việc 40 (29/09/2026): phiên đã hết (app vừa mở lại / cập nhật, hoặc bị đăng xuất ở nền) thì trước đây nút
+                    // này IM LẶNG — người dùng bấm mãi không thấy gì. Nay về màn đăng nhập kèm lý do. Máy chủ có lý do cụ thể
+                    // hơn (đổi mật khẩu, bị khoá, đổi quyền — việc 23) thì màn đăng nhập tự thay câu dưới bằng câu đó.
+                    if ((await loadPerms()) === 'het_phien') {
+                        setLoginError("Phiên đăng nhập đã hết\nĐăng nhập lại để tiếp tục — thường do ứng dụng vừa được mở lại hoặc vừa cập nhật.");
+                        setLoginErrorChiTiet("");
+                        setIsLoggedIn(false);
+                        return;
+                    }
                     try {
                         const res = await fetch('/api/metadata').then(r => r.json());
                         if (res.status === 'ok') setMeta(res);

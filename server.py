@@ -822,7 +822,13 @@ def index():
 @app.route("/<path:filename>")
 def serve_static(filename):
     resp = send_from_directory(resource_path("."), filename)
-    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    if filename.startswith("thu-vien/"):
+        # Việc 25: thư viện giao diện nhúng trong EXE, TÊN FILE CÓ SỐ PHIÊN BẢN (react-18.3.1…) ⇒ nội dung không bao giờ
+        # đổi dưới cùng một tên ⇒ cho trình duyệt giữ hẳn: mở app lần sau khỏi đọc + phân tích lại ~1,4 MB.
+        # Đổi phiên bản thư viện thì PHẢI đổi tên file, đừng ghi đè file cũ cùng tên.
+        resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    else:
+        resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     return resp
 
 def get_connection():

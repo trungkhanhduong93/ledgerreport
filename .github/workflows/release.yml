@@ -4,6 +4,13 @@ on:
   push:
     branches:
       - main
+    # Việc 11 (29/09/2026): push CHỈ đổi tài liệu thì KHÔNG build — trước đây push một file .md cũng build lại EXE và
+    # THAY asset của Release đang có bằng binary khác SHA ⇒ EXE vừa đối chiếu khớp trên máy lệch ngay.
+    # (Chỉ bỏ qua khi MỌI file đổi đều khớp danh sách; lẫn một file code là vẫn build. Push tag không xét đường dẫn.)
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'docs-cu/**'
     tags:
       - 'v*'
 
@@ -17,12 +24,12 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7          # việc 11: bản chạy Node 24 (v4 chạy Node 20 — hết vòng đời)
         with:
           fetch-depth: 0
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7      # việc 11 — v7 bỏ input pip-install, file này không dùng
         with:
           python-version: '3.12'
 
@@ -45,6 +52,15 @@ jobs:
           "APP_VERSION=$ver" | Out-File -FilePath $env:GITHUB_ENV -Append
           "RELEASE_TAG=$tagName" | Out-File -FilePath $env:GITHUB_ENV -Append
 
+      - name: Dich san giao dien (viec 24)
+        # Dịch JSX của index.html MỘT LẦN ở đây ⇒ EXE mở không phải chờ Babel dịch 7–13 giây. Node có sẵn trên runner
+        # windows-latest; Babel lấy từ thu-vien/ nên không cần npm install. Dịch hỏng ⇒ dừng, không phát hành.
+        shell: pwsh
+        run: |
+          node --version
+          node dich_giao_dien.js
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
       - name: Build Executable with PyInstaller
         shell: pwsh
         run: |
@@ -53,7 +69,11 @@ jobs:
             --icon icon.ico `
             --version-file version_info.txt `
             --collect-submodules pyodbc `
-            --add-data "index.html;." `
+            --add-data "web_dich_san/index.html;." `
+            --add-data "thu-vien/tailwind-3.4.17.js;thu-vien" `
+            --add-data "thu-vien/react-18.3.1.production.min.js;thu-vien" `
+            --add-data "thu-vien/react-dom-18.3.1.production.min.js;thu-vien" `
+            --add-data "thu-vien/xlsx-0.18.5.full.min.js;thu-vien" `
             --add-data "install_driver.ps1;." `
             --add-data "manifest.json;." `
             --add-data "icon.svg;." `
@@ -66,7 +86,7 @@ jobs:
           Compress-Archive -Path "dist/iPOS_Accounting_Report.exe" -DestinationPath "dist/iPOS_Accounting_Report.zip" -Force
 
       - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3   # việc 11 — chỉ đổi runtime Node 20 → 24, giữ nguyên input
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           name: iPOS Accounting Report ${{ env.RELEASE_TAG }}

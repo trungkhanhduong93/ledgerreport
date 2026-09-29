@@ -16,6 +16,12 @@
 >   một lần), hiện tối đa 8 dòng, dư thì ghi "… và N thay đổi khác".
 > - Dòng không bắt đầu bằng `- ` (như khối ghi chú này) app bỏ qua.
 
+## v2.0.9
+- Mở ứng dụng nhanh hơn hẳn: giao diện hiện gần như ngay, không còn màn trắng chờ 7–13 giây
+- Giao diện nằm sẵn trong ứng dụng, không phải tải từ Internet mỗi lần mở — mạng chậm vẫn mở bình thường
+- Nút Tải lại: khi phiên đăng nhập đã hết thì đưa về màn đăng nhập kèm lý do, không còn bấm mà không thấy gì
+- Cập nhật hệ thống
+
 ## v2.0.8
 - Nhật ký chung: bấm Hủy xuất là dừng ngay, thư mục xuất không còn thoáng hiện file đang làm dở
 - Xuất Excel: nếu file cùng tên đang mở trong Excel, app báo rõ cần đóng file đó rồi xuất lại

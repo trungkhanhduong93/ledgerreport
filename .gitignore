@@ -39,3 +39,6 @@ phanquyen.json
 ketnoi.json
 # Ban luu quyen offline (sinh ra canh EXE luc chay)
 phanquyen_cache.json
+
+# Viec 24: ban giao dien DICH SAN — sinh boi dich_giao_dien.js luc build, KHONG commit (sua index.html)
+web_dich_san/

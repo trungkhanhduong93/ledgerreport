@@ -51,6 +51,13 @@ $Files = @(
     'TOI_UU_DB_16082026.sql',
     'test.py',
     'test_sql.py',
+    'dich_giao_dien.js',                            # viec 24: dich san giao dien luc build (29/09/2026)
+    '.gitattributes',                               # viec 25: giu nguyen byte thu-vien/*.js
+    'thu-vien/tailwind-3.4.17.js',                  # viec 25: thu vien giao dien nhung vao EXE
+    'thu-vien/react-18.3.1.production.min.js',
+    'thu-vien/react-dom-18.3.1.production.min.js',
+    'thu-vien/babel-standalone-7.29.7.min.js',      # chi de build (dich san), KHONG nhung vao EXE
+    'thu-vien/xlsx-0.18.5.full.min.js',
     'CO_GI_MOI.md',          # app đọc file này trên GitHub cho hộp thoại cập nhật (26/09/2026)
     # --- Tài liệu LIVE (chỉ 5 file này, xem docs-cu/ cho bản cũ) ---
     'CLAUDE.md',

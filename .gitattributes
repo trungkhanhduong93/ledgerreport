@@ -1,0 +1,3 @@
+# Việc 25 (29/09/2026): thư viện giao diện nhúng vào EXE — giữ NGUYÊN TỪNG BYTE như bản tải từ CDN (SHA256 ghi trong
+# NHAT_KY_CONG_VIEC.md). Không có dòng này thì core.autocrlf (bật sẵn trên Windows, kể cả runner GitHub) đổi LF → CRLF.
+thu-vien/*.js -text

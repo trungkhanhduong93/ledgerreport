@@ -32,10 +32,26 @@ else:
     print("=" * 70)
 
 ICON_NAME = 'icon.ico'
+
+# Viec 24 + 25 (29/09/2026): EXE nhung ban giao dien DICH SAN (web_dich_san/index.html, sinh boi dich_giao_dien.js)
+# THAY CHO index.html goc, kem 4 thu vien trong thu-vien/ (Babel KHONG nhung — da dich san thi khoi can).
+# ⛔ Danh sach nay phai KHOP voi buoc PyInstaller trong .github/workflows/release.yml — CI khong chay file nay.
+THU_VIEN_NHUNG = ['tailwind-3.4.17.js', 'react-18.3.1.production.min.js',
+                  'react-dom-18.3.1.production.min.js', 'xlsx-0.18.5.full.min.js']
+for _tv in THU_VIEN_NHUNG:
+    if not os.path.exists(os.path.join('thu-vien', _tv)):
+        print(f"[LOI] Thieu thu-vien/{_tv} — khong build (EXE thieu thu vien la man trang)")
+        sys.exit(1)
+# Dich TRUOC khi tang version.txt: dich hong thi dung, khong de lai so hieu da tang ma khong co EXE.
+print('Dich san giao dien (node dich_giao_dien.js)...')
+if subprocess.run(['node', 'dich_giao_dien.js']).returncode != 0:
+    print('[LOI] Dich san giao dien that bai — khong build')
+    sys.exit(1)
+
 ADD_DATA = [
-    'index.html;.',
+    os.path.join('web_dich_san', 'index.html') + ';.',
     'install_driver.ps1;.'
-]
+] + [f'thu-vien/{_tv};thu-vien' for _tv in THU_VIEN_NHUNG]
 if os.path.exists('manifest.json'):
     ADD_DATA.append('manifest.json;.')
 if os.path.exists('icon.svg'):

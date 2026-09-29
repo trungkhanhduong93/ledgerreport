@@ -3,7 +3,8 @@
 > Toàn bộ những gì đã làm với **LedgerReport**, và **vì sao**. Đọc file này trước khi sửa tiếp.
 > Kiến trúc, ma trận báo cáo, phương án backup: [CLAUDE.md](CLAUDE.md).
 > Mổ xẻ sâu sự cố + 4 bài học: [SU_CO_15082026.md](SU_CO_15082026.md).
-> 🚀 **Bản mới nhất: `v2.0.9` (29/09/2026)** — **mở app ~0,2s** (việc 24 dịch sẵn giao diện + việc 25 thư viện trong app) · Tải lại
+> 🚀 **Bản mới nhất: `v2.1.0` (29/09/2026)** — Đại Ca chốt lên **2.1** cho đợt tính năng này; code y `v2.0.9`.
+>   `v2.0.9` (29/09) = **mở app ~0,2s** (việc 24 dịch sẵn giao diện + việc 25 thư viện trong app) · Tải lại
 >   hỏi Google quyền · popup Hủy xuất Có/Không + tạm dừng · icon từng màn · GitHub Actions Node 24 + `paths-ignore` (việc 11).
 >   `v2.0.8` (29/09) = **Hủy xuất không còn thoáng hiện file dở trong thư mục xuất** (việc 44).
 >   `v2.0.7` (29/09) = **nút Hủy xuất Excel Nhật ký chung** (việc 43).
@@ -159,6 +160,19 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 29/09/2026 — Lên v2.1.0 (Đại Ca chốt — cùng code v2.0.9)
+
+Đại Ca: *"các tính năng update chỉnh sửa nãy giờ nó có thay đổi thế thì theo đúng quy trình luôn đi lên V2.1.0"*.
+- **Không đổi dòng code nào** so với `v2.0.9` — chỉ số hiệu. `v2.0.9` **giữ nguyên** trên GitHub (không xoá tag / Release): máy đã lên
+  2.0.9 hay còn ở 2.0.8 đều được báo lên thẳng 2.1.0 (`has_update` so LỚN HƠN hẳn).
+- `CO_GI_MOI.md`: thêm `## v2.1.0` = đúng 6 dòng của đợt này, **giữ** `## v2.0.9` cho đúng lịch sử — app bỏ dòng trùng. Thử
+  `_tach_co_gi_moi`: máy 2.0.9 → 6 dòng · 2.0.8 → 6 dòng · 2.0.7 → 8 dòng (thêm 2 dòng v2.0.8), không lặp.
+- Build `python build_exe.py iPOS_Accounting_Report 2.1.0` ⇒ `version.txt` / `version_info.txt` 2.1.0, nguồn giao diện `537503ef…` (y
+  v2.0.9). M3: `/api/version` 2.1.0, không báo cập nhật nhầm (GitHub còn 2.0.9), trang dịch sẵn. Bản CI v2.0.9 (`7d54e2a5…`) cất ở
+  scratchpad để cập nhật thật 2.0.9 → 2.1.0.
 
 ---
 

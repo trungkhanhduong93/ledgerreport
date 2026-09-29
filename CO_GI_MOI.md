@@ -16,6 +16,14 @@
 >   một lần), hiện tối đa 8 dòng, dư thì ghi "… và N thay đổi khác".
 > - Dòng không bắt đầu bằng `- ` (như khối ghi chú này) app bỏ qua.
 
+## v2.1.0
+- Mở ứng dụng nhanh hơn hẳn, không cần Internet để tải giao diện — không còn màn trắng chờ 7–13 giây
+- Nhật ký chung: bấm Hủy xuất hiện hộp hỏi giữa màn; trong lúc hỏi việc xuất tạm dừng, chọn Không là xuất tiếp
+- Nút Tải lại: kiểm lại quyền và nạp lại giao diện, không tự lọc số liệu; quyền vừa bị đổi thì tự đăng xuất để đăng nhập lại
+- Cột bên trái: mỗi danh sách chứng từ có biểu tượng riêng, dễ nhận ra
+- Màn đăng nhập: số phiên bản hiện nổi màu xanh, dễ nhìn; không còn bật khung Google Dịch ở góc màn hình
+- Cập nhật hệ thống
+
 ## v2.0.9
 - Mở ứng dụng nhanh hơn hẳn, không cần Internet để tải giao diện — không còn màn trắng chờ 7–13 giây
 - Nhật ký chung: bấm Hủy xuất hiện hộp hỏi giữa màn; trong lúc hỏi việc xuất tạm dừng, chọn Không là xuất tiếp

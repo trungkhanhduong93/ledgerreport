@@ -243,6 +243,10 @@ giữa và cho chọn là có hoặc không, có thì ngưng, không thì xuất
   đứng yên 40.000 dòng suốt 3s · nút Không được chọn sẵn · Không ⇒ chạy tiếp (52.000) · đồng hồ đứng **00:31 · tạm dừng** suốt 5s, chọn
   Không 1,5s sau ⇒ 00:33 (không cộng 5s dừng), "còn ~" 0:42 → 0:41 · Có ⇒ hộp đóng, `cancelled` 114.000 · 0 file sót.
 
+- **Build lại v2.0.9** (Đại Ca tắt app; `version.txt` trả về 2.0.8 cho `build_exe.py` tự tăng lại 2.0.9 — tham số ép số hiệu chỉ nhận số
+  LỚN HƠN bản hiện tại): EXE 15.271.682 B · M3: `/api/version` 2.0.9 · trang có popup hỏi huỷ, gọi `/api/export/pause`, **0**
+  `window.confirm('Hủy xuất`, nhãn xanh, `notranslate`, 0 thẻ Babel · `POST /api/export/pause` (job lạ) ⇒ 200. Đang chờ Đại Ca thử.
+
 ### Thêm lúc Đại Ca thử EXE v2.0.9 — chữ phiên bản + khung Google Dịch
 - Đại Ca (kèm ảnh màn đăng nhập): *"sẵn chữ phiên bản cho thành màu khác luôn cho nó bật lên"*. Chữ *PHIÊN BẢN V2.0.9* xám `#64748b`
   chìm vào nền navy ⇒ thành **viên nhãn xanh** cùng tông chữ *REPORT*: chữ `#93c5fd`, nền `rgba(96,165,250,.14)`, viền

@@ -7,7 +7,8 @@
 > còn đá người ra khi Google chỉ là chưa trả lời được. Mục nhật ký *29/09/2026 — Phát hành v2.0.6*. EXE trên máy Đại Ca = đúng file CI.
 > Mục *28/09/2026 (khuya)*: **Đại Ca giữ Google Sheet, không chuyển Supabase** — đọc lý do trước khi đề xuất lại.
 > 🟠 **v2.0.9 (build, CHƯA push)** — **mở app ~0,2s thay vì 7–13s**: dịch sẵn giao diện lúc build (việc 24) + 5 thư viện trong
-> `thu-vien/` (việc 25) + Tải lại khi hết phiên (việc 40) + GitHub Actions Node 24 & `paths-ignore` (việc 11). Chờ Đại Ca thử EXE.
+> `thu-vien/` (việc 25) + Tải lại khi hết phiên (việc 40) + GitHub Actions Node 24 & `paths-ignore` (việc 11) + **Hủy xuất: popup
+> giữa màn Có / Không, job TẠM DỪNG trong lúc hỏi** (`/api/export/pause`, `_cho_neu_tam_dung`) + nhãn phiên bản xanh. Chờ Đại Ca thử EXE.
 > Mục nhật ký *29/09/2026 — Việc 11, 40, 24, 25*.
 > · ✅ **v2.0.8** (29/09/2026) — **việc 44** Hủy xuất không còn thoáng hiện file `.xlsx` dở: ghi ở `%TEMP%`, xong mới chuyển sang thư mục
 > xuất (`_write_xlsx_to_disk` / `_bo_workbook_do`). Mục nhật ký *29/09/2026 — Việc 44*.

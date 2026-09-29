@@ -48,7 +48,7 @@
 
 > *Cập nhật 29/09/2026.* Gom hết việc còn treo về một chỗ. Nhận việc mới thì **đọc mục này trước**.
 > ⚠️ Tiêu đề mục này **cố ý không ghi ngày** — mọi đường dẫn `#-việc-cần-làm` trỏ vào nó; ghi ngày là gãy link.
-> Trạng thái: **v2.0.9 đã phát hành** (29/09/2026 16h42), là `Latest`, và **EXE trên máy Đại Ca = đúng file CI** (SHA256 khớp digest).
+> Trạng thái: **v2.1.0 đã phát hành** (29/09/2026 16h54 — code y v2.0.9), là `Latest`, và **EXE trên máy Đại Ca = đúng file CI** (SHA256 khớp digest).
 >
 > ✅ **Từ v2.0.9 (việc 11) workflow có `paths-ignore`** — push CHỈ tài liệu (`**.md`, `docs/**`, `docs-cu/**`) **không build lại EXE**,
 > asset không đổi SHA ⇒ push nhật ký thoải mái. ⚠️ Commit đụng `.github/workflows/` thì `git push` thường bị từ chối (Git Credential
@@ -173,6 +173,11 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 - Build `python build_exe.py iPOS_Accounting_Report 2.1.0` ⇒ `version.txt` / `version_info.txt` 2.1.0, nguồn giao diện `537503ef…` (y
   v2.0.9). M3: `/api/version` 2.1.0, không báo cập nhật nhầm (GitHub còn 2.0.9), trang dịch sẵn. Bản CI v2.0.9 (`7d54e2a5…`) cất ở
   scratchpad để cập nhật thật 2.0.9 → 2.1.0.
+- Push `e5144ce..0c94c49` (git push thường) ⇒ Actions run `36552085370` **`success`**, 0 cảnh báo ⇒ **Release `v2.1.0` = `Latest`**, tag →
+  `0c94c49`, digest EXE `740b6eaa…`. `v2.0.9` vẫn còn (tag → `ed75979`).
+- ✅ **Cập nhật thật 2.0.9 → 2.1.0** từ file CI v2.0.9: hộp báo 6 dòng · `apply_update` ⇒ **~22 giây** chạy 2.1.0 · `dist\` **SHA256 = digest
+  CI v2.1.0** · `dist\` gọn 3 file · hết báo cập nhật · trang dịch sẵn, 0 thẻ Babel. App để đang chạy.
+- Push tài liệu trước đó (`e5144ce`) **không sinh lần build nào** — `paths-ignore` (việc 11) có tác dụng, asset v2.0.9 giữ nguyên SHA.
 
 ---
 

@@ -16,6 +16,10 @@
 >   một lần), hiện tối đa 8 dòng, dư thì ghi "… và N thay đổi khác".
 > - Dòng không bắt đầu bằng `- ` (như khối ghi chú này) app bỏ qua.
 
+## v2.0.8
+- Nhật ký chung: bấm Hủy xuất là dừng ngay, thư mục xuất không còn thoáng hiện file đang làm dở
+- Xuất Excel: nếu file cùng tên đang mở trong Excel, app báo rõ cần đóng file đó rồi xuất lại
+
 ## v2.0.7
 - Nhật ký chung: hộp xuất Excel hiện số dòng đã ghi, tốc độ, thời gian đã chạy và thời gian còn lại
 - Nhật ký chung: có nút Hủy xuất để dừng giữa chừng, không để lại file dở

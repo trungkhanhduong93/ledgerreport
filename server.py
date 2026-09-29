@@ -2595,6 +2595,25 @@ def _dat_loi_xuat(job_id, e):
             job['error']  = str(e)
 
 
+def _bo_workbook_do(workbook):
+    """Bỏ một workbook xlsxwriter đang ghi dở mà KHÔNG close() — close() là đóng gói nguyên phần đã ghi thành file .xlsx
+    (~5s/346 nghìn dòng, ~36s cả tháng Nhật ký chung) chỉ để xoá ngay sau đó (việc 44).
+    Ở chế độ constant_memory, mỗi sheet giữ dòng đã ghi trong một file tạm (`row_data_filename`, tạo bằng mkstemp);
+    xlsxwriter 3.2.9 CHỈ xoá file đó lúc close() ⇒ bỏ ngang thì phải tự đóng + xoá, không là rác nằm lại trong %TEMP%."""
+    if workbook is None:
+        return
+    for ws in workbook.worksheets():
+        try:
+            if getattr(ws, 'row_data_fh', None) is not None:
+                ws.row_data_fh.close()
+        except Exception:
+            pass
+        ten = getattr(ws, 'row_data_filename', None)
+        if ten:
+            try: os.remove(ten)
+            except OSError: pass
+
+
 def _write_xlsx_to_disk(job_id, headers, row_iter, filename, total_estimate, sheet_limit=1000000):
     """Ghi dữ liệu lớn ra XLSX, tự sang sheet mới khi chạm `sheet_limit` dòng.
 
@@ -2602,11 +2621,18 @@ def _write_xlsx_to_disk(job_id, headers, row_iter, filename, total_estimate, she
     KHÔNG được vượt 1.048.575 — có kẹp cứng bên dưới, truyền sai cỡ nào cũng không
     sinh ra được file Excel mở không nổi. Mặc định 1 triệu dòng/sheet cho mọi nơi:
     bám sát trần Excel nên số sheet ít nhất có thể (mốc 500k cũ cắt dày gấp đôi mức
-    cần thiết, file nhiều sheet hơn mà chẳng được lợi gì)."""
-    import xlsxwriter
+    cần thiết, file nhiều sheet hơn mà chẳng được lợi gì).
+
+    Việc 44 (29/09/2026): ghi + đóng gói ở THƯ MỤC TẠM, xong hẳn mới chuyển sang thư mục xuất ⇒ thư mục xuất không bao
+    giờ có file dở. Trước đó bấm Hủy lúc đang ghi thì file .xlsx của phần đã ghi hiện ra trong thư mục xuất suốt lúc
+    đóng gói rồi mới bị xoá — Đại Ca bắt gặp, tưởng huỷ không xoá file."""
+    import xlsxwriter, tempfile, shutil
     out_path = os.path.join(_export_dir(), filename)
+    tam_path = os.path.join(tempfile.gettempdir(), f"lr_xuat_{job_id}.xlsx")
+    workbook = None
+    da_dong = False     # đã gọi close() (đóng gói) chưa — chưa thì phải tự dọn file tạm của từng sheet
     try:
-        workbook = xlsxwriter.Workbook(out_path, {'constant_memory': True})
+        workbook = xlsxwriter.Workbook(tam_path, {'constant_memory': True})
         header_format = workbook.add_format({'bg_color': '#f8fafc', 'align': 'center'})
         num_format = workbook.add_format({'num_format': '#,##0'})
         date_format = workbook.add_format({'num_format': 'dd/mm/yyyy'})
@@ -2649,7 +2675,7 @@ def _write_xlsx_to_disk(job_id, headers, row_iter, filename, total_estimate, she
                     if job is not None:
                         job['current'] = count
                         if job.get('cancelled'):
-                            workbook.close()
+                            # KHÔNG close(): đóng gói phần đã ghi chỉ để xoá ngay là phí — chỗ bắt lỗi bên dưới dọn file tạm
                             raise RuntimeError("Cancelled by user")
 
         # Ghi xong dòng ⇒ đóng gói file (nén xml thành .xlsx) — với vài triệu dòng mất một lúc, báo riêng để
@@ -2659,8 +2685,18 @@ def _write_xlsx_to_disk(job_id, headers, row_iter, filename, total_estimate, she
             if job is not None:
                 job['current'] = count
                 job['phase'] = 'dong_goi'
+        da_dong = True
         workbook.close()
         _kiem_huy_xuat(job_id)      # huỷ đúng lúc đang đóng gói (không ngắt được) ⇒ xong thì xoá, đừng để lại file
+        # Xong hẳn mới đưa sang thư mục xuất. Cùng ổ ⇒ os.replace tức thì; khác ổ (TEMP ở C:, thư mục xuất ở ổ khác) ⇒
+        # os.replace báo lỗi ⇒ shutil.move chép sang. Trùng tên file cũ thì ghi đè — y như trước khi có việc 44.
+        try:
+            os.replace(tam_path, out_path)
+        except PermissionError:
+            # File cùng tên của lần xuất trước đang mở trong Excel ⇒ Windows không cho ghi đè
+            raise RuntimeError(f"File {filename} đang mở (thường là trong Excel) — đóng file đó rồi xuất lại.")
+        except OSError:
+            shutil.move(tam_path, out_path)
         with _export_jobs_lock:
             job = _export_jobs.get(job_id)
             if job is not None:
@@ -2670,8 +2706,11 @@ def _write_xlsx_to_disk(job_id, headers, row_iter, filename, total_estimate, she
                 job['file_path'] = out_path
                 job['filename'] = filename
     except Exception as e:
-        try: os.remove(out_path)
-        except: pass
+        if not da_dong:
+            _bo_workbook_do(workbook)
+        # Chỉ xoá file TẠM. Không đụng out_path: file đó (nếu có) là của lần xuất trước trùng tên, không phải file dở.
+        try: os.remove(tam_path)
+        except OSError: pass
         _dat_loi_xuat(job_id, e)
 
 

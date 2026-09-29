@@ -41,7 +41,7 @@
 
 ## 📌 VIỆC CẦN LÀM
 
-> *Cập nhật 28/09/2026.* Gom hết việc còn treo về một chỗ. Nhận việc mới thì **đọc mục này trước**.
+> *Cập nhật 29/09/2026.* Gom hết việc còn treo về một chỗ. Nhận việc mới thì **đọc mục này trước**.
 > ⚠️ Tiêu đề mục này **cố ý không ghi ngày** — mọi đường dẫn `#-việc-cần-làm` trỏ vào nó; ghi ngày là gãy link.
 > Trạng thái: **v2.0.6 đã phát hành** (29/09/2026 0h10), là `Latest`, và **EXE trên máy Đại Ca = đúng file CI** (SHA256 khớp digest).
 >
@@ -49,8 +49,11 @@
 > riêng**: push file `.md` là Actions build lại và **thay asset bằng binary khác SHA** ⇒ EXE vừa khớp trên máy lệch ngay.
 > Gộp vào lần sửa code tới (việc 11 `paths-ignore` sẽ gỡ hẳn vòng lặp này).
 >
-> 🟡 **Chờ Đại Ca thử v2.0.6 trên app thật:** đăng nhập một lần (M3 của em không đăng nhập được — cần tài khoản Google) + xuất Excel
-> Nhật ký chung một kỳ để xem đồng hồ đếm ngược.
+> ✅ **Đại Ca đã dùng v2.0.6 xuất Excel Nhật ký chung** (gửi ảnh 29/09) ⇒ đăng nhập trên v2.0.6 chạy được. Góp ý ⇒ **việc 43**.
+>
+> 🟠 **Việc 43 (29/09/2026): nút Hủy xuất + hộp xuất theo mẫu DataStudio — đã thử DB thật, commit `b85ba14`, build v2.0.7, M3 đạt.
+> CHƯA PUSH** (chờ Đại Ca). Còn: push · cập nhật thật 2.0.6 → 2.0.7 · đối chiếu SHA · `GITHUB_LEDGERREPORT.md`.
+> Chi tiết: mục *29/09/2026 — Việc 43*.
 >
 > 🔴 **Lần phát hành tới BẮT BUỘC:** viết mục `## vX.Y.Z` vào **`CO_GI_MOI.md`** (chỉ tính năng; hệ thống ⇒ *Cập nhật hệ thống*)
 > **trước khi push** · build bằng `build_exe.py` để số hiệu tự tăng · quét route `/api` chưa khai báo quyền phải ra `[]` (Bẫy 30)
@@ -85,8 +88,9 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | 17 | ~~Nút `TRUY VẤN` đang chuyển màu navy → tím~~ ✅ **XONG 25/09** | Đại Ca chốt: chữ **"Lọc"**, navy đặc, như mẫu iPOS. Nằm trong thanh lọc mới của 9 màn danh sách |
 | 18 | ~~Chốt mốc commit phần đăng nhập nhanh + sửa font~~ ✅ **commit `c64540a`** | Phát hành v2.0.0 |
 | 19 | ~~Đại Ca xem GĐ3 rồi chốt commit~~ ✅ **Đại Ca chốt OK sáng 25/09** (*"cái đó thì ok rồi"*) ⇒ đã commit GĐ3 | ⚠️ Đại Ca chốt chung, **không nói rõ đã thử từng mục dưới đây chưa** — lần đầu dùng số liệu thật thì để ý. Danh sách cần xem ở mục *"Việc Đại Ca xem sáng 25/09"* trong nhật ký 25/09 (tiếp 3), ngay dưới § này. Ba việc tôi **không** tự thử được: hộp *"Chuyển mẫu báo cáo?"* khi có số liệu thật · menu **Xuất Excel / Xuất PDF** khi có số liệu (chưa có số liệu thì nút tắt) · kéo thả thứ tự ô lọc bằng chuột thật. Và **đọc lại mô tả 16 thẻ** — tôi tự viết |
+| 43 | 🟠 **Nút Hủy xuất + hộp xuất Excel Nhật ký chung theo mẫu DataStudio** — thử DB thật đạt, commit `b85ba14`, build v2.0.7 (M3), **chưa push** | Đại Ca 29/09: *"nên cho thêm nút hủy tiến trình nếu t test t muốn ngưng"* + *"cơ chế tính giây sao nó cứ tăng giảm 1 chổ vậy … hoặc làm theo hình thì sao"* (ảnh hộp xuất DataStudio). Hộp mới: 4 bước · Đã ghi / Tốc độ / Thời gian *đã chạy · còn ~* · Hủy xuất. Mục nhật ký *29/09/2026 — Việc 43* |
 | 42 | ✅ **Đăng nhập nhanh đá người ra VÔ CỚ khi Google bận** — **phát hành v2.0.6** (commit `b887717`) | Luồng hỏi lại Google (`_kiem_lai_nen`) coi **mọi** `ok: false` là từ chối ⇒ chờ ổ khoá quá 20 giây (*"Máy khác đang ghi…"*), lỗi dịch vụ Sheets, sai token… đều **huỷ phiên + xoá bản lưu**. Nay chỉ 3 câu từ chối thật mới đá ra (`_GS_TU_CHOI_TK`). Đối chứng với bản cũ bằng cùng phép thử: bản cũ đá ra ở cả 3 ca "chưa trả lời được" |
-| 41 | ✅ **Đồng hồ đếm ngược xuất Excel Nhật ký chung** — **phát hành v2.0.6**, đã đo + thử giao diện trên DB thật (mục *28/09/2026 (khuya, tiếp)*). ⏳ Chờ Đại Ca thử trên app thật | Đại Ca hỏi *"ước tính thời gian xuất được không"* → chốt *"đếm ngược từ đầu, 1 đồng hồ thôi"*. % cũ là **giả** (30.000 dòng = 1%, chặn 95%). Việc còn lại + cách thử: mục nhật ký *28/09/2026 — Hộp xuất Excel Nhật ký chung* |
+| 41 | ✅ **Đồng hồ đếm ngược xuất Excel Nhật ký chung** — **phát hành v2.0.6**, đã đo + thử giao diện trên DB thật (mục *28/09/2026 (khuya, tiếp)*). ✅ Đại Ca đã dùng thật 29/09 — góp ý thành **việc 43** | Đại Ca hỏi *"ước tính thời gian xuất được không"* → chốt *"đếm ngược từ đầu, 1 đồng hồ thôi"*. % cũ là **giả** (30.000 dòng = 1%, chặn 95%). Việc còn lại + cách thử: mục nhật ký *28/09/2026 — Hộp xuất Excel Nhật ký chung* |
 | 40 | Nút **Tải lại** gặp phiên đã hết (401) thì **im lặng**, không đưa về màn đăng nhập | Phát hiện 26/09 khi thử việc 23. `loadPerms` gặp `!r.ok` là `return`. Người bị huỷ phiên chỉ về màn đăng nhập ở lần **tải số liệu** kế tiếp (khi đó lý do vẫn hiện đúng). Nhỏ, chưa chặn ai |
 | 39 | Ô lọc **Kho** vẫn liệt kê kho của **mọi đơn vị** | Cùng bệnh việc 10: tài khoản bị giới hạn chọn kho đơn vị khác ⇒ 0 dòng. Tab điều chuyển (Kho xuất / Kho nhận) phải **giữ đủ** như ô Đơn vị xuất. Cần xem `meta.warehouses` có mang mã đơn vị không |
 | 38 | ~~🔴 Nhân viên thường **không xuất được Excel** Báo cáo TC (403 *"Route chưa khai báo quyền"*)~~ ✅ **Phát hành v2.0.2** | Có từ **v2.0.0**: `/api/xuat_xlsx_bieu_mau` + `/api/tai_file_xuat` (việc 35) quên khai báo quyền; ADMIN qua được nên không ai thấy. Nay trong `PERM_PUBLIC`. **Bẫy 30** + lệnh quét trong CLAUDE.md |
@@ -151,6 +155,102 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 29/09/2026 — Việc 43: nút Hủy xuất + hộp xuất Excel Nhật ký chung theo mẫu DataStudio · ✅ build v2.0.7, chưa push
+
+### 🧪 Thử trên DB THẬT (T01/2026, Nhật ký chung chi tiết, `test_client` in-process — không mở cổng, không đụng app)
+Script `thu_huy_db_that.py` trong scratchpad phiên; `server._export_dir` trỏ về scratchpad; nạp `server.py` bỏ dòng tắt cổng 5050.
+
+| Ca | Kết quả |
+|---|---|
+| **C** — xuất trọn 1 ngày (02/01), không huỷ | `done` · **67.444 dòng = tổng đếm** · 35,8s · có file |
+| **A** — huỷ lúc đang đếm | `cancelled` · job dừng **1,2s** sau khi bấm (sau câu đếm, **không chạy câu lấy dữ liệu**) · tổng đếm 2.287.832 · 0 file mới |
+| **B** — huỷ lúc đang ghi (100.000/2.287.832) | `cancelled` · dừng ở 102.000 dòng, **1,5s** sau khi bấm · 0 file mới |
+| **D** — huỷ lúc đang đóng gói (01–05/01, 345.786 dòng) | `cancelled` · dừng **4,6s** sau khi bấm · file dở đã xoá · 0 file mới |
+
+`error` của cả 3 ca huỷ = *Cancelled by user* nhưng `status = cancelled` ⇒ trình duyệt đóng hộp, không báo lỗi.
+Xong: xoá ô `password` trong `config.json` (giữ các ô khác).
+
+### 📦 Commit + build
+- `b85ba14` feat (server.py + index.html + `CO_GI_MOI.md` mục `## v2.0.7`, 2 dòng tính năng).
+- Trước commit: M1 (ast + Babel) · **179 hàm / 72 route**, không trùng · quét route chưa khai quyền = `[]` · quét secret sạch.
+- `build_exe.py` ⇒ **v2.0.7**. **M3:** chạy EXE tách hẳn ⇒ LISTENING 5050, `/api/version` = `2.0.7`, trang chủ có chữ *Hủy xuất*,
+  vẫn sống sau 1 phút. ⚠️ **Chưa bấm thử nút Huỷ trên giao diện EXE bằng DB thật** — đường máy chủ đã thử ở trên, giao diện đã thử ở
+  server giả.
+
+Đại Ca dùng v2.0.6 xuất *Sổ nhật ký chung* (tổng hợp) T01/2026, gửi 3 ảnh:
+1. Hộp đang *"Đang lấy 2.287.832 dòng từ máy chủ… · Còn 3:12"*, khoanh chỗ trống dưới đồng hồ: *"nên cho thêm nút hủy tiến trình
+   nếu trong trường hợp t test t muốn ngưng"*.
+2. Cùng lần xuất, đã ghi 21% mà vẫn *"Còn 3:03"*.
+3. Hộp xuất của **DataStudio** (LedgerStudio v1.10.5, T08): 4 bước *Chuẩn bị · Truy vấn dữ liệu · Ghi Excel · Hoàn tất* · 3 ô
+   *Đã ghi 1.436.000 / 2.856.815 · Tốc độ 7.393 dòng/giây · Thời gian 04:14 · còn ~03:12* · *"Đang ghi sheet 2/3"* · nút **Hủy xuất**.
+   Hỏi: *"cơ chế tính giây của m sao nó cứ tăng giảm 1 chổ vậy, không ước lượng được bao nhiêu lâu à, hoặc làm theo hình thì sao"*.
+
+⚠️ Mã nguồn DataStudio **không có trên máy này** (dò `D:\AI AGENT JOB` và `D:\`) ⇒ làm theo ảnh.
+
+### Vì sao đồng hồ đứng một chỗ
+- **Tốc độ lần trước nhanh hơn thật** ⇒ mỗi giây trôi qua thì số "còn" bị đẩy lên gần bằng ⇒ nhìn như đứng. Mặc định tổng hợp là
+  13.600 dòng/giây (đo qua `test_client`); lần Đại Ca xuất thì chậm hơn.
+- **Luật lúc đang truy vấn:** hạn chót không được sớm hơn phần ghi + đóng gói còn nguyên ⇒ đứng suốt lúc chờ câu SQL (ảnh 1).
+- Mô phỏng trên timeline thật T08 (chi tiết, thật 7.167 dòng/giây) khi tốc độ lần trước **nhanh gấp ~2**:
+
+| Pha tốc độ lần trước như đã ghi thêm | 4 lần xem đầu (cách ~15s) | Lệch TB so với lúc xong thật |
+|---|---|---|
+| **30 giây** (v2.0.6) | 4:24 → 4:56 → 4:55 → 4:50 — **đứng ~1 phút** | 40s |
+| **10 giây** (chọn) | 4:55 → 5:51 → 5:39 → 5:27 | 27s |
+| 5 giây | 5:18 → 6:23 → 6:00 → 5:42 | 21s (nhưng nhảy lên đầu lần xuất nhiều hơn) |
+
+  Tốc độ đúng thì cả 3 mức lệch 12–15s. **Không cách tính nào làm số "còn" giảm đều mãi** — tốc độ thật dao động ±40%.
+  ⇒ Làm theo ảnh: hiện **thời gian ĐÃ CHẠY** (luôn nhảy — người xem thấy việc đang tiến) + *còn ~* + tốc độ + số dòng.
+  Script mô phỏng: `mo_phong_uoc_tinh.py` trong scratchpad của phiên (mất khi đóng phiên).
+
+### Đã làm (working tree — CHƯA commit)
+- **`server.py`** (+2 hàm ⇒ **179 hàm / 72 route**): `_kiem_huy_xuat(job_id)` ném lỗi nếu người dùng đã bấm huỷ;
+  `_dat_loi_xuat(job_id, e)` đặt `status = 'cancelled'` nếu do huỷ, còn lại `'error'` — trước đó huỷ cũng thành `'error'` ⇒ hộp sẽ
+  báo *"Lỗi xuất file: Cancelled by user"*. Kiểm cờ huỷ **sau câu đếm, sau câu lấy dữ liệu, sau đóng gói** (đóng gói không ngắt được
+  ⇒ xong thì xoá file). Cả 3 chỗ bắt lỗi của job xuất (`_runner`, `_write_csv_to_disk`, `_write_xlsx_to_disk`) dùng `_dat_loi_xuat`.
+  Route `/api/export/cancel` **có sẵn từ trước nhưng chưa nút nào gọi** — không thêm route (Bẫy 30 không dính).
+- **`index.html`**: hộp mới **chỉ cho job có giai đoạn** (BC007 `.xlsx`); các hộp xuất khác giữ nguyên:
+  - tiêu đề *Nhật ký chung chi tiết* / *Sổ nhật ký chung (S03a-DN)* + chip `BC007` · kỳ · số dòng;
+  - câu giai đoạn + % to; 4 bước **Chuẩn bị · Truy vấn dữ liệu · Ghi Excel · Đóng gói** (mẫu ghi *Hoàn tất* — ở mình giai đoạn cuối
+    là đóng gói, xong thì sang màn hoàn tất riêng);
+  - 3 ô **Đã ghi** · **Tốc độ** (đo từ lúc bắt đầu ghi, chưa đủ 2 giây thì `—`) · **Thời gian** `04:14 · còn ~03:12`
+    (`DongHoXuat` nay nhận `batDau` + `hanChot`, định dạng 2 chữ số phút);
+  - dòng sheet khi tổng > 1 triệu (*"Đang ghi sheet 2/3 — mỗi sheet tối đa 1.000.000 dòng"*, icon mới `layers`);
+  - *"Đừng tắt ứng dụng cho tới khi xong."* — ⛔ **bỏ** câu *"không cần giữ nguyên cửa sổ này"* của mẫu: hộp của mình không thu
+    nhỏ được, ghi vậy là sai;
+  - nút **Hủy xuất** (viền đỏ): hỏi *"Hủy xuất file Excel? Phần đã ghi sẽ bị bỏ, không để lại file dở."* ⇒ **đóng hộp ngay**, gửi
+    `/api/export/cancel`; bấm trước khi máy chủ kịp trả `job_id` thì gửi huỷ ngay khi có (`huyXuatRef`, `huyXuat`, `guiHuyXuat`);
+  - pha tốc độ lần trước **30 → 10 giây**.
+
+### 🧪 Verify — M1 + server thử 5052 **DB GIẢ** (câu đếm 1,5s, lấy dữ liệu 4s; phần ghi Excel là code THẬT), 1366×768
+- **M1:** `ast` OK, 179 hàm / 72 route, không trùng tên · Babel OK.
+- Trước khi bật: `netstat` 5052 **rỗng** (bài học mục 28/09 khuya, tiếp).
+
+| Thử | Kết quả |
+|---|---|
+| **Huỷ lúc đang ghi** (tổng giả 2,5 triệu) | Hỏi đúng câu, hộp đóng ngay · job dừng ở **122.000 dòng**, `status = cancelled` · **0 file** còn lại |
+| **Huỷ lúc đang lấy dữ liệu** | Dừng khi câu SQL trả về · **0 dòng ghi**, `cancelled` · **0 file** |
+| **Xuất trọn 120.000 dòng** | 25,7s · *còn ~* giảm đều 00:21 → 00:01 → *sắp xong* · tốc độ 6.7–6.9 nghìn dòng/giây · ra màn *Xuất Excel hoàn tất!* |
+| Bố cục | Chữ bước cuối *Đóng gói* không bị cắt — mép chữ = mép hàng, cách mép hộp 25px (đo bằng JS; ảnh thu nhỏ nhìn như sát) |
+
+Đã tắt server thử, xoá file xuất, trả khung trình duyệt về cỡ cũ.
+
+### ⏭️ Còn lại
+1. **Thử huỷ trên DB thật** — Đại Ca điền `password` vào `config.json` (xong xoá lại đúng ô đó). Code SQL không đổi, nhưng đường huỷ
+   chạy song song câu SQL thật ⇒ phải thấy một lần (Bẫy 31: DB giả không bắt được lỗi phía SQL).
+2. `CO_GI_MOI.md` mục `## v2.0.7` — gợi ý: *"Nhật ký chung: hộp xuất Excel hiện số dòng đã ghi, tốc độ, thời gian đã chạy và có nút
+   Hủy xuất"*.
+3. Commit · build · M3 · **hỏi Đại Ca rồi mới push** · cập nhật thật 2.0.6 → 2.0.7 · đối chiếu SHA · nhật ký + `GITHUB_LEDGERREPORT.md`.
+
+### 🔍 Điểm mù
+- **Huỷ lúc đang lấy dữ liệu:** câu SQL vẫn chạy nốt trên máy chủ (~15s với chi tiết cả tháng) rồi job mới dừng — hộp thì đóng ngay.
+  Chưa dùng `cursor.cancel()` để ngắt ngang vì chưa thử được trên DB thật.
+- **Huỷ đúng lúc đang đóng gói:** phải chờ đóng gói xong (~36s chi tiết cả tháng) rồi mới xoá file.
+- 9 màn danh sách (xuất CSV/Excel qua `startServerExport`) **vẫn chưa có nút huỷ** — hộp khác, chưa làm.
+- Khung trình duyệt của em bị ẩn lúc thử ⇒ nhịp hẹn giờ bị bóp; số trên hộp vẫn đúng vì tính theo mốc thời gian.
 
 ---
 
@@ -227,7 +327,7 @@ trên DB thật** (chưa phải EXE — M3 làm khi build v2.0.6).
 
 ---
 
-## 28/09/2026 (khuya) — Bàn Supabase (giữ Google) · đo Apps Script · việc 42: đăng nhập nhanh không đá người ra vô cớ · ⚠️ CHƯA COMMIT
+## 28/09/2026 (khuya) — Bàn Supabase (giữ Google) · đo Apps Script · việc 42: đăng nhập nhanh không đá người ra vô cớ · ✅ phát hành v2.0.6
 
 ### 1. Đại Ca hỏi thay Google Sheet bằng Supabase ⇒ **giữ Google** (Đại Ca nghiêng về giữ, 28/09)
 - **Bảo mật không phải lý do để đổi.** Làm đúng thì ngang hiện nay; làm sai một chỗ thì tệ hơn hẳn: nhúng khoá `service_role`

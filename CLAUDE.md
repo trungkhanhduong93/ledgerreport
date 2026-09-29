@@ -6,6 +6,8 @@
 > (đo + thử giao diện trên DB thật; bắt được lỗi làm hỏng hẳn xuất Excel chi tiết — **Bẫy 31**) + **việc 42** đăng nhập nhanh không
 > còn đá người ra khi Google chỉ là chưa trả lời được. Mục nhật ký *29/09/2026 — Phát hành v2.0.6*. EXE trên máy Đại Ca = đúng file CI.
 > Mục *28/09/2026 (khuya)*: **Đại Ca giữ Google Sheet, không chuyển Supabase** — đọc lý do trước khi đề xuất lại.
+> 🟠 **Việc 43** (29/09/2026): nút **Hủy xuất** + hộp xuất Excel Nhật ký chung theo mẫu DataStudio — thử DB thật đạt, commit
+> `b85ba14`, build **v2.0.7** (M3). **CHƯA PUSH.** Việc còn lại: mục nhật ký *29/09/2026 — Việc 43*.
 > · v2.0.5: **màn đăng nhập mới 08A+** (ảnh nền minh hoạ, form tiếng Việt 2 khối, nút xem mật khẩu) — luật màn này: § 1.1 *Màn đăng nhập — 08A+*.
 > · v2.0.4: code y `v2.0.3`, chỉ viết lại `CO_GI_MOI.md` (app đọc file đó **tại tag** ⇒ sửa câu sau khi phát hành phải ra bản kế tiếp).
 > · v2.0.3: file xuất *Nhật ký chung chi tiết* (BC007) thêm Mã/Tên mục chi phí + ô trống không còn chứa dấu cách.

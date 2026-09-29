@@ -3,14 +3,15 @@
 > Toàn bộ những gì đã làm với **LedgerReport**, và **vì sao**. Đọc file này trước khi sửa tiếp.
 > Kiến trúc, ma trận báo cáo, phương án backup: [CLAUDE.md](CLAUDE.md).
 > Mổ xẻ sâu sự cố + 4 bài học: [SU_CO_15082026.md](SU_CO_15082026.md).
-> 🚀 **Bản mới nhất: `v2.0.6` (29/09/2026), là `Latest` trên GitHub** — **đồng hồ đếm ngược xuất Excel Nhật ký chung** (việc 41)
+> 🚀 **Bản mới nhất: `v2.0.7` (29/09/2026), là `Latest` trên GitHub** — **nút Hủy xuất Excel Nhật ký chung** (việc 43).
+>   `v2.0.6` (29/09) = **đồng hồ đếm ngược xuất Excel Nhật ký chung** (việc 41)
 >   + **đăng nhập nhanh không đá người ra khi Google bận** (việc 42).
 >   `v2.0.5` (28/09) = **màn đăng nhập mới 08A+**. `v2.0.4` (28/09) = code y `v2.0.3`, chỉ viết lại mục "Có gì mới".
 >   `v2.0.3` (28/09) = file xuất *Nhật ký chung chi tiết* (BC007) thêm **Mã/Tên mục chi phí** + ô trống không còn chứa dấu cách. Các bản trước:
 >   `v2.0.0` (25/09 tối) = **giao diện mới `DATA REPORT`** — Đại Ca chốt lên *Ver 2* ·
 >   `v2.0.1` (26/09) = **thông báo có bản mới kiểu mới** (hộp thoại + nút cam + thẻ nhắc, "Có gì mới" đọc `CO_GI_MOI.md`) ·
 >   `v2.0.2` (26/09) = **vá lỗi nhân viên thường không xuất được Excel Báo cáo TC** (có từ v2.0.0, Bẫy 30) + việc 9, 10, 23.
-> ✅ **EXE trên máy Đại Ca = đúng file CI v2.0.6** (SHA256 khớp digest) — lên bằng **đường cập nhật thật** từ file CI v2.0.5
+> ✅ **EXE trên máy Đại Ca = đúng file CI v2.0.7** (SHA256 khớp digest) — lên bằng **đường cập nhật thật** từ file CI v2.0.6
 >   (`/api/apply_update`). Thư mục làm việc đang ở `main`.
 > 🔑 Luật nghiệp vụ gốc chốt 24/09: iPOS **tự sinh** phiếu nhập `NDCNB` khi phiếu xuất `XDCNB` ghi sổ — đổi hẳn cách
 >   đọc tab đối chiếu điều chuyển. Xem các mục 24/09.
@@ -43,17 +44,16 @@
 
 > *Cập nhật 29/09/2026.* Gom hết việc còn treo về một chỗ. Nhận việc mới thì **đọc mục này trước**.
 > ⚠️ Tiêu đề mục này **cố ý không ghi ngày** — mọi đường dẫn `#-việc-cần-làm` trỏ vào nó; ghi ngày là gãy link.
-> Trạng thái: **v2.0.6 đã phát hành** (29/09/2026 0h10), là `Latest`, và **EXE trên máy Đại Ca = đúng file CI** (SHA256 khớp digest).
+> Trạng thái: **v2.0.7 đã phát hành** (29/09/2026 12h40), là `Latest`, và **EXE trên máy Đại Ca = đúng file CI** (SHA256 khớp digest).
 >
-> 🚧 **`main` đang đi trước GitHub** — chỉ 1 commit tài liệu (kết quả phát hành v2.0.6). **Cố ý giữ ở local, ĐỪNG push
+> 🚧 **`main` đang đi trước GitHub** — chỉ 1 commit tài liệu (kết quả phát hành v2.0.7). **Cố ý giữ ở local, ĐỪNG push
 > riêng**: push file `.md` là Actions build lại và **thay asset bằng binary khác SHA** ⇒ EXE vừa khớp trên máy lệch ngay.
 > Gộp vào lần sửa code tới (việc 11 `paths-ignore` sẽ gỡ hẳn vòng lặp này).
 >
 > ✅ **Đại Ca đã dùng v2.0.6 xuất Excel Nhật ký chung** (gửi ảnh 29/09) ⇒ đăng nhập trên v2.0.6 chạy được. Góp ý ⇒ **việc 43**.
 >
-> 🟠 **Việc 43 (29/09/2026): nút Hủy xuất + hộp xuất theo mẫu DataStudio — đã thử DB thật, commit `b85ba14`, build v2.0.7, M3 đạt.
-> CHƯA PUSH** (chờ Đại Ca). Còn: push · cập nhật thật 2.0.6 → 2.0.7 · đối chiếu SHA · `GITHUB_LEDGERREPORT.md`.
-> Chi tiết: mục *29/09/2026 — Việc 43*.
+> ✅ **Việc 43 (29/09/2026): nút Hủy xuất + hộp xuất theo mẫu DataStudio — PHÁT HÀNH v2.0.7** (`Latest`), EXE trên máy Đại Ca
+> = đúng file CI v2.0.7 (SHA khớp). Mục *29/09/2026 — Phát hành v2.0.7*.
 >
 > 🔴 **Lần phát hành tới BẮT BUỘC:** viết mục `## vX.Y.Z` vào **`CO_GI_MOI.md`** (chỉ tính năng; hệ thống ⇒ *Cập nhật hệ thống*)
 > **trước khi push** · build bằng `build_exe.py` để số hiệu tự tăng · quét route `/api` chưa khai báo quyền phải ra `[]` (Bẫy 30)
@@ -88,7 +88,7 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | 17 | ~~Nút `TRUY VẤN` đang chuyển màu navy → tím~~ ✅ **XONG 25/09** | Đại Ca chốt: chữ **"Lọc"**, navy đặc, như mẫu iPOS. Nằm trong thanh lọc mới của 9 màn danh sách |
 | 18 | ~~Chốt mốc commit phần đăng nhập nhanh + sửa font~~ ✅ **commit `c64540a`** | Phát hành v2.0.0 |
 | 19 | ~~Đại Ca xem GĐ3 rồi chốt commit~~ ✅ **Đại Ca chốt OK sáng 25/09** (*"cái đó thì ok rồi"*) ⇒ đã commit GĐ3 | ⚠️ Đại Ca chốt chung, **không nói rõ đã thử từng mục dưới đây chưa** — lần đầu dùng số liệu thật thì để ý. Danh sách cần xem ở mục *"Việc Đại Ca xem sáng 25/09"* trong nhật ký 25/09 (tiếp 3), ngay dưới § này. Ba việc tôi **không** tự thử được: hộp *"Chuyển mẫu báo cáo?"* khi có số liệu thật · menu **Xuất Excel / Xuất PDF** khi có số liệu (chưa có số liệu thì nút tắt) · kéo thả thứ tự ô lọc bằng chuột thật. Và **đọc lại mô tả 16 thẻ** — tôi tự viết |
-| 43 | 🟠 **Nút Hủy xuất + hộp xuất Excel Nhật ký chung theo mẫu DataStudio** — thử DB thật đạt, commit `b85ba14`, build v2.0.7 (M3), **chưa push** | Đại Ca 29/09: *"nên cho thêm nút hủy tiến trình nếu t test t muốn ngưng"* + *"cơ chế tính giây sao nó cứ tăng giảm 1 chổ vậy … hoặc làm theo hình thì sao"* (ảnh hộp xuất DataStudio). Hộp mới: 4 bước · Đã ghi / Tốc độ / Thời gian *đã chạy · còn ~* · Hủy xuất. Mục nhật ký *29/09/2026 — Việc 43* |
+| 43 | ✅ **Nút Hủy xuất + hộp xuất Excel Nhật ký chung theo mẫu DataStudio** — **phát hành v2.0.7**. ⏳ Chưa bấm Huỷ trên giao diện EXE với số liệu thật | Đại Ca 29/09: *"nên cho thêm nút hủy tiến trình nếu t test t muốn ngưng"* + *"cơ chế tính giây sao nó cứ tăng giảm 1 chổ vậy … hoặc làm theo hình thì sao"* (ảnh hộp xuất DataStudio). Hộp mới: 4 bước · Đã ghi / Tốc độ / Thời gian *đã chạy · còn ~* · Hủy xuất. Mục nhật ký *29/09/2026 — Việc 43* |
 | 42 | ✅ **Đăng nhập nhanh đá người ra VÔ CỚ khi Google bận** — **phát hành v2.0.6** (commit `b887717`) | Luồng hỏi lại Google (`_kiem_lai_nen`) coi **mọi** `ok: false` là từ chối ⇒ chờ ổ khoá quá 20 giây (*"Máy khác đang ghi…"*), lỗi dịch vụ Sheets, sai token… đều **huỷ phiên + xoá bản lưu**. Nay chỉ 3 câu từ chối thật mới đá ra (`_GS_TU_CHOI_TK`). Đối chứng với bản cũ bằng cùng phép thử: bản cũ đá ra ở cả 3 ca "chưa trả lời được" |
 | 41 | ✅ **Đồng hồ đếm ngược xuất Excel Nhật ký chung** — **phát hành v2.0.6**, đã đo + thử giao diện trên DB thật (mục *28/09/2026 (khuya, tiếp)*). ✅ Đại Ca đã dùng thật 29/09 — góp ý thành **việc 43** | Đại Ca hỏi *"ước tính thời gian xuất được không"* → chốt *"đếm ngược từ đầu, 1 đồng hồ thôi"*. % cũ là **giả** (30.000 dòng = 1%, chặn 95%). Việc còn lại + cách thử: mục nhật ký *28/09/2026 — Hộp xuất Excel Nhật ký chung* |
 | 40 | Nút **Tải lại** gặp phiên đã hết (401) thì **im lặng**, không đưa về màn đăng nhập | Phát hiện 26/09 khi thử việc 23. `loadPerms` gặp `!r.ok` là `return`. Người bị huỷ phiên chỉ về màn đăng nhập ở lần **tải số liệu** kế tiếp (khi đó lý do vẫn hiện đúng). Nhỏ, chưa chặn ai |
@@ -158,7 +158,22 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 
 ---
 
-## 29/09/2026 — Việc 43: nút Hủy xuất + hộp xuất Excel Nhật ký chung theo mẫu DataStudio · ✅ build v2.0.7, chưa push
+## 29/09/2026 — Phát hành v2.0.7 (việc 43 nút Hủy xuất)
+
+Đại Ca: *"chơi lun"*.
+- Push `201f9b7..b958722` (3 commit, kèm commit nhật ký v2.0.6) ⇒ Actions run `36527174555` **`success`** ⇒ **Release `v2.0.7` =
+  `Latest`**, tag `v2.0.7` → `b958722`, phát hành 05:40 UTC 29/09/2026. Digest EXE `sha256:9ee9ce26…`. Cảnh báo Node 20 vẫn còn (việc 11).
+- ⚠️ Lần này **build local đè lên file CI v2.0.6 trong `dist\` mà chưa cất `.bak`** — đã tải lại asset v2.0.6 từ GitHub (SHA khớp
+  digest `afdf8d3e…`) rồi cất `…_v2.0.6.exe.bak`. Bản build local cất `…_v2.0.7_build_local.exe.bak`.
+- ✅ **Cập nhật thật 2.0.6 → 2.0.7** từ file CI v2.0.6: `check_update` báo có v2.0.7 + đúng 2 dòng "Có gì mới" · `apply_update` ⇒
+  **~7 giây** sau chạy 2.0.7 · EXE `dist\` **SHA256 = digest CI v2.0.7** · không sót `.old`/`.new` · hết báo cập nhật · trang chủ có
+  nút Hủy xuất. App để đang chạy.
+- Không thêm route mới ⇒ không cần thử lại tài khoản không quản trị (quét route chưa khai quyền = `[]`).
+- Dòng *Lịch sử push* đã thêm vào `GITHUB_LEDGERREPORT.md`. Mục này commit ở local, **chưa push**.
+
+---
+
+## 29/09/2026 — Việc 43: nút Hủy xuất + hộp xuất Excel Nhật ký chung theo mẫu DataStudio · ✅ phát hành v2.0.7
 
 ### 🧪 Thử trên DB THẬT (T01/2026, Nhật ký chung chi tiết, `test_client` in-process — không mở cổng, không đụng app)
 Script `thu_huy_db_that.py` trong scratchpad phiên; `server._export_dir` trỏ về scratchpad; nạp `server.py` bỏ dòng tắt cổng 5050.

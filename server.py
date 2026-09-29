@@ -2574,11 +2574,25 @@ def _write_csv_to_disk(job_id, headers, row_iter, filename, total_estimate):
         # Xoá file dở dang
         try: os.remove(out_path)
         except: pass
-        with _export_jobs_lock:
-            job = _export_jobs.get(job_id)
-            if job is not None:
-                job['status'] = 'error'
-                job['error']  = str(e)
+        _dat_loi_xuat(job_id, e)
+
+
+def _kiem_huy_xuat(job_id):
+    """Người dùng đã bấm Hủy xuất ⇒ ném lỗi để dừng job (chỗ bắt lỗi xoá file dở + đặt trạng thái 'cancelled')."""
+    with _export_jobs_lock:
+        job = _export_jobs.get(job_id)
+        if job is not None and job.get('cancelled'):
+            raise RuntimeError("Cancelled by user")
+
+
+def _dat_loi_xuat(job_id, e):
+    """Job xuất file dừng giữa chừng: do người dùng huỷ ⇒ 'cancelled' (trình duyệt đóng hộp, KHÔNG báo lỗi);
+    còn lại ⇒ 'error'. Trước 29/09/2026 huỷ cũng thành 'error' ⇒ hộp báo "Lỗi xuất file: Cancelled by user"."""
+    with _export_jobs_lock:
+        job = _export_jobs.get(job_id)
+        if job is not None:
+            job['status'] = 'cancelled' if job.get('cancelled') else 'error'
+            job['error']  = str(e)
 
 
 def _write_xlsx_to_disk(job_id, headers, row_iter, filename, total_estimate, sheet_limit=1000000):
@@ -2646,6 +2660,7 @@ def _write_xlsx_to_disk(job_id, headers, row_iter, filename, total_estimate, she
                 job['current'] = count
                 job['phase'] = 'dong_goi'
         workbook.close()
+        _kiem_huy_xuat(job_id)      # huỷ đúng lúc đang đóng gói (không ngắt được) ⇒ xong thì xoá, đừng để lại file
         with _export_jobs_lock:
             job = _export_jobs.get(job_id)
             if job is not None:
@@ -2657,11 +2672,7 @@ def _write_xlsx_to_disk(job_id, headers, row_iter, filename, total_estimate, she
     except Exception as e:
         try: os.remove(out_path)
         except: pass
-        with _export_jobs_lock:
-            job = _export_jobs.get(job_id)
-            if job is not None:
-                job['status'] = 'error'
-                job['error']  = str(e)
+        _dat_loi_xuat(job_id, e)
 
 
 @app.route("/api/export/status")
@@ -2969,7 +2980,11 @@ def _start_export_job(filename, headers, sql, params, transform_row, total_estim
                     logger.warning('Xuat file: dem tong so dong loi (%s) — xuat tiep khong co tong', e)
                     cursor = own_conn.cursor()
                     _dat(phase='truy_van')
+            # Nút "Hủy xuất" (29/09/2026): câu SQL đang chạy thì không ngắt ngang được — kiểm cờ huỷ NGAY SAU mỗi câu
+            # (đếm ~2s, lấy dữ liệu ~15s), đừng để người dùng đã huỷ mà máy chủ còn chạy tiếp câu kế.
+            _kiem_huy_xuat(job_id)
             cursor.execute(sql, params)
+            _kiem_huy_xuat(job_id)
             _dat(phase='ghi')
             sql_cols = [c[0] for c in cursor.description]
 
@@ -2985,11 +3000,7 @@ def _start_export_job(filename, headers, sql, params, transform_row, total_estim
             else:
                 _write_csv_to_disk(job_id, headers, row_iter(), filename, total_estimate)
         except Exception as e:
-            with _export_jobs_lock:
-                job = _export_jobs.get(job_id)
-                if job is not None:
-                    job['status'] = 'error'
-                    job['error']  = str(e)
+            _dat_loi_xuat(job_id, e)
         finally:
             if own_conn:
                 try: own_conn.close()

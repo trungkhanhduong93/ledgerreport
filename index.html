@@ -689,6 +689,7 @@ window.showConnectionLost = function() {
                 "download": '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
                 "file-spreadsheet": '<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h2v7H8z"/><path d="M12 15h2v5h-2z"/><path d="M16 11h2v9h-2z"/>',
                 "check": '<polyline points="20 6 9 17 4 12"/>',
+                "layers": '<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
                 "log-out": '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/>',
                 "database": '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>',
                 "lock": '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
@@ -771,18 +772,21 @@ window.showConnectionLost = function() {
             </svg>
             </>
         );
-        // Hộp tiến trình xuất Excel (28/09/2026): "1:23" (phút:giây).
-        const dinhDangThoiGian = (giay) => { const s = Math.max(0, Math.floor(giay)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
-        // ĐỒNG HỒ ĐẾM NGƯỢC duy nhất của hộp xuất Excel (Đại Ca chốt 28/09/2026: "đếm ngược từ đầu, 1 đồng hồ thôi").
-        // Component riêng, tự nhảy 4 lần/giây: chỉ nó vẽ lại, không kéo cả App (bảng báo cáo phía sau) vẽ lại theo.
-        // hanChot = thời điểm dự kiến xong (ms), tính + làm mượt ở vòng hỏi tiến trình (exportJournalXlsx).
-        const DongHoXuat = ({ hanChot }) => {
+        // Hộp tiến trình xuất Excel: "04:14" (phút:giây, 2 chữ số như mẫu DataStudio).
+        const dinhDangThoiGian = (giay) => { const s = Math.max(0, Math.floor(giay)); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
+        // Ô "Thời gian" của hộp xuất Excel: ĐÃ CHẠY · còn ~ (Đại Ca đổi 29/09/2026 theo mẫu DataStudio — thay đồng hồ đếm ngược
+        // đơn của 28/09). Tốc độ ghi thật dao động ±40% ⇒ số "còn" không thể giảm đều mãi; thời gian đã chạy thì luôn nhảy
+        // ⇒ người xem luôn thấy việc đang tiến. Component riêng, tự nhảy 4 lần/giây: chỉ nó vẽ lại, không kéo cả App vẽ lại.
+        // batDau = lúc bấm (ms) · hanChot = thời điểm dự kiến xong (ms), tính + làm mượt ở vòng hỏi tiến trình (exportJournalXlsx).
+        const DongHoXuat = ({ batDau, hanChot }) => {
             const [, nhip] = useState(0);
             useEffect(() => { const h = setInterval(() => nhip(n => n + 1), 250); return () => clearInterval(h); }, []);
-            const conLai = hanChot ? (hanChot - Date.now()) / 1000 : null;
+            const bay = Date.now();
+            const conLai = hanChot ? (hanChot - bay) / 1000 : null;
             return (
-                <span className="shrink-0 text-[13px] font-bold text-indigo-700 tabular-nums">
-                    {conLai == null ? 'Đang ước tính…' : conLai >= 1 ? 'Còn ' + dinhDangThoiGian(conLai) : 'Sắp xong…'}
+                <span className="tabular-nums">
+                    <span className="text-slate-900">{dinhDangThoiGian((bay - (batDau || bay)) / 1000)}</span>
+                    <span className="text-slate-400 font-medium"> · {conLai == null ? 'đang ước tính' : conLai >= 1 ? 'còn ~' + dinhDangThoiGian(conLai) : 'sắp xong'}</span>
                 </span>
             );
         };
@@ -2160,6 +2164,8 @@ window.showConnectionLost = function() {
             const paperScrollRef = React.useRef(null);
             const [showJournalExport, setShowJournalExport] = React.useState(false);
             const [exportModal, setExportModal] = React.useState(null); // { open: true, progress: 0-100, status: 'exporting'|'done', path: '', filename: '' }
+            // Nút "Hủy xuất" (29/09/2026): { jobId, huy } của lần xuất Nhật ký chung đang chạy — vòng hỏi tiến trình đọc cờ này để dừng.
+            const huyXuatRef = React.useRef(null);
             // BC007 — định dạng file xuất. 'xlsx' = MỘT file, tự sang sheet mới mỗi 1 triệu
             // dòng (vừa trần 1.048.576 dòng/sheet của Excel); 'csv' = một bảng phẳng không
             // giới hạn dòng nhưng mở bằng Excel sẽ bị cắt nếu kỳ vượt trần đó.
@@ -2845,18 +2851,29 @@ const exportJournalCsv = (mode) => {
                 // Bấm là chạy ngay: lấy tạm tổng số dòng đang hiện trên màn BC007; ~2 giây sau máy chủ đếm xong thì chỉnh.
                 const tongTam = (reportData && reportData.pagination && reportData.pagination.total_rows) || 0;
                 let hanChot = tongTam > 0 ? Date.now() + (uocTruyVan(tongTam) + uocGhi(tongTam) + uocDongGoi(tongTam)) * 1000 : null;
-                moc.dem = Date.now();
-                setExportModal({ open: true, progress: 0, status: 'exporting', filename: fname, giaiDoan: 'dem', hanChot });
+                const batDau = Date.now();
+                moc.dem = batDau;
+                // Nút Hủy xuất đặt cờ vào đây (huyXuat); bấm trước khi máy chủ kịp trả job_id thì gửi huỷ ngay khi có.
+                const huy = { jobId: null, huy: false };
+                huyXuatRef.current = huy;
+                setExportModal({ open: true, progress: 0, status: 'exporting', filename: fname, giaiDoan: 'dem', hanChot, batDau,
+                    tieuDe: mode === 'detail' ? 'Nhật ký chung chi tiết' : 'Sổ nhật ký chung (S03a-DN)',
+                    ky: `${filters.from_date} – ${filters.to_date}`, tong: tongTam });
                 try {
                     const r = await fetch(`/api/report_export_csv?${q.toString()}`);
                     if (r.status === 401) { setExportModal(null); alert('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.'); return; }
                     const res = await r.json();
                     if (res.status !== 'ok' || !res.job_id) { setExportModal(null); alert('Lỗi khởi tạo xuất file: ' + (res.message || '')); return; }
+                    huy.jobId = res.job_id;
+                    if (huy.huy) { guiHuyXuat(res.job_id); return; }
                     while (true) {
                         await new Promise(k => setTimeout(k, 700));
+                        if (huy.huy) return;                    // hộp đã đóng lúc bấm Hủy xuất
                         const sr = await fetch(`/api/export/status?job_id=${res.job_id}`);
                         if (sr.status === 404) { setExportModal(null); alert('Job xuất file đã bị xoá.'); return; }
                         const sj = await sr.json();
+                        if (huy.huy) return;
+                        if (sj.status === 'cancelled') { setExportModal(null); return; }
                         if (sj.status === 'done') {
                             // Lưu tốc độ lần này cho lần sau (chỉ khi đủ lớn — vài nghìn dòng làm lệch số).
                             const xong = Date.now();
@@ -2879,17 +2896,20 @@ const exportJournalCsv = (mode) => {
                         if (tong > 0) tongCuoi = tong;
                         // conLai = số giây còn lại ước tính theo trạng thái hiện tại (null = giữ nguyên hạn chót)
                         let conLai = null;
+                        // Tốc độ ĐO ĐƯỢC từ lúc bắt đầu ghi (hiện ở ô "Tốc độ") — chưa đủ 2 giây thì chưa hiện.
+                        const giayGhi = gd === 'ghi' || gd === 'dong_goi' ? Math.max(0, (bay - (moc.ghi || bay)) / 1000) : 0;
+                        const tocDoDo = giayGhi >= 2 && da > 0 ? Math.round(da / giayGhi) : null;
                         if (tong > 0 && gd === 'truy_van') {
                             const daChoTruyVan = (bay - (moc.truy_van || bay)) / 1000;
                             conLai = Math.max(0, uocTruyVan(tong) - daChoTruyVan) + uocGhi(tong) + uocDongGoi(tong);
                         } else if (tong > 0 && gd === 'ghi') {
-                            // Tốc độ = TRUNG BÌNH CỘNG DỒN từ lúc bắt đầu ghi, pha tốc độ lần trước như thể đã ghi thêm 30 giây.
-                            // Đo DB thật 28/09/2026: tốc độ từng 30 giây dao động 4.200–9.000 dòng/giây (lên xuống, không trôi
-                            // dần) ⇒ bản cũ lấy ~15 giây gần nhất làm đồng hồ NHẢY NGƯỢC (4:40 → 7:07 trong 15 giây). Mô phỏng
-                            // trên số thật T08: lệch trung bình 45s → 12s, cú nhảy lớn nhất 174s → 33s.
-                            const giayGhi = Math.max(0, (bay - (moc.ghi || bay)) / 1000);
-                            const tocDo = (da + hs.dongMoiGiay * 30) / (giayGhi + 30);
-                            conLai = (tong - da) / tocDo + uocDongGoi(tong);
+                            // Tốc độ ước = TRUNG BÌNH CỘNG DỒN từ lúc bắt đầu ghi, pha tốc độ lần trước như đã ghi thêm 10 giây.
+                            // Đo DB thật 28/09/2026: tốc độ từng 30 giây dao động 4.200–9.000 dòng/giây ⇒ lấy ~15 giây gần nhất
+                            // làm đồng hồ NHẢY NGƯỢC (4:40 → 7:07). Pha 30 giây (bản 28/09) thì khi tốc độ lần trước nhanh hơn thật
+                            // (Đại Ca thấy 29/09: xuất tổng hợp đứng ~3:0x mãi) đồng hồ ĐỨNG YÊN gần 1 phút; 10 giây theo kịp nhanh
+                            // hơn — mô phỏng trên timeline thật T08, tốc độ lần trước nhanh gấp đôi: lệch TB 40s → 27s.
+                            const tocDoUoc = (da + hs.dongMoiGiay * 10) / (giayGhi + 10);
+                            conLai = (tong - da) / tocDoUoc + uocDongGoi(tong);
                         }
                         // Đang đếm / đang truy vấn ⇒ 0%. Cách bò cũ chỉ dùng khi máy chủ không báo giai đoạn — thử 28/09:
                         // để nó chạy cả lúc đang đếm là thanh nhảy 2% rồi tụt về 0%.
@@ -2905,13 +2925,28 @@ const exportJournalCsv = (mode) => {
                             else if (gd === 'truy_van') hanChot = Math.max(hanChot + 0.3 * (moi - hanChot), bay + (uocGhi(tong) + uocDongGoi(tong)) * 1000);
                             else hanChot = hanChot + 0.3 * (moi - hanChot);
                         }
-                        setExportModal(m => m ? { ...m, progress: gd === 'dong_goi' ? 99 : pt, giaiDoan: gd, daGhi: da, tong, hanChot } : m);
+                        setExportModal(m => m ? { ...m, progress: gd === 'dong_goi' ? 99 : pt, giaiDoan: gd, daGhi: da, tong, hanChot, tocDo: tocDoDo } : m);
                     }
                 } catch (err) {
+                    if (huy.huy) return;
                     setExportModal(null);
                     if (window.isNetworkError && window.isNetworkError(err)) window.showConnectionLost();
                     else alert('Lỗi xuất file: ' + err.message);
+                } finally {
+                    if (huyXuatRef.current === huy) huyXuatRef.current = null;
                 }
+            };
+            const guiHuyXuat = (jobId) => fetch('/api/export/cancel', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ job_id: jobId }) }).catch(() => { /* máy chủ không nhận được thì job chạy nốt — vô hại */ });
+            // Nút "Hủy xuất" (Đại Ca xin 29/09/2026 — thử mà muốn ngưng). Đóng hộp NGAY; máy chủ dừng ở lần kiểm kế tiếp
+            // (đang ghi: tối đa 2.000 dòng; đang lấy dữ liệu: khi câu SQL trả về, ~15 giây) và xoá file dở.
+            const huyXuat = () => {
+                const h = huyXuatRef.current;
+                if (!h || h.huy) return;
+                if (!window.confirm('Hủy xuất file Excel?\nPhần đã ghi sẽ bị bỏ, không để lại file dở.')) return;
+                h.huy = true;
+                if (h.jobId) guiHuyXuat(h.jobId);
+                setExportModal(null);
             };
 
             // ── Xuất .xlsx GIỮ NGUYÊN FORM cho báo cáo CÓ PHÂN TRANG (BC008 / BC012 / BC013) ──
@@ -4012,8 +4047,96 @@ const exportJournalCsv = (mode) => {
                         {/* MODAL TIẾN TRÌNH XUẤT EXCEL (0-100% -> MỞ FILE / MỞ FOLDER) */}
                         {exportModal && exportModal.open && (
                             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[99999] px-4 animate-backdrop" onClick={() => { if (exportModal.status === 'done') setExportModal(null); }}>
-                                <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-slate-100 animate-modal" onClick={e => e.stopPropagation()}>
-                                    {exportModal.status === 'exporting' ? (
+                                <div className={'bg-white rounded-3xl w-full shadow-2xl border border-slate-100 animate-modal ' + (exportModal.status === 'exporting' && exportModal.giaiDoan ? 'max-w-lg p-6' : 'max-w-md p-8')} onClick={e => e.stopPropagation()}>
+                                    {exportModal.status === 'exporting' && exportModal.giaiDoan ? (() => {
+                                        /* Hộp xuất Nhật ký chung .xlsx theo mẫu DataStudio (Đại Ca gửi ảnh 29/09/2026): 4 bước ·
+                                           Đã ghi / Tốc độ / Thời gian (đã chạy · còn ~) · Hủy xuất. Hộp này chỉ dùng cho job có giai đoạn. */
+                                        const BUOC = [['dem', 'Chuẩn bị'], ['truy_van', 'Truy vấn dữ liệu'], ['ghi', 'Ghi Excel'], ['dong_goi', 'Đóng gói']];
+                                        const iBuoc = Math.max(0, BUOC.findIndex(b => b[0] === exportModal.giaiDoan));
+                                        const tong = exportModal.tong || 0, daGhi = exportModal.daGhi || 0;
+                                        const soVN = (n) => (n || 0).toLocaleString('vi-VN');
+                                        const soSheet = tong > 1000000 ? Math.ceil(tong / 1000000) : 0;    // máy chủ sang sheet mới mỗi 1.000.000 dòng
+                                        const sheetDangGhi = Math.min(soSheet, Math.floor(daGhi / 1000000) + 1);
+                                        const cauGiaiDoan = { dem: 'Đang chuẩn bị…', truy_van: 'Đang lấy dữ liệu từ máy chủ…',
+                                            ghi: 'Đang ghi file Excel…', dong_goi: 'Đang đóng gói file Excel…' }[exportModal.giaiDoan] || 'Đang xuất…';
+                                        return (
+                                        <div>
+                                            <div className="flex items-start gap-3 pb-4 border-b border-slate-100">
+                                                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                                                    <Icon name="file-spreadsheet" size={20} />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-[11px] font-semibold text-slate-400">Xuất file Excel</p>
+                                                    <h3 className="text-[15px] font-black text-slate-900 uppercase tracking-tight leading-snug">{exportModal.tieuDe || 'Nhật ký chung'}</h3>
+                                                    <div className="flex flex-wrap gap-1.5 mt-1.5 text-[11px] font-semibold">
+                                                        <span className="px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700">BC007</span>
+                                                        {exportModal.ky && <span className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 tabular-nums">{exportModal.ky}</span>}
+                                                        {tong > 0 && <span className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 tabular-nums">{soVN(tong)} dòng</span>}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="pt-4 space-y-3">
+                                                <div className="flex justify-between items-end gap-3">
+                                                    <div className="min-w-0">
+                                                        <p className="text-[14px] font-bold text-slate-900">{cauGiaiDoan}</p>
+                                                        <p className="text-[11px] text-slate-400 truncate">{exportModal.filename}</p>
+                                                    </div>
+                                                    <span className="text-[22px] font-black text-indigo-700 tabular-nums leading-none">{exportModal.progress}%</span>
+                                                </div>
+                                                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-indigo-600 rounded-full transition-all duration-300" style={{ width: `${exportModal.progress}%` }}></div>
+                                                </div>
+
+                                                <div className="flex items-center gap-1.5 text-[11px] font-semibold">
+                                                    {BUOC.map(([ma, ten], i) => (
+                                                        <React.Fragment key={ma}>
+                                                            {i > 0 && <div className={'flex-1 h-px min-w-[8px] ' + (i <= iBuoc ? 'bg-indigo-600' : 'bg-slate-200')}></div>}
+                                                            <div className="flex items-center gap-1 shrink-0">
+                                                                {i < iBuoc
+                                                                    ? <span className="w-[18px] h-[18px] rounded-full bg-indigo-600 text-white flex items-center justify-center"><Icon name="check" size={11} strokeWidth="3" /></span>
+                                                                    : <span className={'w-[18px] h-[18px] rounded-full flex items-center justify-center text-[10px] ' + (i === iBuoc ? 'border-2 border-indigo-600 text-indigo-700' : 'border border-slate-300 text-slate-400')}>{i + 1}</span>}
+                                                                <span className={i <= iBuoc ? 'text-slate-800' : 'text-slate-400'}>{ten}</span>
+                                                            </div>
+                                                        </React.Fragment>
+                                                    ))}
+                                                </div>
+
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    <div className="rounded-xl border border-slate-200 px-3 py-2">
+                                                        <p className="text-[10px] font-semibold text-slate-400">Đã ghi</p>
+                                                        <p className="text-[13px] font-bold text-slate-900 tabular-nums">{soVN(daGhi)}{tong > 0 && <span className="text-[11px] font-medium text-slate-400"> / {soVN(tong)}</span>}</p>
+                                                    </div>
+                                                    <div className="rounded-xl border border-slate-200 px-3 py-2">
+                                                        <p className="text-[10px] font-semibold text-slate-400">Tốc độ</p>
+                                                        <p className="text-[13px] font-bold text-slate-900 tabular-nums">{exportModal.tocDo ? soVN(exportModal.tocDo) + ' dòng/giây' : '—'}</p>
+                                                    </div>
+                                                    <div className="rounded-xl border border-slate-200 px-3 py-2">
+                                                        <p className="text-[10px] font-semibold text-slate-400">Thời gian</p>
+                                                        <p className="text-[13px] font-bold"><DongHoXuat batDau={exportModal.batDau} hanChot={exportModal.hanChot} /></p>
+                                                    </div>
+                                                </div>
+
+                                                {soSheet > 0 && (
+                                                    <p className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                                                        <Icon name="layers" size={13} className="text-slate-400 shrink-0" />
+                                                        {exportModal.giaiDoan === 'ghi'
+                                                            ? `Đang ghi sheet ${sheetDangGhi}/${soSheet} — mỗi sheet tối đa 1.000.000 dòng`
+                                                            : `File chia ${soSheet} sheet — mỗi sheet tối đa 1.000.000 dòng`}
+                                                    </p>
+                                                )}
+                                                <p className="text-[11px] text-slate-400">Đừng tắt ứng dụng cho tới khi xong.</p>
+                                            </div>
+
+                                            <div className="flex justify-end pt-4 mt-4 border-t border-slate-100">
+                                                <button onClick={huyXuat}
+                                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-300 text-rose-600 text-[12px] font-bold hover:bg-rose-50 transition-colors">
+                                                    <Icon name="x" size={13} /> Hủy xuất
+                                                </button>
+                                            </div>
+                                        </div>
+                                        );
+                                    })() : exportModal.status === 'exporting' ? (
                                         <div className="space-y-5">
                                             <div className="flex items-center gap-4">
                                                 <div className="relative shrink-0">
@@ -4040,22 +4163,9 @@ const exportJournalCsv = (mode) => {
                                                 </div>
                                             </div>
 
-                                            {exportModal.giaiDoan ? (
-                                                /* Xuất Nhật ký chung .xlsx (job có giai đoạn): đang làm gì · MỘT đồng hồ đếm ngược */
-                                                <div className="flex justify-between items-center gap-3">
-                                                    <div className="text-[11px] text-slate-500 tabular-nums truncate min-w-0">
-                                                        {exportModal.giaiDoan === 'dem' ? 'Đang đếm số dòng cần xuất…'
-                                                            : exportModal.giaiDoan === 'truy_van' ? `Đang lấy ${(exportModal.tong || 0).toLocaleString('vi-VN')} dòng từ máy chủ…`
-                                                            : exportModal.giaiDoan === 'dong_goi' ? 'Đang đóng gói file Excel…'
-                                                            : `Đang ghi ${(exportModal.daGhi || 0).toLocaleString('vi-VN')} / ${(exportModal.tong || 0).toLocaleString('vi-VN')} dòng`}
-                                                    </div>
-                                                    <DongHoXuat hanChot={exportModal.hanChot} />
-                                                </div>
-                                            ) : (
-                                                <div className="text-[10px] font-bold text-slate-400 text-center italic">
-                                                    Đang kết xuất dữ liệu, vui lòng chờ trong giây lát...
-                                                </div>
-                                            )}
+                                            <div className="text-[10px] font-bold text-slate-400 text-center italic">
+                                                Đang kết xuất dữ liệu, vui lòng chờ trong giây lát...
+                                            </div>
                                         </div>
                                     ) : (
                                         <div className="space-y-5">

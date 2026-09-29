@@ -46,9 +46,10 @@
 > ⚠️ Tiêu đề mục này **cố ý không ghi ngày** — mọi đường dẫn `#-việc-cần-làm` trỏ vào nó; ghi ngày là gãy link.
 > Trạng thái: **v2.0.7 đã phát hành** (29/09/2026 12h40), là `Latest`, và **EXE trên máy Đại Ca = đúng file CI** (SHA256 khớp digest).
 >
-> 🚧 **`main` đang đi trước GitHub** — chỉ 1 commit tài liệu (kết quả phát hành v2.0.7). **Cố ý giữ ở local, ĐỪNG push
-> riêng**: push file `.md` là Actions build lại và **thay asset bằng binary khác SHA** ⇒ EXE vừa khớp trên máy lệch ngay.
-> Gộp vào lần sửa code tới (việc 11 `paths-ignore` sẽ gỡ hẳn vòng lặp này).
+> 📤 **29/09/2026: Đại Ca bảo đẩy luôn các commit tài liệu** (kết quả phát hành v2.0.7 + dọn `dist\`). Push file `.md` làm Actions
+> build lại v2.0.7 ⇒ asset EXE **đổi SHA** (code y hệt) ⇒ sau push **tải asset mới về thay `dist\`**, đối chiếu digest — kết quả ghi ở
+> `GITHUB_LEDGERREPORT.md` (ngoài repo, khỏi phải push thêm `.md` rồi lại lệch). Còn commit tài liệu nào chưa push thì **đừng push
+> riêng** trừ khi Đại Ca bảo — cùng lý do (việc 11 `paths-ignore` sẽ gỡ hẳn vòng lặp này).
 >
 > ✅ **Đại Ca đã dùng v2.0.6 xuất Excel Nhật ký chung** (gửi ảnh 29/09) ⇒ đăng nhập trên v2.0.6 chạy được. Góp ý ⇒ **việc 43**.
 >

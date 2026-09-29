@@ -2,15 +2,15 @@
 
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
-> Cập nhật gần nhất: **29/09/2026** · **Bản mới nhất: `v2.0.8`** (xem dòng ✅ v2.0.8 ngay dưới) · v2.0.6: **việc 41** đồng hồ đếm ngược khi xuất Excel Nhật ký chung
+> Cập nhật gần nhất: **29/09/2026** · **Bản mới nhất: `v2.0.9`** (xem dòng ✅ v2.0.9 ngay dưới) · v2.0.6: **việc 41** đồng hồ đếm ngược khi xuất Excel Nhật ký chung
 > (đo + thử giao diện trên DB thật; bắt được lỗi làm hỏng hẳn xuất Excel chi tiết — **Bẫy 31**) + **việc 42** đăng nhập nhanh không
 > còn đá người ra khi Google chỉ là chưa trả lời được. Mục nhật ký *29/09/2026 — Phát hành v2.0.6*. EXE trên máy Đại Ca = đúng file CI.
 > Mục *28/09/2026 (khuya)*: **Đại Ca giữ Google Sheet, không chuyển Supabase** — đọc lý do trước khi đề xuất lại.
-> 🟠 **v2.0.9 (build, CHƯA push)** — **mở app ~0,2s thay vì 7–13s**: dịch sẵn giao diện lúc build (việc 24) + 5 thư viện trong
+> ✅ **v2.0.9 — ĐÃ PHÁT HÀNH 29/09/2026, `Latest`, EXE máy Đại Ca = file CI** — **mở app ~0,2s thay vì 7–13s**: dịch sẵn giao diện lúc build (việc 24) + 5 thư viện trong
 > `thu-vien/` (việc 25) + Tải lại khi hết phiên (việc 40) + GitHub Actions Node 24 & `paths-ignore` (việc 11) + **Hủy xuất: popup
 > giữa màn Có / Không, job TẠM DỪNG trong lúc hỏi** (`/api/export/pause`, `_cho_neu_tam_dung`) + nhãn phiên bản xanh
 > + **Tải lại = hỏi Google quyền (đổi ⇒ đăng xuất) rồi nạp lại trang, không tự lọc** (`/api/tai_lai_kiem_quyen`) + icon riêng từng
-> màn danh sách. Chờ Đại Ca thử EXE.
+> màn danh sách. Mục nhật ký *29/09/2026 — Phát hành v2.0.9*.
 > Mục nhật ký *29/09/2026 — Việc 11, 40, 24, 25*.
 > · ✅ **v2.0.8** (29/09/2026) — **việc 44** Hủy xuất không còn thoáng hiện file `.xlsx` dở: ghi ở `%TEMP%`, xong mới chuyển sang thư mục
 > xuất (`_write_xlsx_to_disk` / `_bo_workbook_do`). Mục nhật ký *29/09/2026 — Việc 44*.
@@ -1137,6 +1137,9 @@ CI: [.github/workflows/release.yml](.github/workflows/release.yml) — push `mai
 Token `gh` trên máy nay có scope **`workflow`** (Đại Ca cấp 29/09/2026). `release.yml` đã dùng `checkout@v7` · `setup-python@v7` ·
 `action-gh-release@v3`, có `paths-ignore` (`**.md`, `docs/**`, `docs-cu/**`) ⇒ **push chỉ tài liệu KHÔNG build lại EXE** — hết cảnh
 "push .md là asset đổi SHA" (việc treo số 11 cũ). Lẫn một file code là vẫn build. Phần dưới giữ làm lịch sử.
+⚠️ **Push commit đụng `.github/workflows/`**: `git push` thường vẫn bị từ chối *"without `workflow` scope"* — Git dùng token của
+`credential.helper=manager` (cấu hình hệ thống, đứng trước helper `gh` trong `.git/config`), token đó cũ. Push bằng token `gh`, chỉ cho
+lệnh đó: `git -c credential.helper= -c 'credential.helper=!"C:/Program Files/GitHub CLI/gh.exe" auth git-credential' push origin main`.
 
 <details><summary>Ghi chép cũ 14/09/2026 (lúc còn kẹt)</summary>
 

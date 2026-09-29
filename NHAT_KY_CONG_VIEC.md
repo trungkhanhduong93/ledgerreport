@@ -3,7 +3,9 @@
 > Toàn bộ những gì đã làm với **LedgerReport**, và **vì sao**. Đọc file này trước khi sửa tiếp.
 > Kiến trúc, ma trận báo cáo, phương án backup: [CLAUDE.md](CLAUDE.md).
 > Mổ xẻ sâu sự cố + 4 bài học: [SU_CO_15082026.md](SU_CO_15082026.md).
-> 🚀 **Bản mới nhất: `v2.0.8` (29/09/2026)** — **Hủy xuất không còn thoáng hiện file dở trong thư mục xuất** (việc 44).
+> 🚀 **Bản mới nhất: `v2.0.9` (29/09/2026)** — **mở app ~0,2s** (việc 24 dịch sẵn giao diện + việc 25 thư viện trong app) · Tải lại
+>   hỏi Google quyền · popup Hủy xuất Có/Không + tạm dừng · icon từng màn · GitHub Actions Node 24 + `paths-ignore` (việc 11).
+>   `v2.0.8` (29/09) = **Hủy xuất không còn thoáng hiện file dở trong thư mục xuất** (việc 44).
 >   `v2.0.7` (29/09) = **nút Hủy xuất Excel Nhật ký chung** (việc 43).
 >   `v2.0.6` (29/09) = **đồng hồ đếm ngược xuất Excel Nhật ký chung** (việc 41)
 >   + **đăng nhập nhanh không đá người ra khi Google bận** (việc 42).
@@ -45,12 +47,11 @@
 
 > *Cập nhật 29/09/2026.* Gom hết việc còn treo về một chỗ. Nhận việc mới thì **đọc mục này trước**.
 > ⚠️ Tiêu đề mục này **cố ý không ghi ngày** — mọi đường dẫn `#-việc-cần-làm` trỏ vào nó; ghi ngày là gãy link.
-> Trạng thái: **v2.0.8 đã phát hành** (29/09/2026 14h31), là `Latest`, và **EXE trên máy Đại Ca = đúng file CI** (SHA256 khớp digest).
+> Trạng thái: **v2.0.9 đã phát hành** (29/09/2026 16h42), là `Latest`, và **EXE trên máy Đại Ca = đúng file CI** (SHA256 khớp digest).
 >
-> 📤 **29/09/2026: Đại Ca bảo đẩy luôn các commit tài liệu** (kết quả phát hành v2.0.7 + dọn `dist\`). Push file `.md` làm Actions
-> build lại v2.0.7 ⇒ asset EXE **đổi SHA** (code y hệt) ⇒ sau push **tải asset mới về thay `dist\`**, đối chiếu digest — kết quả ghi ở
-> `GITHUB_LEDGERREPORT.md` (ngoài repo, khỏi phải push thêm `.md` rồi lại lệch). Còn commit tài liệu nào chưa push thì **đừng push
-> riêng** trừ khi Đại Ca bảo — cùng lý do (việc 11 `paths-ignore` sẽ gỡ hẳn vòng lặp này).
+> ✅ **Từ v2.0.9 (việc 11) workflow có `paths-ignore`** — push CHỈ tài liệu (`**.md`, `docs/**`, `docs-cu/**`) **không build lại EXE**,
+> asset không đổi SHA ⇒ push nhật ký thoải mái. ⚠️ Commit đụng `.github/workflows/` thì `git push` thường bị từ chối (Git Credential
+> Manager cấp token cũ thiếu scope `workflow`) ⇒ push bằng token `gh`: xem `CLAUDE.md` § 5 *ĐÃ XONG 29/09/2026 — nâng 3 action*.
 >
 > ✅ **Đại Ca đã dùng v2.0.6 xuất Excel Nhật ký chung** (gửi ảnh 29/09) ⇒ đăng nhập trên v2.0.6 chạy được. Góp ý ⇒ **việc 43**.
 >
@@ -158,6 +159,27 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 29/09/2026 — Phát hành v2.0.9 (việc 11, 24, 25, 40 + Tải lại hỏi Google + popup Hủy xuất + icon)
+
+Đại Ca: *"tạm thời ok rồi, làm hết các việc cần làm luôn đi"*.
+- Trước push: working tree sạch · quét secret 8 commit sạch · quét route chưa khai quyền `[]` · **thử tài khoản KHÔNG quản trị** (KE_TOAN,
+  chỉ `BC007`): `/api/export/pause` 200, `/api/tai_lai_kiem_quyen` 200 (`giu`), `/api/export/cancel` 200, `/api/sale` **403** (đúng).
+- ⚠️ `git push` **bị từ chối**: *"refusing to allow an OAuth App to create or update workflow … without `workflow` scope"* dù `gh auth status`
+  có `workflow`. Gốc: `credential.helper=manager` (cấu hình HỆ THỐNG của Git) đứng trước helper `gh` khai ở `.git/config` ⇒ Git dùng token
+  cũ của Git Credential Manager. Push bằng token `gh` **chỉ cho lệnh đó**: `git -c credential.helper= -c 'credential.helper=!"C:/Program
+  Files/GitHub CLI/gh.exe" auth git-credential' push origin main` — không sửa cấu hình máy. Push `4593870..ed75979` (8 commit).
+- Actions run `36550666732` **`success` 12/12 bước**: bước mới *Dich san giao dien (viec 24)* chạy Node **22.23.2**, nguồn sha256
+  `537503ef…` **trùng bản build trên máy** (chuẩn hoá xuống dòng có tác dụng — runner checkout CRLF) · 0 cảnh báo PyInstaller · **hết cảnh
+  báo Node 20** (việc 11 xong thật). Release **`v2.0.9` = `Latest`**, tag → `ed75979`, digest EXE `7d54e2a5…` (13.662.884 B — v2.0.8
+  13.166.800 B). `CO_GI_MOI.md` tại tag: 6 dòng.
+- ✅ **Cập nhật thật 2.0.8 → 2.0.9** từ file CI v2.0.8 (`a20f1d4a…`, tải lại từ Releases — bản build local 2.0.9 cất ở scratchpad): hộp báo đủ
+  6 dòng · `apply_update` ⇒ **~9 giây** chạy 2.0.9 · `dist\` **SHA256 = digest CI** · `dist\` gọn 3 file · hết báo cập nhật.
+- ✅ **EXE do CI build đúng là bản dịch sẵn**: `<meta giao-dien-dich-san>` = `537503ef…`, 0 thẻ Babel / `text/babel` / `src="http` · 4 thư viện
+  200 đúng byte, Babel 404 · mở trang **0,18s** lần đầu, **0,10s** mở lại. App để đang chạy.
+- Dòng *Lịch sử push* đã thêm vào `GITHUB_LEDGERREPORT.md`.
 
 ---
 

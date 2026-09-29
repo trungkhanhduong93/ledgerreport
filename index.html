@@ -1,10 +1,13 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" translate="no">
 <head>
 
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 29/09/2026: Chrome tự bật khung "Google Translate — Vietnamese / English" đè góc trái màn đăng nhập (Đại Ca gửi ảnh)
+         dù launcher đã truyền --disable-features=Translate. Khai trang KHÔNG cần dịch ở cả hai chỗ Chrome đọc. -->
+    <meta name="google" content="notranslate">
     <script>
 window.addEventListener("error", function(e) {
     console.error("GLOBAL ERROR:", e.error);
@@ -8029,7 +8032,10 @@ const exportJournalCsv = (mode) => {
                                 <div className="relative">
                                     <div style={{ height: '1px', background: '#1e40af', marginBottom: '16px' }}></div>
                                     <div className="flex items-center gap-2.5">
-                                        <div className="text-[11px] font-bold uppercase" style={{ letterSpacing: '0.14em', color: '#64748b' }}>Phiên bản {appVersion}</div>
+                                        {/* 29/09/2026 — Đại Ca: chữ phiên bản "cho thành màu khác luôn cho nó bật lên". Xám #64748b cũ chìm hẳn
+                                            vào nền navy. Dùng tông XANH của chữ "REPORT" (#60a5fa), KHÔNG dùng cam — cam là màu nhãn "Có bản vX"
+                                            ngay bên cạnh, trùng màu là không phân biệt được đang ở bản nào với bản mới. */}
+                                        <div className="h-[22px] px-2.5 rounded-full text-[11px] font-bold uppercase flex items-center" style={{ letterSpacing: '0.12em', color: '#93c5fd', background: 'rgba(96,165,250,0.14)', border: '1px solid rgba(96,165,250,0.45)' }}>Phiên bản {appVersion}</div>
                                         {/* Đã bấm "Để lần sau" ở hộp thoại cập nhật: nhãn cam ở lại, bấm là mở lại hộp thoại */}
                                         {autoUpdate.updateInfo && !autoUpdate.moHopThoai && !autoUpdate.isUpdating && (
                                             <button type="button" onClick={autoUpdate.moLaiHopThoai} title="Bấm để xem và cập nhật" className="h-[22px] px-2.5 rounded-full text-[10.5px] font-bold uppercase flex items-center gap-1.5 hover:opacity-90" style={{ background: '#FF9D3D', color: '#431407', letterSpacing: '0.06em' }}>

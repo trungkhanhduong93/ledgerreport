@@ -9,7 +9,7 @@ a = Analysis(
     ['server.py'],
     pathex=[],
     binaries=[],
-    datas=[('index.html', '.'), ('install_driver.ps1', '.'), ('manifest.json', '.'), ('icon.svg', '.'), ('version.txt', '.')],
+    datas=[('web_dich_san/index.html', '.'), ('install_driver.ps1', '.'), ('thu-vien/tailwind-3.4.17.js', 'thu-vien'), ('thu-vien/react-18.3.1.production.min.js', 'thu-vien'), ('thu-vien/react-dom-18.3.1.production.min.js', 'thu-vien'), ('thu-vien/xlsx-0.18.5.full.min.js', 'thu-vien'), ('manifest.json', '.'), ('icon.svg', '.'), ('version.txt', '.')],
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},

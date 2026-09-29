@@ -221,6 +221,14 @@ tục — thường do ứng dụng vừa được mở lại hoặc vừa cập
 `/api/ly_do_dang_xuat` và thay bằng lý do cụ thể nếu máy chủ có. **Thử trên giao diện** (server 5055, phiên giả): vào Trang chủ → xoá
 phiên ở máy chủ → bấm Tải lại ⇒ về màn đăng nhập, dòng đỏ đúng câu trên.
 
+### Thêm lúc Đại Ca thử EXE v2.0.9 — chữ phiên bản + khung Google Dịch
+- Đại Ca (kèm ảnh màn đăng nhập): *"sẵn chữ phiên bản cho thành màu khác luôn cho nó bật lên"*. Chữ *PHIÊN BẢN V2.0.9* xám `#64748b`
+  chìm vào nền navy ⇒ thành **viên nhãn xanh** cùng tông chữ *REPORT*: chữ `#93c5fd`, nền `rgba(96,165,250,.14)`, viền
+  `rgba(96,165,250,.45)`, cao 22px = nhãn cam *Có bản vX*. ⛔ **Không dùng cam** — cam là màu nhãn *Có bản vX* ngay cạnh.
+- Cùng ảnh đó có khung **Google Translate "Vietnamese / English"** đè góc trái, dù launcher đã truyền `--disable-features=Translate`
+  ⇒ thêm `<html translate="no">` + `<meta name="google" content="notranslate">`. Em tự thêm (báo Đại Ca), không ai yêu cầu.
+- Kiểm (server thử 5054, bản dịch sẵn, 1366×768): nhãn đúng màu/cỡ, `translate="no"`, meta có.
+
 ### Việc 11 — GitHub Actions
 `checkout@v4 → v7` (7.0.1) · `setup-python@v5 → v7` (7.0.0) · `action-gh-release@v2 → v3` (3.0.3) — đã kiểm các tag tồn tại; breaking
 change đã đối chiếu 14/09 (không vướng). `paths-ignore: '**.md', 'docs/**', 'docs-cu/**'` ⇒ push chỉ tài liệu không build lại EXE.

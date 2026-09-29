@@ -20,6 +20,7 @@
 - Mở ứng dụng nhanh hơn hẳn: giao diện hiện gần như ngay, không còn màn trắng chờ 7–13 giây
 - Giao diện nằm sẵn trong ứng dụng, không phải tải từ Internet mỗi lần mở — mạng chậm vẫn mở bình thường
 - Nút Tải lại: khi phiên đăng nhập đã hết thì đưa về màn đăng nhập kèm lý do, không còn bấm mà không thấy gì
+- Màn đăng nhập: số phiên bản hiện nổi màu xanh, dễ nhìn; không còn bật khung Google Dịch ở góc màn hình
 - Cập nhật hệ thống
 
 ## v2.0.8

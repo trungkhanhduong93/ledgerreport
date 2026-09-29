@@ -3,7 +3,8 @@
 > Toàn bộ những gì đã làm với **LedgerReport**, và **vì sao**. Đọc file này trước khi sửa tiếp.
 > Kiến trúc, ma trận báo cáo, phương án backup: [CLAUDE.md](CLAUDE.md).
 > Mổ xẻ sâu sự cố + 4 bài học: [SU_CO_15082026.md](SU_CO_15082026.md).
-> 🚀 **Bản mới nhất: `v2.0.7` (29/09/2026), là `Latest` trên GitHub** — **nút Hủy xuất Excel Nhật ký chung** (việc 43).
+> 🚀 **Bản mới nhất: `v2.0.8` (29/09/2026)** — **Hủy xuất không còn thoáng hiện file dở trong thư mục xuất** (việc 44).
+>   `v2.0.7` (29/09) = **nút Hủy xuất Excel Nhật ký chung** (việc 43).
 >   `v2.0.6` (29/09) = **đồng hồ đếm ngược xuất Excel Nhật ký chung** (việc 41)
 >   + **đăng nhập nhanh không đá người ra khi Google bận** (việc 42).
 >   `v2.0.5` (28/09) = **màn đăng nhập mới 08A+**. `v2.0.4` (28/09) = code y `v2.0.3`, chỉ viết lại mục "Có gì mới".
@@ -90,7 +91,7 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | 18 | ~~Chốt mốc commit phần đăng nhập nhanh + sửa font~~ ✅ **commit `c64540a`** | Phát hành v2.0.0 |
 | 19 | ~~Đại Ca xem GĐ3 rồi chốt commit~~ ✅ **Đại Ca chốt OK sáng 25/09** (*"cái đó thì ok rồi"*) ⇒ đã commit GĐ3 | ⚠️ Đại Ca chốt chung, **không nói rõ đã thử từng mục dưới đây chưa** — lần đầu dùng số liệu thật thì để ý. Danh sách cần xem ở mục *"Việc Đại Ca xem sáng 25/09"* trong nhật ký 25/09 (tiếp 3), ngay dưới § này. Ba việc tôi **không** tự thử được: hộp *"Chuyển mẫu báo cáo?"* khi có số liệu thật · menu **Xuất Excel / Xuất PDF** khi có số liệu (chưa có số liệu thì nút tắt) · kéo thả thứ tự ô lọc bằng chuột thật. Và **đọc lại mô tả 16 thẻ** — tôi tự viết |
 | 43 | ✅ **Nút Hủy xuất + hộp xuất Excel Nhật ký chung theo mẫu DataStudio** — **phát hành v2.0.7**. ✅ **Đại Ca bấm Hủy xuất trên EXE v2.0.7 với số liệu thật: OK (29/09)** — lần thử đầu Đại Ca **thấy file trong thư mục xuất** (xem việc 44) | Đại Ca 29/09: *"nên cho thêm nút hủy tiến trình nếu t test t muốn ngưng"* + *"cơ chế tính giây sao nó cứ tăng giảm 1 chổ vậy … hoặc làm theo hình thì sao"* (ảnh hộp xuất DataStudio). Hộp mới: 4 bước · Đã ghi / Tốc độ / Thời gian *đã chạy · còn ~* · Hủy xuất. Mục nhật ký *29/09/2026 — Việc 43* |
-| 44 | Bấm **Hủy xuất** lúc đang ghi ⇒ thư mục xuất **thoáng hiện file `.xlsx` dở** rồi mới mất | Đại Ca bắt gặp 29/09 (lần thử 2 thì không thấy, thư mục trống — đo: sửa lúc 14:11:06, 0 file). Gốc: `_write_xlsx_to_disk` huỷ giữa chừng thì **`workbook.close()` đóng gói phần đã ghi** (~5s/346 nghìn dòng, ~36s cả tháng) **rồi mới xoá**. Hướng sửa đề xuất: ghi vào thư mục tạm, xong mới chuyển sang; huỷ thì bỏ đóng gói, chỉ xoá file tạm của xlsxwriter (`row_data_filename` từng sheet — thư viện 3.2.9 **không tự xoá** nếu không `close()`). **Chưa làm — Đại Ca chưa chốt**, không chặn ai |
+| 44 | ✅ **Hủy xuất không còn thoáng hiện file `.xlsx` dở trong thư mục xuất** — **v2.0.8** | Đại Ca bắt gặp 29/09. Gốc: huỷ giữa chừng thì `workbook.close()` đóng gói phần đã ghi **ngay trong thư mục xuất** rồi mới xoá. Nay ghi + đóng gói ở `%TEMP%`, xong hẳn mới chuyển sang; huỷ lúc ghi thì **bỏ đóng gói**, chỉ xoá file tạm từng sheet (`_bo_workbook_do`). Mục nhật ký *29/09/2026 — Việc 44* |
 | 42 | ✅ **Đăng nhập nhanh đá người ra VÔ CỚ khi Google bận** — **phát hành v2.0.6** (commit `b887717`) | Luồng hỏi lại Google (`_kiem_lai_nen`) coi **mọi** `ok: false` là từ chối ⇒ chờ ổ khoá quá 20 giây (*"Máy khác đang ghi…"*), lỗi dịch vụ Sheets, sai token… đều **huỷ phiên + xoá bản lưu**. Nay chỉ 3 câu từ chối thật mới đá ra (`_GS_TU_CHOI_TK`). Đối chứng với bản cũ bằng cùng phép thử: bản cũ đá ra ở cả 3 ca "chưa trả lời được" |
 | 41 | ✅ **Đồng hồ đếm ngược xuất Excel Nhật ký chung** — **phát hành v2.0.6**, đã đo + thử giao diện trên DB thật (mục *28/09/2026 (khuya, tiếp)*). ✅ Đại Ca đã dùng thật 29/09 — góp ý thành **việc 43** | Đại Ca hỏi *"ước tính thời gian xuất được không"* → chốt *"đếm ngược từ đầu, 1 đồng hồ thôi"*. % cũ là **giả** (30.000 dòng = 1%, chặn 95%). Việc còn lại + cách thử: mục nhật ký *28/09/2026 — Hộp xuất Excel Nhật ký chung* |
 | 40 | Nút **Tải lại** gặp phiên đã hết (401) thì **im lặng**, không đưa về màn đăng nhập | Phát hiện 26/09 khi thử việc 23. `loadPerms` gặp `!r.ok` là `return`. Người bị huỷ phiên chỉ về màn đăng nhập ở lần **tải số liệu** kế tiếp (khi đó lý do vẫn hiện đúng). Nhỏ, chưa chặn ai |
@@ -157,6 +158,43 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 29/09/2026 — Việc 44: Hủy xuất không còn thoáng hiện file dở · v2.0.8
+
+Đại Ca thử Hủy xuất trên v2.0.7: lần đầu **thấy file trong thư mục xuất** (xoá tay bằng Shift+Delete), lần hai thì không. Đo: thư mục
+`Downloads\iPOS_Ledger_Studio` sửa lúc 14:07 và 14:11:06, sau đó **0 file** ⇒ file không nằm lại, chỉ **hiện ra một lúc**.
+Đại Ca: *"làm việc 44 luôn đi, làm những việc còn lại luôn nha"*.
+
+**Gốc:** `_write_xlsx_to_disk` ghi thẳng vào thư mục xuất. Huỷ lúc đang ghi ⇒ `workbook.close()` **đóng gói phần đã ghi thành file
+.xlsx hoàn chỉnh** (~5s/346 nghìn dòng, ~36s cả tháng) rồi mới xoá; huỷ lúc đóng gói ⇒ file nằm đó tới khi đóng gói xong. Phép thử
+việc 43 chỉ đếm file **sau khi job dừng** nên không bắt được.
+
+**Đã sửa (`server.py`, commit `4dc9887`, +1 hàm ⇒ 180 hàm / 72 route):**
+- Ghi + đóng gói vào `%TEMP%\lr_xuat_<job_id>.xlsx`; xong hẳn mới `os.replace` sang thư mục xuất (khác ổ ⇒ `shutil.move`).
+- Huỷ lúc đang ghi ⇒ **không `close()`**; `_bo_workbook_do` đóng + xoá file tạm của từng sheet. ⚠️ xlsxwriter 3.2.9 ở chế độ
+  `constant_memory` **chỉ xoá file tạm lúc `close()`** — bỏ ngang mà không dọn là rác nằm lại `%TEMP%`.
+- Lỗi / huỷ **không còn xoá nhầm** file cùng tên của lần xuất trước (bản cũ `os.remove(out_path)` trong nhánh lỗi).
+- File cùng tên đang mở trong Excel ⇒ báo *"File … đang mở (thường là trong Excel) — đóng file đó rồi xuất lại."*
+- Chỉ đổi đường `.xlsx` qua job (BC007 + xlsx của 9 màn danh sách). **CSV giữ nguyên** — vẫn ghi thẳng, file lớn dần trong thư mục
+  xuất lúc đang ghi (9 màn danh sách chưa có nút huỷ).
+
+**🧪 Verify — M1 + thử hàm thật với dữ liệu giả 17 cột, soi thư mục xuất mỗi 0,05s** (script `thu_viec44.py`, scratchpad phiên):
+
+| Ca | Bản mới | Bản cũ v2.0.7 (cùng phép thử) |
+|---|---|---|
+| Xuất trọn 300 nghìn dòng | `done`, zip hợp lệ, file chỉ xuất hiện **khi đã xong** | — |
+| Huỷ lúc ghi (100 nghìn) | `cancelled`, **0 file lộ ra**, dừng 0,52s | **file lộ ra**, dừng 2,60s |
+| Huỷ lúc ghi, đã sang sheet 3 (sheet 50 nghìn dòng) | `cancelled`, 0 file lộ ra, 0 rác `%TEMP%` | — |
+| Huỷ lúc đóng gói (400 nghìn) | `cancelled`, **0 file lộ ra**, dừng 8,2s | **file lộ ra** |
+| Lỗi giữa chừng (mất kết nối giả) | `error`, 0 file, 0 rác | — |
+| Trùng tên file cũ (không mở) | ghi đè | — |
+| Trùng tên file cũ **đang mở** | `error` câu tiếng Việt, **file cũ còn nguyên** | — |
+
+Mọi ca: **0 file `tmp*` / `lr_xuat_*` còn lại trong `%TEMP%`**. Không đụng SQL ⇒ không cần DB thật (Bẫy 31 chỉ áp cho câu SQL).
+`_tach_co_gi_moi`: máy 2.0.7 thấy 2 dòng v2.0.8, máy 2.0.6 thấy 4 dòng. Quét route chưa khai quyền `[]`, secret sạch.
+**M3:** build **v2.0.8**, EXE chạy, `/api/version` 2.0.8, sống sau 45s. Bản CI v2.0.7 (`2d6d9c76…`) cất ở scratchpad để cập nhật thật.
 
 ---
 

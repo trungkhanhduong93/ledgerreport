@@ -2,11 +2,13 @@
 
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
-> Cập nhật gần nhất: **29/09/2026** · **Bản mới nhất: `v2.0.7`** (xem dòng ✅ v2.0.7 ngay dưới) · v2.0.6: **việc 41** đồng hồ đếm ngược khi xuất Excel Nhật ký chung
+> Cập nhật gần nhất: **29/09/2026** · **Bản mới nhất: `v2.0.8`** (xem dòng ✅ v2.0.8 ngay dưới) · v2.0.6: **việc 41** đồng hồ đếm ngược khi xuất Excel Nhật ký chung
 > (đo + thử giao diện trên DB thật; bắt được lỗi làm hỏng hẳn xuất Excel chi tiết — **Bẫy 31**) + **việc 42** đăng nhập nhanh không
 > còn đá người ra khi Google chỉ là chưa trả lời được. Mục nhật ký *29/09/2026 — Phát hành v2.0.6*. EXE trên máy Đại Ca = đúng file CI.
 > Mục *28/09/2026 (khuya)*: **Đại Ca giữ Google Sheet, không chuyển Supabase** — đọc lý do trước khi đề xuất lại.
-> ✅ **v2.0.7** (29/09/2026) — **việc 43** nút **Hủy xuất** + hộp xuất Excel Nhật ký chung theo mẫu DataStudio (thử huỷ trên DB thật).
+> ✅ **v2.0.8** (29/09/2026) — **việc 44** Hủy xuất không còn thoáng hiện file `.xlsx` dở: ghi ở `%TEMP%`, xong mới chuyển sang thư mục
+> xuất (`_write_xlsx_to_disk` / `_bo_workbook_do`). Mục nhật ký *29/09/2026 — Việc 44*.
+> · **v2.0.7** (29/09/2026) — **việc 43** nút **Hủy xuất** + hộp xuất Excel Nhật ký chung theo mẫu DataStudio (thử huỷ trên DB thật).
 > EXE trên máy Đại Ca = đúng file CI v2.0.7. Mục nhật ký *29/09/2026 — Phát hành v2.0.7*.
 > · v2.0.5: **màn đăng nhập mới 08A+** (ảnh nền minh hoạ, form tiếng Việt 2 khối, nút xem mật khẩu) — luật màn này: § 1.1 *Màn đăng nhập — 08A+*.
 > · v2.0.4: code y `v2.0.3`, chỉ viết lại `CO_GI_MOI.md` (app đọc file đó **tại tag** ⇒ sửa câu sau khi phát hành phải ra bản kế tiếp).

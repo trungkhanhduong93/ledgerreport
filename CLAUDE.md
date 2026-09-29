@@ -8,7 +8,9 @@
 > Mục *28/09/2026 (khuya)*: **Đại Ca giữ Google Sheet, không chuyển Supabase** — đọc lý do trước khi đề xuất lại.
 > 🟠 **v2.0.9 (build, CHƯA push)** — **mở app ~0,2s thay vì 7–13s**: dịch sẵn giao diện lúc build (việc 24) + 5 thư viện trong
 > `thu-vien/` (việc 25) + Tải lại khi hết phiên (việc 40) + GitHub Actions Node 24 & `paths-ignore` (việc 11) + **Hủy xuất: popup
-> giữa màn Có / Không, job TẠM DỪNG trong lúc hỏi** (`/api/export/pause`, `_cho_neu_tam_dung`) + nhãn phiên bản xanh. Chờ Đại Ca thử EXE.
+> giữa màn Có / Không, job TẠM DỪNG trong lúc hỏi** (`/api/export/pause`, `_cho_neu_tam_dung`) + nhãn phiên bản xanh
+> + **Tải lại = hỏi Google quyền (đổi ⇒ đăng xuất) rồi nạp lại trang, không tự lọc** (`/api/tai_lai_kiem_quyen`) + icon riêng từng
+> màn danh sách. Chờ Đại Ca thử EXE.
 > Mục nhật ký *29/09/2026 — Việc 11, 40, 24, 25*.
 > · ✅ **v2.0.8** (29/09/2026) — **việc 44** Hủy xuất không còn thoáng hiện file `.xlsx` dở: ghi ở `%TEMP%`, xong mới chuyển sang thư mục
 > xuất (`_write_xlsx_to_disk` / `_bo_workbook_do`). Mục nhật ký *29/09/2026 — Việc 44*.
@@ -747,6 +749,11 @@ cookie giả** (tự cấp quyền `app_items`), và phiên cũ sống xuyên qu
 ⛔ **Đừng quay lại đặt bất cứ thứ gì bí mật vào `session`** — cookie là chỗ ai cũng đọc được.
 Những thứ đang nằm đó (`app_user`, `app_group`, `app_items`, `app_orgs`) đều là thông tin
 không bí mật, và nay chữ ký ngẫu nhiên mới thật sự chống được sửa.
+
+⚠️ **Từ 29/09/2026 kho phiên `_phien_db[sid]['kiem_quyen']` giữ thêm MÃ ĐÃ BĂM của tài khoản ứng dụng** (`_dan_xuat_dk` —
+đúng chuỗi vẫn gửi Google lúc đăng nhập, **không phải mật khẩu gốc**) + bản quyền lúc vào, để nút **Tải lại** hỏi lại Google
+(`/api/tai_lai_kiem_quyen`; Đại Ca chốt, đã được báo đánh đổi). Mã này **đủ để đăng nhập qua Apps Script** như chính người đó ⇒ cùng
+mức nhạy cảm với mật khẩu SQL đang nằm cạnh; chỉ ở RAM, mất khi tắt app. ⛔ **Không bao giờ đưa nó vào cookie / log / file.**
 
 ⚠️ **Hệ quả vận hành phải biết:** kho phiên nằm trong RAM nên **khởi động lại app là phải
 đăng nhập lại** — kể cả sau khi tự cập nhật. Trước đây cookie mang sẵn thông tin kết nối nên

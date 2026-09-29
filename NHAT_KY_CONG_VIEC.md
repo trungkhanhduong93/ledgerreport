@@ -149,8 +149,8 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 
 | Giới hạn | Vì sao cố ý |
 |---|---|
-| **Thu hồi quyền chỉ có hiệu lực khi người đó đăng nhập lại** | Quyền chốt MỘT LẦN lúc đăng nhập. Gọi Google ở mọi request thì mỗi cú bấm chờ 1–3 giây |
-| **Mất mạng vẫn vào được 7 ngày bằng mật khẩu cũ** trên máy khác | Bản cache offline — cùng mô hình credential-cached như Windows domain. Nút "Tải lại" chỉ làm mới phiên của **chính mình** |
+| **Thu hồi quyền chỉ có hiệu lực khi người đó đăng nhập lại — hoặc bấm Tải lại** (từ v2.0.9) | Quyền chốt MỘT LẦN lúc đăng nhập. Gọi Google ở mọi request thì mỗi cú bấm chờ 1–3 giây. Nút **Tải lại** hỏi Google một lần: quyền đổi ⇒ đăng xuất. **Không tự đá ra** khi quản trị vừa sửa — người đó phải bấm Tải lại hoặc đăng nhập lại |
+| **Mất mạng vẫn vào được 7 ngày bằng mật khẩu cũ** trên máy khác | Bản cache offline — cùng mô hình credential-cached như Windows domain. Nút "Tải lại" chỉ kiểm phiên của **chính mình** |
 | **Khởi động lại app là phải đăng nhập lại** | Kho phiên nằm trong RAM. Đổi lại là quay về [Bẫy 17](CLAUDE.md) — mật khẩu SQL nằm đọc được trong cookie |
 | Tab điều chuyển nội bộ **6–8,5 giây/tháng** | Dựng lại toàn bộ CTE mỗi lần gọi, ngang `btp_reconcile`. Nút thắt gốc là RAM của SQL Express, không phải code |
 | `PO.EMPLOYEE_ID` **trống** ⇒ cột Người lập luôn rỗng | iPOS không ghi. Giữ cột phòng sau này có |
@@ -220,6 +220,28 @@ thiết bị; Đại Ca tự đăng nhập GitHub trong trình duyệt tích h�
 tục — thường do ứng dụng vừa được mở lại hoặc vừa cập nhật."* rồi `setIsLoggedIn(false)`; `useEffect` việc 23 hỏi
 `/api/ly_do_dang_xuat` và thay bằng lý do cụ thể nếu máy chủ có. **Thử trên giao diện** (server 5055, phiên giả): vào Trang chủ → xoá
 phiên ở máy chủ → bấm Tải lại ⇒ về màn đăng nhập, dòng đỏ đúng câu trên.
+
+### Thêm lúc Đại Ca thử EXE v2.0.9 — nút Tải lại làm lại + icon riêng cho từng màn danh sách
+Đại Ca: *"bản chất t chưa lọc, nhưng bấm tải lại nó tự lọc … giống thao tác F5"* → *"mục đích chính là load lại quyền, giao diện
+và tính năng … nếu có phân lại quyền thì tự động đăng xuất thì sao"* + *"các icon của các danh sách chứng từ, đề xuất thêm luôn"*.
+Em báo rõ: Tải lại cũ chỉ đọc quyền trong PHIÊN (chốt lúc đăng nhập) ⇒ không bao giờ thấy quyền mới; muốn hỏi Google phải giữ mã
+đã băm trong RAM. Đại Ca chọn phương án **"Hỏi Google + nạp lại trang"** (AskUserQuestion, kèm đánh đổi).
+- **Tải lại mới:** `POST /api/tai_lai_kiem_quyen` (PERM_PUBLIC) ⇒ Google `dang_nhap` bằng mã đã băm giữ trong
+  `_phien_db[sid]['kiem_quyen']` (ghi lúc `login()`), so `_quyen_khac` với bản lúc vào: đổi quyền / Google từ chối ⇒ huỷ phiên + lý do
+  (`_cau_google_tu_choi`, `_CAU_QUYEN_DA_DOI` — tách ra dùng chung với `_kiem_lai_nen`) + xoá bản lưu offline (không có mật khẩu gốc
+  để ghi bản mới); chưa trả lời được / mất mạng ⇒ giữ phiên. Giao diện: không đổi ⇒ `location.reload()` (bản dịch sẵn ~0,2s), nhớ màn
+  đang đứng qua `sessionStorage 'lr_tai_lai_man'` (activeTab, báo cáo đang mở, tab Phân quyền) — **không chạy truy vấn nào**. Bỏ phần
+  "chỉ nạp lại màn đã lọc" (`daLocRef`) làm lúc đầu — không còn cần.
+  ⚠️ Mỗi lần bấm, Google Sheet ghi 1 dòng "đăng nhập" + ô `DANG_NHAP_LUC` (lệnh `dang_nhap` không chỉ đọc) · chờ ~2–3s.
+- **Icon:** `DOC_TABS.icon` mỗi màn một cái — `book` · `receipt` · `banknote` · `truck` · `package` · `warehouse` · `factory` · `swap` ·
+  `clipboard-list` (trước: 5 màn chung `table`, 2 màn chung `swap`, Tồn kho trùng icon nhóm Kho). Thêm 6 icon Lucide. `DongManHinh`
+  vẽ icon 14px thụt 20px (chữ từ 36 → 42px). Hàng tab ngang (khi thu gọn cột) dùng chung icon này.
+- **Thử máy chủ** (Google giả lập, SQL giả): kho phiên giữ `dk` = mã băm, **không có mật khẩu gốc, không vào cookie** · như cũ ⇒ `giu` ·
+  đổi mục / đơn vị / chức vụ ⇒ `dang_xuat` + đúng câu + xoá cache · đổi mật khẩu, bị khoá ⇒ `dang_xuat` đúng câu · Google bận, mất
+  mạng ⇒ `khong_kiem_duoc`, giữ phiên · chưa đăng nhập ⇒ 401.
+- **Thử giao diện** (server 5056, 1366×768): ở Chứng từ bán hàng, chưa Lọc, bấm Tải lại ⇒ trang nạp lại thật, **về đúng màn**, vẫn đăng
+  nhập, **0** truy vấn `/api/sale`, dấu nhớ đã xoá · bật "quyền đổi" ⇒ Tải lại ⇒ màn đăng nhập + *"Quyền của tài khoản vừa được thay
+  đổi…"* · 7 màn con có icon, **không màn nào cắt chữ** (dài nhất "PO – yêu cầu mua hàng" 135px).
 
 ### Thêm lúc Đại Ca thử EXE v2.0.9 — Hủy xuất: popup giữa màn Có / Không + TẠM DỪNG trong lúc hỏi
 Đại Ca (ảnh hộp *"localhost:5050 says — Hủy xuất file Excel?"* của `window.confirm`): *"thông báo bạn có chắc chắn hủy … popup ở

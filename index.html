@@ -695,6 +695,14 @@ window.showConnectionLost = function() {
                 // chưa từng khai ⇒ trước nay vẽ ra ô trống.
                 "alert-triangle": '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
                 "pause": '<rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/>',
+                // 29/09/2026 — icon riêng cho từng màn danh sách ở cột phân hệ (Đại Ca: "các icon của các danh sách chứng từ,
+                // đề xuất thêm luôn cho đồng bộ"). Bộ Lucide như các icon còn lại. Gán ở DOC_TABS.icon.
+                "receipt": '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/>',
+                "truck": '<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>',
+                "clipboard-list": '<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/>',
+                "package": '<path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7"/><path d="m7.5 4.27 9 5.15"/>',
+                "warehouse": '<path d="M22 8.35V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.35A2 2 0 0 1 3.26 6.5l8-3.2a2 2 0 0 1 1.48 0l8 3.2A2 2 0 0 1 22 8.35Z"/><path d="M6 18h12"/><path d="M6 14h12"/><rect width="12" height="12" x="6" y="10"/>',
+                "factory": '<path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M17 18h1"/><path d="M12 18h1"/><path d="M7 18h1"/>',
                 "chevron-down": '<path d="m6 9 6 6 6-6"/>',
                 "chevron-left": '<path d="m15 18-6-6 6-6"/>',
                 "chevron-right": '<path d="m9 18 6-6-6-6"/>',   // bản cũ "6-6 6-6" vẽ ra gạch chéo "/" (sửa 25/09/2026)
@@ -4671,16 +4679,19 @@ const exportJournalCsv = (mode) => {
 
         // Mỗi màn hình danh sách: `name` = tên ĐẦY ĐỦ — checklist Phân quyền đọc cái này, đừng đổi.
         // `short` = tên trên hàng tab: bỏ chữ "Danh sách…" lặp ở cả 9 mục (phác thảo GĐ3 giao diện).
+        // `icon`: hiện ở hàng màn con của cột phân hệ + hàng tab ngang (khi thu gọn cột). MỖI MÀN MỘT ICON (29/09/2026 — trước
+        // đó 5 màn chung 'table', 2 màn đối chiếu chung 'swap', Tồn kho trùng icon nhóm Kho). Màn 1 mình một nhóm (Tổng hợp,
+        // Tiền) lấy đúng icon nhóm. Thêm màn mới thì chọn icon CHƯA ai dùng.
         const DOC_TABS = [
-            { id: 'ledger',    name: 'Danh sách chứng từ tổng hợp', short: 'Chứng từ tổng hợp', icon: 'table' },
-            { id: 'sale',      name: 'Danh sách chứng từ bán hàng', short: 'Chứng từ bán hàng', icon: 'table' },
-            { id: 'voucher',   name: 'Danh sách chứng từ tiền',     short: 'Chứng từ tiền',     icon: 'table' },
-            { id: 'purchase',  name: 'Danh sách chứng từ nhập kho', short: 'Chứng từ nhập kho', icon: 'table' },
-            { id: 'warehouse', name: 'Danh sách chứng từ kho',      short: 'Chứng từ kho',      icon: 'table' },
-            { id: 'warehouse_balance', name: 'Danh sách tồn kho thực tế', short: 'Tồn kho thực tế', icon: 'archive' },
-            { id: 'btp_reconcile', name: 'Danh sách đối chiếu xuất SX BTP – nhập thành phẩm', short: 'Đối chiếu BTP', icon: 'swap' },
+            { id: 'ledger',    name: 'Danh sách chứng từ tổng hợp', short: 'Chứng từ tổng hợp', icon: 'book' },
+            { id: 'sale',      name: 'Danh sách chứng từ bán hàng', short: 'Chứng từ bán hàng', icon: 'receipt' },
+            { id: 'voucher',   name: 'Danh sách chứng từ tiền',     short: 'Chứng từ tiền',     icon: 'banknote' },
+            { id: 'purchase',  name: 'Danh sách chứng từ nhập kho', short: 'Chứng từ nhập kho', icon: 'truck' },
+            { id: 'warehouse', name: 'Danh sách chứng từ kho',      short: 'Chứng từ kho',      icon: 'package' },
+            { id: 'warehouse_balance', name: 'Danh sách tồn kho thực tế', short: 'Tồn kho thực tế', icon: 'warehouse' },
+            { id: 'btp_reconcile', name: 'Danh sách đối chiếu xuất SX BTP – nhập thành phẩm', short: 'Đối chiếu BTP', icon: 'factory' },
             { id: 'dcnb_reconcile', name: 'Danh sách đối chiếu điều chuyển nội bộ (xuất – nhập)', short: 'Đối chiếu điều chuyển', icon: 'swap' },
-            { id: 'po_list', name: 'Danh sách PO – yêu cầu mua hàng', short: 'PO – yêu cầu mua hàng', icon: 'file-text' },
+            { id: 'po_list', name: 'Danh sách PO – yêu cầu mua hàng', short: 'PO – yêu cầu mua hàng', icon: 'clipboard-list' },
         ];
 
         // ===== CỘT CỦA 9 BẢNG DANH SÁCH — ẩn/hiện + kéo giãn (Đại Ca chốt 25/09/2026) =====
@@ -4835,10 +4846,13 @@ const exportJournalCsv = (mode) => {
                 {mui !== undefined && <Icon name={mui ? 'chevron-down' : 'chevron-right'} size={13} strokeWidth="2" className="shrink-0 opacity-70" />}
             </button>
         );
-        const DongManHinh = ({ ten, dangChon, onClick }) => (
+        // Hàng màn con: icon 14px thụt vào 20px (icon nhóm ở 10px) ⇒ vẫn đọc ra cấp cha–con; chữ bắt đầu ở 42px (trước 36px
+        // không icon). Icon lấy từ DOC_TABS.icon (29/09/2026).
+        const DongManHinh = ({ ten, icon, dangChon, onClick }) => (
             <button type="button" onClick={onClick} aria-current={dangChon ? 'page' : undefined} title={ten}
-                className={`w-full h-8 shrink-0 rounded-lg flex items-center pl-9 pr-2.5 text-[12.5px] text-left transition-colors ${dangChon ? 'text-white font-bold' : 'text-[#bfdbfe] hover:text-white'}`}
+                className={`w-full h-8 shrink-0 rounded-lg flex items-center gap-2 pl-5 pr-2.5 text-[12.5px] text-left transition-colors ${dangChon ? 'text-white font-bold' : 'text-[#bfdbfe] hover:text-white'}`}
                 style={dangChon ? { background: CPH.chon } : undefined}>
+                {icon && <Icon name={icon} size={14} strokeWidth="1.8" className={'shrink-0 ' + (dangChon ? '' : 'opacity-80')} />}
                 <span className="truncate">{ten}</span>
             </button>
         );
@@ -4888,7 +4902,7 @@ const exportJournalCsv = (mode) => {
                                     dangChon={!mo && phanHeDangMo === p.id} onClick={() => doiDong(p.id)} />
                                 {mo && tabs.map(id => {
                                     const t = DOC_TABS.find(x => x.id === id);
-                                    return <DongManHinh key={id} ten={t.short || t.name} dangChon={activeTab === id} onClick={() => onChonManHinh(id)} />;
+                                    return <DongManHinh key={id} ten={t.short || t.name} icon={t.icon} dangChon={activeTab === id} onClick={() => onChonManHinh(id)} />;
                                 })}
                             </React.Fragment>
                         );
@@ -5768,7 +5782,23 @@ const exportJournalCsv = (mode) => {
                 fetch('/api/metadata').then(r => {
                     if (r.status === 401) { setIsLoggedIn(false); }
                     else return r.json();
-                }).then(res => { if(res) { setMeta(res); setIsLoggedIn(true); loadPerms(); } })
+                }).then(res => {
+                    if (!res) return;
+                    setMeta(res); setIsLoggedIn(true); loadPerms();
+                    // Nút Tải lại vừa nạp lại trang (taiLaiTrang) ⇒ quay về ĐÚNG màn đang đứng. Đọc một lần rồi xoá — F5 kiểu
+                    // khác (đóng mở app) thì vẫn về Trang chủ như cũ. Chỉ mở lại MÀN, không chạy truy vấn nào.
+                    try {
+                        const v = JSON.parse(sessionStorage.getItem('lr_tai_lai_man') || 'null');
+                        sessionStorage.removeItem('lr_tai_lai_man');
+                        if (v && v.activeTab) {
+                            setActiveTab(v.activeTab);
+                            if (v.reportType) setReportType(v.reportType);
+                            setXemDsBaoCao(v.xemDsBaoCao !== false);
+                            setDaMoBaoCao(!!v.daMoBaoCao);
+                            if (v.tabPhanQuyen) setTabPhanQuyen(v.tabPhanQuyen);
+                        }
+                    } catch (e) { /* bị chặn / hỏng: ở Trang chủ, không sao */ }
+                })
                   .catch(err => { if (window.isNetworkError(err)) window.showConnectionLost(); });
             }, []);
 
@@ -5882,7 +5912,7 @@ const exportJournalCsv = (mode) => {
             const loadPerms = async () => {
                 try {
                     const r = await fetch('/api/my_perms');
-                    if (r.status === 401) return 'het_phien';   // việc 40: nút Tải lại dựa vào đây để về màn đăng nhập
+                    if (r.status === 401) return 'het_phien';   // phiên đã hết (nút Tải lại nay hỏi /api/tai_lai_kiem_quyen)
                     if (!r.ok) return;
                     const j = await r.json();
                     if (j.status === 'ok') {
@@ -5962,41 +5992,46 @@ const exportJournalCsv = (mode) => {
                 }
             };
 
-            /* Nút "Tải lại" — app chạy trong Chrome chế độ --app nên KHÔNG có thanh địa chỉ,
-               không có nút F5. Làm đúng việc của F5 nhưng KHÔNG mất phiên đăng nhập:
-                 1) đọc lại quyền  → menu hiện đúng, kể cả mục vừa được thêm vào app
-                 2) đọc lại danh mục (đơn vị, kho, hàng hoá…)
-                 3) nạp lại dữ liệu của đúng tab đang mở
-               ⚠️ GIỚI HẠN phải biết: quyền của NGƯỜI KHÁC chốt một lần lúc họ đăng nhập
-               (_current_perms đọc session, cố ý không gọi mạng ở mọi request — gọi thì mỗi
-               cú bấm phải chờ Google 1–3 giây). Sửa quyền cho ai thì NGƯỜI ĐÓ vẫn phải
-               đăng nhập lại. Nút này chỉ làm mới phiên của CHÍNH MÌNH. */
+            /* Nút "Tải lại" — app chạy trong Chrome chế độ --app nên KHÔNG có thanh địa chỉ, không có nút F5.
+               Đại Ca chốt 29/09/2026: "mục đích chính là load lại QUYỀN, GIAO DIỆN và TÍNH NĂNG … nếu có phân lại quyền thì
+               tự động đăng xuất". Nên:
+                 1) hỏi Google quyền hiện tại (/api/tai_lai_kiem_quyen, ~2–3 giây) — quyền / mật khẩu đổi, bị khoá ⇒ về màn
+                    đăng nhập kèm lý do. Google chưa trả lời được ⇒ giữ phiên (luật việc 42), vẫn làm bước 2.
+                 2) nạp lại TRANG như F5 (bản dịch sẵn chỉ ~0,2 giây — việc 24): giao diện, quyền, danh mục đọc lại từ đầu,
+                    giữ đăng nhập, quay về ĐÚNG màn đang đứng (sessionStorage 'lr_tai_lai_man').
+               ⛔ KHÔNG tự chạy truy vấn số liệu (Đại Ca: "bản chất t chưa lọc, nhưng bấm tải lại nó tự lọc") — màn danh sách về
+                  trạng thái chưa lọc, bấm Lọc để lấy số liệu. Bản trước 29/09 đọc lại quyền trong PHIÊN (chốt lúc đăng nhập)
+                  ⇒ quản trị phân lại quyền thì Tải lại cũng không thấy, phải đăng nhập lại. */
             const [dangTaiLai, setDangTaiLai] = useState(false);
             const taiLaiTrang = async () => {
                 if (dangTaiLai) return;
                 setDangTaiLai(true);
                 try {
-                    // Việc 40 (29/09/2026): phiên đã hết (app vừa mở lại / cập nhật, hoặc bị đăng xuất ở nền) thì trước đây nút
-                    // này IM LẶNG — người dùng bấm mãi không thấy gì. Nay về màn đăng nhập kèm lý do. Máy chủ có lý do cụ thể
-                    // hơn (đổi mật khẩu, bị khoá, đổi quyền — việc 23) thì màn đăng nhập tự thay câu dưới bằng câu đó.
-                    if ((await loadPerms()) === 'het_phien') {
-                        setLoginError("Phiên đăng nhập đã hết\nĐăng nhập lại để tiếp tục — thường do ứng dụng vừa được mở lại hoặc vừa cập nhật.");
+                    let kq = null;
+                    try {
+                        const r = await fetch('/api/tai_lai_kiem_quyen', { method: 'POST' });
+                        if (r.status === 401) {
+                            // Việc 40: phiên đã hết (app vừa mở lại / cập nhật, hoặc bị đăng xuất ở nền) ⇒ về màn đăng nhập kèm
+                            // lý do; máy chủ có lý do cụ thể hơn (việc 23) thì màn đăng nhập tự thay câu này.
+                            setLoginError("Phiên đăng nhập đã hết\nĐăng nhập lại để tiếp tục — thường do ứng dụng vừa được mở lại hoặc vừa cập nhật.");
+                            setLoginErrorChiTiet("");
+                            setIsLoggedIn(false);
+                            return;
+                        }
+                        kq = await r.json();
+                    } catch (e) {
+                        if (window.isNetworkError(e)) { window.showConnectionLost(); return; }   // máy chủ tắt: nạp lại cũng trắng
+                    }
+                    if (kq && kq.ket_qua === 'dang_xuat') {
+                        setLoginError(kq.ly_do || "Quyền của tài khoản vừa được thay đổi\nĐăng nhập lại để dùng quyền mới.");
                         setLoginErrorChiTiet("");
                         setIsLoggedIn(false);
                         return;
                     }
                     try {
-                        const res = await fetch('/api/metadata').then(r => r.json());
-                        if (res.status === 'ok') setMeta(res);
-                    } catch (e) { /* danh mục lỗi thì vẫn nạp tiếp dữ liệu tab */ }
-                    const nap = {
-                        ledger: loadData, sale: loadSaleData, voucher: loadVoucherData,
-                        purchase: loadPurchaseData, warehouse: loadWarehouseData,
-                        warehouse_balance: loadWarehouseBalanceData,
-                        btp_reconcile: loadBtpData, dcnb_reconcile: loadDcnbData,
-                        po_list: loadPoData,
-                    }[activeTab];
-                    if (nap) await nap(1, filters.page_size);
+                        sessionStorage.setItem('lr_tai_lai_man', JSON.stringify({ activeTab, reportType, xemDsBaoCao, daMoBaoCao, tabPhanQuyen }));
+                    } catch (e) { /* không nhớ được thì về Trang chủ — vẫn đúng */ }
+                    location.reload();
                 } finally { setDangTaiLai(false); }
             };
 
@@ -8352,7 +8387,7 @@ const exportJournalCsv = (mode) => {
                                 <Icon name="loader" size={12} className={refreshing ? 'animate-spin' : ''}/>
                                 {refreshing ? 'Đang tải...' : 'Danh mục'}
                             </button>
-                            <button onClick={taiLaiTrang} disabled={dangTaiLai} title="Tải lại quyền, danh mục và dữ liệu tab đang mở (không phải đăng nhập lại)" className="h-8 px-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[11px] font-bold flex items-center gap-1.5 transition-colors disabled:opacity-60">
+                            <button onClick={taiLaiTrang} disabled={dangTaiLai} title="Kiểm lại quyền với Google rồi nạp lại giao diện — quyền đã đổi thì đăng xuất để đăng nhập lại (không tự lọc số liệu)" className="h-8 px-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[11px] font-bold flex items-center gap-1.5 transition-colors disabled:opacity-60">
                                 <Icon name="loader" size={12} className={dangTaiLai ? 'animate-spin' : ''}/>
                                 {dangTaiLai ? 'Đang tải...' : 'Tải lại'}
                             </button>

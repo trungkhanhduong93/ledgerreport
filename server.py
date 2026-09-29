@@ -259,6 +259,7 @@ PERM_PUBLIC = {
     '/api/version', '/api/check_driver', '/api/install_driver', '/api/login', '/api/logout',
     '/api/metadata', '/api/metadata/refresh', '/api/export/status', '/api/export/cancel',
     '/api/export/pause',             # 29/09/2026: tạm dừng lúc hỏi "có chắc hủy xuất không" — cùng nhóm với cancel
+    '/api/tai_lai_kiem_quyen',       # 29/09/2026: nút Tải lại hỏi Google quyền hiện tại — chỉ đụng phiên của chính mình
     '/api/save_export', '/api/open_file', '/api/open_folder',
     '/api/check_update', '/api/update_progress', '/api/apply_update', '/api/my_perms',
     # Xuất Excel Báo cáo TC (việc 35): ghi LẠI bảng người dùng ĐANG XEM (đã qua quyền của báo cáo đó) + tải file
@@ -643,6 +644,17 @@ def _gs_tu_choi_tai_khoan(loi):
     loi = unicodedata.normalize('NFC', (loi or '').strip())
     return (not loi) or loi.startswith(_GS_TU_CHOI_TK)
 
+def _cau_google_tu_choi(loi):
+    """Câu cho người dùng khi Google TỪ CHỐI tài khoản đang có phiên (đăng nhập nhanh kiểm ở nền + nút Tải lại).
+    Giữ luật hai tiêu đề: ca "sai mật khẩu" ⇒ dòng đầu _LOI_SAI_TAI_KHOAN; ca khoá tài khoản ⇒ giữ nguyên câu
+    của Google (gộp thành "sai mật khẩu" là người bị khoá cứ gõ lại — xem nhánh tương tự trong login())."""
+    if not loi or loi == 'Sai tài khoản hoặc mật khẩu':
+        return (_LOI_SAI_TAI_KHOAN + '\nMật khẩu tài khoản ứng dụng vừa được đổi, hoặc tài khoản không còn dùng được '
+                '— nên phiên đang dùng đã bị đăng xuất. Đăng nhập lại bằng mật khẩu mới.')
+    return loi + '\nPhiên đang dùng đã bị đăng xuất.'
+
+_CAU_QUYEN_DA_DOI = 'Quyền của tài khoản vừa được thay đổi\nĐăng nhập lại để dùng quyền mới.'
+
 def _kiem_lai_nen(sid, app_user, app_password, ttin_cu):
     """Luồng nền của đường nhanh: hỏi lại Google rồi quyết giữ hay huỷ phiên."""
     try:
@@ -662,21 +674,14 @@ def _kiem_lai_nen(sid, app_user, app_password, ttin_cu):
         return
     if not kq.get('ok'):
         loi = (kq.get('loi') or '').strip()
-        # Giữ luật hai tiêu đề: ca "sai mật khẩu" ⇒ dòng đầu _LOI_SAI_TAI_KHOAN; ca khoá tài khoản ⇒ giữ nguyên câu
-        # của Google (gộp thành "sai mật khẩu" là người bị khoá cứ gõ lại — xem nhánh tương tự trong login()).
-        if not loi or loi == 'Sai tài khoản hoặc mật khẩu':
-            cau = (_LOI_SAI_TAI_KHOAN + '\nMật khẩu tài khoản ứng dụng vừa được đổi, hoặc tài khoản không còn dùng được '
-                   '— nên phiên đang dùng đã bị đăng xuất. Đăng nhập lại bằng mật khẩu mới.')
-        else:
-            cau = loi + '\nPhiên đang dùng đã bị đăng xuất.'
+        cau = _cau_google_tu_choi(loi)
         _huy_phien_nen(sid, app_user, 'Google tu choi: %s' % (loi or '?'), cau)
         _xoa_cache_uid(app_user)    # lần sau buộc đi đường Google, hiện đúng câu báo lỗi
         return
     u = kq.get('user') or {}
     _cache_ghi(u.get('id') or app_user, app_password, u)   # chỉ gia hạn khi Google xác nhận
     if _quyen_khac(ttin_cu, u):
-        _huy_phien_nen(sid, app_user, 'quyen tren Google da doi so voi ban luu',
-                       'Quyền của tài khoản vừa được thay đổi\nĐăng nhập lại để dùng quyền mới.')
+        _huy_phien_nen(sid, app_user, 'quyen tren Google da doi so voi ban luu', _CAU_QUYEN_DA_DOI)
 
 # ===== GZIP COMPRESSION =====
 # JSON nén rất tốt (5–10× nhỏ hơn) → giảm bandwidth + parse time cho payload 500k dòng
@@ -1047,6 +1052,13 @@ def login():
             _conn_pool[key] = conn
 
         sid_moi = _dat_db_cfg(data)
+        # Nút Tải lại (Đại Ca chốt 29/09/2026): hỏi lại Google xem quyền còn như lúc vào không ⇒ phải giữ MÃ ĐÃ BĂM (đúng
+        # chuỗi vẫn gửi Google ở trên — KHÔNG phải mật khẩu gốc) + bản quyền lúc vào, trong kho phiên ở RAM máy chủ (cùng chỗ
+        # giữ mật khẩu SQL; không vào cookie — Bẫy 17). Xem /api/tai_lai_kiem_quyen.
+        with _phien_lock:
+            _m = _phien_db.get(sid_moi)
+            if _m is not None:
+                _m['kiem_quyen'] = {'uid': app_user, 'dk': _dan_xuat_dk(app_user, app_password), 'ttin': u}
         session['app_user'] = real_uid
         session['app_group'] = app_group
         session['app_nguon'] = app_nguon
@@ -1098,6 +1110,50 @@ def ly_do_dang_xuat():
             ly_do = m[0]
             session.pop('sid', None)
     return jsonify({"status": "ok", "ly_do": ly_do})
+
+@app.route("/api/tai_lai_kiem_quyen", methods=["POST"])
+def tai_lai_kiem_quyen():
+    """Nút Tải lại (Đại Ca chốt 29/09/2026: "mục đích chính là load lại quyền, giao diện và tính năng … nếu có phân lại
+    quyền thì tự động đăng xuất"). Hỏi Google quyền HIỆN TẠI của tài khoản đang có phiên, so với bản lúc vào:
+      · Google từ chối (đổi mật khẩu / bị khoá)  ⇒ huỷ phiên, ket_qua 'dang_xuat' + câu lý do
+      · quyền khác (chức vụ / mục / đơn vị)       ⇒ huỷ phiên, ket_qua 'dang_xuat' + câu lý do
+      · như cũ                                    ⇒ 'giu'  — trình duyệt nạp lại trang (như F5), giữ đăng nhập
+      · Google chưa trả lời được / mất mạng       ⇒ 'khong_kiem_duoc' — GIỮ phiên (luật việc 42), vẫn nạp lại trang
+    Quyền trong phiên vẫn chốt lúc đăng nhập — route này KHÔNG sửa quyền tại chỗ, đổi là đăng xuất để đăng nhập lại.
+    ⚠️ Lệnh `dang_nhap` của Google GHI (ô DANG_NHAP_LUC + 1 dòng Nhật ký) ⇒ mỗi lần bấm Tải lại Sheet có thêm 1 dòng
+    "đăng nhập" — Đại Ca đã được báo, chấp nhận. Public (chỉ đụng phiên của chính mình) — khai trong PERM_PUBLIC (Bẫy 30)."""
+    sid = session.get('sid')
+    with _phien_lock:
+        m = _phien_db.get(sid) if sid else None
+        kq_cu = dict(m.get('kiem_quyen') or {}) if m else None
+    if m is None:
+        return jsonify({"status": "error", "message": "Phiên đăng nhập đã hết"}), 401
+    if not kq_cu.get('dk'):
+        return jsonify({"status": "ok", "ket_qua": "khong_kiem_duoc"})
+    uid = kq_cu.get('uid') or ''
+    try:
+        kq = _gs_goi('dang_nhap', user=uid, mat_khau=kq_cu['dk'])
+    except Exception as e:          # _GSOffline (mất mạng) hoặc lỗi khác ⇒ như mất mạng: giữ phiên
+        logger.info('Tai lai: khong hoi duoc Google (%s) — giu phien', e)
+        return jsonify({"status": "ok", "ket_qua": "khong_kiem_duoc"})
+    if not kq.get('ok'):
+        loi = (kq.get('loi') or '').strip()
+        if not _gs_tu_choi_tai_khoan(loi):
+            logger.info('Tai lai: Google chua tra loi duoc (%s) — giu phien', loi)
+            return jsonify({"status": "ok", "ket_qua": "khong_kiem_duoc"})
+        cau = _cau_google_tu_choi(loi)
+        _huy_phien_nen(sid, uid, 'Tai lai: Google tu choi: %s' % (loi or '?'), cau)
+        _xoa_cache_uid(uid)
+        return jsonify({"status": "ok", "ket_qua": "dang_xuat", "ly_do": cau})
+    u = kq.get('user') or {}
+    if _quyen_khac(kq_cu.get('ttin'), u):
+        _huy_phien_nen(sid, uid, 'Tai lai: quyen tren Google da doi', _CAU_QUYEN_DA_DOI)
+        # Bản lưu trên máy (đăng nhập nhanh / mất mạng) còn quyền CŨ, mà ở đây không có mật khẩu gốc để ghi bản mới
+        # (_cache_ghi cần) ⇒ xoá, lần đăng nhập sau đi đường Google lấy quyền mới. Để lại là vào nhanh bằng quyền cũ rồi
+        # mới bị luồng nền đá ra lần nữa.
+        _xoa_cache_uid(u.get('id') or uid)
+        return jsonify({"status": "ok", "ket_qua": "dang_xuat", "ly_do": _CAU_QUYEN_DA_DOI})
+    return jsonify({"status": "ok", "ket_qua": "giu"})
 
 @app.route("/api/my_perms")
 def my_perms():

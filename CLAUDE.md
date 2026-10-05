@@ -7,8 +7,9 @@
 > 🆕 **05/10/2026 — Việc 50**: đợt 1 **cấu hình cột BC007 · BC008 · BC012 · BC015 · BC016** (khuôn BC017) + đợt 2 **ghim cột bất kỳ
 > sát lề trái/phải + vừa khít cột ở 9 màn danh sách** — cả hai kiểm trên DB thật, Đại Ca thử OK — ✅ **phát hành trong `v2.1.1`** — xem § 1.2 *Cấu hình cột…*,
 > § 1.1 *Cột của 9 bảng* + nhật ký việc 50.
-> ✅ **v2.1.1 — ĐÃ PHÁT HÀNH 05/10/2026, `Latest`, EXE máy Đại Ca = file CI** (BC017 + việc 50). Mục nhật ký *05/10/2026 (khuya) — Phát hành v2.1.1*.
-> Cập nhật gần nhất: **05/10/2026** · **Bản mới nhất: `v2.1.1`** · `v2.1.0` (= code `v2.0.9`, Đại Ca chốt lên 2.1 — xem dòng ✅ v2.0.9 ngay dưới) · v2.0.6: **việc 41** đồng hồ đếm ngược khi xuất Excel Nhật ký chung
+> ✅ **v2.1.2 — ĐÃ PHÁT HÀNH 06/10/2026, `Latest`, EXE máy Đại Ca = file CI** (cột ghim phải hụt 4px khi cuộn chạm cuối). Mục nhật ký *06/10/2026 — Phát hành v2.1.2*.
+> ✅ **v2.1.1 — 05/10/2026** (BC017 + việc 50). Mục nhật ký *05/10/2026 (khuya) — Phát hành v2.1.1*.
+> Cập nhật gần nhất: **06/10/2026** · **Bản mới nhất: `v2.1.2`** · `v2.1.0` (= code `v2.0.9`, Đại Ca chốt lên 2.1 — xem dòng ✅ v2.0.9 ngay dưới) · v2.0.6: **việc 41** đồng hồ đếm ngược khi xuất Excel Nhật ký chung
 > (đo + thử giao diện trên DB thật; bắt được lỗi làm hỏng hẳn xuất Excel chi tiết — **Bẫy 31**) + **việc 42** đăng nhập nhanh không
 > còn đá người ra khi Google chỉ là chưa trả lời được. Mục nhật ký *29/09/2026 — Phát hành v2.0.6*. EXE trên máy Đại Ca = đúng file CI.
 > Mục *28/09/2026 (khuya)*: **Đại Ca giữ Google Sheet, không chuyển Supabase** — đọc lý do trước khi đề xuất lại.

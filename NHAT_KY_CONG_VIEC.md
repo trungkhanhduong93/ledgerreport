@@ -92,7 +92,7 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | 17 | ~~Nút `TRUY VẤN` đang chuyển màu navy → tím~~ ✅ **XONG 25/09** | Đại Ca chốt: chữ **"Lọc"**, navy đặc, như mẫu iPOS. Nằm trong thanh lọc mới của 9 màn danh sách |
 | 18 | ~~Chốt mốc commit phần đăng nhập nhanh + sửa font~~ ✅ **commit `c64540a`** | Phát hành v2.0.0 |
 | 19 | ~~Đại Ca xem GĐ3 rồi chốt commit~~ ✅ **Đại Ca chốt OK sáng 25/09** (*"cái đó thì ok rồi"*) ⇒ đã commit GĐ3 | ⚠️ Đại Ca chốt chung, **không nói rõ đã thử từng mục dưới đây chưa** — lần đầu dùng số liệu thật thì để ý. Danh sách cần xem ở mục *"Việc Đại Ca xem sáng 25/09"* trong nhật ký 25/09 (tiếp 3), ngay dưới § này. Ba việc tôi **không** tự thử được: hộp *"Chuyển mẫu báo cáo?"* khi có số liệu thật · menu **Xuất Excel / Xuất PDF** khi có số liệu (chưa có số liệu thì nút tắt) · kéo thả thứ tự ô lọc bằng chuột thật. Và **đọc lại mô tả 16 thẻ** — tôi tự viết |
-| 50 | ⏳ **Cấu hình cột 5 báo cáo + ghim cột / vừa khít cột 9 màn danh sách** (Đại Ca yêu cầu 05/10/2026). **Đợt 1 — cấu hình cột BC007 · BC008 · BC012 · BC015 · BC016: XONG** (Đại Ca bảo làm tiếp đợt 2). **Đợt 2 — ghim cột bất kỳ sát lề trái/phải + bấm đúp mép = vừa khít + nút "Vừa khít tất cả cột": XONG**, kiểm DB thật 9/9 màn. Đại Ca thử 05/10: OK, đổi icon ghim (mẫu ô bảng) + bỏ chú thích cuối hộp. ✅ **Phát hành `v2.1.1` 05/10/2026** (cập nhật thật 2.1.0 → 2.1.1 khớp SHA CI) | ✅ Lệch 4px cột ghim phải: **đã sửa** (tay kéo cột cuối thò ra ngoài bảng) — commit local, **chưa phát hành**. "Đứng hình": thử lại 88 lượt bằng dữ liệu giả **không tái hiện được**, giả thuyết làm mờ nền **bị bác** ⇒ chỉ còn theo dõi nếu nhân viên báo. Mục *05/10/2026 (khuya, tiếp)*. Server thử code mới: **cổng 5053** (`server_thu_5053.py` trong scratchpad phiên 05/10, chết theo phiên chat). Mục nhật ký *05/10/2026 (tối) — Việc 50 đợt 2* + *05/10/2026 — Việc 50 (đợt 1)* |
+| 50 | ⏳ **Cấu hình cột 5 báo cáo + ghim cột / vừa khít cột 9 màn danh sách** (Đại Ca yêu cầu 05/10/2026). **Đợt 1 — cấu hình cột BC007 · BC008 · BC012 · BC015 · BC016: XONG** (Đại Ca bảo làm tiếp đợt 2). **Đợt 2 — ghim cột bất kỳ sát lề trái/phải + bấm đúp mép = vừa khít + nút "Vừa khít tất cả cột": XONG**, kiểm DB thật 9/9 màn. Đại Ca thử 05/10: OK, đổi icon ghim (mẫu ô bảng) + bỏ chú thích cuối hộp. ✅ **Phát hành `v2.1.1` 05/10/2026** (cập nhật thật 2.1.0 → 2.1.1 khớp SHA CI) | ✅ Lệch 4px cột ghim phải: **đã sửa** (tay kéo cột cuối thò ra ngoài bảng) — ✅ **phát hành `v2.1.2` 06/10/2026**. "Đứng hình": thử lại 88 lượt bằng dữ liệu giả **không tái hiện được**, giả thuyết làm mờ nền **bị bác** ⇒ chỉ còn theo dõi nếu nhân viên báo. Mục *05/10/2026 (khuya, tiếp)*. Server thử code mới: **cổng 5053** (`server_thu_5053.py` trong scratchpad phiên 05/10, chết theo phiên chat). Mục nhật ký *05/10/2026 (tối) — Việc 50 đợt 2* + *05/10/2026 — Việc 50 (đợt 1)* |
 | 49 | ⏳ **BC017 Báo cáo bán hàng** (mẫu iPOS 3.1, đối chiếu doanh thu) — 3 kiểu xem × chi tiết/tổng hợp + cấu hình cột + mặc định BHVAT/BHK, **kiểm trên DB thật đạt**, ✅ **phát hành `v2.1.1` 05/10/2026** | Còn: soi vài phiếu với mẫu 3.1 trên iPOS Chú Long · **tick quyền BC017 cho chức vụ nhân viên ở tab Phân quyền** (ADMIN tự có) — hai việc này Đại Ca làm. ✅ Ô `password` trong `config.json` **đã xoá 05/10** (Đại Ca bảo) ⇒ thử DB thật lần sau phải điền lại. Điểm mở: chi tiết cả tháng **8–10s/trang** (chưa tăng tốc) · 1366px thêm cột là kéo ngang · mỗi lần tick một cột thêm chưa có là tải lại 1 lần. Server thử 5052 (script trong scratchpad) **tự tắt sau ~2 giờ** — giới hạn chạy nền của công cụ, không phải lỗi app; tắt thì bật lại. Mục nhật ký *04/10/2026* + *03/10/2026 — BC017* |
 | 48 | ⏳ **Chưa thử với Google THẬT: Tải lại khi quyền vừa bị đổi** (v2.1.0) | Đã thử bằng Google giả lập (9 ca) + giao diện server thử. Ca thật: quản trị đổi quyền tài khoản đang đăng nhập ở máy khác → máy đó bấm Tải lại ⇒ phải về màn đăng nhập kèm *"Quyền của tài khoản vừa được thay đổi…"*. Đại Ca chốt *"tạm thời ok"* 29/09 nhưng chưa nói đã thử ca này |
 | 47 | `Sync-And-Backup.ps1` đang là **UTF-8 KHÔNG BOM** dù có tiếng Việt | Bẫy 12: PowerShell 5.1 đọc sai. Script vốn không chạy trên máy này nên chưa ai thấy. Phát hiện 29/09 khi thêm file vào `$Files`. Sửa = lưu lại có BOM, thử chạy `-WhatIf`/không `-Commit` trên máy có thư mục cha |
@@ -169,6 +169,17 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 
 ---
 
+## 06/10/2026 (rạng sáng) — Phát hành v2.1.2 (sửa lệch 4px cột ghim phải)
+
+Đại Ca: *"phát hành v2.1.2 luôn đi"*.
+- `CO_GI_MOI.md`: `## v2.1.2` 1 dòng. Build tự tăng ⇒ **2.1.2**; M3: `/api/version` 2.1.2, trang dịch sẵn, 0 thẻ Babel, có CSS sửa.
+- Commit `4c9e567` (sửa) + `8d478d7` (số hiệu / CO_GI_MOI). Push `ea0d756..8d478d7` ⇒ Actions run `37344901415` **`success`** ⇒ Release
+  **`v2.1.2` = `Latest`**, tag → `8d478d7`, digest EXE `907a7481…` (13.706.759 B).
+- ✅ **Cập nhật thật 2.1.1 → 2.1.2** từ file CI v2.1.1 (`f26268b8…`): "Có gì mới" 1 dòng · **~11 giây** · `dist\` **SHA256 = digest CI** · gọn
+  3 file · hết báo cập nhật · trang dịch sẵn. App để đang chạy. Bản build local 2.1.2 cất ở scratchpad.
+
+---
+
 ## 05/10/2026 (khuya, tiếp) — Xoá mật khẩu config.json · sửa lệch 4px cột ghim phải · thử lại "đứng hình"
 
 Đại Ca: *"xoá password trong config.json đi, và hoàn thành các mục còn lại luôn nha"*.
@@ -185,7 +196,7 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
   - Làm mờ nền **không** đổi tốc độ: lượt sau chạy bản nào cũng ~66ms/khung cuộn (lượt đầu 33ms) — chậm dần theo thời gian Chrome chạy,
     không theo làm mờ ⇒ **bác giả thuyết `backdrop-blur`**, không sửa gì. 3 lần treo trước đều trùng lúc DB thật rất chậm (màn Tổng hợp 13 phút);
     chưa có nhân viên nào báo. Giữ theo dõi.
-- Babel OK. Server thử 5052 + Chrome ngầm đã tắt. Sửa `index.html` (CSS 2 dòng) **chưa phát hành** — hỏi Đại Ca ra v2.1.2 hay gộp bản sau.
+- Babel OK. Server thử 5052 + Chrome ngầm đã tắt. Sửa `index.html` (CSS 2 dòng) ⇒ Đại Ca bảo phát hành ngay: **v2.1.2** (mục trên).
 
 ---
 

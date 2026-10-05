@@ -16,6 +16,13 @@
 >   một lần), hiện tối đa 8 dòng, dư thì ghi "… và N thay đổi khác".
 > - Dòng không bắt đầu bằng `- ` (như khối ghi chú này) app bỏ qua.
 
+## v2.1.1
+- Báo cáo TC: thêm BC017 Báo cáo bán hàng — xem theo đơn vị, theo ngày hoặc theo nguồn đơn, từng dòng hàng hoặc chỉ dòng tổng, để đối chiếu doanh thu
+- Sổ nhật ký chung, Sổ chi tiết tài khoản, Sổ tiền mặt & ngân hàng, Bán hàng theo nguồn đơn, Nhập xuất tồn: nút Cấu hình cột để thêm / bớt cột, xuất Excel đúng các cột đang hiện
+- Các màn danh sách chứng từ: ghim cột bất kỳ sát lề trái hoặc phải, cuộn ngang cột đó vẫn đứng yên
+- Các màn danh sách chứng từ: bấm đúp mép phải tiêu đề cột để cột vừa khít nội dung, hoặc bấm "Vừa khít tất cả cột"
+- Sổ tiền mặt & ngân hàng: bấm sang trang một lần là chuyển, không phải bấm hai lần
+
 ## v2.1.0
 - Mở ứng dụng nhanh hơn hẳn, không cần Internet để tải giao diện — không còn màn trắng chờ 7–13 giây
 - Nhật ký chung: bấm Hủy xuất hiện hộp hỏi giữa màn; trong lúc hỏi việc xuất tạm dừng, chọn Không là xuất tiếp

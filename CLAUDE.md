@@ -2,6 +2,11 @@
 
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
+> 🆕 **02–04/10/2026 — BC017 Báo cáo bán hàng** (mẫu iPOS 3.1, đối chiếu doanh thu): 3 kiểu xem × chi tiết/tổng hợp + cấu hình cột,
+> kiểm trên DB thật, **đã commit local 05/10, CHƯA push/phát hành** — xem § 1.2 *BC017* + nhật ký việc 49.
+> 🆕 **05/10/2026 — Việc 50**: đợt 1 **cấu hình cột BC007 · BC008 · BC012 · BC015 · BC016** (khuôn BC017) + đợt 2 **ghim cột bất kỳ
+> sát lề trái/phải + vừa khít cột ở 9 màn danh sách** — cả hai kiểm trên DB thật, Đại Ca thử OK, **đã commit local 05/10, CHƯA push** — xem § 1.2 *Cấu hình cột…*,
+> § 1.1 *Cột của 9 bảng* + nhật ký việc 50.
 > Cập nhật gần nhất: **29/09/2026** · **Bản mới nhất: `v2.1.0`** (= code `v2.0.9`, Đại Ca chốt lên 2.1 — xem dòng ✅ v2.0.9 ngay dưới) · v2.0.6: **việc 41** đồng hồ đếm ngược khi xuất Excel Nhật ký chung
 > (đo + thử giao diện trên DB thật; bắt được lỗi làm hỏng hẳn xuất Excel chi tiết — **Bẫy 31**) + **việc 42** đăng nhập nhanh không
 > còn đá người ra khi Google chỉ là chưa trả lời được. Mục nhật ký *29/09/2026 — Phát hành v2.0.6*. EXE trên máy Đại Ca = đúng file CI.
@@ -280,13 +285,24 @@ TRUY VẤN) + nút **Cấu hình cột** + Excel (ô icon). *Kết quả N dòng
 là ô nào cũng bị ép xuống mức sàn 120px dù hàng còn thừa chỗ (đo 1366/1280px: 4 ô đủ 160px, một hàng). Ô lọc khai ở **`oLocDs(tab)`** trong App — thêm ô lọc cho danh sách thì khai
 ở đó. Nhớ cấu hình ô ngoài: `lr_loc_ngoai_ds_<tab>`. 3 màn đối chiếu giữ hàng chip trạng thái ngay dưới.
 
-**Cột của 9 bảng — ẩn/hiện + kéo giãn** *(25/09/2026, việc 28)*: khai ở **`COT_BANG`** (khoá, nhãn, độ
-rộng gốc, khoá cột file xuất). ⛔ **Thứ tự `COT_BANG` phải đúng thứ tự cột trên bảng** — ẩn cột làm bằng
-CSS `:nth-child` theo vị trí; thêm/bớt/đổi chỗ cột trên bảng mà quên sửa `COT_BANG` là **ẩn nhầm cột**.
-Dòng gom nhóm (`.dong-nhom`) và dòng tổng tính lại `colSpan` qua `hienCot` / `nhipCot` — viết dòng
-tổng mới thì dùng hai hàm đó, đừng ghi `colSpan` cứng. Kéo mép phải tiêu đề = đổi độ rộng, bấm đúp mép =
-về gốc; bảng vẫn **tự nở theo nội dung** nên kéo hẹp chỉ tới mức vừa chữ (cố ý, không cắt số liệu).
-Tiêu đề cột **không gãy dòng**. Nhớ `lr_cot_<tab>`. **Excel xuất đúng cột đang hiện**: xuất 1 file đi
+**Cột của 9 bảng — ẩn/hiện + kéo giãn** *(25/09/2026, việc 28)* **+ ghim cột + vừa khít** *(05/10/2026, việc 50 đợt 2)*: khai ở
+**`COT_BANG`** (khoá, nhãn, độ rộng gốc, khoá cột file xuất). ⛔ **Thứ tự `COT_BANG` phải đúng thứ tự cột viết trong JSX** — ẩn cột /
+độ rộng làm bằng CSS `:nth-child` theo vị trí; thêm/bớt/đổi chỗ cột trên bảng mà quên sửa `COT_BANG` là **ẩn nhầm cột**.
+- **Ghim cột bất kỳ** (Đại Ca chốt: cột ghim **dời hẳn** về lề, không phải kiểu Excel "cố định tới cột này"): 2 nút icon **ô bảng nhỏ, cột tô ở lề
+  trái / phải** ở từng dòng của Cấu hình cột (Đại Ca chọn 05/10, thay mũi tên ⇤ ⇥; hộp của 9 màn **không có dòng chú thích cuối**). Thứ tự hiện = `#` + ghim trái · không ghim · ghim phải (`ctxCotBang` ở App, qua `CotBangCtx`). Mọi hàng tiêu đề,
+  hàng ô tìm, hàng dữ liệu bọc **`HangCot`** (sắp lại ô theo `thuTu`). ⛔ Hàng bọc `HangCot` phải có **đúng 1 ô / cột, không ô điều
+  kiện** (`{x && <td>}` ⇒ `React.Children.toArray` bỏ ô null ⇒ cả hàng lệch). Dòng có ô gộp (dòng nhóm `.dong-nhom`, dòng tổng) dựng
+  bằng **`veDongCot`** (ô riêng theo chỉ số gốc, phần còn lại tự gộp `colSpan`) — viết dòng tổng mới thì dùng nó, **đừng ghi
+  `colSpan` cứng**. Độ lệch sticky **đo từ độ rộng thật** sau mỗi lần vẽ (`apDungGhim` → `<style id="cot-ghim">`, kèm ResizeObserver);
+  ô gộp mang `data-cg`. Nền ô ghim = màu dòng chồng lên trắng (`background-color: inherit` + `::before`/`::after`, tràn 1px sang trái
+  để không hở khe — đã thấy vệt chữ lọt khe ở Nợ | Có). **Không ghim cột nào ⇒ DOM y hệt trước** (đã so 9/9 bảng: tiêu đề, thân, chân).
+  File Excel vẫn **thứ tự cột gốc**. ⚠️ Có ghim trái thì nhãn chân bảng ("Tổng toàn bộ truy vấn…") nằm ở vùng cuộn (vùng ghim hẹp làm
+  gãy 3 dòng); nhãn dòng nhóm nằm trong vùng ghim nhưng bị cắt theo bề rộng vùng ghim (không làm phình cột).
+- **Vừa khít**: **bấm đúp mép phải tiêu đề** (trước 05/10 là "về độ rộng gốc" — việc đó nay là nút **Về mặc định**, xoá cả ẩn / độ rộng /
+  ghim / vừa khít) + nút **"Vừa khít tất cả cột"**. Đo chữ dài nhất trong **mọi dòng đang tải** (canvas, không chỉ ~90 dòng đang vẽ) +
+  ô đang vẽ + tiêu đề; trần 900px; cột vừa khít được bỏ trần `max-width` (Diễn giải đang cắt ở 250px). Kéo tay một cột ⇒ bỏ dấu vừa khít.
+- Kéo mép phải tiêu đề = đổi độ rộng; bảng vẫn **tự nở theo nội dung** nên kéo hẹp chỉ tới mức vừa chữ (cố ý, không cắt số liệu).
+Tiêu đề cột **không gãy dòng**. Nhớ `lr_cot_<tab>` = `{ an, rong, ghim: { trai, phai }, vua }`. **Excel xuất đúng cột đang hiện**: xuất 1 file đi
 qua máy chủ (tham số `an_cot` ⇒ `_loc_cot_xuat` trong `server.py`), chia sheet theo đơn vị lọc ở trình
 duyệt. Cột chỉ có trong file (Địa chỉ, MST… của Bán hàng) không ẩn được ⇒ luôn xuất.
 
@@ -460,7 +476,7 @@ Nguồn `dbo.PO` + `dbo.PO_DETAIL` (**không có view**). 2026: 4.217 phiếu / 
 
 ⛔ **CỐ Ý KHÔNG có cột "đã có phiếu mua hàng chưa"** — xem **Bẫy 20**.
 
-### 1.2 Ma trận báo cáo — **BC001 → BC016**
+### 1.2 Ma trận báo cáo — **BC001 → BC017**
 
 | Mã | Tên | Endpoint | Nguồn |
 |---|---|---|---|
@@ -480,6 +496,54 @@ Nguồn `dbo.PO` + `dbo.PO_DETAIL` (**không có view**). 2026: 4.217 phiếu / 
 | BC014 | 6.2 — Bảng kê hoá đơn bán ra | `/api/vat_sales_report` | VAT_TRANSACTION_VIEW (`DEBIT_CREDIT='CRD'`) |
 | BC015 | Bán hàng theo nguồn đơn | `/api/sale_by_source` | SALE_VIEW (`STATUS='POSTED'`) ⋈ DM_EXTRA_2 (nguồn đơn = `EXTRA_ID_2`) ⋈ DM_ORGANIZATION; `mode=summary`/`detail` (thêm dòng theo ngày) |
 | BC016 | Nhập xuất tồn nhà hàng | `/api/nxt` | WAREHOUSE_VIEW + DM_ITEM / DM_WAREHOUSE / DM_ITEM_CLASS / SYS_TRAN; nhập–xuất trong kỳ là **cột động theo `TRAN_ID`**; `group_by=class`/`warehouse` |
+| BC017 | **Báo cáo bán hàng** (mẫu iPOS "3.1", để **đối chiếu doanh thu**) | `/api/sale_detail` (+ `/export`) | SALE_VIEW (`POSTED`, mặc định **`TRAN_ID IN ('BHVAT','BHK')`**); 3 kiểu xem (Đơn vị · Đơn vị→Ngày · Đơn vị→Nguồn đơn) × Chi tiết / Tổng hợp; **8 cột tiền = đúng bộ BC015**; cột cấu hình được |
+
+#### BC017 — Báo cáo bán hàng *(thêm 02–04/10/2026, Đại Ca chốt theo ảnh mẫu iPOS — chi tiết: nhật ký việc 49)*
+
+- **3 kiểu xem** (`kieu`), **Đơn vị luôn ở tầng trên cùng**: `donvi` Đơn vị → dòng hàng · `ngay` Đơn vị → Ngày → dòng hàng · `nguon`
+  Đơn vị → Nguồn đơn (`EXTRA_ID_2`, tên nối `DM_EXTRA_2` y BC015) → dòng hàng. **Không còn tầng phiếu** (bản 02/10 Ngày→Đơn vị→Phiếu
+  Đại Ca bỏ); Số CT chỉ là cột. ⛔ Đừng gom theo `TRAN_NO`: T09/2026 có **38.410/46.271 phiếu trùng số với đơn vị khác cùng ngày**.
+- **Chi tiết / Tổng hợp** (`xem=tonghop`): tổng hợp chỉ dòng nhóm, **tầng nhóm cuối KHÔNG in đậm** (kiểu Đơn vị ⇒ dòng đơn vị chữ thường).
+  File Excel tổng hợp do SQL **cộng sẵn** (vài trăm dòng). Kiểu xem + cách xem + "Ẩn dòng 0 đồng" gộp trong MỘT nút `ChonKieuBC017`.
+- **Loại CT mặc định `BC017_LOAI_MAC_DINH` = ('BHVAT','BHK')** — Đại Ca chốt 03/10: báo cáo để đối chiếu doanh thu. ⚠️ Vì vậy tổng
+  BC017 mặc định **KHÔNG bằng BC015** (BC015 tính mọi mã của SALE_VIEW: T09 còn BNB ~2,25 tỷ, HDDC, BH). Chọn đủ 5 mã ở ô Loại CT
+  thì bằng BC015 8/8 (đã kiểm). Đổi bộ mã thì đổi cả `LOAI_MAC_DINH_BC017` trong `index.html`.
+- **Lọc + gom theo NGÀY CHỨNG TỪ** (Đại Ca chốt 04/10). ⚠️ Ngày hoá đơn (`VAT_TRAN_DATE`) **khác ngày CT trên 70% dòng** (T09/2026:
+  180.027/257.570) — chỉ là cột thêm, không lọc theo nó.
+- ⛔ **Không dùng `VAT_INCOME_AMOUNT`** (có trong mẫu iPOS): = 0 trên **toàn bộ** `BHVAT` của Chú Long. Doanh thu = `INCOME_AMOUNT`.
+  Bộ cột tiền lấy thẳng từ `SALE_SOURCE_MONEY_COLS` (BC015) — sửa một chỗ là đổi cả hai báo cáo.
+- **Cấu hình cột** (`BC017_COT` trong `server.py` ⇔ `COT_BC017` trong `index.html` — ⛔ **hai nơi phải khớp khoá + thứ tự**): 13 cột
+  thêm **mặc định ẩn** (Loại CT, Ngày hoá đơn, Mã/Tên kho, Mã/Tên đối tượng, Mã/Tên công việc, Nhóm công việc, Nhóm hàng, Loại hàng,
+  Thuế suất, Ghi chú); 8 cột tiền ẩn được; **Ngày CT luôn hiện** (ô nhãn của dòng tổng). Tham số `an_cot`: KHÔNG gửi ⇒ mặc định,
+  gửi rỗng ⇒ hiện hết. **Máy chủ chỉ lấy cột thêm đang hiện** (`_bc017_cot_them`) ⇒ mặc định câu SQL y như chưa có tính năng; hiện hết
+  12 cột: cả tháng 9,3s → 12,2s. Nhớ trên máy `lr_cot_BC017`. Cột **trống 100%** trên SALE_VIEW (giá vốn, HTTT, nhân viên, số/ký hiệu
+  HĐ, thông tin khách, mã vạch, bảng giá) **cố ý không cho chọn**. ⚠️ Ở 1366px bảng đã kín — hiện thêm cột là phải kéo ngang (đã báo).
+- ⛔ **Bảng tạm `#g`: cột để NULL phải `CAST` kiểu** — `SELECT INTO` gán NULL trần thành INT; cách xem tổng hợp không còn nhánh dòng
+  hàng định kiểu giùm ⇒ JOIN `DM_EXTRA_2` đổi `'CANHAC35K'` sang số ⇒ lỗi 245 (vấp thật 04/10).
+- 3 cột nhóm có sẵn trên `SALE_VIEW` (đã đọc `OBJECT_DEFINITION`): `ITEM_CLASS_ID` nhóm hàng · `PR_DETAIL_CLASS_ID` nhóm của **đối
+  tượng trên đầu phiếu** · `JOB_CLASS_ID` nhóm công việc (tỉnh). Danh mục nhóm do `/api/metadata` trả. Diễn giải = `SALE_DETAIL.DESCRIPTION`.
+- Phân trang **trong SQL** (`#s` → `#g` + `ROW_NUMBER`, một lần execute — Bẫy 25), trang bắt đầu giữa nhóm kèm dòng tổng cha `tiep=1`.
+  Đo T09/2026: chi tiết **1 ngày 0,6–2s/trang · cả tháng 8–10s/trang**; tổng hợp cả tháng 5–11s.
+- Xuất Excel: job máy chủ (`lap_dong`, dòng `_DongXuat` in đậm), dùng chung hộp đồng hồ + Hủy của BC007. Chi tiết cả tháng **47 giây
+  khi SQL Server có sẵn dữ liệu trong RAM, 4 phút 23 giây khi phải đọc đĩa**.
+- Ô lọc khoá riêng `bc_wh_ids` / `bc_tran_ids` (9 màn danh sách đã có `wh_ids` / `tran_ids` của chúng); thứ tự theo `THU_TU_O_LOC`.
+
+#### Cấu hình cột BC007 · BC008 · BC012 · BC015 · BC016 *(05/10/2026, khuôn BC017 — chi tiết: nhật ký việc 50)*
+
+- **Mặc định = đúng biểu mẫu cũ**, cột thêm mặc định ẩn, nhớ trên máy (`lr_cot_BCxxx` = `{ an: [...] }`, state `anCotBC` ở App).
+  Đã so nguyên HTML 6 bảng (BC007 chi tiết + tổng hợp, BC008, BC012, BC015, BC016) giữa bản cũ và mới ở mặc định: **giống hệt**, cả khổ giấy.
+- **Nợ / Có (BC012 thêm Dư) LUÔN hiện, luôn đứng cuối** — dòng cộng / số dư lấy `colSpan` = số cột đang hiện trừ các cột tiền đó.
+- Sổ BC007 + BC008 dùng **chung** `COT_SO` (khác nhau ở `GOC_SO`); BC012 `COT_BC012`. ⛔ Khoá phải khớp máy chủ: `COT_SO` ⇔
+  `_SO_COT_SQL` + `_SO_COT_XUAT`, `COT_BC012` ⇔ `_CB_COT_SQL`. Máy chủ **chỉ SELECT cột được xin** (tham số `cot_them`, trả lại
+  `cot_them` trong JSON) ⇒ không xin gì là câu SQL y cũ. Tick cột thêm chưa có trong số liệu ⇒ tải lại, **chờ 0,7s sau lần tick cuối**
+  (`henTaiCotRef` — máy chủ chạy tuần tự `with_db_lock`, bỏ câu cũ ở trình duyệt không bớt việc cho SQL).
+- BC012: **đối tượng lấy phía ĐỐI ỨNG, ngân hàng lấy phía TK TIỀN** (mỗi dòng VOUCHER_VIEW có 2 phía — đo T09/2026, xem `_CB_COT_SQL`).
+- File Excel: BC008 / BC012 / BC015 / BC016 chụp bảng ⇒ tự theo cột (BC008/BC012 tải đủ trang kèm `cot_them`). BC007 "Bảng tổng hợp" do
+  máy chủ ghi ⇒ trình duyệt gửi `cot` **CHỈ khi khác mặc định** (`_so_xuat_theo_cot`, đọc LEDGER_VIEW); để mặc định thì file y bản cũ
+  (đọc bảng LEDGER, tiêu đề cũ). "Nhật ký chung chi tiết" và mọi file CSV giữ bộ cột riêng như cũ.
+- BC016: nhóm cột lấy từ số liệu đang có (`nhomBC016`) + bật/tắt SL / GT; phải còn ≥ 1 nhóm và ≥ 1 kiểu số (`khoaCot` của `CauHinhCot`).
+- ⚠️ BC008 bật cột thêm thì **thứ tự giữa các dòng cùng ngày + cùng số CT có thể đổi** (tập dòng y hệt — đo 23.217/23.217): `ORDER BY
+  TRAN_DATE, TRAN_NO` vốn không duy nhất, thêm cột là đổi kế hoạch SQL. Có từ trước, chưa thêm khoá phụ để khỏi đổi thứ tự mặc định.
 
 Engine dùng chung — **sửa một chỗ, ảnh hưởng nhiều báo cáo**:
 - `_calc_results()` — phân loại chỉ tiêu KQKD. Dùng bởi BC001–BC004, **và cả BC009/BC010/BC011** (lấy `r['13']` LN trước thuế, `r['07']` chi phí lãi vay). Chỉ được có **MỘT** định nghĩa trong file.

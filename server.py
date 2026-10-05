@@ -168,7 +168,7 @@ def _xoa_db_cfg():
 # ===================================================================
 PERM_TABS    = ['ledger', 'sale', 'voucher', 'purchase', 'warehouse', 'warehouse_balance',
                 'btp_reconcile', 'dcnb_reconcile', 'po_list']
-PERM_REPORTS = ['BC%03d' % i for i in range(1, 17)]          # BC001..BC016
+PERM_REPORTS = ['BC%03d' % i for i in range(1, 18)]          # BC001..BC017
 PERM_EXTRA   = ['perm_admin']                                # tab "Phân quyền" — CHỈ ADMIN
 PERM_ALL_ITEMS = PERM_TABS + PERM_REPORTS + PERM_EXTRA
 
@@ -249,6 +249,7 @@ PERM_ROUTE_STATIC = {
     '/api/cash_book': 'BC012', '/api/cash_book/export_csv': 'BC012',
     '/api/debt_summary': 'BC013', '/api/vat_sales_report': 'BC014',
     '/api/sale_by_source': 'BC015', '/api/nxt': 'BC016',
+    '/api/sale_detail': 'BC017', '/api/sale_detail/export': 'BC017',
     # Tab Phân quyền — CHỈ ADMIN (ADMIN bypass guard; nhóm khác thiếu 'perm_admin' → 403).
     '/api/perm/config': 'perm_admin', '/api/perm/user': 'perm_admin',
     '/api/perm/user/delete': 'perm_admin',
@@ -1567,6 +1568,23 @@ def get_metadata():
             if extra_val: item["address"] = extra_val
             bucket[kind].append(item)
 
+        # Danh mục NHÓM cho ô lọc BC017 (02/10/2026): nhóm hàng / nhóm đối tượng / nhóm công việc — đúng 3 cột nhóm có
+        # sẵn trên SALE_VIEW. Câu riêng, hỏng thì thôi (danh sách rỗng) — đừng kéo chết cả màn hình vì 3 ô lọc.
+        lop_nhom = {'item_class': [], 'pr_detail_class': [], 'job_class': []}
+        try:
+            cursor.execute("""
+                SELECT 'item_class', CAST(ITEM_CLASS_ID AS NVARCHAR(100)), ITEM_CLASS_NAME FROM dbo.DM_ITEM_CLASS WITH (NOLOCK) WHERE ACTIVE=1
+                UNION ALL
+                SELECT 'pr_detail_class', CAST(PR_DETAIL_CLASS_ID AS NVARCHAR(100)), PR_DETAIL_CLASS_NAME FROM dbo.DM_PR_DETAIL_CLASS WITH (NOLOCK) WHERE ACTIVE=1
+                UNION ALL
+                SELECT 'job_class', CAST(JOB_CLASS_ID AS NVARCHAR(100)), JOB_CLASS_NAME FROM dbo.DM_JOB_CLASS WITH (NOLOCK) WHERE ACTIVE=1
+            """)
+            for kind, id_val, name_val in cursor.fetchall():
+                lop_nhom[kind].append({"id": (id_val or '').strip(), "name": name_val or ''})
+        except Exception as e:
+            logger.warning('Metadata: khong doc duoc danh muc nhom (BC017): %s', e)
+            cursor = conn.cursor()
+
 
         # Thông tin công ty cho tiêu đề báo cáo — lấy từ dbo.SYS_SYSTEMVAR (key-value)
         company = {"name": "", "address": "", "tax_code": ""}
@@ -1602,7 +1620,9 @@ def get_metadata():
             "tran_ids": tran_ids, "tran_ids_by_tab": tran_ids_by_tab,
             "jobs": jobs, "items": items,
             "products": products, "expenses": expenses, "warehouses": warehouses,
-            "units": units, "banks": banks
+            "units": units, "banks": banks,
+            "item_classes": lop_nhom['item_class'], "pr_detail_classes": lop_nhom['pr_detail_class'],
+            "job_classes": lop_nhom['job_class'],
         }
         _meta_cache[db_name] = result
         return jsonify(result)
@@ -2731,6 +2751,12 @@ def _write_xlsx_to_disk(job_id, headers, row_iter, filename, total_estimate, she
         text_format = workbook.add_format({'num_format': '@'})
         cell_format = workbook.add_format({})
         text_format = workbook.add_format({'num_format': '@'})
+        # Dòng kiểu _DongXuat (BC017, 02/10/2026): dòng tổng in đậm; cột trong `cot_le` (Số lượng) có số lẻ thì hiện 2 số
+        # sau dấu phẩy — '#,##0' làm tròn 0,5 thành 1. Dòng list thường (mọi bản xuất cũ) đi đúng nhánh cũ.
+        dec_format = workbook.add_format({'num_format': '#,##0.00'})
+        dam_so = workbook.add_format({'num_format': '#,##0', 'bold': True})
+        dam_le = workbook.add_format({'num_format': '#,##0.00', 'bold': True})
+        dam_chu = workbook.add_format({'num_format': '@', 'bold': True})
 
         sheet_limit = min(int(sheet_limit or 1000000), 1048575)   # không bao giờ vượt trần Excel
         sheet_idx = 1
@@ -2749,15 +2775,20 @@ def _write_xlsx_to_disk(job_id, headers, row_iter, filename, total_estimate, she
                     worksheet.write_string(0, col_num, str(header), header_format)
                 row_num = 1
 
+            dam = bool(getattr(row, 'kieu', None))
+            cot_le = getattr(row, 'cot_le', ())
             for col_num, val in enumerate(row):
                 if val is None or val == '':
                     worksheet.write_blank(row_num, col_num, "", text_format)
                 elif isinstance(val, (datetime, date)):
                     worksheet.write_datetime(row_num, col_num, val, date_format)
                 elif isinstance(val, (int, float)):
-                    worksheet.write_number(row_num, col_num, val, num_format)
+                    if col_num in cot_le and val != int(val):
+                        worksheet.write_number(row_num, col_num, val, dam_le if dam else dec_format)
+                    else:
+                        worksheet.write_number(row_num, col_num, val, dam_so if dam else num_format)
                 else:
-                    worksheet.write_string(row_num, col_num, str(val), text_format)
+                    worksheet.write_string(row_num, col_num, str(val), dam_chu if dam else text_format)
                     
             row_num += 1
             count += 1
@@ -3082,7 +3113,7 @@ def _loc_cot_xuat(cols, transform, args):
 
 
 def _start_export_job(filename, headers, sql, params, transform_row, total_estimate=0, sheet_limit=1000000,
-                      count_sql=None, count_params=None):
+                      count_sql=None, count_params=None, lap_dong=None):
     """Mở connection mới (cùng db_config session) → chạy query → ghi disk ở thread riêng.
 
     transform_row(raw_row, sql_cols) → list giá trị theo thứ tự headers.
@@ -3091,6 +3122,10 @@ def _start_export_job(filename, headers, sql, params, transform_row, total_estim
     count_sql (thêm 28/09/2026): đếm TỔNG số dòng trước khi xuất ⇒ job['total'] thật ⇒ trình duyệt tính được
     % thật + thời gian còn lại. job['phase'] báo giai đoạn: 'dem' → 'truy_van' → 'ghi' → 'dong_goi' (chỉ xlsx).
     Đếm tháng 08/2026 (2,86 triệu dòng Nhật ký chung) mất ~2 giây — rẻ so với 4–5 phút xuất.
+
+    lap_dong (thêm 02/10/2026, BC017): hàm (cursor, sql_cols) → các dòng ghi ra file, THAY cho transform_row — dùng khi
+    file có dòng tổng chèn giữa (Ngày / Đơn vị / Phiếu), một dòng SQL không còn ứng đúng một dòng file. Dòng nào là
+    `_DongXuat` thì mang thêm kiểu (in đậm dòng tổng). count_sql khi đó phải đếm SỐ DÒNG FILE, không phải số dòng SQL.
     """
     job_id = uuid.uuid4().hex
     with _export_jobs_lock:
@@ -3144,10 +3179,11 @@ def _start_export_job(filename, headers, sql, params, transform_row, total_estim
                     for raw in batch:
                         yield transform_row(raw, sql_cols)
 
+            dong = lap_dong(cursor, sql_cols) if lap_dong is not None else row_iter()
             if filename.lower().endswith('.xlsx'):
-                _write_xlsx_to_disk(job_id, headers, row_iter(), filename, total_estimate, sheet_limit)
+                _write_xlsx_to_disk(job_id, headers, dong, filename, total_estimate, sheet_limit)
             else:
-                _write_csv_to_disk(job_id, headers, row_iter(), filename, total_estimate)
+                _write_csv_to_disk(job_id, headers, dong, filename, total_estimate)
         except Exception as e:
             _dat_loi_xuat(job_id, e)
         finally:
@@ -7099,6 +7135,11 @@ def report_export_csv():
         org_where_l  = (" AND " + _lc)  if _lc  else ""
         org_where_lv = (" AND " + _lvc) if _lvc else ""
 
+        # Cấu hình cột BC007 (05/10/2026): cột đang hiện trên màn, đúng thứ tự. Chỉ áp cho "Bảng tổng hợp"; trống ⇒ file y bản cũ.
+        _cot_xuat = [k for k in request.args.get("cot", "").split(",") if k in _SO_COT_XUAT]
+        if not any(k not in ("no", "co") for k in _cot_xuat):
+            _cot_xuat = []          # chỉ còn Nợ/Có (hoặc không gửi) ⇒ đi đường cũ
+        _dong_cot = None
         if report_type == "BC007" and mode == "detail":
             # NHẬT KÝ CHUNG CHI TIẾT — theo mẫu SQL người dùng cung cấp (bổ sung Tên đơn vị)
             # Mã/Tên mục chi phí: Đại Ca thêm 28/09/2026, đặt cạnh Tên đối tượng. LEDGER_VIEW đã tự
@@ -7119,6 +7160,11 @@ def report_export_csv():
                       ORDER BY LV.TRAN_DATE, LV.TRAN_NO"""
             params = [d_from, d_to] + org_params
             fname = f"BC007_Nhat_Ky_Chung_ChiTiet_{from_dt.strftime('%d%m%Y')}-{to_dt.strftime('%d%m%Y')}.csv"
+        elif report_type == "BC007" and _cot_xuat:
+            # TỔNG HỢP theo Cấu hình cột (05/10/2026) — đúng các cột đang hiện trên màn, nhãn y màn hình.
+            headers, sql, _dong_cot = _so_xuat_theo_cot(_cot_xuat, org_where_lv)
+            params = [d_from, d_to] + org_params
+            fname = f"BC007_So_Nhat_Ky_Chung_{from_dt.strftime('%d%m%Y')}-{to_dt.strftime('%d%m%Y')}.csv"
         elif report_type == "BC007":
             # TỔNG HỢP (như web đang xem) — thêm Đơn vị / Tên đơn vị / Mã chứng từ
             journal_view_mode = request.args.get("journal_view_mode", "detail")
@@ -7207,6 +7253,8 @@ def report_export_csv():
                 # ô số — Excel cộng/lọc/sắp xếp được ngay, khác CSV vốn chỉ toàn chuỗi.
                 # Mã đơn vị ghi thẳng '05', KHÔNG bọc ="05" như CSV: mẹo đó chỉ để Excel
                 # khỏi ăn mất số 0 đầu lúc parse text, ô xlsx đã ép sẵn định dạng text.
+                if _dong_cot and not _is_detail:
+                    return _dong_cot(r)
                 if _is_detail:
                     # Công việc / Tên đối tượng / Tên MCP: LEDGER_VIEW trả N' ' khi trống ⇒ strip, không là
                     # ô "trống" chứa dấu cách — lọc (Blanks) của Excel bỏ sót, COUNTA vẫn đếm (đo 28/09/2026).
@@ -7303,6 +7351,18 @@ def report_export_csv():
                                 r[6] or '', r[7] or '', r[8] or '', r[9] or '', _csv_text_cell(r[10]), (r[11] or '').strip(),
                                 _csv_text_cell(r[12]), (r[13] or '').strip(),
                                 _amt(amt if is_deb else 0), _amt(amt if not is_deb else 0), r[16] or '']))
+                        yield '\r\n'.join(lines) + '\r\n'
+                elif _dong_cot:  # BC007 TỔNG HỢP theo Cấu hình cột — mã giữ dạng chữ (số 0 đầu), số giữ số
+                    cur.execute(sql, params)
+                    _ma = {j for j, k in enumerate(_cot_xuat) if k in ("org", "loai", "tk", "tk_du", "dt", "mcp", "cv", "hang", "nguon")}
+                    while True:
+                        batch = cur.fetchmany(2000)
+                        if not batch: break
+                        lines = []
+                        for r in batch:
+                            d = _dong_cot(r)
+                            lines.append(','.join(_csv_escape(_csv_text_cell(v) if j in _ma else (_amt(v) if isinstance(v, float) else v))
+                                                  for j, v in enumerate(d)))
                         yield '\r\n'.join(lines) + '\r\n'
                 else:  # BC007 TỔNG HỢP (như web)
                     cur.execute(sql, params)
@@ -7596,6 +7656,133 @@ def get_cash_flow():
         return jsonify({"status": "error", "message": msg}), 401 if "đăng nhập" in msg else 500
 
 
+# ============================================================================
+# CỘT THÊM CỦA SỔ — BC007 Nhật ký chung · BC008 Sổ chi tiết TK (Cấu hình cột, Đại Ca chốt 05/10/2026)
+# Khoá ⇔ COT_SO trong index.html. Máy chủ CHỈ lấy cột được xin (tham số cot_them) ⇒ không xin gì là câu SQL y như cũ.
+# LEDGER_VIEW tự JOIN sẵn danh mục (đối tượng, MCP, công việc, hàng, nguồn đơn) nhưng bọc ISNULL(…, N' ') ⇒ ô trống là MỘT
+# dấu cách (Bẫy 3) ⇒ luôn strip. Tên đơn vị / tên loại CT KHÔNG có trên view ⇒ tra DM_ORGANIZATION / SYS_TRAN.
+# Đo 15/09/2026 (92.448 dòng): đối tượng 21% · MCP 37% · công việc 37% · hàng 90% · số lượng 68% · nguồn đơn 45% · ghi chú 93%.
+_SO_COT_SQL = {
+    "org": "ORGANIZATION_ID", "org_ten": "ORGANIZATION_ID", "loai": "TRAN_ID", "loai_ten": "TRAN_ID", "tk": "ACCOUNT_ID",
+    "dt": "PR_DETAIL_ID", "dt_ten": "PR_DETAIL_NAME", "mcp": "EXPENSE_ID", "mcp_ten": "EXPENSE_NAME",
+    "cv": "JOB_ID", "cv_ten": "JOB_NAME", "hang": "ITEM_ID", "hang_ten": "ITEM_NAME", "sl": "QUANTITY",
+    "nguon": "EXTRA_ID_2", "nguon_ten": "EXTRA_NAME_2", "ghi_chu": "COMMENTS",
+}
+
+
+def _so_cot_them(raw, co_san):
+    """→ (khoá cột thêm hợp lệ theo thứ tự _SO_COT_SQL, cột SQL phải SELECT thêm — bỏ cột câu gốc đã có `co_san`)."""
+    xin = {k.strip() for k in (raw or "").split(",") if k.strip()}
+    keys = [k for k in _SO_COT_SQL if k in xin]
+    cols = []
+    for k in keys:
+        c = _SO_COT_SQL[k]
+        if c not in co_san and c not in cols:
+            cols.append(c)
+    return keys, cols
+
+
+def _so_ban_do_ten(cur, keys):
+    """(tên đơn vị, tên loại CT) — chỉ đọc danh mục khi có xin cột tên tương ứng (~0,04s mỗi bảng)."""
+    org, tran = {}, {}
+    if "org_ten" in keys:
+        try:
+            cur.execute("SELECT CAST(ORGANIZATION_ID AS NVARCHAR(100)), ORGANIZATION_NAME FROM dbo.DM_ORGANIZATION WITH (NOLOCK)")
+            org = {(r[0] or '').strip(): (r[1] or '').strip() for r in cur.fetchall()}
+        except Exception:
+            pass
+    if "loai_ten" in keys:
+        try:
+            cur.execute("SELECT TRAN_ID, TRAN_NAME FROM dbo.SYS_TRAN WITH (NOLOCK)")
+            tran = {(r[0] or '').strip(): (r[1] or '').strip() for r in cur.fetchall()}
+        except Exception:
+            pass
+    return org, tran
+
+
+def _so_gan_cot(row, keys, gia_tri, org_map, tran_map):
+    """Ghi cột thêm vào một dòng JSON. gia_tri = {cột SQL: giá trị}. Đơn vị / loại CT / TK dùng CHUNG tên khoá với dòng
+    BC007 (org_id, org_name, tran_id, account_id) ⇒ trình duyệt đọc một kiểu cho cả hai sổ."""
+    def s(c):
+        v = gia_tri.get(c)
+        return (str(v) if v is not None else "").strip()
+    for k in keys:
+        if k == "org":
+            row["org_id"] = s("ORGANIZATION_ID")
+        elif k == "org_ten":
+            row["org_name"] = org_map.get(s("ORGANIZATION_ID"), "")
+        elif k == "loai":
+            row["tran_id"] = s("TRAN_ID")
+        elif k == "loai_ten":
+            row["tran_name"] = tran_map.get(s("TRAN_ID"), "")
+        elif k == "tk":
+            row["account_id"] = s("ACCOUNT_ID")
+        elif k == "sl":
+            row["sl"] = float(gia_tri.get("QUANTITY") or 0)
+        else:
+            row[k] = s(_SO_COT_SQL[k])
+
+
+# File "Bảng tổng hợp" của BC007 theo Cấu hình cột (05/10/2026). Khoá ⇔ COT_SO (index.html) · (tiêu đề = nhãn trên màn,
+# biểu thức SQL trên LEDGER_VIEW LV — cùng nguồn với bảng đang xem). Nợ / Có tách từ DEBIT_CREDIT + AMOUNT.
+# Trình duyệt CHỈ gửi `cot` khi cấu hình KHÁC mặc định ⇒ để mặc định thì file y bản cũ (đọc bảng LEDGER, tiêu đề cũ).
+_SO_COT_XUAT = {
+    "org": ("Đơn vị", "LV.ORGANIZATION_ID"), "org_ten": ("Tên đơn vị", "O.ORGANIZATION_NAME"),
+    "ngay_gs": ("Ngày tháng ghi sổ", "LV.TRAN_DATE"), "loai": ("Mã chứng từ", "LV.TRAN_ID"),
+    "loai_ten": ("Tên loại CT", "T.TRAN_NAME"), "so": ("Số hiệu chứng từ", "LV.TRAN_NO"),
+    "ngay": ("Ngày chứng từ", "LV.TRAN_DATE"), "dien_giai": ("Diễn giải", "LV.DESCRIPTION"),
+    "ghi_chu": ("Ghi chú", "LV.COMMENTS"), "tk": ("TK", "LV.ACCOUNT_ID"), "tk_du": ("TK ĐƯ", "LV.ACCOUNT_ID_CONTRA"),
+    "dt": ("Mã đối tượng", "LV.PR_DETAIL_ID"), "dt_ten": ("Tên đối tượng", "LV.PR_DETAIL_NAME"),
+    "mcp": ("Mã mục chi phí", "LV.EXPENSE_ID"), "mcp_ten": ("Tên mục chi phí", "LV.EXPENSE_NAME"),
+    "cv": ("Mã công việc", "LV.JOB_ID"), "cv_ten": ("Tên công việc", "LV.JOB_NAME"),
+    "hang": ("Mã hàng", "LV.ITEM_ID"), "hang_ten": ("Tên hàng", "LV.ITEM_NAME"), "sl": ("Số lượng", "LV.QUANTITY"),
+    "nguon": ("Mã nguồn đơn", "LV.EXTRA_ID_2"), "nguon_ten": ("Tên nguồn đơn", "LV.EXTRA_NAME_2"),
+    "no": ("Nợ", None), "co": ("Có", None),
+}
+
+
+def _so_xuat_theo_cot(cot, org_where_lv):
+    """→ (headers, sql, ham_dong) cho file Bảng tổng hợp BC007 theo đúng các cột `cot` (đã lọc hợp lệ, đúng thứ tự màn).
+    ham_dong(r) → _DongXuat: chữ strip (LEDGER_VIEW trả N' ' khi trống — Bẫy 3), ngày giữ datetime, Số lượng float giữ số lẻ.
+    ⚠️ Cột nào cũng có tên (C0, C1…) — bản xlsx bọc câu này trong SELECT COUNT(*) FROM (…) t (Bẫy 31)."""
+    sel, chi_so = [], {}
+    for k in cot:
+        bt = _SO_COT_XUAT[k][1]
+        if bt and bt not in chi_so:
+            chi_so[bt] = len(sel)
+            sel.append(f"{bt} AS C{len(sel)}")
+    i_nc, i_tien = len(sel), len(sel) + 1
+    sel += [f"LV.DEBIT_CREDIT AS C{i_nc}", f"LV.AMOUNT AS C{i_tien}"]
+    noi = ""
+    if "org_ten" in cot:
+        noi += " LEFT JOIN dbo.DM_ORGANIZATION O WITH (NOLOCK) ON LV.ORGANIZATION_ID = O.ORGANIZATION_ID"
+    if "loai_ten" in cot:
+        noi += " LEFT JOIN dbo.SYS_TRAN T WITH (NOLOCK) ON LV.TRAN_ID = T.TRAN_ID"
+    sql = (f"SELECT {', '.join(sel)} FROM dbo.LEDGER_VIEW LV WITH (NOLOCK){noi}"
+           f" WHERE LV.TRAN_DATE >= ? AND LV.TRAN_DATE <= ? {org_where_lv} ORDER BY LV.TRAN_DATE, LV.TRAN_NO")
+    cot_le = tuple(j for j, k in enumerate(cot) if k == "sl")
+
+    def ham_dong(r):
+        tien = float(r[i_tien] or 0)
+        no = (r[i_nc] == 'DEB')
+        out = []
+        for k in cot:
+            if k == "no":
+                out.append(tien if no else 0)
+            elif k == "co":
+                out.append(tien if not no else 0)
+            else:
+                v = r[chi_so[_SO_COT_XUAT[k][1]]]
+                if k == "sl":
+                    out.append(float(v or 0))
+                elif isinstance(v, (datetime, date)) or v is None:
+                    out.append(v)
+                else:
+                    out.append(str(v).strip())
+        return _DongXuat(out, None, cot_le)
+    return [_SO_COT_XUAT[k][0] for k in cot], sql, ham_dong
+
+
 @app.route("/api/journal")
 @with_db_lock
 def get_journal():
@@ -7640,12 +7827,17 @@ def get_journal():
         except Exception:
             pass
 
+        # Cấu hình cột (05/10/2026): cột thêm chỉ SELECT khi được xin — đứng SAU 9 cột gốc, trước RowNum.
+        _goc = ["TRAN_DATE", "TRAN_NO", "DESCRIPTION", "ACCOUNT_ID", "ACCOUNT_ID_CONTRA", "DEBIT_CREDIT", "AMOUNT",
+                "ORGANIZATION_ID", "TRAN_ID"]
+        cot_them, cot_sql = _so_cot_them(request.args.get("cot_them", ""), set(_goc))
+        _, tran_map = _so_ban_do_ten(cur, [k for k in cot_them if k == "loai_ten"])
         offset = (page - 1) * page_size
         paged_sql = f"""
             WITH CTE AS (
                 SELECT
                     TRAN_DATE, TRAN_NO, DESCRIPTION, ACCOUNT_ID, ACCOUNT_ID_CONTRA, DEBIT_CREDIT, AMOUNT,
-                    ORGANIZATION_ID, TRAN_ID,
+                    ORGANIZATION_ID, TRAN_ID{''.join(', ' + c for c in cot_sql)},
                     ROW_NUMBER() OVER (ORDER BY TRAN_DATE, TRAN_NO) as RowNum
                 FROM dbo.LEDGER_VIEW WITH (NOLOCK)
                 WHERE TRAN_DATE >= ? AND TRAN_DATE <= ? {org_where}
@@ -7655,9 +7847,10 @@ def get_journal():
         cur.execute(paged_sql, base_params + [offset, offset + page_size])
 
         rows = []
+        _ten_cot = _goc + cot_sql
         for r in cur.fetchall():
             org_id = (str(r[7]) if r[7] is not None else "").strip()
-            rows.append({
+            row = {
                 "tran_date": r[0].strftime("%d/%m/%Y") if r[0] else "",
                 "tran_no": r[1] or "",
                 "description": r[2] or "",
@@ -7668,11 +7861,15 @@ def get_journal():
                 "org_id": org_id,
                 "org_name": org_map.get(org_id, ""),
                 "tran_id": (str(r[8]) if r[8] is not None else "").strip()
-            })
+            }
+            if cot_them:
+                _so_gan_cot(row, cot_them, dict(zip(_ten_cot, r)), org_map, tran_map)
+            rows.append(row)
 
         return jsonify({
             "status": "ok",
             "data": rows,
+            "cot_them": cot_them,
             "period_sums": {"deb": total_deb, "crd": total_crd},
             "pagination": {
                 "total_rows": total_rows,
@@ -7774,10 +7971,14 @@ def get_account_details():
         offset_deb = float(s_row[3] or 0)
         offset_crd = float(s_row[4] or 0)
 
+        # Cấu hình cột (05/10/2026): cột thêm chỉ SELECT khi được xin — đứng SAU 6 cột gốc, trước RowNum.
+        _goc = ["TRAN_DATE", "TRAN_NO", "DESCRIPTION", "ACCOUNT_ID_CONTRA", "DEBIT_CREDIT", "AMOUNT"]
+        cot_them, cot_sql = _so_cot_them(request.args.get("cot_them", ""), set(_goc))
+        org_map, tran_map = _so_ban_do_ten(cur, cot_them)
         paged_sql = f"""
             WITH CTE AS (
                 SELECT 
-                    TRAN_DATE, TRAN_NO, DESCRIPTION, ACCOUNT_ID_CONTRA, DEBIT_CREDIT, AMOUNT,
+                    TRAN_DATE, TRAN_NO, DESCRIPTION, ACCOUNT_ID_CONTRA, DEBIT_CREDIT, AMOUNT{''.join(', ' + c for c in cot_sql)},
                     ROW_NUMBER() OVER (ORDER BY TRAN_DATE, TRAN_NO) as RowNum
                 FROM dbo.LEDGER_VIEW WITH (NOLOCK)
                 WHERE {acc_clause} AND TRAN_DATE >= ? AND TRAN_DATE <= ? {org_where}
@@ -7788,18 +7989,23 @@ def get_account_details():
         cur.execute(paged_sql, base_params + [offset, total_rows if export_all else offset + page_size])
 
         rows = []
+        _ten_cot = _goc + cot_sql
         for r in cur.fetchall():
-            rows.append({
+            row = {
                 "tran_date": r[0].strftime("%d/%m/%Y") if r[0] else "",
                 "tran_no": r[1] or "",
                 "description": r[2] or "",
                 "contra_account_id": r[3] or "",
                 "debit_credit": r[4] or "",
                 "amount": float(r[5] or 0)
-            })
+            }
+            if cot_them:
+                _so_gan_cot(row, cot_them, dict(zip(_ten_cot, r)), org_map, tran_map)
+            rows.append(row)
 
         return jsonify({
             "status": "ok",
+            "cot_them": cot_them,
             "opening_balance": {"deb": open_bal_deb, "crd": open_bal_crd},
             "offset_balance": {"deb": offset_deb, "crd": offset_crd},
             "period_sums": {"deb": total_deb, "crd": total_crd},
@@ -7828,14 +8034,32 @@ def get_account_details():
 _cashbook_cache = {}  # {cache_key: flat_list}
 
 
-def _cashbook_key(f_date, t_date, acc_ids, contra_ids, tran_no, org_ids):
+def _cashbook_key(f_date, t_date, acc_ids, contra_ids, tran_no, org_ids, cot_them=()):
     db_name = (_db_cfg() or {}).get('database', 'N/A')
     return hashlib.md5("|".join([
-        db_name, f_date, t_date, ",".join(acc_ids), ",".join(contra_ids), tran_no, ",".join(org_ids)
+        db_name, f_date, t_date, ",".join(acc_ids), ",".join(contra_ids), tran_no, ",".join(org_ids), ",".join(cot_them)
     ]).encode()).hexdigest()
 
 
-def _build_cashbook_flat(from_dt, to_dt, acc_ids, contra_ids, tran_no, org_ids):
+# Cột thêm của BC012 (Cấu hình cột, Đại Ca chốt 05/10/2026) — khoá ⇔ COT_BC012 trong index.html; máy chủ chỉ SELECT cột được xin.
+# Đo T09/2026 trên 150.855 dòng chạm TK 111/112/113: đối tượng 82–86% · mã ngân hàng phía TK tiền 10% · người nộp/nhận 12% ·
+# tham chiếu 14% · ghi chú 92% · người lập 100%.
+# ⚠️ Mỗi dòng VOUCHER_VIEW có HAI phía. Đối tượng lấy phía ĐỐI ỨNG (thu Nợ 1131 / Có 131 ⇒ khách nằm bên Có), ngân hàng lấy
+#    phía TK TIỀN (Nợ 1121 ⇒ BANK_ID_DEBIT là tài khoản ngân hàng của mình). Kiểm T09: chi 331 ← 112 có đối tượng bên Nợ 473/473.
+_CB_COT_SQL = {
+    "org": ["ORGANIZATION_ID"], "org_ten": ["ORGANIZATION_ID"], "loai": ["TRAN_ID"],
+    "dt": ["PR_DETAIL_ID_DEBIT", "PR_DETAIL_ID_CREDIT"], "dt_ten": ["PR_DETAIL_NAME_DEBIT", "PR_DETAIL_NAME_CREDIT"],
+    "nguoi": ["CONTACT_PERSON"], "nh": ["BANK_ID_DEBIT", "BANK_ID_CREDIT"], "nh_ten": ["BANK_ID_DEBIT", "BANK_ID_CREDIT"],
+    "tham_chieu": ["REFERENCE_NO"], "ghi_chu": ["COMMENTS"], "nguoi_lap": ["USER_ID"],
+}
+
+
+def _cb_cot_them(raw):
+    xin = {k.strip() for k in (raw or "").split(",") if k.strip()}
+    return [k for k in _CB_COT_SQL if k in xin]
+
+
+def _build_cashbook_flat(from_dt, to_dt, acc_ids, contra_ids, tran_no, org_ids, cot_them=()):
     """Dựng danh sách dòng hiển thị PHẲNG (head/row/cong/du/grand) + số dư luỹ kế cho sổ quỹ BC012."""
     _oc, org_params = _org_filter_sql(org_ids, "ORGANIZATION_ID")
     org_where = (" AND " + _oc) if _oc else ""
@@ -7882,8 +8106,52 @@ def _build_cashbook_flat(from_dt, to_dt, acc_ids, contra_ids, tran_no, org_ids):
         tran_where = " AND TRAN_NO LIKE ?"
         params.append("%" + tran_no + "%")
 
+    # Cột thêm (Cấu hình cột): chỉ SELECT cột được xin, đứng sau 6 cột gốc. Tên đơn vị / tên ngân hàng tra danh mục.
+    cot_sql = []
+    for k in cot_them:
+        for c in _CB_COT_SQL[k]:
+            if c not in cot_sql:
+                cot_sql.append(c)
+    org_ten, nh_ten = {}, {}
+    if "org_ten" in cot_them:
+        try:
+            cur.execute("SELECT CAST(ORGANIZATION_ID AS NVARCHAR(100)), ORGANIZATION_NAME FROM dbo.DM_ORGANIZATION WITH (NOLOCK)")
+            org_ten = {(r[0] or '').strip(): (r[1] or '').strip() for r in cur.fetchall()}
+        except Exception:
+            pass
+    if "nh_ten" in cot_them:
+        try:
+            cur.execute("SELECT BANK_ID, BANK_NAME FROM dbo.DM_BANK WITH (NOLOCK)")
+            nh_ten = {(r[0] or '').strip(): (r[1] or '').strip() for r in cur.fetchall()}
+        except Exception:
+            pass
+
+    def _them(g, thu):
+        """Giá trị cột thêm của MỘT bút toán sổ quỹ. thu = TK tiền nằm bên Nợ (đối ứng bên Có)."""
+        def s(c):
+            v = g.get(c)
+            return (str(v) if v is not None else "").strip()
+        du, ta = ("CREDIT", "DEBIT") if thu else ("DEBIT", "CREDIT")   # phía đối ứng · phía TK tiền
+        o = {}
+        for k in cot_them:
+            if k == "org":
+                o["org"] = s("ORGANIZATION_ID")
+            elif k == "org_ten":
+                o["org_ten"] = org_ten.get(s("ORGANIZATION_ID"), "")
+            elif k == "dt":
+                o["dt"] = s("PR_DETAIL_ID_" + du)
+            elif k == "dt_ten":
+                o["dt_ten"] = s("PR_DETAIL_NAME_" + du)
+            elif k == "nh":
+                o["nh"] = s("BANK_ID_" + ta)
+            elif k == "nh_ten":
+                o["nh_ten"] = nh_ten.get(s("BANK_ID_" + ta), "")
+            else:
+                o[k] = s(_CB_COT_SQL[k][0])
+        return o
+
     cur.execute(f"""
-        SELECT TRAN_DATE, TRAN_NO, DESCRIPTION, ACCOUNT_ID_DEBIT, ACCOUNT_ID_CREDIT, AMOUNT
+        SELECT TRAN_DATE, TRAN_NO, DESCRIPTION, ACCOUNT_ID_DEBIT, ACCOUNT_ID_CREDIT, AMOUNT{''.join(', ' + c for c in cot_sql)}
         FROM dbo.VOUCHER_VIEW WITH (NOLOCK)
         WHERE TRAN_DATE >= ? AND TRAN_DATE <= ? AND ({acc_like_clause}){org_where}{contra_where}{tran_where}
         ORDER BY TRAN_DATE, TRAN_NO, PR_KEY_CTU
@@ -7897,15 +8165,16 @@ def _build_cashbook_flat(from_dt, to_dt, acc_ids, contra_ids, tran_no, org_ids):
         deb_acc = (row[3] or "").strip()
         crd_acc = (row[4] or "").strip()
         amt   = float(row[5] or 0)
+        g = dict(zip(cot_sql, row[6:])) if cot_sql else None
         for acc in acc_ids:
             if deb_acc.startswith(acc):
                 contra = crd_acc
                 if (not contra_ids) or any(contra.startswith(c) for c in contra_ids):
-                    buckets[acc].append((tdate, tno, desc, contra, amt, 0.0))
+                    buckets[acc].append((tdate, tno, desc, contra, amt, 0.0, _them(g, True) if cot_them else None))
             if crd_acc.startswith(acc):
                 contra = deb_acc
                 if (not contra_ids) or any(contra.startswith(c) for c in contra_ids):
-                    buckets[acc].append((tdate, tno, desc, contra, 0.0, amt))
+                    buckets[acc].append((tdate, tno, desc, contra, 0.0, amt, _them(g, False) if cot_them else None))
 
     flat = []
     ngroups = len(acc_ids)
@@ -7916,11 +8185,14 @@ def _build_cashbook_flat(from_dt, to_dt, acc_ids, contra_ids, tran_no, org_ids):
         flat.append({"t": "head", "account_id": acc, "account_name": acc_name.get(acc, ""), "opening": open_net})
         running = open_net
         sum_deb = sum_crd = 0.0
-        for i, (tdate, tno, desc, contra, deb, crd) in enumerate(rows):
+        for i, (tdate, tno, desc, contra, deb, crd, them) in enumerate(rows):
             running += deb - crd
             sum_deb += deb; sum_crd += crd
-            flat.append({"t": "row", "account_id": acc, "stt": i + 1, "tran_date": tdate, "tran_no": tno,
-                         "description": desc, "contra_account_id": contra, "debit": deb, "credit": crd, "balance": running})
+            dong = {"t": "row", "account_id": acc, "stt": i + 1, "tran_date": tdate, "tran_no": tno,
+                    "description": desc, "contra_account_id": contra, "debit": deb, "credit": crd, "balance": running}
+            if them:
+                dong.update(them)
+            flat.append(dong)
         close_net = open_net + sum_deb - sum_crd
         flat.append({"t": "cong", "account_id": acc, "sum_deb": sum_deb, "sum_crd": sum_crd})
         flat.append({"t": "du", "account_id": acc, "close": close_net})
@@ -7930,17 +8202,17 @@ def _build_cashbook_flat(from_dt, to_dt, acc_ids, contra_ids, tran_no, org_ids):
     return flat
 
 
-def _cashbook_flat_cached(f_date, t_date, acc_ids, contra_ids, tran_no, org_ids):
+def _cashbook_flat_cached(f_date, t_date, acc_ids, contra_ids, tran_no, org_ids, cot_them=()):
     from_dt = datetime.strptime(f_date, "%d/%m/%Y").date()
     to_dt   = datetime.strptime(t_date, "%d/%m/%Y").date()
     # Cache key PHẢI kèm đơn vị-được-phép của tài khoản: 2 user khác quyền, cùng tham số lọc,
     # nếu dùng chung key sẽ trả nhầm dữ liệu của nhau (lỗ bảo mật do cache).
     _allowed = _current_allowed_orgs()
     _akey = tuple(sorted(_allowed)) if _allowed is not None else None
-    key = (_cashbook_key(f_date, t_date, acc_ids, contra_ids, tran_no, org_ids), _akey)
+    key = (_cashbook_key(f_date, t_date, acc_ids, contra_ids, tran_no, org_ids, cot_them), _akey)
     flat = _cashbook_cache.get(key)
     if flat is None:
-        flat = _build_cashbook_flat(from_dt, to_dt, acc_ids, contra_ids, tran_no, org_ids)
+        flat = _build_cashbook_flat(from_dt, to_dt, acc_ids, contra_ids, tran_no, org_ids, cot_them)
         _cashbook_cache.clear()
         _cashbook_cache[key] = flat
     return flat
@@ -7959,16 +8231,17 @@ def get_cash_book():
         page = int(request.args.get("page", 1))
         page_size = int(request.args.get("page_size", 10000))
 
-        flat = _cashbook_flat_cached(f_date, t_date, acc_ids, contra_ids, tran_no, org_ids)
+        cot_them = _cb_cot_them(request.args.get("cot_them", ""))
+        flat = _cashbook_flat_cached(f_date, t_date, acc_ids, contra_ids, tran_no, org_ids, cot_them)
         total = len(flat)
         # page_size = 0 ⇒ LẤY TOÀN BỘ (phục vụ xuất .xls giữ form: DOM phải có đủ mọi trang)
         if page_size <= 0:
-            return jsonify({"status": "ok", "rows": flat,
+            return jsonify({"status": "ok", "rows": flat, "cot_them": cot_them,
                             "pagination": {"total_rows": total, "total_pages": 1, "page": 1}})
         total_pages = max(1, (total + page_size - 1) // page_size)
         page = max(1, min(page, total_pages))
         offset = (page - 1) * page_size
-        return jsonify({"status": "ok", "rows": flat[offset:offset + page_size],
+        return jsonify({"status": "ok", "rows": flat[offset:offset + page_size], "cot_them": cot_them,
                         "pagination": {"total_rows": total, "total_pages": total_pages, "page": page}})
     except Exception as e:
         msg = str(e)
@@ -8320,6 +8593,501 @@ def get_sale_by_source():
             invalidate_pool()
         logger.error(f"Error in BC015 get_sale_by_source: {msg}")
         return jsonify({"status": "error", "message": msg}), 401 if "đăng nhập" in msg else 500
+
+
+# =====================================================================
+# BC017 — BÁO CÁO BÁN HÀNG (chi tiết, theo mẫu iPOS "3.1 - Báo cáo bán hàng")
+# =====================================================================
+# Đại Ca chốt 02/10/2026 (gửi ảnh mẫu iPOS + hộp lọc Kho / Nhóm hàng / Hàng hoá / Nhóm đối tượng / Đối tượng /
+# Nhóm công việc / Công việc) và 03/10/2026 (3 kiểu xem, bỏ tầng phiếu):
+#  - 3 KIỂU XEM, kiểu nào cũng có ĐƠN VỊ ở tầng trên cùng: `donvi` Đơn vị → dòng hàng · `ngay` Đơn vị → Ngày → dòng hàng ·
+#    `nguon` Đơn vị → Nguồn đơn (EXTRA_ID_2) → dòng hàng. Dòng dưới cùng LUÔN là từng dòng hàng (không cộng gộp mặt hàng),
+#    mang cột Số CT + Mã/Tên nguồn đơn. Kiểu cũ Ngày → Đơn vị → Phiếu (bản 02/10) Đại Ca bỏ.
+#  - 2 CÁCH XEM (03/10/2026): chi tiết (mặc định, có dòng hàng) · TỔNG HỢP `xem=tonghop` = chỉ dòng nhóm, tầng nhóm cuối
+#    KHÔNG in đậm. File Excel tổng hợp do SQL cộng sẵn (_bc017_lap_dong_tong_hop), không kéo dòng hàng về.
+#    ⛔ Số CT chỉ là CỘT, đừng gom theo TRAN_NO: T09/2026 có 38.410/46.271 phiếu trùng số với phiếu của ĐƠN VỊ KHÁC cùng
+#    ngày (+1 ca trùng cả đơn vị lẫn ngày) — thứ tự dòng trong đơn vị đi theo (ngày, số CT, PR_KEY, thứ tự dòng).
+#  - Chỉ STATUS='POSTED'. Loại CT mặc định = BC017_LOAI_MAC_DINH ('BHVAT', 'BHK') — Đại Ca chốt 03/10/2026: "để đối
+#    chiếu doanh thu". (Bản 02/10 lấy mọi mã TRỪ XDCNB.) Chọn Loại CT thì theo đúng lựa chọn.
+#    ⚠️ Vì vậy tổng BC017 mặc định KHÔNG còn bằng BC015: BC015 tính mọi mã của SALE_VIEW (T09/2026 còn BNB bán nội bộ
+#    ~2,25 tỷ, HDDC, BH). Đối chiếu BC017 với SQL viết tay trên đúng 2 mã, hoặc chọn đủ mã ở ô Loại CT rồi so BC015.
+#  - 8 cột tiền = ĐÚNG bộ cột của BC015 (SALE_SOURCE_MONEY_COLS, đã khớp form gốc 8/8).
+#    ⚠️ Cột VAT_INCOME_AMOUNT của mẫu iPOS = 0 trên toàn bộ phiếu BHVAT của
+#    Chú Long (đo T09/2026: 39,9 tỷ tiền hàng, VAT_INCOME 0) — mẫu đó của DB khác, đừng dùng cột này.
+#  - Nguồn đơn nối DM_EXTRA_2 ĐÚNG như BC015 (CAST phía danh mục) — hai báo cáo phải ra cùng tên nguồn.
+#  - "Ẩn dòng 0 đồng" (an_0d=1) bỏ dòng có CẢ 8 cột tiền = 0 (dòng ghi chú món kiểu "Đá bình thường", ~35% số dòng)
+#    ⇒ mọi dòng tổng tiền giữ nguyên (chỉ Số lượng tổng giảm, vì dòng ghi chú cũng có số lượng).
+# Khối lượng T09/2026: 262.798 dòng / 46.271 phiếu / ~80 đơn vị. Lấy hết về mất 1,4s/ngày · 6s/tuần · 22s/tháng ⇒ màn
+# hình phân trang NGAY TRONG SQL (≤1000 dòng, tính cả dòng tổng), xuất Excel bằng job máy chủ (/api/sale_detail/export).
+_TIEN_BC015 = dict(SALE_SOURCE_MONEY_COLS)
+BC017_COT_TIEN = [(k, _TIEN_BC015[k]) for k in
+                  ("amount", "discount", "discount2", "voucher", "commission", "income", "tax", "total")]
+BC017_NHAN_TIEN = {"amount": "Tiền hàng", "discount": "Giảm giá", "discount2": "Chiết khấu", "voucher": "Voucher",
+                   "commission": "Hoa hồng", "income": "Doanh thu", "tax": "Thuế VAT", "total": "Tổng tiền"}
+# Diễn giải dòng hàng: DESCRIPTION trên phiếu, trống thì tên hàng. Cột tên của view bọc ISNULL(…, ' ') (Bẫy 3) ⇒ phải trim.
+_BC017_TEN = "ISNULL(NULLIF(LTRIM(RTRIM(S.DESCRIPTION)), ''), S.ITEM_NAME)"
+# Kiểu xem → tầng 2 dưới Đơn vị: (cột trên #s, biểu thức trên SALE_VIEW S, khoá sắp "trống xếp cuối", hậu tố tên file).
+# None = chỉ gom Đơn vị. Nguồn đơn trống ("không có nguồn đơn") xếp CUỐI như BC015.
+BC017_KIEU = {
+    "donvi": (None, None, None, "TheoDonVi"),
+    "ngay":  ("NGAY", "CONVERT(CHAR(8), S.TRAN_DATE, 112)", "0", "TheoNgay"),
+    "nguon": ("NGUON", "ISNULL(S.EXTRA_ID_2, '')", "CASE WHEN NGUON = '' THEN 1 ELSE 0 END", "TheoNguonDon"),
+}
+_BC017_KHONG_NGUON = "(không có nguồn đơn)"
+# Loại chứng từ khi người dùng KHÔNG chọn ở ô Loại CT (Đại Ca chốt 03/10/2026 — báo cáo để đối chiếu doanh thu).
+# Đổi bộ này thì đổi cả dòng "Loại chứng từ" in trên đầu báo cáo (LOAI_MAC_DINH_BC017 trong index.html).
+BC017_LOAI_MAC_DINH = ("BHVAT", "BHK")
+
+
+def _bc017_kieu(args):
+    k = (args.get("kieu") or "donvi").strip()
+    return k if k in BC017_KIEU else "donvi"
+
+
+def _bc017_tong_hop(args):
+    """Cách xem (Đại Ca chốt 03/10/2026): `xem=tonghop` ⇒ CHỈ dòng nhóm (Đơn vị [+ Ngày / Nguồn đơn]), không dòng hàng;
+    tầng nhóm CUỐI CÙNG không in đậm. Mặc định = chi tiết."""
+    return (args.get("xem") or "").strip() == "tonghop"
+
+
+def _bc017_where(args):
+    """WHERE + params (ĐÚNG thứ tự dấu ? — Bẫy 5) trên dbo.SALE_VIEW alias S."""
+    f_dt = datetime.strptime(args.get("from_date", ""), "%d/%m/%Y")
+    # TRAN_DATE là smalldatetime: "< ngày kế tiếp", không BETWEEN (mất trọn ngày cuối kỳ — bẫy cũ của BC015)
+    t_dt = datetime.strptime(args.get("to_date", ""), "%d/%m/%Y") + timedelta(days=1)
+    clauses = ["S.STATUS = 'POSTED'", "S.TRAN_DATE >= ?", "S.TRAN_DATE < ?"]
+    params = [f_dt.strftime("%Y%m%d"), t_dt.strftime("%Y%m%d")]
+
+    def lay(khoa):
+        return [v for v in (args.get(khoa, "") or "").split(",") if v]
+
+    # Đơn vị LUÔN qua _org_filter_sql — điểm duy nhất ép quyền đơn vị theo tài khoản
+    _oc, _op = _org_filter_sql(lay("org_ids"), "S.ORGANIZATION_ID")
+    if _oc:
+        clauses.append(_oc)
+        params.extend(_op)
+    loai = lay("tran_ids") or list(BC017_LOAI_MAC_DINH)
+    clauses.append(f"S.TRAN_ID IN ({','.join(['?'] * len(loai))})")
+    params.extend(loai)
+    for cot, khoa in (("S.WAREHOUSE_ID", "wh_ids"), ("S.ITEM_CLASS_ID", "item_class_ids"), ("S.ITEM_ID", "item_ids"),
+                      ("S.PR_DETAIL_CLASS_ID", "pr_class_ids"), ("S.PR_DETAIL_ID", "pr_detail_ids"),
+                      ("S.JOB_CLASS_ID", "job_class_ids"), ("S.JOB_ID", "job_ids")):
+        vals = lay(khoa)
+        if vals:
+            clauses.append(f"{cot} IN ({','.join(['?'] * len(vals))})")
+            params.extend(vals)
+    if args.get("an_0d") == "1":
+        clauses.append("NOT (" + " AND ".join(f"ISNULL(S.{c}, 0) = 0" for _, c in BC017_COT_TIEN) + ")")
+    return " AND ".join(clauses), params
+
+
+def _bc017_ngay(s):
+    s = (s or "").strip()
+    return f"{s[6:8]}/{s[4:6]}/{s[0:4]}" if len(s) == 8 else s
+
+
+# Cột bảng CHI TIẾT BC017 — thứ tự = thứ tự trên màn + file Excel; COT_BC017 trong index.html PHẢI khớp (khoá, nhãn, loại).
+# Đại Ca chốt 03/10/2026: thêm / bớt cột bằng nút "Cấu hình cột"; cột THÊM mặc định ẩn; 8 cột tiền ẩn được; "Ngày CT" luôn hiện
+# (dòng tổng ghi nhãn vào đó). Mỗi cột: (khoá, nhãn, loại, bí danh SQL, biểu thức trên SALE_VIEW S — chỉ cột thêm, kiểu SQL
+# của NULL ở dòng tổng). Loại: 'chu' · 'sl' số lượng (dòng tổng cộng dồn) · 'so' số không cộng · 'tien' 8 cột tiền (cộng dồn).
+# Cột thêm đo T09/2026 trên BHVAT+BHK: đều có dữ liệu 97–100%. Cột TRỐNG 100% trên SALE_VIEW (giá vốn, HTTT, nhân viên, số /
+# ký hiệu hoá đơn, tên/ĐT/MST/địa chỉ khách, mã vạch, bảng giá) CỐ Ý không cho chọn — chỉ ra cột rỗng, người xem tưởng lỗi.
+# Người lập (98,5% "ADMIN") + Mã máy POS: có dữ liệu nhưng ít giá trị để xem — chưa đưa vào (Đại Ca không phản đối, 03/10).
+# ⚠️ Ngày hoá đơn KHÁC ngày chứng từ trên 70% dòng (T09/2026) — báo cáo vẫn lọc + gom theo NGÀY CHỨNG TỪ (Đại Ca chốt).
+_CHU = "NVARCHAR(200)"
+BC017_COT = (
+    [("ngay", "Ngày CT", "chu", "NGAY", None, None),
+     ("so", "Số CT", "chu", "SO", None, None),
+     ("loai", "Loại CT", "chu", "LOAI", None, None),
+     ("ngay_hd", "Ngày hoá đơn", "chu", "NGAY_HD", "CONVERT(CHAR(8), S.VAT_TRAN_DATE, 112)", "CHAR(8)"),
+     ("nguon", "Mã nguồn đơn", "chu", "NGUON", None, None),
+     ("nguon_ten", "Tên nguồn đơn", "chu", "NGUON_TEN", None, None),
+     ("kho", "Mã kho", "chu", "KHO", "S.WAREHOUSE_ID", _CHU),
+     ("kho_ten", "Tên kho", "chu", "KHO_TEN", None, None),          # nối DM_WAREHOUSE theo KHO ở câu cuối
+     ("dt", "Mã đối tượng", "chu", "DT", "S.PR_DETAIL_ID", _CHU),
+     ("dt_ten", "Tên đối tượng", "chu", "DT_TEN", "S.PR_DETAIL_NAME", _CHU),
+     ("cv", "Mã công việc", "chu", "CV", "S.JOB_ID", _CHU),
+     ("cv_ten", "Tên công việc", "chu", "CV_TEN", "S.JOB_NAME", _CHU),
+     ("nhom_cv", "Nhóm công việc", "chu", "NHOM_CV", "S.JOB_CLASS_ID", _CHU),
+     ("ma", "Mã hàng", "chu", "MA", None, None),
+     ("ten", "Diễn giải", "chu", "TEN", None, None),
+     ("nhom_hang", "Nhóm hàng", "chu", "NHOM_HANG", "S.ITEM_CLASS_ID", _CHU),
+     ("loai_hang", "Loại hàng", "chu", "LOAI_HANG", "S.ITEM_CLASS1_ID", _CHU),
+     ("dvt", "ĐVT", "chu", "DVT", None, None),
+     ("qty", "Số lượng", "sl", "SL", None, None),
+     ("dg", "Đơn giá", "so", "DG", None, None),
+     ("thue_suat", "Thuế suất (%)", "so", "THUE_SUAT", "S.VAT_TAX_RATE", "DECIMAL(18,6)")]
+    + [(k, BC017_NHAN_TIEN[k], "tien", c, None, None) for k, c in BC017_COT_TIEN]
+    + [("ghi_chu", "Ghi chú", "chu", "GHI_CHU", "S.COMMENTS", _CHU)])
+BC017_AN_MAC_DINH = frozenset({"loai", "ngay_hd", "kho", "kho_ten", "dt", "dt_ten", "cv", "cv_ten", "nhom_cv",
+                               "nhom_hang", "loai_hang", "thue_suat", "ghi_chu"})
+
+
+def _bc017_an_cot(args):
+    """Khoá cột đang ẨN (tham số `an_cot`). KHÔNG gửi ⇒ mặc định (ẩn mọi cột thêm); gửi RỖNG ⇒ hiện hết. 'ngay' không ẩn được."""
+    raw = args.get("an_cot")
+    an = set(BC017_AN_MAC_DINH) if raw is None else {k.strip() for k in raw.split(",") if k.strip()}
+    an.discard("ngay")
+    return an
+
+
+def _bc017_cot_them(an):
+    """Cột thêm phải dựng vào câu SQL: cột đang hiện có biểu thức, + Mã kho khi Tên kho hiện (nối DM_WAREHOUSE theo mã).
+    Không hiện cột thêm nào ⇒ câu SQL y như trước khi có Cấu hình cột — không tốn thêm gì."""
+    can = {c[0] for c in BC017_COT if c[4] and c[0] not in an}
+    if "kho_ten" not in an:
+        can.add("kho")
+    return [c for c in BC017_COT if c[0] in can]
+
+
+@app.route("/api/sale_detail")
+@with_db_lock
+def get_sale_detail():
+    """BC017 — trả MỘT TRANG dòng hiển thị (dòng tổng Đơn vị [+ Ngày / Nguồn đơn] + dòng hàng), tổng của mọi tầng là
+    tổng ĐẦY ĐỦ của cả nhóm. `kieu` = donvi | ngay | nguon (xem BC017_KIEU) · `xem=tonghop` · `an_cot` (xem _bc017_an_cot).
+
+    Phân trang trong SQL: dựng #s (dòng hàng đã lọc) rồi #g (dòng tổng + dòng hàng, đánh số theo thứ tự hiển thị) trong
+    MỘT lần execute — bảng tạm chết ngay khi câu có tham số kết thúc (Bẫy 25). Trang bắt đầu giữa nhóm thì kèm luôn dòng
+    tổng của các tầng cha (TIEP=1, trình duyệt ghi "(tiếp)") để người xem biết đang ở đơn vị / ngày / nguồn nào."""
+    try:
+        if not request.args.get("from_date") or not request.args.get("to_date"):
+            return jsonify({"status": "error", "message": "Thiếu từ ngày / đến ngày"}), 400
+        where_sql, params = _bc017_where(request.args)
+        kieu = _bc017_kieu(request.args)
+        tong_hop = _bc017_tong_hop(request.args)
+        an = _bc017_an_cot(request.args)
+        # Tổng hợp không có dòng hàng ⇒ không cần cột thêm nào
+        them = [] if tong_hop else _bc017_cot_them(an)
+        co_ten_kho = not tong_hop and "kho_ten" not in an
+        g2, _, g2s, _ = BC017_KIEU[kieu]
+        page = max(1, int(request.args.get("page", 1) or 1))
+        page_size = min(max(1, int(request.args.get("page_size", 1000) or 1000)), 2000)
+        tien = [c for _, c in BC017_COT_TIEN]
+        cong = ", ".join(f"SUM({c}) AS {c}" for c in tien)
+        # ⛔ Cột chữ để trống PHẢI CAST kiểu chữ: SELECT INTO gán NULL trần thành INT. Ở cách xem tổng hợp không còn nhánh dòng
+        # hàng định kiểu giùm ⇒ #g.NGUON thành INT ⇒ JOIN DM_EXTRA_2 đổi 'CANHAC35K' sang số ⇒ lỗi 245 (vấp thật 04/10/2026).
+        chu = "CAST(NULL AS NVARCHAR(100))"
+        rong = f"NULL AS TT, NULL AS PKD, {chu} AS MA, {chu} AS TEN, {chu} AS DVT, NULL AS DG"
+        # Cột thêm luôn nối SAU 8 cột tiền ở MỌI nhánh (cùng thứ tự). Dòng tổng để NULL đúng kiểu (CAST — cùng lý do trên).
+        them_s = "".join(f", {c[4]} AS {c[3]}" for c in them)
+        them_rong = "".join(f", CAST(NULL AS {c[5]}) AS {c[3]}" for c in them)
+        them_3 = "".join(f", {c[3]}" for c in them)
+        them_g = "".join(f", g.{c[3]}" for c in them)
+        # Thứ tự cột MỌI nhánh: CAP, DV, K1, G2S, G2, K2, NGAY, SO, PK, LOAI, NGUON, TT, PKD, MA, TEN, DVT, DG, SL, tiền, cột thêm
+        tang2 = "" if not g2 else f"""
+    UNION ALL
+    SELECT 2, DV, 1, {g2s}, {g2}, 0, {'NGAY' if g2 == 'NGAY' else 'NULL'}, NULL, NULL, NULL,
+           {'NGUON' if g2 == 'NGUON' else 'NULL'}, {rong}, SUM(SL), {cong}{them_rong} FROM #s GROUP BY DV, {g2}"""
+        # Tổng hợp: bỏ hẳn nhánh dòng hàng — #s vẫn dựng đủ vì dòng Tổng cộng cần đếm số dòng hàng + số phiếu (COUNT DISTINCT).
+        tang3 = "" if tong_hop else f"""
+    UNION ALL
+    SELECT 3, DV, 1, {g2s or '0'}, {g2 or 'NULL'}, 1, NGAY, SO, PK, LOAI, NGUON, TT, PKD, MA, TEN, DVT, DG, SL,
+           {", ".join(tien)}{them_3} FROM #s"""
+        sql = f"""
+SET NOCOUNT ON;
+DECLARE @dau INT = ?, @cuoi INT = ?;
+SELECT CONVERT(CHAR(8), S.TRAN_DATE, 112) AS NGAY, S.ORGANIZATION_ID AS DV, S.TRAN_NO AS SO, S.PR_KEY AS PK,
+       S.TRAN_ID AS LOAI, ISNULL(S.EXTRA_ID_2, '') AS NGUON, S.LIST_ORDER AS TT, S.PR_KEY_DETAIL AS PKD,
+       S.ITEM_ID AS MA, {_BC017_TEN} AS TEN, S.UNIT_ID AS DVT, S.UNIT_PRICE AS DG, S.QUANTITY AS SL,
+       {", ".join("S." + c for c in tien)}{them_s}
+INTO #s FROM dbo.SALE_VIEW S WITH (NOLOCK) WHERE {where_sql};
+SELECT x.*, ROW_NUMBER() OVER (ORDER BY DV, K1, G2S, G2, K2, NGAY, SO, PK, TT, PKD) AS RN INTO #g FROM (
+    SELECT 1 AS CAP, DV, 0 AS K1, 0 AS G2S, {chu} AS G2, 0 AS K2, CAST(NULL AS CHAR(8)) AS NGAY, {chu} AS SO, NULL AS PK,
+           {chu} AS LOAI, {chu} AS NGUON, {rong}, SUM(SL) AS SL, {cong}{them_rong} FROM #s GROUP BY DV{tang2}{tang3}
+) x;
+SELECT COUNT(*) AS SO_DONG_HIEN FROM #g;
+SELECT COUNT(*) AS SO_DONG, COUNT(DISTINCT PK) AS SO_PHIEU, SUM(SL) AS SL, {cong} FROM #s;
+WITH f AS (SELECT CAP, DV, G2 FROM #g WHERE RN = @dau)
+SELECT g.CAP, g.DV, O.ORGANIZATION_NAME AS DV_TEN, g.NGAY, g.SO, g.LOAI, g.NGUON, E2.EXTRA_NAME_2 AS NGUON_TEN,
+       g.MA, g.TEN, g.DVT, g.SL, g.DG, {", ".join("g." + c for c in tien)}{them_g}{', W.WAREHOUSE_NAME AS KHO_TEN' if co_ten_kho else ''},
+       CASE WHEN g.RN < @dau THEN 1 ELSE 0 END AS TIEP
+FROM #g g
+LEFT JOIN f ON 1 = 1
+LEFT JOIN dbo.DM_ORGANIZATION O WITH (NOLOCK) ON O.ORGANIZATION_ID = g.DV
+LEFT JOIN dbo.DM_EXTRA_2 E2 WITH (NOLOCK) ON CAST(E2.EXTRA_ID_2 AS NVARCHAR(100)) = g.NGUON{'''
+LEFT JOIN dbo.DM_WAREHOUSE W WITH (NOLOCK) ON W.WAREHOUSE_ID = g.KHO''' if co_ten_kho else ''}
+WHERE g.RN BETWEEN @dau AND @cuoi
+   OR (g.RN < @dau AND g.DV = f.DV AND ((g.CAP = 1 AND f.CAP >= 2) OR (g.CAP = 2 AND f.CAP = 3 AND g.G2 = f.G2)))
+ORDER BY g.RN;
+"""
+        dau = (page - 1) * page_size + 1
+        cur = get_connection().cursor()
+        cur.execute(sql, [dau, dau + page_size - 1] + params)
+        _, r_dem = _doc_ket_qua_ke_tiep(cur)
+        c_tong, r_tong = _doc_ket_qua_ke_tiep(cur)
+        c_dong, r_dong = _doc_ket_qua_ke_tiep(cur)
+
+        total_rows = int(r_dem[0][0] or 0) if r_dem else 0
+        t = dict(zip(c_tong, r_tong[0])) if r_tong else {}
+        totals = {"so_dong": int(t.get("SO_DONG") or 0), "so_phieu": int(t.get("SO_PHIEU") or 0),
+                  "qty": float(t.get("SL") or 0)}
+        for k, c in BC017_COT_TIEN:
+            totals[k] = float(t.get(c) or 0)
+
+        rows = []
+        for r in r_dong:
+            d = dict(zip(c_dong, r))
+            o = {"c": int(d["CAP"]), "tiep": int(d["TIEP"] or 0), "qty": float(d["SL"] or 0),
+                 "dv": (d["DV"] or "").strip(), "dv_ten": (d["DV_TEN"] or "").strip()}
+            if d["NGAY"] is not None:
+                o["ngay"] = _bc017_ngay(d["NGAY"])
+            if d["NGUON"] is not None:
+                o["nguon"] = (d["NGUON"] or "").strip()
+                o["nguon_ten"] = (d["NGUON_TEN"] or "").strip() or (_BC017_KHONG_NGUON if o["c"] == 2 and not o["nguon"] else "")
+            if o["c"] == 3:
+                o["so"] = (d["SO"] or "").strip()
+                o["loai"] = (d["LOAI"] or "").strip()
+                o["ma"] = (d["MA"] or "").strip()
+                o["ten"] = (d["TEN"] or "").strip()
+                o["dvt"] = (d["DVT"] or "").strip()
+                o["dg"] = float(d["DG"] or 0)
+                for c in them:
+                    v = d[c[3]]
+                    o[c[0]] = (_bc017_ngay(v) if c[0] == "ngay_hd" else float(v or 0) if c[2] == "so"
+                               else (v or "").strip())
+                if co_ten_kho:
+                    o["kho_ten"] = (d["KHO_TEN"] or "").strip()
+            for k, c in BC017_COT_TIEN:
+                o[k] = float(d[c] or 0)
+            rows.append(o)
+
+        total_pages = max(1, (total_rows + page_size - 1) // page_size)
+        cot_co = [c[0] for c in them] + (["kho_ten"] if co_ten_kho else [])
+        return jsonify({"status": "ok", "kieu": kieu, "xem": "tonghop" if tong_hop else "chitiet", "cot_them": cot_co,
+                        "rows": rows, "totals": totals,
+                        "pagination": {"total_rows": total_rows, "total_pages": total_pages,
+                                       "page": page, "page_size": page_size}})
+    except Exception as e:
+        msg = str(e)
+        if "đăng nhập" not in msg:
+            invalidate_pool()
+        logger.error(f"Error in BC017 get_sale_detail: {msg}")
+        return jsonify({"status": "error", "message": msg}), 401 if "đăng nhập" in msg else 500
+
+
+class _DongXuat(list):
+    """Một dòng file xuất mang thêm kiểu: `kieu` khác None ⇒ dòng tổng (in đậm); `cot_le` = cột số được hiện số lẻ.
+    _write_xlsx_to_disk đọc 2 thuộc tính này bằng getattr ⇒ list thường của mọi bản xuất cũ không đổi gì."""
+
+    def __init__(self, giatri, kieu=None, cot_le=()):
+        super().__init__(giatri)
+        self.kieu = kieu
+        self.cot_le = cot_le
+
+
+def _bc017_lap_dong_xuat(kieu, hien):
+    """Trả hàm lap_dong cho _start_export_job: dòng file Excel BC017 CHI TIẾT theo đúng bố cục màn hình của `kieu`, chỉ
+    các cột `hien` (danh sách cột BC017_COT đang hiện, cột đầu luôn là Ngày CT). SQL đã ORDER BY đơn vị, [tầng 2], ngày,
+    số CT, PR_KEY, thứ tự dòng ⇒ gom từng ĐƠN VỊ một (vài nghìn dòng) để có dòng tổng đơn vị / tầng 2 trước khi ghi dòng
+    hàng; cả tháng không nằm hết trong RAM. Dòng tổng: nhãn ở cột 0 (Excel cho tràn sang ô trống), cộng Số lượng + tiền."""
+    from itertools import groupby
+    g2 = BC017_KIEU[kieu][0]
+    vt_tien = {k: j for j, (k, _) in enumerate(BC017_COT_TIEN)}
+    cot_le = tuple(j for j, c in enumerate(hien) if c[0] in ("qty", "thue_suat"))
+
+    def lap_dong(cursor, cols):
+        i = {c: k for k, c in enumerate(cols)}
+        tien = [c for _, c in BC017_COT_TIEN]
+
+        def so(v):
+            return v if v else ''
+
+        def cong(nhom):
+            s = [0.0] * (1 + len(tien))
+            for r in nhom:
+                s[0] += float(r[i["SL"]] or 0)
+                for k, c in enumerate(tien):
+                    s[1 + k] += float(r[i[c]] or 0)
+            return s
+
+        def dong_tong(nhan, s, loai):
+            o = []
+            for j, c in enumerate(hien):
+                o.append(nhan if j == 0 else so(s[0]) if c[2] == "sl" else so(s[1 + vt_tien[c[0]]]) if c[2] == "tien" else '')
+            return _DongXuat(o, loai, cot_le)
+
+        def nhan_tang2(r):
+            if g2 == "NGAY":
+                return _bc017_ngay(r[i["NGAY"]])
+            ma = (r[i["NGUON"]] or "").strip()
+            ten = (r[i["NGUON_TEN"]] or "").strip()
+            return f"{ma} · {ten}" if ma and ten else (ma or _BC017_KHONG_NGUON)
+
+        def o_hang(r, c):
+            if c[0] == "ngay":
+                return r[i["NGAY_CT"]]
+            v = r[i[c[3]]]
+            if c[0] == "ngay_hd":
+                return datetime.strptime(v, "%Y%m%d") if v and len(v.strip()) == 8 else ''
+            if c[2] in ("sl", "so", "tien"):
+                return so(float(v or 0))
+            return (v or "").strip()
+
+        def dong_hang(r):
+            return _DongXuat([o_hang(r, c) for c in hien], None, cot_le)
+
+        def xa_don_vi(dong):
+            dv = (dong[0][i["DV"]] or "").strip()
+            ten = (dong[0][i["DV_TEN"]] or "").strip()
+            yield dong_tong(f"{dv} · {ten}" if ten else dv, cong(dong), 'donvi')
+            if not g2:
+                for r in dong:
+                    yield dong_hang(r)
+                return
+            for _, nhom in groupby(dong, key=lambda r: r[i[g2]]):
+                nhom = list(nhom)
+                yield dong_tong(nhan_tang2(nhom[0]), cong(nhom), 'tang2')
+                for r in nhom:
+                    yield dong_hang(r)
+
+        tong = [0.0] * (1 + len(tien))
+        dv_dang, dong = None, []
+        while True:
+            lo = cursor.fetchmany(2000)
+            if not lo:
+                break
+            for r in lo:
+                if r[i["DV"]] != dv_dang and dong:
+                    tong = [a + b for a, b in zip(tong, cong(dong))]
+                    yield from xa_don_vi(dong)
+                    dong = []
+                dv_dang = r[i["DV"]]
+                dong.append(r)
+        if dong:
+            tong = [a + b for a, b in zip(tong, cong(dong))]
+            yield from xa_don_vi(dong)
+        yield dong_tong("Tổng cộng", tong, 'tong')
+
+    return lap_dong
+
+
+BC017_NHAN_TONG_HOP = {"donvi": "Đơn vị", "ngay": "Đơn vị / Ngày", "nguon": "Đơn vị / Nguồn đơn"}
+
+
+def _bc017_lap_dong_tong_hop(kieu, an):
+    """lap_dong cho file Excel TỔNG HỢP: SQL đã cộng sẵn tới tầng nhóm cuối (Đơn vị, hoặc Đơn vị × Ngày / Nguồn đơn) và
+    ORDER BY đơn vị ⇒ chỉ vài trăm–vài nghìn dòng. Cột: nhãn · [Số lượng] · các cột tiền đang hiện (`an` = khoá đang ẩn).
+    Tầng cuối KHÔNG in đậm (Đại Ca chốt): kiểu Theo đơn vị ⇒ dòng đơn vị chữ thường; có tầng 2 ⇒ đơn vị đậm, tầng 2 thường."""
+    from itertools import groupby
+    g2 = BC017_KIEU[kieu][0]
+    co_sl = "qty" not in an
+    vt_tien = [j for j, (k, _) in enumerate(BC017_COT_TIEN) if k not in an]
+    cot_le = (1,) if co_sl else ()
+
+    def lap_dong(cursor, cols):
+        i = {c: k for k, c in enumerate(cols)}
+        tien = [c for _, c in BC017_COT_TIEN]
+        so = (lambda v: v if v else '')
+
+        def cong(nhom):
+            s = [0.0] * (1 + len(tien))
+            for r in nhom:
+                s[0] += float(r[i["SL"]] or 0)
+                for k, c in enumerate(tien):
+                    s[1 + k] += float(r[i[c]] or 0)
+            return s
+
+        def dong(nhan, s, kieu_dong):
+            return _DongXuat([nhan] + ([so(s[0])] if co_sl else []) + [so(s[1 + j]) for j in vt_tien], kieu_dong, cot_le)
+
+        tat_ca = []
+        while True:
+            lo = cursor.fetchmany(2000)
+            if not lo:
+                break
+            tat_ca.extend(lo)
+        for dv, nhom in groupby(tat_ca, key=lambda r: r[i["DV"]]):
+            nhom = list(nhom)
+            ten = (nhom[0][i["DV_TEN"]] or "").strip()
+            nhan_dv = f"{(dv or '').strip()} · {ten}" if ten else (dv or '').strip()
+            yield dong(nhan_dv, cong(nhom), 'donvi' if g2 else None)
+            if g2:
+                for r in nhom:
+                    if g2 == "NGAY":
+                        nhan = _bc017_ngay(r[i["G2"]])
+                    else:
+                        ma, ten2 = (r[i["G2"]] or "").strip(), (r[i["NGUON_TEN"]] or "").strip()
+                        nhan = f"{ma} · {ten2}" if ma and ten2 else (ma or _BC017_KHONG_NGUON)
+                    yield dong("    " + nhan, cong([r]), None)
+        yield dong("Tổng cộng", cong(tat_ca), 'tong')
+
+    return lap_dong
+
+
+@app.route("/api/sale_detail/export")
+def export_sale_detail():
+    """BC017 — xuất .xlsx cả kỳ bằng job máy chủ (cùng hộp đồng hồ đếm ngược + Hủy xuất của BC007), đúng kiểu xem, cách
+    xem (chi tiết / tổng hợp) và các cột đang hiện (`an_cot`)."""
+    try:
+        args = request.args
+        if not args.get("from_date") or not args.get("to_date"):
+            return jsonify({"status": "error", "message": "Thiếu từ ngày / đến ngày"}), 400
+        where_sql, params = _bc017_where(args)
+        kieu = _bc017_kieu(args)
+        an = _bc017_an_cot(args)
+        _, g2_bt, _, hau_to = BC017_KIEU[kieu]
+        tien = [c for _, c in BC017_COT_TIEN]
+        ky = f"{args.get('from_date', '').replace('/', '')}-{args.get('to_date', '').replace('/', '')}"
+        if _bc017_tong_hop(args):
+            # Tổng hợp: SQL CỘNG SẴN tới tầng nhóm cuối — không kéo 263 nghìn dòng hàng về chỉ để cộng. Tầng 2 lấy theo đúng
+            # biểu thức của màn xem; nguồn trống xếp cuối như BC015.
+            them_cot = them_nhom = sap = ""
+            if kieu == "ngay":
+                them_cot, them_nhom = f", {g2_bt} AS G2", f", {g2_bt}"
+                sap = f", {g2_bt}"
+            elif kieu == "nguon":
+                them_cot, them_nhom = f", {g2_bt} AS G2, E2.EXTRA_NAME_2 AS NGUON_TEN", f", {g2_bt}, E2.EXTRA_NAME_2"
+                sap = f", CASE WHEN {g2_bt} = '' THEN 1 ELSE 0 END, {g2_bt}"
+            sql = f"""
+SELECT S.ORGANIZATION_ID AS DV, O.ORGANIZATION_NAME AS DV_TEN{them_cot}, SUM(S.QUANTITY) AS SL,
+       {", ".join(f"SUM(S.{c}) AS {c}" for c in tien)}
+FROM dbo.SALE_VIEW S WITH (NOLOCK)
+LEFT JOIN dbo.DM_ORGANIZATION O WITH (NOLOCK) ON O.ORGANIZATION_ID = S.ORGANIZATION_ID
+LEFT JOIN dbo.DM_EXTRA_2 E2 WITH (NOLOCK) ON CAST(E2.EXTRA_ID_2 AS NVARCHAR(100)) = S.EXTRA_ID_2
+WHERE {where_sql}
+GROUP BY S.ORGANIZATION_ID, O.ORGANIZATION_NAME{them_nhom}
+ORDER BY S.ORGANIZATION_ID{sap}"""
+            dem_g2 = (f" + COUNT(DISTINCT CAST(S.ORGANIZATION_ID AS NVARCHAR(50)) + '|' + {g2_bt})" if g2_bt else "")
+            count_sql = f"""
+SELECT COUNT(DISTINCT S.ORGANIZATION_ID){dem_g2} + 1 AS SO_DONG_FILE
+FROM dbo.SALE_VIEW S WITH (NOLOCK) WHERE {where_sql}"""
+            headers = ([BC017_NHAN_TONG_HOP[kieu]] + (["Số lượng"] if "qty" not in an else [])
+                       + [BC017_NHAN_TIEN[k] for k, _ in BC017_COT_TIEN if k not in an])
+            fname = f"BC017_Bao_Cao_Ban_Hang_{hau_to}_TongHop_{ky}.xlsx"
+            job_id = _start_export_job(fname, headers, sql, params, None, int(args.get("total", 0) or 0),
+                                       count_sql=count_sql, count_params=params, lap_dong=_bc017_lap_dong_tong_hop(kieu, an))
+            return jsonify({"status": "ok", "job_id": job_id, "filename": fname})
+        hien = [c for c in BC017_COT if c[0] not in an]
+        them = _bc017_cot_them(an)
+        co_ten_kho = "kho_ten" not in an
+        # ORDER BY bằng cột gốc (không dùng bí danh trong biểu thức) — trùng thứ tự #g của màn xem.
+        sap_g2 = ""
+        if kieu == "nguon":
+            sap_g2 = "CASE WHEN ISNULL(S.EXTRA_ID_2, '') = '' THEN 1 ELSE 0 END, ISNULL(S.EXTRA_ID_2, ''), "
+        sql = f"""
+SELECT CONVERT(CHAR(8), S.TRAN_DATE, 112) AS NGAY, S.TRAN_DATE AS NGAY_CT, S.ORGANIZATION_ID AS DV,
+       O.ORGANIZATION_NAME AS DV_TEN, S.TRAN_NO AS SO, S.TRAN_ID AS LOAI, S.PR_KEY AS PK, ISNULL(S.EXTRA_ID_2, '') AS NGUON,
+       E2.EXTRA_NAME_2 AS NGUON_TEN, S.ITEM_ID AS MA, {_BC017_TEN} AS TEN,
+       S.UNIT_ID AS DVT, S.QUANTITY AS SL, S.UNIT_PRICE AS DG, {", ".join("S." + c for c in tien)}
+       {"".join(f", {c[4]} AS {c[3]}" for c in them)}{', W.WAREHOUSE_NAME AS KHO_TEN' if co_ten_kho else ''}
+FROM dbo.SALE_VIEW S WITH (NOLOCK)
+LEFT JOIN dbo.DM_ORGANIZATION O WITH (NOLOCK) ON O.ORGANIZATION_ID = S.ORGANIZATION_ID
+LEFT JOIN dbo.DM_EXTRA_2 E2 WITH (NOLOCK) ON CAST(E2.EXTRA_ID_2 AS NVARCHAR(100)) = S.EXTRA_ID_2{'''
+LEFT JOIN dbo.DM_WAREHOUSE W WITH (NOLOCK) ON W.WAREHOUSE_ID = S.WAREHOUSE_ID''' if co_ten_kho else ''}
+WHERE {where_sql}
+ORDER BY S.ORGANIZATION_ID, {sap_g2}S.TRAN_DATE, S.TRAN_NO, S.PR_KEY, S.LIST_ORDER, S.PR_KEY_DETAIL"""
+        # Đếm SỐ DÒNG FILE (dòng hàng + đơn vị + [đơn vị × tầng 2] + dòng Tổng cộng) ⇒ % và đồng hồ đúng. Cột có tên (Bẫy 31).
+        dem_g2 = (f" + COUNT(DISTINCT CAST(S.ORGANIZATION_ID AS NVARCHAR(50)) + '|' + {g2_bt})" if g2_bt else "")
+        count_sql = f"""
+SELECT COUNT(*) + COUNT(DISTINCT S.ORGANIZATION_ID){dem_g2} + 1 AS SO_DONG_FILE
+FROM dbo.SALE_VIEW S WITH (NOLOCK) WHERE {where_sql}"""
+        headers = [c[1] for c in hien]
+        fname = f"BC017_Bao_Cao_Ban_Hang_{hau_to}_{ky}.xlsx"
+        job_id = _start_export_job(fname, headers, sql, params, None, int(args.get("total", 0) or 0),
+                                   count_sql=count_sql, count_params=params, lap_dong=_bc017_lap_dong_xuat(kieu, hien))
+        return jsonify({"status": "ok", "job_id": job_id, "filename": fname})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 # =====================================================================

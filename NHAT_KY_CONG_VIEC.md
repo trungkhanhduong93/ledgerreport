@@ -92,6 +92,8 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | 17 | ~~Nút `TRUY VẤN` đang chuyển màu navy → tím~~ ✅ **XONG 25/09** | Đại Ca chốt: chữ **"Lọc"**, navy đặc, như mẫu iPOS. Nằm trong thanh lọc mới của 9 màn danh sách |
 | 18 | ~~Chốt mốc commit phần đăng nhập nhanh + sửa font~~ ✅ **commit `c64540a`** | Phát hành v2.0.0 |
 | 19 | ~~Đại Ca xem GĐ3 rồi chốt commit~~ ✅ **Đại Ca chốt OK sáng 25/09** (*"cái đó thì ok rồi"*) ⇒ đã commit GĐ3 | ⚠️ Đại Ca chốt chung, **không nói rõ đã thử từng mục dưới đây chưa** — lần đầu dùng số liệu thật thì để ý. Danh sách cần xem ở mục *"Việc Đại Ca xem sáng 25/09"* trong nhật ký 25/09 (tiếp 3), ngay dưới § này. Ba việc tôi **không** tự thử được: hộp *"Chuyển mẫu báo cáo?"* khi có số liệu thật · menu **Xuất Excel / Xuất PDF** khi có số liệu (chưa có số liệu thì nút tắt) · kéo thả thứ tự ô lọc bằng chuột thật. Và **đọc lại mô tả 16 thẻ** — tôi tự viết |
+| 50 | ⏳ **Cấu hình cột 5 báo cáo + ghim cột / vừa khít cột 9 màn danh sách** (Đại Ca yêu cầu 05/10/2026). **Đợt 1 — cấu hình cột BC007 · BC008 · BC012 · BC015 · BC016: XONG** (Đại Ca bảo làm tiếp đợt 2). **Đợt 2 — ghim cột bất kỳ sát lề trái/phải + bấm đúp mép = vừa khít + nút "Vừa khít tất cả cột": XONG**, kiểm DB thật 9/9 màn. Đại Ca thử 05/10: OK, đổi icon ghim (mẫu ô bảng) + bỏ chú thích cuối hộp. **Đã commit local 05/10 (chung commit BC017), CHƯA push / chưa phát hành** | Còn: dòng `CO_GI_MOI.md` lúc phát hành · M3 (EXE). Server thử code mới: **cổng 5053** (`server_thu_5053.py` trong scratchpad phiên 05/10, chết theo phiên chat). Mục nhật ký *05/10/2026 (tối) — Việc 50 đợt 2* + *05/10/2026 — Việc 50 (đợt 1)* |
+| 49 | ⏳ **BC017 Báo cáo bán hàng** (mẫu iPOS 3.1, đối chiếu doanh thu) — 3 kiểu xem × chi tiết/tổng hợp + cấu hình cột + mặc định BHVAT/BHK, **kiểm trên DB thật đạt**, **đã commit local 05/10 (chung commit việc 50), CHƯA push / chưa phát hành** | Còn: Đại Ca bấm thử bản cấu hình cột + soi vài phiếu với mẫu 3.1 trên iPOS Chú Long · dòng `CO_GI_MOI.md` lúc phát hành · M3 (EXE) · **xoá ô `password` trong `config.json` khi Đại Ca báo xong đợt thử** (Đại Ca cho giữ trong đợt thử 03–04/10). Điểm mở: chi tiết cả tháng **8–10s/trang** (chưa tăng tốc) · 1366px thêm cột là kéo ngang · mỗi lần tick một cột thêm chưa có là tải lại 1 lần. Server thử 5052 (script trong scratchpad) **tự tắt sau ~2 giờ** — giới hạn chạy nền của công cụ, không phải lỗi app; tắt thì bật lại. Mục nhật ký *04/10/2026* + *03/10/2026 — BC017* |
 | 48 | ⏳ **Chưa thử với Google THẬT: Tải lại khi quyền vừa bị đổi** (v2.1.0) | Đã thử bằng Google giả lập (9 ca) + giao diện server thử. Ca thật: quản trị đổi quyền tài khoản đang đăng nhập ở máy khác → máy đó bấm Tải lại ⇒ phải về màn đăng nhập kèm *"Quyền của tài khoản vừa được thay đổi…"*. Đại Ca chốt *"tạm thời ok"* 29/09 nhưng chưa nói đã thử ca này |
 | 47 | `Sync-And-Backup.ps1` đang là **UTF-8 KHÔNG BOM** dù có tiếng Việt | Bẫy 12: PowerShell 5.1 đọc sai. Script vốn không chạy trên máy này nên chưa ai thấy. Phát hiện 29/09 khi thêm file vào `$Files`. Sửa = lưu lại có BOM, thử chạy `-WhatIf`/không `-Commit` trên máy có thư mục cha |
 | 46 | **Nút Hủy cho hộp xuất của 9 màn danh sách** (CSV/Excel qua `startServerExport`) | Chỉ Nhật ký chung có Hủy + tạm dừng. Server đã sẵn (`_cho_neu_tam_dung` có ở vòng ghi CSV); còn thiếu giao diện. ⚠️ Xuất **CSV** vẫn ghi thẳng vào thư mục xuất (file lớn dần lúc đang ghi) — việc 44 chỉ sửa `.xlsx` |
@@ -164,6 +166,182 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 05/10/2026 (tối) — Việc 50 đợt 2: ghim cột bất kỳ sát lề trái / phải + vừa khít cột · 9 màn danh sách
+
+Đại Ca 05/10: *"ok rồi, làm tiếp đợt 2 đi"*. Theo đúng 2 điểm đã chốt: **ghim cột bất kỳ, cột ghim dời hẳn về lề** (không phải kiểu Excel
+"cố định tới cột này" — em đã báo là phải sửa cách vẽ cả 9 bảng) · **bấm đúp mép phải tiêu đề = vừa khít, thêm nút "Vừa khít tất cả cột"**,
+đo theo mọi dòng đang tải.
+
+### Cách làm (chỉ `index.html`, máy chủ không đổi)
+- **`HangCot`** bọc 27 hàng (9 × tiêu đề + ô tìm, 5 hàng dữ liệu component, 4 hàng viết thẳng) — sắp lại ô theo thứ tự hiện
+  `# + ghim trái · không ghim · ghim phải` lấy từ `CotBangCtx` (`ctxCotBang`). Đã đếm: mọi hàng đúng số cột `COT_BANG` (34/44/29/31/28/15/21/19/17),
+  không ô điều kiện.
+- **`veDongCot`** dựng 5 dòng nhóm (`DongNhom` dùng chung) + 5 dòng tổng — thay các `colSpan` ghi cứng theo vị trí.
+- **Độ lệch sticky đo từ độ rộng thật** sau mỗi lần vẽ (`apDungGhim`, kèm ResizeObserver) — bảng tự nở theo nội dung nên không ghi cứng được.
+- Ẩn cột / độ rộng (`cssCot`) + kéo giãn (`tim` trong effect kéo) đổi sang **vị trí đang hiện**.
+- **Vừa khít** (`vuaKhitCot`): max của tiêu đề, ô đang vẽ (Range) và **mọi dòng đã tải** (canvas measureText theo phông của ô); trần 900px;
+  cột vừa khít bỏ trần `max-width` của ô (Diễn giải cắt ở 250px). Kéo tay ⇒ bỏ dấu vừa khít. **Về mặc định** xoá cả ẩn / rộng / ghim / vừa khít.
+- Cấu hình cột của 9 màn: mỗi dòng thêm 2 nút ⇤ ⇥ (bấm lại = bỏ ghim), chân bảng cấu hình thêm "Vừa khít tất cả cột". Lưu `lr_cot_<tab>`
+  thêm `ghim: { trai, phai }` + `vua`.
+
+### Sửa trong lúc thử
+- **Vệt chữ lọt khe 1px giữa 2 cột ghim liền nhau** (thấy ở Nợ | Có, phóng ảnh ra mới thấy): độ rộng cột lẻ phần thập phân + đường viền gộp.
+  Lớp nền giả `::before`/`::after` của ô ghim tràn 1px sang trái + tự vẽ lại đường kẻ 1px (lớp nền che mất đường kẻ của bảng).
+- Ghim trái ⇒ nhãn chân bảng "TỔNG TOÀN BỘ TRUY VẤN (2,287,832 DÒNG):" dồn vào vùng ghim hẹp (# + Số CT), **gãy 3 dòng** ⇒ chân bảng đặt nhãn
+  ở vùng cuộn. Dòng nhóm giữ nhãn trong vùng ghim (cuộn ngang vẫn biết đang ở nhóm nào) nhưng cắt theo bề rộng vùng ghim, không phình cột.
+- Không ghim mà ô đệm cuối dòng tổng vẫn mang `class="border-r"` (bản cũ không có) ⇒ bỏ, chân bảng nay giống hệt bản cũ.
+- **Đại Ca thử 05/10: chức năng OK, icon ⇤ ⇥ "xấu quá"** ⇒ vẽ 3 mẫu, Đại Ca chọn **A · ô bảng nhỏ, cột tô ở lề trái / phải** (kiểu cố định
+  cột của Excel): chưa ghim tô mờ, đang ghim tô đặc trên nền navy (`ghim-trai[-dang]`, `ghim-phai[-dang]`), icon 16px. Bỏ luôn viền đen
+  trình duyệt vẽ quanh nút sau khi bấm (`outline-none` + vòng `focus-visible` xanh nhạt khi đi bằng phím Tab).
+- Đại Ca bảo **bỏ dòng chú thích cuối hộp Cấu hình cột** của 9 màn (`ghiChu={false}`; nút ghim vẫn có `title` khi rê chuột). 5 báo cáo +
+  BC017 giữ chú thích riêng của chúng (có thông tin "Ngày CT luôn hiện"…). Rồi bảo **commit** ⇒ commit local cùng BC017 (việc 49), chưa push.
+
+### 🧪 Verify (Chrome chạy ngầm 1366×768, server thử 5053, DB thật T01/2026)
+- **M1:** Babel OK; `server.py` không đổi trong đợt 2.
+- **9/9 màn** (Tổng hợp, Bán hàng, Tiền, Nhập kho, Kho, Tồn kho, Đối chiếu BTP, Đối chiếu điều chuyển, PO): ghim 1 cột trái + 1 cột phải ⇒
+  thứ tự đúng (# → cột ghim trái … cột ghim phải), mọi hàng đủ ô, **cuộn ngang 900px cột ghim đứng yên** (đo toạ độ trước/sau bằng nhau),
+  dòng tổng đúng ô dưới cột ghim; "Vừa khít tất cả" 0,9–3,6s, **không còn ô nào bị cắt chữ**; "Về mặc định" trả đúng thứ tự gốc; 0 lỗi JS.
+- Ledger: bấm đúp mép Diễn giải 256px → 204px (chữ dài nhất trong 10.000 dòng đã tải); vừa khít tất cả 33 cột ~1s. Gom nhóm theo Mã CT khi
+  đang ghim: nhãn nhóm trong vùng ghim, tổng nhóm đúng dưới Nợ / Có ghim phải.
+- **Hồi quy — KHÔNG ghim (so với bản đợt 1 ở cổng 5054): 9/9 màn giống hệt cả tiêu đề, thân bảng, chân bảng**, bề rộng bảng bằng nhau.
+- ⚠️ Chưa so được dòng NHÓM khi không ghim giữa hai bản: SQL Server tối 05/10 rất chậm (màn Tổng hợp **13 phút** mới trả, bình thường ~20s;
+  `sys.dm_exec_requests` chỉ thấy câu của phần mềm iPOS từ các máy khác, không có câu dở dang của server thử) ⇒ dừng phép thử nặng để khỏi
+  đè thêm lên DB đang có người dùng. Theo code: khác duy nhất ô đệm cuối dòng nhóm `colSpan` = đúng số cột còn lại thay vì 100 — nhìn y nhau.
+- ⚠️ Chrome chạy ngầm **treo 3 lần** (trang đứng, tiến trình vẽ + đồ hoạ bận liên tục, trình gỡ lỗi không ngắt được vào JS nào) — đều sau
+  nhiều lượt nạp trang liên tiếp hoặc ngay khi dữ liệu về sau lúc DB chậm, **có cả trên giao diện đợt 1** (code danh sách = bản đang phát hành).
+  Chạy từng bước thì không treo. Nghi do Chrome không card đồ hoạ vẽ hiệu ứng làm mờ nền (`backdrop-blur`) của tiêu đề bảng — chưa chứng minh.
+  Để ý nếu máy nhân viên báo "đứng hình" sau khi Lọc.
+- ⚠️ *Tồn kho thực tế*: cuộn chạm tận cùng thì cột ghim phải lệch 4px (bảng 1.556,5px, khung cuộn tính 1.560px — viền ngoài bảng gộp viền).
+- ⏳ Chưa: Đại Ca bấm thử · M3 (EXE) · kéo thả tay bằng chuột thật (thử bằng sự kiện giả).
+
+---
+
+## 05/10/2026 — Việc 50 (đợt 1): Cấu hình cột BC007 · BC008 · BC012 · BC015 · BC016
+
+Đại Ca 05/10: *"phần chỉnh cấu hình thêm cột ở BC017 đã ok rồi, xem thử chỉnh luôn ở các báo cáo này"* (ảnh khoanh BC007, BC008, BC012,
+BC015, BC016) + *"các phần chứng từ cho phép chủ động freeze cột … sát lề trái hoặc phải, và cho phép auto fix bề rộng của cột"*.
+Đã hỏi chốt 4 điểm: **ghim cột bất kỳ** (cột dời hẳn về lề — Đại Ca chọn, dù phải sửa cách vẽ 9 bảng) · **bấm đúp mép = vừa khít + nút
+"Vừa khít tất cả"** · **làm cả 5 báo cáo** · **báo cáo trước, danh sách sau** (mỗi đợt Đại Ca thử xong mới làm đợt sau).
+
+### Đo trước khi làm (DB thật)
+- `LEDGER_VIEW` ngày 15/09/2026 (92.448 dòng): đối tượng 21% · MCP 37% · công việc 37% · mã hàng 90% · số lượng 68% · nguồn đơn 45% ·
+  ghi chú 93% ⇒ bộ cột thêm của sổ BC007/BC008.
+- `VOUCHER_VIEW` T09/2026, dòng chạm TK 111/112/113 (150.855 dòng): đối tượng 82–86% · người nộp/nhận 12% · tham chiếu 14% · ghi chú 92% ·
+  người lập 100%. ⚠️ Mỗi dòng có HAI phía: thu Nợ 1131 / Có 131 (129.136 dòng) thì khách nằm bên Có; chi 331 ← 112 thì NCC bên Nợ (473/473)
+  ⇒ **đối tượng lấy phía đối ứng, ngân hàng lấy phía TK tiền** (BANK_ID của mình — `SCB-526` Sacombank công ty).
+- Khoá `SYS_TRAN` (90/90), `DM_ORGANIZATION` (92/92), `DM_BANK` (9/9) đều duy nhất ⇒ JOIN tên không nhân dòng.
+
+### Đã làm
+- `server.py` (+5 hàm, không thêm route ⇒ 199 hàm / 76 route): `/api/journal` + `/api/account_details` nhận `cot_them` (`_SO_COT_SQL`,
+  `_so_cot_them`, `_so_ban_do_ten`, `_so_gan_cot`) · `/api/cash_book` nhận `cot_them` (`_CB_COT_SQL`, khoá cache kèm cột) · file "Bảng tổng
+  hợp" BC007 (xlsx + csv) nhận `cot` (`_SO_COT_XUAT`, `_so_xuat_theo_cot` — cột nào cũng có tên, Bẫy 31). Không gửi gì ⇒ y đường cũ.
+- `index.html`: khai báo `COT_SO` / `GOC_SO` / `COT_BC012` / `COT_BC015` / `nhomBC016` / `AN_MAC_DINH_BC`; state `anCotBC` ở App; nút Cấu
+  hình cột cho 5 báo cáo (dùng chung `CauHinhCot`, thêm dòng tiêu đề nhóm + `khoaCot` — 9 màn danh sách y cũ); vẽ lại bảng BC007/BC008
+  (một bộ vẽ chung) + BC012 (tiêu đề 2 tầng, colgroup theo trọng số) + BC015 + BC016 theo cột đang hiện; giấy nới theo cột khi bật cột thêm.
+- Kèm: **thanh phân trang BC012 phải bấm 2 lần mới sang trang** (truy vấn dùng `filters.page` cũ trong closure) ⇒ dùng `_page`.
+- Tick cột thêm ⇒ chờ 0,7s sau lần tick cuối mới tải (đo: tick 5 cột = **1** câu SQL; bản đầu là 5 câu xếp hàng).
+
+### 🧪 Verify
+- **M1:** `ast` OK — 199 hàm / 76 route, không mất hàm/route so với HEAD, không trùng tên · Babel OK · quét route chưa khai quyền = `[]`.
+- **M2 + M4 (DB thật, `test_client`, đối chứng bản trước khi sửa):** BC007 15/09 trang 1 + 50, BC008 TK 111 / 642, BC012 15/09 ⇒ **không xin
+  cột thêm: JSON trùng khít bản cũ**; xin hết cột ⇒ cột gốc giữ nguyên, tổng / phân trang / số dư không đổi. BC008 TK 131: tập dòng trùng
+  23.217/23.217, chỉ đổi thứ tự trong cùng ngày + số CT (xem CLAUDE.md). Quyền: có quyền 200 · không quyền **403** cả 3 · giới hạn đơn vị
+  01 chỉ thấy 01.
+- File BC007 "Bảng tổng hợp" theo 24 cột, 15/09: **92.448 dòng = số đếm, tổng Nợ = tổng Có = 4.564.642.999,5** khớp màn; số lượng lẻ giữ
+  (0,2 · 17,2); mã giữ chữ (`01`); CSV mã bọc `="…"`. Không gửi `cot` ⇒ file y bản cũ (tiêu đề `Ngày HT`, `TK Nợ`…).
+- **Giao diện (Chrome chạy ngầm 1366×768, server 5053, DB thật T01/2026):** 5 báo cáo tick / bỏ tick ⇒ đúng cột, số liệu cột thêm đúng; số
+  trên nút = số cột gốc bị ẩn; xuất Excel giữ form BC008 (13 cột), BC012 (tiêu đề 2 tầng + cột thêm), BC016 (25 cột chỉ SL) đúng cột màn;
+  bấm xuất BC007 tổng hợp gửi đúng 15 cột rồi **Hủy xuất** — không để lại file dở.
+- **Hồi quy:** dựng thêm server 5054 phục vụ `index.html` bản cũ, so nguyên HTML bảng ở mặc định: **BC007 chi tiết (951.944 ký tự), BC007
+  tổng hợp, BC008, BC012, BC015, BC016 — giống hệt**, khổ giấy bằng nhau.
+- ⏳ Chưa: Đại Ca bấm thử · M3 (EXE) · in PDF khi bật nhiều cột (giấy nới rộng, chưa xem bản in).
+
+---
+
+## 04/10/2026 — BC017: 3 kiểu xem · Chi tiết/Tổng hợp · mặc định BHVAT+BHK · cấu hình cột — việc 49 (tiếp)
+
+Đại Ca thử bản 03/10 rồi đổi hướng qua 4 lượt (mỗi lượt đã hỏi chốt trước khi làm):
+
+1. **3 kiểu xem, Đơn vị luôn ở trên cùng** — Theo đơn vị · Đơn vị → Ngày · Đơn vị → Nguồn đơn (`EXTRA_ID_2`); **bỏ tầng phiếu**,
+   dòng dưới cùng vẫn là từng dòng hàng + thêm cột **Số CT, Mã/Tên nguồn đơn**. Kiểu Ngày → Đơn vị → Phiếu của bản 03/10 Đại Ca bỏ.
+2. **Chi tiết / Tổng hợp** — tổng hợp chỉ dòng nhóm, tầng cuối không in đậm. Gộp với kiểu xem + "Ẩn dòng 0 đồng" vào một nút
+   `ChonKieuBC017` (để riêng thì hàng điều kiện ở 1366px hết chỗ cho ô lọc).
+3. **Loại CT mặc định `TRAN_ID IN ('BHVAT','BHK')`** — Đại Ca: *"để đối chiếu doanh thu"*. Tổng mặc định vì vậy KHÔNG còn bằng BC015.
+4. **Cấu hình cột** — Đại Ca hỏi *"cho phép thêm hoặc bớt các cột thì sẽ như nào"* ⇒ em đo trước (cột nào có dữ liệu, tốc độ, độ rộng)
+   rồi Đại Ca chốt: dùng nút Cấu hình cột như 9 màn danh sách, **13 cột thêm mặc định ẩn**, lọc theo **ngày chứng từ** (không theo
+   ngày hoá đơn). Hai chỗ Đại Ca không trả lời, em làm theo đề xuất: bỏ Người lập + Mã máy POS, 8 cột tiền ẩn được.
+
+### Số đo dẫn tới quyết định (T09/2026, BHVAT+BHK, 257.570 dòng)
+- Cột trên `SALE_VIEW` **trống 100%**: giá vốn `COG_AMOUNT`, HTTT, nhân viên, số/ký hiệu hoá đơn VAT, tên/ĐT/MST/địa chỉ khách, mã vạch,
+  bảng giá, `EXTRA_ID_1` ⇒ không cho chọn. Có dữ liệu 97–100%: kho (75), đối tượng (82), công việc (75), nhóm/loại hàng, nhóm CV (21 tỉnh),
+  thuế suất (8% · 0% 739 dòng), ghi chú ("CÀ PHÊ - GRABFOOD"), người lập (98,5% "ADMIN"), mã máy POS (79).
+- ⚠️ **Ngày hoá đơn khác ngày chứng từ trên 180.027/257.570 dòng (70%)** — ví dụ BH0612/T09: CT 15/09, HĐ 16/09.
+
+### Sửa trong lúc làm
+- 🔴 **Tổng hợp trả 500** — `SELECT INTO #g` gán `NULL` trần thành INT; tổng hợp không còn nhánh dòng hàng định kiểu ⇒ `JOIN DM_EXTRA_2`
+  đổi `'CANHAC35K'` sang số ⇒ lỗi 245. Sửa: mọi cột để NULL đều `CAST` kiểu (ghi ngay tại chỗ trong code + CLAUDE.md).
+- Bảng chi tiết 17 cột lố 50px ở 1366px ⇒ đệm ô 3px + Mã nguồn đơn được xuống dòng (giữ chữ 10px — Bẫy 27).
+- `CauHinhCot` thêm `ghiChu` / `demAn` / `laMacDinh` (không truyền ⇒ 9 màn danh sách y cũ): BC017 ở mặc định từng hiện *"đang ẩn 13 cột"*.
+
+### 🧪 Verify (DB thật; server thử 5052 + `test_client`)
+- **M1:** `ast` OK — 196 hàm / 76 route, không trùng, không mất hàm/route so với HEAD · Babel OK · quét route chưa khai quyền = `[]`.
+- **3 kiểu chi tiết, 15/09:** tổng các tầng khớp nhau; khớp BC015 8/8; đơn vị 75/75; đơn vị × ngày 75/75; **đơn vị × nguồn đơn 0 ô lệch**
+  (349 nhóm vs 346 của BC015 — 3 nhóm toàn 0 đồng BC015 giấu). *(Chạy lúc còn lấy mọi mã trừ XDCNB, trước khi đổi sang BHVAT+BHK.)*
+- **Tổng hợp cả tháng 9:** 3 kiểu khớp BC015, **đơn vị × ngày 2.242/2.242**, đơn vị × nguồn 0 lệch; 4,5 / 10,9 / 5,6s.
+- **BHVAT+BHK:** 15/09 và cả tháng 9 **khớp SQL viết tay từng đơn vị** (74/74, 75/75; tháng 9: 257.570 dòng, tiền hàng 39.858.419.421) ·
+  chọn đủ 5 mã ⇒ = BC015 8/8.
+- **Cấu hình cột:** mặc định không lấy cột thêm nào (cả tháng 9,3s); hiện hết 12 cột 12,2s; tổng tiền không đổi; giá trị cột thêm đúng.
+  Xuất Excel: hiện hết 30 cột · ẩn bớt cột tiền · tổng hợp ẩn SL + tiền ⇒ số dòng = số đếm, Tổng cộng = màn hình.
+- **Giao diện 1366px:** hàng điều kiện 1 dòng; tick cột thêm ⇒ tải lại; bỏ tick ⇒ không gọi máy chủ; Tổng hợp theo cột đang ẩn; Về mặc định.
+- ⏳ Chưa: tuần 01–07/09 cho bản 3 kiểu (dừng giữa chừng để Đại Ca thử) · M3 (EXE) · bấm lại xuất BC007 sau khi `exportJournalXlsx` thêm `tuyChon`.
+
+---
+
+## 03/10/2026 — BC017 Báo cáo bán hàng (mẫu iPOS "3.1 - Báo cáo bán hàng") — việc 49
+
+Đại Ca 02/10: *"làm thêm 1 báo cáo cho số liệu bán hàng … cho thêm các điều kiện lọc để xem, số liệu thể hiện chi tiết phát sinh theo
+điều kiện đó"*, gửi ảnh mẫu iPOS 3.1 (của Drip Drip Coffee) + hộp lọc (Kho · Nhóm hàng hoá · Danh mục hàng hoá · Nhóm đối tượng ·
+Đối tượng · Nhóm công việc · Công việc). ⚠️ Danh sách "Danh mục" trong hộp lọc iPOS còn thanh cuộn — **chưa thấy phần dưới** (đã xin ảnh).
+
+### Đo trước khi làm (T09/2026, `SALE_VIEW` POSTED)
+262.798 dòng / 46.271 phiếu / ~80 đơn vị mỗi tháng; ~35% là dòng 0 đồng (ghi chú món "Đá bình thường"). Lấy chi tiết: 1 ngày 1,4s ·
+1 tuần 6s · 1 tháng 22s. **38.410/46.271 phiếu trùng số với đơn vị khác cùng ngày** (+1 ca trùng cả đơn vị). `VAT_INCOME_AMOUNT`
+của mẫu = **0 trên toàn bộ `BHVAT`** (39,9 tỷ tiền hàng). Loại CT trong view: BHVAT 254.686 dòng · **XDCNB 17.981 dòng toàn 0 đồng** ·
+HDDC · BHK · **BNB bán nội bộ 2,25 tỷ** · BH.
+
+### Đại Ca chốt (02/10)
+Gom **Ngày → Đơn vị → Phiếu** (phiếu theo `PR_KEY`) · chỉ đã ghi sổ · **8 cột tiền của BC015**, nhãn tiếng Việt (Tiền hàng · Giảm giá ·
+Chiết khấu · Voucher · Hoa hồng · Doanh thu · Thuế VAT · Tổng tiền) · mặc định **tất cả trừ XDCNB** (có ô Loại CT) · dòng 0 đồng
+**hiện như iPOS, có ô tick ẩn**.
+
+### Đã làm
+- `server.py` (+6 hàm/lớp, +2 route ⇒ 191 / 76): `_bc017_where` · `/api/sale_detail` (phân trang trong SQL, dòng tổng là tổng đủ
+  nhóm, trang bắt đầu giữa nhóm kèm dòng tổng cha `tiep`) · `/api/sale_detail/export` (job, `count_sql` đếm **số dòng file**) ·
+  `_bc017_dong_xuat` + `_DongXuat` (dòng tổng in đậm, cột Số lượng giữ số lẻ). `_start_export_job` thêm `lap_dong`;
+  `_write_xlsx_to_disk` đọc `kieu`/`cot_le` bằng `getattr` ⇒ **list thường của mọi bản xuất cũ đi đúng nhánh cũ**.
+  `/api/metadata` trả thêm 3 danh mục nhóm (câu riêng, hỏng thì rỗng). Quyền: `PERM_REPORTS` tới BC017 + 2 route vào `PERM_ROUTE_STATIC`.
+- `index.html`: thẻ BC017 · 6 ô lọc mới trong `O_LOC_BAO_CAO` (+ Công việc, Đối tượng dùng chung) · `THU_TU_O_LOC` (thứ tự hộp iPOS) ·
+  `thamSoBC017` dùng chung cho xem + xuất · ô tick "Ẩn dòng 0 đồng" · đầu báo cáo in Kho / Đối tượng / Nhóm hàng hoá như mẫu ·
+  `exportJournalXlsx(mode, tuyChon)` — BC017 dùng chung hộp đồng hồ + Hủy (không truyền `tuyChon` ⇒ y đường BC007 cũ);
+  nhãn mã báo cáo trên hộp xuất hết ghi cứng "BC007".
+- Thử giao diện thì sửa thêm: giấy BC017 cố định 340mm **khuất 2 cột Thuế VAT / Tổng tiền ở 1366px** ⇒ cho giấy co theo màn
+  (tối đa 340mm), chữ 10px · thanh cuộn ngang thừa 2px · Số lượng in kiểu vi-VN lẫn với tiền kiểu en-US ⇒ đổi en-US.
+
+### 🧪 Verify
+- **M1:** `ast` OK, 191 hàm / 76 route, **không mất hàm/route nào so với HEAD**, không trùng tên · Babel OK · quét route chưa khai quyền = `[]`.
+- **M2 + M4 (DB thật, `test_client`, nạp `server.py` bỏ dòng tắt cổng 5050):**
+  - 15/09: 9.988 dòng hiển thị = 1 + 75 + 1.419 + 8.493; tổng 4 tầng khớp nhau 9/9 cột; **8/8 cột tiền = BC015 đến từng đồng**; 75/75 đơn vị khớp.
+  - **Cả tháng 9: 8/8 cột = BC015** (tiền hàng 42.199.612.285 · tổng tiền 33.701.652.613); tuần 01–07/09 **đơn vị × ngày 523/523, 0 ô lệch**.
+  - 7 ô lọc + Loại CT + kết hợp 2 ô: **khớp SQL viết tay** (đơn vị ngoài cây tính độc lập bằng CTE = `66`). Ẩn dòng 0 đồng: 8.493 → 5.974 dòng, 8 cột tiền không đổi.
+  - Quyền: NV có BC017 → 200 · NV không có → **403 cả xem lẫn xuất** · NV giới hạn đơn vị 35 → chỉ thấy 35, chọn 36 → 0 dòng.
+  - Xuất cả tháng: **308.874 dòng = số đếm**; cộng dòng hàng trong file = BC015; dòng tổng đậm, dòng hàng thường; SL lẻ (`LADUA` 0,2) giữ 2 số.
+    Thời gian **4:23 lần đầu (SQL Server đọc đĩa), 0:47 lần sau** — tách khúc: bộ dựng dòng 0,6s/tuần, ghi xlsx ~5.500–10.000 dòng/s ⇒ nút thắt là đọc đĩa của SQL (CLAUDE.md § 6).
+- **Giao diện thật trên DB thật** (server thử 5052, 1366×768 + 1280×720): xem 15/09 2,2s · trang 2 2,0s (3 dòng "(tiếp)") · tick ẩn 0 đồng ·
+  xuất Excel từ giao diện 3,6s, file 7.400 dòng = số đếm. Hàng điều kiện một dòng ở 1366px; **1280px xuống 2 dòng** (cụm nút).
+- ⏳ Chưa: **M3** (EXE) · Đại Ca bấm thử · đối chiếu vài phiếu với mẫu 3.1 trên iPOS · BC007 xuất Excel sau khi sửa `exportJournalXlsx` mới chỉ đọc lại code (chỉ thêm nhánh `tuyChon`), chưa bấm thử lại.
 
 ---
 

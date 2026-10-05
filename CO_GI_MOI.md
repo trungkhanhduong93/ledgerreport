@@ -16,6 +16,9 @@
 >   một lần), hiện tối đa 8 dòng, dư thì ghi "… và N thay đổi khác".
 > - Dòng không bắt đầu bằng `- ` (như khối ghi chú này) app bỏ qua.
 
+## v2.1.2
+- Các màn danh sách chứng từ: cột ghim sát lề phải nay nằm sát mép bảng khi cuộn ngang tới cuối, không còn hở một khe nhỏ
+
 ## v2.1.1
 - Báo cáo TC: thêm BC017 Báo cáo bán hàng — xem theo đơn vị, theo ngày hoặc theo nguồn đơn, từng dòng hàng hoặc chỉ dòng tổng, để đối chiếu doanh thu
 - Sổ nhật ký chung, Sổ chi tiết tài khoản, Sổ tiền mặt & ngân hàng, Bán hàng theo nguồn đơn, Nhập xuất tồn: nút Cấu hình cột để thêm / bớt cột, xuất Excel đúng các cột đang hiện

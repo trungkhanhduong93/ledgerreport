@@ -303,6 +303,8 @@ là ô nào cũng bị ép xuống mức sàn 120px dù hàng còn thừa chỗ 
   ghim / vừa khít) + nút **"Vừa khít tất cả cột"**. Đo chữ dài nhất trong **mọi dòng đang tải** (canvas, không chỉ ~90 dòng đang vẽ) +
   ô đang vẽ + tiêu đề; trần 900px; cột vừa khít được bỏ trần `max-width` (Diễn giải đang cắt ở 250px). Kéo tay một cột ⇒ bỏ dấu vừa khít.
 - Kéo mép phải tiêu đề = đổi độ rộng; bảng vẫn **tự nở theo nội dung** nên kéo hẹp chỉ tới mức vừa chữ (cố ý, không cắt số liệu).
+  ⛔ Tay kéo (`th::after`) của **cột cuối** phải nằm **gọn trong ô** (`right: 0`): thò ra 4px như cột khác là khung cuộn rộng thêm 4px ⇒
+  cột ghim phải hụt 4px khi cuộn chạm cuối (đo + sửa 05/10/2026). Không phần tử nào trong bảng được tràn quá mép phải bảng.
 Tiêu đề cột **không gãy dòng**. Nhớ `lr_cot_<tab>` = `{ an, rong, ghim: { trai, phai }, vua }`. **Excel xuất đúng cột đang hiện**: xuất 1 file đi
 qua máy chủ (tham số `an_cot` ⇒ `_loc_cot_xuat` trong `server.py`), chia sheet theo đơn vị lọc ở trình
 duyệt. Cột chỉ có trong file (Địa chỉ, MST… của Bán hàng) không ẩn được ⇒ luôn xuất.

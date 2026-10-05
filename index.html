@@ -152,6 +152,10 @@ window.showConnectionLost = function() {
         table[data-bang] > thead > tr:first-child > th { white-space: nowrap; position: relative; }
         table[data-bang] > thead > tr:first-child > th:not(:first-child)::after { content: ''; position: absolute; top: 0; right: -4px; width: 8px; height: 100%; cursor: col-resize; z-index: 5; }
         table[data-bang] > thead > tr:first-child > th:not(:first-child):hover::after { background: linear-gradient(to right, transparent 3px, #60a5fa 3px, #60a5fa 5px, transparent 5px); }
+        /* Cột CUỐI: tay kéo nằm gọn trong ô. Thò ra 4px như các cột khác là khung cuộn rộng thêm 4px ⇒ cuộn chạm cuối, cột ghim phải hụt
+           4px so với mép (đo 05/10/2026 ở Tồn kho thực tế: khung 1.560px, bảng 1.556,5px — có ở cả 9 bảng). */
+        table[data-bang] > thead > tr:first-child > th:last-child:not(:first-child)::after { right: 0; }
+        table[data-bang] > thead > tr:first-child > th:last-child:not(:first-child):hover::after { background: linear-gradient(to right, transparent 5px, #60a5fa 5px, #60a5fa 7px, transparent 7px); }
         
         .paper-landscape { width: 297mm !important; min-width: 297mm !important; max-width: 297mm !important; }
         .paper-portrait  { width: 210mm !important; min-width: 210mm !important; max-width: 210mm !important; }

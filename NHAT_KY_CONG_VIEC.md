@@ -92,8 +92,8 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | 17 | ~~Nút `TRUY VẤN` đang chuyển màu navy → tím~~ ✅ **XONG 25/09** | Đại Ca chốt: chữ **"Lọc"**, navy đặc, như mẫu iPOS. Nằm trong thanh lọc mới của 9 màn danh sách |
 | 18 | ~~Chốt mốc commit phần đăng nhập nhanh + sửa font~~ ✅ **commit `c64540a`** | Phát hành v2.0.0 |
 | 19 | ~~Đại Ca xem GĐ3 rồi chốt commit~~ ✅ **Đại Ca chốt OK sáng 25/09** (*"cái đó thì ok rồi"*) ⇒ đã commit GĐ3 | ⚠️ Đại Ca chốt chung, **không nói rõ đã thử từng mục dưới đây chưa** — lần đầu dùng số liệu thật thì để ý. Danh sách cần xem ở mục *"Việc Đại Ca xem sáng 25/09"* trong nhật ký 25/09 (tiếp 3), ngay dưới § này. Ba việc tôi **không** tự thử được: hộp *"Chuyển mẫu báo cáo?"* khi có số liệu thật · menu **Xuất Excel / Xuất PDF** khi có số liệu (chưa có số liệu thì nút tắt) · kéo thả thứ tự ô lọc bằng chuột thật. Và **đọc lại mô tả 16 thẻ** — tôi tự viết |
-| 50 | ⏳ **Cấu hình cột 5 báo cáo + ghim cột / vừa khít cột 9 màn danh sách** (Đại Ca yêu cầu 05/10/2026). **Đợt 1 — cấu hình cột BC007 · BC008 · BC012 · BC015 · BC016: XONG** (Đại Ca bảo làm tiếp đợt 2). **Đợt 2 — ghim cột bất kỳ sát lề trái/phải + bấm đúp mép = vừa khít + nút "Vừa khít tất cả cột": XONG**, kiểm DB thật 9/9 màn. Đại Ca thử 05/10: OK, đổi icon ghim (mẫu ô bảng) + bỏ chú thích cuối hộp. **Đã commit local 05/10 (chung commit BC017), CHƯA push / chưa phát hành** | Còn: dòng `CO_GI_MOI.md` lúc phát hành · M3 (EXE). Server thử code mới: **cổng 5053** (`server_thu_5053.py` trong scratchpad phiên 05/10, chết theo phiên chat). Mục nhật ký *05/10/2026 (tối) — Việc 50 đợt 2* + *05/10/2026 — Việc 50 (đợt 1)* |
-| 49 | ⏳ **BC017 Báo cáo bán hàng** (mẫu iPOS 3.1, đối chiếu doanh thu) — 3 kiểu xem × chi tiết/tổng hợp + cấu hình cột + mặc định BHVAT/BHK, **kiểm trên DB thật đạt**, **đã commit local 05/10 (chung commit việc 50), CHƯA push / chưa phát hành** | Còn: Đại Ca bấm thử bản cấu hình cột + soi vài phiếu với mẫu 3.1 trên iPOS Chú Long · dòng `CO_GI_MOI.md` lúc phát hành · M3 (EXE) · **xoá ô `password` trong `config.json` khi Đại Ca báo xong đợt thử** (Đại Ca cho giữ trong đợt thử 03–04/10). Điểm mở: chi tiết cả tháng **8–10s/trang** (chưa tăng tốc) · 1366px thêm cột là kéo ngang · mỗi lần tick một cột thêm chưa có là tải lại 1 lần. Server thử 5052 (script trong scratchpad) **tự tắt sau ~2 giờ** — giới hạn chạy nền của công cụ, không phải lỗi app; tắt thì bật lại. Mục nhật ký *04/10/2026* + *03/10/2026 — BC017* |
+| 50 | ⏳ **Cấu hình cột 5 báo cáo + ghim cột / vừa khít cột 9 màn danh sách** (Đại Ca yêu cầu 05/10/2026). **Đợt 1 — cấu hình cột BC007 · BC008 · BC012 · BC015 · BC016: XONG** (Đại Ca bảo làm tiếp đợt 2). **Đợt 2 — ghim cột bất kỳ sát lề trái/phải + bấm đúp mép = vừa khít + nút "Vừa khít tất cả cột": XONG**, kiểm DB thật 9/9 màn. Đại Ca thử 05/10: OK, đổi icon ghim (mẫu ô bảng) + bỏ chú thích cuối hộp. ✅ **Phát hành `v2.1.1` 05/10/2026** (cập nhật thật 2.1.0 → 2.1.1 khớp SHA CI) | Còn: theo dõi nhân viên báo "đứng hình" sau khi Lọc (Chrome ngầm treo 3 lần lúc thử, chưa rõ gốc) · cột ghim phải lệch 4px ở Tồn kho thực tế khi cuộn chạm cuối. Server thử code mới: **cổng 5053** (`server_thu_5053.py` trong scratchpad phiên 05/10, chết theo phiên chat). Mục nhật ký *05/10/2026 (tối) — Việc 50 đợt 2* + *05/10/2026 — Việc 50 (đợt 1)* |
+| 49 | ⏳ **BC017 Báo cáo bán hàng** (mẫu iPOS 3.1, đối chiếu doanh thu) — 3 kiểu xem × chi tiết/tổng hợp + cấu hình cột + mặc định BHVAT/BHK, **kiểm trên DB thật đạt**, ✅ **phát hành `v2.1.1` 05/10/2026** | Còn: soi vài phiếu với mẫu 3.1 trên iPOS Chú Long · **tick quyền BC017 cho chức vụ nhân viên ở tab Phân quyền** (ADMIN tự có) · **xoá ô `password` trong `config.json` khi Đại Ca báo xong đợt thử** (Đại Ca cho giữ trong đợt thử 03–04/10). Điểm mở: chi tiết cả tháng **8–10s/trang** (chưa tăng tốc) · 1366px thêm cột là kéo ngang · mỗi lần tick một cột thêm chưa có là tải lại 1 lần. Server thử 5052 (script trong scratchpad) **tự tắt sau ~2 giờ** — giới hạn chạy nền của công cụ, không phải lỗi app; tắt thì bật lại. Mục nhật ký *04/10/2026* + *03/10/2026 — BC017* |
 | 48 | ⏳ **Chưa thử với Google THẬT: Tải lại khi quyền vừa bị đổi** (v2.1.0) | Đã thử bằng Google giả lập (9 ca) + giao diện server thử. Ca thật: quản trị đổi quyền tài khoản đang đăng nhập ở máy khác → máy đó bấm Tải lại ⇒ phải về màn đăng nhập kèm *"Quyền của tài khoản vừa được thay đổi…"*. Đại Ca chốt *"tạm thời ok"* 29/09 nhưng chưa nói đã thử ca này |
 | 47 | `Sync-And-Backup.ps1` đang là **UTF-8 KHÔNG BOM** dù có tiếng Việt | Bẫy 12: PowerShell 5.1 đọc sai. Script vốn không chạy trên máy này nên chưa ai thấy. Phát hiện 29/09 khi thêm file vào `$Files`. Sửa = lưu lại có BOM, thử chạy `-WhatIf`/không `-Commit` trên máy có thư mục cha |
 | 46 | **Nút Hủy cho hộp xuất của 9 màn danh sách** (CSV/Excel qua `startServerExport`) | Chỉ Nhật ký chung có Hủy + tạm dừng. Server đã sẵn (`_cho_neu_tam_dung` có ở vòng ghi CSV); còn thiếu giao diện. ⚠️ Xuất **CSV** vẫn ghi thẳng vào thư mục xuất (file lớn dần lúc đang ghi) — việc 44 chỉ sửa `.xlsx` |
@@ -166,6 +166,23 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 05/10/2026 (khuya) — Phát hành v2.1.1 (BC017 + việc 50)
+
+Đại Ca thử đợt 2 trên server xem 5051: chức năng OK → đổi icon ghim (mẫu A) → bỏ chú thích cuối hộp → *"commit luôn"* → *"phát hành luôn đi"*.
+- Trước push: Babel OK · 199 hàm, không trùng tên · quét route chưa khai quyền `[]` (76 route) · quét secret sạch · `config.json` vẫn bị
+  `.gitignore`. ⚠️ Skill `pre-push-qa` **không có** trong phiên này ⇒ chưa chạy; thử tài khoản không quản trị đã làm ở đợt 1 (403 đúng) — lượt
+  này không thử lại.
+- `CO_GI_MOI.md`: thêm `## v2.1.1` 5 dòng. Build `python build_exe.py iPOS_Accounting_Report` (tự tăng) ⇒ **2.1.1**. M3: `/api/version` 2.1.1,
+  trang dịch sẵn, 0 thẻ Babel, có icon ghim mới + BC017.
+- Commit `a9ba070` (code + tài liệu) + `1a8fe20` (số hiệu / CO_GI_MOI). Push `2dd96bb..1a8fe20` (git push thường) ⇒ Actions run
+  `37340710783` **`success`** ⇒ Release **`v2.1.1` = `Latest`**, tag → `1a8fe20`, digest EXE `f26268b8…` (13.708.235 B). `CO_GI_MOI.md` tại tag
+  có mục mới.
+- ✅ **Cập nhật thật 2.1.0 → 2.1.1** từ file CI v2.1.0 (`740b6eaa…`): `check_update` báo đúng 5 dòng · `apply_update` ⇒ **~10 giây** chạy 2.1.1
+  · `dist\` **SHA256 = digest CI** · `dist\` gọn 3 file · hết báo cập nhật · trang dịch sẵn. App để đang chạy. Bản build local 2.1.1 cất ở scratchpad.
+- ⚠️ **BC017 là mục quyền mới** ⇒ ADMIN thấy ngay; chức vụ khác phải được tick BC017 ở tab Phân quyền (Google tự tạo cột — Bẫy 22).
 
 ---
 

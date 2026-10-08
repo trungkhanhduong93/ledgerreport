@@ -16,8 +16,12 @@
 >   một lần), hiện tối đa 8 dòng, dư thì ghi "… và N thay đổi khác".
 > - Dòng không bắt đầu bằng `- ` (như khối ghi chú này) app bỏ qua.
 
+## v2.1.4
+- Thêm danh sách điểm sử dụng
+- Cập nhật hệ thống
+
 ## v2.1.3
-- Thanh bên trái: Báo cáo tài chính chuyển xuống cuối danh sách
+- Thêm danh sách điểm sử dụng
 - Cập nhật hệ thống
 
 ## v2.1.2

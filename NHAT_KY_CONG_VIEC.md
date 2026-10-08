@@ -3,7 +3,9 @@
 > Toàn bộ những gì đã làm với **LedgerReport**, và **vì sao**. Đọc file này trước khi sửa tiếp.
 > Kiến trúc, ma trận báo cáo, phương án backup: [CLAUDE.md](CLAUDE.md).
 > Mổ xẻ sâu sự cố + 4 bài học: [SU_CO_15082026.md](SU_CO_15082026.md).
-> 🚀 **Bản mới nhất: `v2.1.2` (06/10/2026)** — cột ghim phải hụt 4px khi cuộn chạm cuối.
+> 🚀 **Bản mới nhất: `v2.1.4` (08/10/2026)** — code y `v2.1.3`, chỉ viết lại "Có gì mới" (*Thêm danh sách điểm sử dụng* · *Cập nhật hệ thống*).
+>   `v2.1.3` (08/10) = **màn "Điểm sử dụng"** (việc 51, chỉ quản trị) + thanh bên: Báo cáo TC xuống cuối.
+>   `v2.1.2` (06/10) = cột ghim phải hụt 4px khi cuộn chạm cuối.
 >   `v2.1.1` (05/10) = **BC017 Báo cáo bán hàng** + cấu hình cột 5 báo cáo + ghim cột / vừa khít 9 màn danh sách (việc 49, 50).
 >   `v2.1.0` (29/09) = Đại Ca chốt lên **2.1** cho đợt tính năng mở app nhanh; code y `v2.0.9`.
 >   `v2.0.9` (29/09) = **mở app ~0,2s** (việc 24 dịch sẵn giao diện + việc 25 thư viện trong app) · Tải lại
@@ -17,8 +19,8 @@
 >   `v2.0.0` (25/09 tối) = **giao diện mới `DATA REPORT`** — Đại Ca chốt lên *Ver 2* ·
 >   `v2.0.1` (26/09) = **thông báo có bản mới kiểu mới** (hộp thoại + nút cam + thẻ nhắc, "Có gì mới" đọc `CO_GI_MOI.md`) ·
 >   `v2.0.2` (26/09) = **vá lỗi nhân viên thường không xuất được Excel Báo cáo TC** (có từ v2.0.0, Bẫy 30) + việc 9, 10, 23.
-> ✅ **EXE trên máy Đại Ca = đúng file CI v2.1.2** (SHA256 khớp digest) — lên bằng **đường cập nhật thật** từ file CI v2.1.1
->   (`/api/apply_update`, 06/10/2026). Thư mục làm việc đang ở `main`.
+> ✅ **EXE trên máy Đại Ca = đúng file CI v2.1.4** (SHA256 khớp digest) — lên bằng **đường cập nhật thật** CI v2.1.2 → 2.1.3 → 2.1.4
+>   (`/api/apply_update`, 08/10/2026). Thư mục làm việc đang ở `main`.
 > 🔑 Luật nghiệp vụ gốc chốt 24/09: iPOS **tự sinh** phiếu nhập `NDCNB` khi phiếu xuất `XDCNB` ghi sổ — đổi hẳn cách
 >   đọc tab đối chiếu điều chuyển. Xem các mục 24/09.
 > ✅ Tài khoản nhân viên trên Google Sheet + đổi mật khẩu `admin` + tick quyền 2 tab mới: **Đại Ca báo xong 25/09** (việc 1, 3, 4).
@@ -50,8 +52,8 @@
 
 > *Cập nhật 08/10/2026.* Gom hết việc còn treo về một chỗ. Nhận việc mới thì **đọc mục này trước**.
 > ⚠️ Tiêu đề mục này **cố ý không ghi ngày** — mọi đường dẫn `#-việc-cần-làm` trỏ vào nó; ghi ngày là gãy link.
-> Trạng thái: **v2.1.2 đã phát hành** (06/10/2026), là `Latest`, và **EXE trên máy Đại Ca = đúng file CI** (SHA256 khớp digest).
-> Đang dở: **việc 51** (màn Điểm sử dụng) — đã commit local 08/10, **chưa push, chưa build**; Code.gs `2026-10-08a` **đã triển khai (Version 6)**.
+> Trạng thái: **v2.1.4 đã phát hành** (08/10/2026), là `Latest`, và **EXE trên máy Đại Ca = đúng file CI** (SHA256 khớp digest).
+> Việc 51 (màn Điểm sử dụng) **đã phát hành v2.1.3/v2.1.4**; Apps Script **Version 6** `2026-10-08a`. Còn: thử tài khoản không phải ADMIN.
 >
 > ✅ **Từ v2.0.9 (việc 11) workflow có `paths-ignore`** — push CHỈ tài liệu (`**.md`, `docs/**`, `docs-cu/**`) **không build lại EXE**,
 > asset không đổi SHA ⇒ push nhật ký thoải mái. ⚠️ Commit đụng `.github/workflows/` thì `git push` thường bị từ chối (Git Credential
@@ -95,7 +97,7 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | 17 | ~~Nút `TRUY VẤN` đang chuyển màu navy → tím~~ ✅ **XONG 25/09** | Đại Ca chốt: chữ **"Lọc"**, navy đặc, như mẫu iPOS. Nằm trong thanh lọc mới của 9 màn danh sách |
 | 18 | ~~Chốt mốc commit phần đăng nhập nhanh + sửa font~~ ✅ **commit `c64540a`** | Phát hành v2.0.0 |
 | 19 | ~~Đại Ca xem GĐ3 rồi chốt commit~~ ✅ **Đại Ca chốt OK sáng 25/09** (*"cái đó thì ok rồi"*) ⇒ đã commit GĐ3 | ⚠️ Đại Ca chốt chung, **không nói rõ đã thử từng mục dưới đây chưa** — lần đầu dùng số liệu thật thì để ý. Danh sách cần xem ở mục *"Việc Đại Ca xem sáng 25/09"* trong nhật ký 25/09 (tiếp 3), ngay dưới § này. Ba việc tôi **không** tự thử được: hộp *"Chuyển mẫu báo cáo?"* khi có số liệu thật · menu **Xuất Excel / Xuất PDF** khi có số liệu (chưa có số liệu thì nút tắt) · kéo thả thứ tự ô lọc bằng chuột thật. Và **đọc lại mô tả 16 thẻ** — tôi tự viết |
-| 51 | ⏳ **Màn "Điểm sử dụng"** — danh sách điểm dùng phần mềm kế toán + thời hạn bảo trì (Đại Ca yêu cầu 08/10/2026). **Code xong, thử đạt** (Code.gs giả lập 35/35 · M2 DB thật 29/29 · giao diện 1366px), **đã commit local 08/10 (CHƯA push), CHƯA build** | ✅ Code.gs `2026-10-08a` **đã triển khai Version 6** (08/10 22:25). ✅ Google thật (ADMIN): đồng bộ 86 dòng + gia hạn 72 dòng + lưu 7 dòng, đọc lại 86/86 đúng (08/10 23:00). Còn: thử tài khoản **không phải ADMIN** · CO_GI_MOI + build + phát hành (hỏi trước khi push) · gia hạn kỳ BTKT mới cho 72 dòng (hết hạn 09/10/2026). Mục nhật ký *08/10/2026 — Việc 51* |
+| 51 | ✅ **Màn "Điểm sử dụng"** — danh sách điểm dùng phần mềm kế toán + thời hạn bảo trì (Đại Ca yêu cầu 08/10/2026). **Phát hành v2.1.3 (+ v2.1.4 sửa "Có gì mới") 08/10/2026**, Apps Script Version 6, Google thật đã đồng bộ 86 dòng + điền kỳ 79 dòng | ✅ Code.gs `2026-10-08a` **đã triển khai Version 6** (08/10 22:25). ✅ Google thật (ADMIN): đồng bộ 86 dòng + gia hạn 72 dòng + lưu 7 dòng, đọc lại 86/86 đúng (08/10 23:00). Còn: thử tài khoản **không phải ADMIN** · CO_GI_MOI + build + phát hành (hỏi trước khi push) · gia hạn kỳ BTKT mới cho 72 dòng (hết hạn 09/10/2026). Mục nhật ký *08/10/2026 — Việc 51* |
 | 50 | ⏳ **Cấu hình cột 5 báo cáo + ghim cột / vừa khít cột 9 màn danh sách** (Đại Ca yêu cầu 05/10/2026). **Đợt 1 — cấu hình cột BC007 · BC008 · BC012 · BC015 · BC016: XONG** (Đại Ca bảo làm tiếp đợt 2). **Đợt 2 — ghim cột bất kỳ sát lề trái/phải + bấm đúp mép = vừa khít + nút "Vừa khít tất cả cột": XONG**, kiểm DB thật 9/9 màn. Đại Ca thử 05/10: OK, đổi icon ghim (mẫu ô bảng) + bỏ chú thích cuối hộp. ✅ **Phát hành `v2.1.1` 05/10/2026** (cập nhật thật 2.1.0 → 2.1.1 khớp SHA CI) | ✅ Lệch 4px cột ghim phải: **đã sửa** (tay kéo cột cuối thò ra ngoài bảng) — ✅ **phát hành `v2.1.2` 06/10/2026**. "Đứng hình": thử lại 88 lượt bằng dữ liệu giả **không tái hiện được**, giả thuyết làm mờ nền **bị bác** ⇒ chỉ còn theo dõi nếu nhân viên báo. Mục *05/10/2026 (khuya, tiếp)*. Server thử code mới: **cổng 5053** (`server_thu_5053.py` trong scratchpad phiên 05/10, chết theo phiên chat). Mục nhật ký *05/10/2026 (tối) — Việc 50 đợt 2* + *05/10/2026 — Việc 50 (đợt 1)* |
 | 49 | ⏳ **BC017 Báo cáo bán hàng** (mẫu iPOS 3.1, đối chiếu doanh thu) — 3 kiểu xem × chi tiết/tổng hợp + cấu hình cột + mặc định BHVAT/BHK, **kiểm trên DB thật đạt**, ✅ **phát hành `v2.1.1` 05/10/2026** | Còn: soi vài phiếu với mẫu 3.1 trên iPOS Chú Long · **tick quyền BC017 cho chức vụ nhân viên ở tab Phân quyền** (ADMIN tự có) — hai việc này Đại Ca làm. ✅ Ô `password` trong `config.json` **đã xoá 05/10** (Đại Ca bảo) ⇒ thử DB thật lần sau phải điền lại. Điểm mở: chi tiết cả tháng **8–10s/trang** (chưa tăng tốc) · 1366px thêm cột là kéo ngang · mỗi lần tick một cột thêm chưa có là tải lại 1 lần. Server thử 5052 (script trong scratchpad) **tự tắt sau ~2 giờ** — giới hạn chạy nền của công cụ, không phải lỗi app; tắt thì bật lại. Mục nhật ký *04/10/2026* + *03/10/2026 — BC017* |
 | 48 | ⏳ **Chưa thử với Google THẬT: Tải lại khi quyền vừa bị đổi** (v2.1.0) | Đã thử bằng Google giả lập (9 ca) + giao diện server thử. Ca thật: quản trị đổi quyền tài khoản đang đăng nhập ở máy khác → máy đó bấm Tải lại ⇒ phải về màn đăng nhập kèm *"Quyền của tài khoản vừa được thay đổi…"*. Đại Ca chốt *"tạm thời ok"* 29/09 nhưng chưa nói đã thử ca này |
@@ -170,6 +172,27 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 08/10/2026 (khuya) — Phát hành v2.1.3 + v2.1.4 (màn Điểm sử dụng · sửa "Có gì mới")
+
+Đại Ca: *"làm các phần còn lại đi nha, phát hành luôn để done"*.
+- **v2.1.3:** push `bc17c21..819a739` (3 commit `c8cb929` · `a328214` · `819a739`) ⇒ Actions run `37810460023` **`success`** (~1,5 phút)
+  ⇒ Release **`v2.1.3`**, tag → `819a739`, digest EXE `5253c621…` (13.725.350 B). **Cập nhật thật**: tải file CI v2.1.2 (SHA = digest
+  `907a7481…`) vào `dist\` (bản build local 2.1.3 cất ở scratchpad) → chạy → `check_update` báo v2.1.3 → `apply_update` **~14s** ⇒
+  2.1.3, `dist\` SHA = digest CI, gọn 3 file, hết báo cập nhật, trang dịch sẵn.
+- ⚠️ **Đại Ca thấy hộp thoại cập nhật ghi *"Thanh bên trái: Báo cáo tài chính chuyển xuống cuối danh sách"*** ⇒ chốt: *"phải là thêm danh
+  sách điểm sử dụng và cập nhật hệ thống mới đúng"*. App đọc `CO_GI_MOI.md` **tại tag** ⇒ v2.1.3 không sửa được ⇒ ra **v2.1.4 code y
+  v2.1.3** (như v2.0.4). Mục `## v2.1.4` + `## v2.1.3` đều = *Thêm danh sách điểm sử dụng* · *Cập nhật hệ thống* (hàm `_tach_co_gi_moi`
+  xếp bản mới trước ⇒ nếu v2.1.4 chỉ có "Cập nhật hệ thống" thì dòng đó đứng TRƯỚC — mô phỏng thấy, nên ghi đủ 2 dòng đúng thứ tự).
+  **Số hiệu tăng TAY** (`version.txt` + `version_info.txt`): app 2.1.3 đang chạy ở `dist\` ⇒ không build đè (Bẫy 10); code không đổi.
+- **v2.1.4:** push `819a739..6068716` ⇒ run `37811273435` **`success`** ⇒ Release **`v2.1.4` = `Latest`**, tag → `6068716`, digest EXE
+  `deaf52d7…` (13.724.672 B), `CO_GI_MOI.md` tại tag đúng 2 dòng. **Cập nhật thật 2.1.3 → 2.1.4**: hộp thoại (đọc từ GitHub) đúng 2 dòng ·
+  **~7s** · `dist\` **SHA = digest CI** · gọn 3 file · hết báo cập nhật · trang dịch sẵn. App để đang chạy.
+- Đã tắt server xem 5051 + đóng tab Chrome của agent. Bảng *Lịch sử push* (`GITHUB_LEDGERREPORT.md`, ngoài repo) đã thêm 3 dòng.
+- ⏭️ Còn: thử **tài khoản không phải ADMIN** (chưa tick ⇒ không thấy màn; tick `diem_su_dung` ⇒ vào được) — cần Đại Ca đăng nhập.
+  7 điểm để trống ngày (03, 71, 73, 76, 77, 78, 79) Đại Ca tự điền. 72 dòng trong danh sách hết hạn 09/10/2026 ⇒ gia hạn khi HĐ BTKT chốt.
 
 ---
 

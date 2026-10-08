@@ -2,8 +2,9 @@
 
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
-> 🆕 **08/10/2026 — Việc 51: màn "Điểm sử dụng"** (danh sách điểm dùng phần mềm + thời hạn bảo trì, chỉ ADMIN) — **commit local,
-> CHƯA push / build**. ✅ **Apps Script đã triển khai Version 6 `2026-10-08a` (08/10/2026 22:25)**, `ping` OK. Xem nhật ký việc 51.
+> ✅ **v2.1.4 — ĐÃ PHÁT HÀNH 08/10/2026, `Latest`, EXE máy Đại Ca = file CI** — code y `v2.1.3`, chỉ viết lại "Có gì mới".
+> 🆕 **08/10/2026 — Việc 51: màn "Điểm sử dụng"** (danh sách điểm dùng phần mềm + thời hạn bảo trì, chỉ ADMIN) + thanh bên: Báo cáo TC
+> **luôn cuối** — ✅ **phát hành `v2.1.3`**. ✅ **Apps Script Version 6 `2026-10-08a`** (08/10/2026 22:25). Xem nhật ký việc 51.
 > 🆕 **02–04/10/2026 — BC017 Báo cáo bán hàng** (mẫu iPOS 3.1, đối chiếu doanh thu): 3 kiểu xem × chi tiết/tổng hợp + cấu hình cột,
 > kiểm trên DB thật — ✅ **phát hành trong `v2.1.1` (05/10/2026)** — xem § 1.2 *BC017* + nhật ký việc 49.
 > 🆕 **05/10/2026 — Việc 50**: đợt 1 **cấu hình cột BC007 · BC008 · BC012 · BC015 · BC016** (khuôn BC017) + đợt 2 **ghim cột bất kỳ
@@ -11,7 +12,7 @@
 > § 1.1 *Cột của 9 bảng* + nhật ký việc 50.
 > ✅ **v2.1.2 — ĐÃ PHÁT HÀNH 06/10/2026, `Latest`, EXE máy Đại Ca = file CI** (cột ghim phải hụt 4px khi cuộn chạm cuối). Mục nhật ký *06/10/2026 — Phát hành v2.1.2*.
 > ✅ **v2.1.1 — 05/10/2026** (BC017 + việc 50). Mục nhật ký *05/10/2026 (khuya) — Phát hành v2.1.1*.
-> Cập nhật gần nhất: **06/10/2026** · **Bản mới nhất: `v2.1.2`** · `v2.1.0` (= code `v2.0.9`, Đại Ca chốt lên 2.1 — xem dòng ✅ v2.0.9 ngay dưới) · v2.0.6: **việc 41** đồng hồ đếm ngược khi xuất Excel Nhật ký chung
+> Cập nhật gần nhất: **08/10/2026** · **Bản mới nhất: `v2.1.4`** · `v2.1.0` (= code `v2.0.9`, Đại Ca chốt lên 2.1 — xem dòng ✅ v2.0.9 ngay dưới) · v2.0.6: **việc 41** đồng hồ đếm ngược khi xuất Excel Nhật ký chung
 > (đo + thử giao diện trên DB thật; bắt được lỗi làm hỏng hẳn xuất Excel chi tiết — **Bẫy 31**) + **việc 42** đăng nhập nhanh không
 > còn đá người ra khi Google chỉ là chưa trả lời được. Mục nhật ký *29/09/2026 — Phát hành v2.0.6*. EXE trên máy Đại Ca = đúng file CI.
 > Mục *28/09/2026 (khuya)*: **Đại Ca giữ Google Sheet, không chuyển Supabase** — đọc lý do trước khi đề xuất lại.

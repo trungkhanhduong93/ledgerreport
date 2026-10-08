@@ -23,8 +23,7 @@
 >   đọc tab đối chiếu điều chuyển. Xem các mục 24/09.
 > ✅ Tài khoản nhân viên trên Google Sheet + đổi mật khẩu `admin` + tick quyền 2 tab mới: **Đại Ca báo xong 25/09** (việc 1, 3, 4).
 > 🟡 **Việc 7 — lọc 2 chiều tab điều chuyển: đã phát hành trong v2.0.0, CHƯA có xác nhận thử với số liệu thật.**
-> Apps Script trên Google: **Version 5** (21/09/2026 19:33), mã bản `2026-09-21c` — **đã triển khai**.
-> 🔴 **`Code.gs` trong repo đã lên `2026-10-08a` (việc 51, 08/10/2026) — CHƯA triển khai lên Google.** Xem mục *08/10/2026 — Việc 51*.
+> Apps Script trên Google: **Version 6** (08/10/2026 22:25), mã bản `2026-10-08a` (việc 51) — **đã triển khai**, `ping` OK, token khớp.
 >
 > 📌 **Việc còn treo gom ở ngay dưới: [§ VIỆC CẦN LÀM](#-việc-cần-làm).**
 >
@@ -52,7 +51,7 @@
 > *Cập nhật 08/10/2026.* Gom hết việc còn treo về một chỗ. Nhận việc mới thì **đọc mục này trước**.
 > ⚠️ Tiêu đề mục này **cố ý không ghi ngày** — mọi đường dẫn `#-việc-cần-làm` trỏ vào nó; ghi ngày là gãy link.
 > Trạng thái: **v2.1.2 đã phát hành** (06/10/2026), là `Latest`, và **EXE trên máy Đại Ca = đúng file CI** (SHA256 khớp digest).
-> Đang dở: **việc 51** (màn Điểm sử dụng) — đã commit local 08/10, **chưa push, chưa build, Code.gs `2026-10-08a` chưa triển khai**.
+> Đang dở: **việc 51** (màn Điểm sử dụng) — đã commit local 08/10, **chưa push, chưa build**; Code.gs `2026-10-08a` **đã triển khai (Version 6)**.
 >
 > ✅ **Từ v2.0.9 (việc 11) workflow có `paths-ignore`** — push CHỈ tài liệu (`**.md`, `docs/**`, `docs-cu/**`) **không build lại EXE**,
 > asset không đổi SHA ⇒ push nhật ký thoải mái. ⚠️ Commit đụng `.github/workflows/` thì `git push` thường bị từ chối (Git Credential
@@ -96,7 +95,7 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | 17 | ~~Nút `TRUY VẤN` đang chuyển màu navy → tím~~ ✅ **XONG 25/09** | Đại Ca chốt: chữ **"Lọc"**, navy đặc, như mẫu iPOS. Nằm trong thanh lọc mới của 9 màn danh sách |
 | 18 | ~~Chốt mốc commit phần đăng nhập nhanh + sửa font~~ ✅ **commit `c64540a`** | Phát hành v2.0.0 |
 | 19 | ~~Đại Ca xem GĐ3 rồi chốt commit~~ ✅ **Đại Ca chốt OK sáng 25/09** (*"cái đó thì ok rồi"*) ⇒ đã commit GĐ3 | ⚠️ Đại Ca chốt chung, **không nói rõ đã thử từng mục dưới đây chưa** — lần đầu dùng số liệu thật thì để ý. Danh sách cần xem ở mục *"Việc Đại Ca xem sáng 25/09"* trong nhật ký 25/09 (tiếp 3), ngay dưới § này. Ba việc tôi **không** tự thử được: hộp *"Chuyển mẫu báo cáo?"* khi có số liệu thật · menu **Xuất Excel / Xuất PDF** khi có số liệu (chưa có số liệu thì nút tắt) · kéo thả thứ tự ô lọc bằng chuột thật. Và **đọc lại mô tả 16 thẻ** — tôi tự viết |
-| 51 | ⏳ **Màn "Điểm sử dụng"** — danh sách điểm dùng phần mềm kế toán + thời hạn bảo trì (Đại Ca yêu cầu 08/10/2026). **Code xong, thử đạt** (Code.gs giả lập 35/35 · M2 DB thật 29/29 · giao diện 1366px), **đã commit local 08/10 (CHƯA push), CHƯA build** | 🔴 **Code.gs bản `2026-10-08a` CHƯA triển khai** — Đại Ca làm qua `chuan_bi_deploy.py` (Bẫy 19, 23), rồi thử trên Google thật. Sau đó CO_GI_MOI + phát hành (hỏi trước khi push). Mục nhật ký *08/10/2026 — Việc 51* |
+| 51 | ⏳ **Màn "Điểm sử dụng"** — danh sách điểm dùng phần mềm kế toán + thời hạn bảo trì (Đại Ca yêu cầu 08/10/2026). **Code xong, thử đạt** (Code.gs giả lập 35/35 · M2 DB thật 29/29 · giao diện 1366px), **đã commit local 08/10 (CHƯA push), CHƯA build** | ✅ Code.gs `2026-10-08a` **đã triển khai Version 6** (08/10 22:25). ✅ Google thật (ADMIN): đồng bộ 86 dòng + gia hạn 72 dòng + lưu 7 dòng, đọc lại 86/86 đúng (08/10 23:00). Còn: thử tài khoản **không phải ADMIN** · CO_GI_MOI + build + phát hành (hỏi trước khi push) · gia hạn kỳ BTKT mới cho 72 dòng (hết hạn 09/10/2026). Mục nhật ký *08/10/2026 — Việc 51* |
 | 50 | ⏳ **Cấu hình cột 5 báo cáo + ghim cột / vừa khít cột 9 màn danh sách** (Đại Ca yêu cầu 05/10/2026). **Đợt 1 — cấu hình cột BC007 · BC008 · BC012 · BC015 · BC016: XONG** (Đại Ca bảo làm tiếp đợt 2). **Đợt 2 — ghim cột bất kỳ sát lề trái/phải + bấm đúp mép = vừa khít + nút "Vừa khít tất cả cột": XONG**, kiểm DB thật 9/9 màn. Đại Ca thử 05/10: OK, đổi icon ghim (mẫu ô bảng) + bỏ chú thích cuối hộp. ✅ **Phát hành `v2.1.1` 05/10/2026** (cập nhật thật 2.1.0 → 2.1.1 khớp SHA CI) | ✅ Lệch 4px cột ghim phải: **đã sửa** (tay kéo cột cuối thò ra ngoài bảng) — ✅ **phát hành `v2.1.2` 06/10/2026**. "Đứng hình": thử lại 88 lượt bằng dữ liệu giả **không tái hiện được**, giả thuyết làm mờ nền **bị bác** ⇒ chỉ còn theo dõi nếu nhân viên báo. Mục *05/10/2026 (khuya, tiếp)*. Server thử code mới: **cổng 5053** (`server_thu_5053.py` trong scratchpad phiên 05/10, chết theo phiên chat). Mục nhật ký *05/10/2026 (tối) — Việc 50 đợt 2* + *05/10/2026 — Việc 50 (đợt 1)* |
 | 49 | ⏳ **BC017 Báo cáo bán hàng** (mẫu iPOS 3.1, đối chiếu doanh thu) — 3 kiểu xem × chi tiết/tổng hợp + cấu hình cột + mặc định BHVAT/BHK, **kiểm trên DB thật đạt**, ✅ **phát hành `v2.1.1` 05/10/2026** | Còn: soi vài phiếu với mẫu 3.1 trên iPOS Chú Long · **tick quyền BC017 cho chức vụ nhân viên ở tab Phân quyền** (ADMIN tự có) — hai việc này Đại Ca làm. ✅ Ô `password` trong `config.json` **đã xoá 05/10** (Đại Ca bảo) ⇒ thử DB thật lần sau phải điền lại. Điểm mở: chi tiết cả tháng **8–10s/trang** (chưa tăng tốc) · 1366px thêm cột là kéo ngang · mỗi lần tick một cột thêm chưa có là tải lại 1 lần. Server thử 5052 (script trong scratchpad) **tự tắt sau ~2 giờ** — giới hạn chạy nền của công cụ, không phải lỗi app; tắt thì bật lại. Mục nhật ký *04/10/2026* + *03/10/2026 — BC017* |
 | 48 | ⏳ **Chưa thử với Google THẬT: Tải lại khi quyền vừa bị đổi** (v2.1.0) | Đã thử bằng Google giả lập (9 ca) + giao diện server thử. Ca thật: quản trị đổi quyền tài khoản đang đăng nhập ở máy khác → máy đó bấm Tải lại ⇒ phải về màn đăng nhập kèm *"Quyền của tài khoản vừa được thay đổi…"*. Đại Ca chốt *"tạm thời ok"* 29/09 nhưng chưa nói đã thử ca này |
@@ -174,7 +173,65 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 
 ---
 
-## 08/10/2026 — Việc 51: màn "Điểm sử dụng" (điểm đang dùng phần mềm kế toán + thời hạn bảo trì) · ✅ commit local (CHƯA push) · ⚠️ Apps Script CHƯA TRIỂN KHAI
+## 08/10/2026 (khuya) — Thanh bên: Điểm sử dụng lên trên, Báo cáo TC xuống cuối · build v2.1.3
+
+Đại Ca: *"chổ thanh tác vụ thì điểm sử dụng đưa lên trên, báo cáo tài chính nằm dưới cuối cùng, làm các phần việc còn lại luôn đi"*.
+- `index.html` — `PHAN_HE`: đổi chỗ `diemsudung` ↔ `baocao` ⇒ cột phân hệ + thẻ Trang chủ: … Kho · Điểm sử dụng · **Báo cáo tài chính**
+  (cuối); Phân quyền vẫn **sát đáy cột** (khối riêng). Nhánh "Khác" (`ds.length - 1`) lại chèn **ngay trước Báo cáo TC** như trước việc 51.
+  Người không có quyền `diem_su_dung` chỉ thấy Báo cáo TC chuyển xuống cuối.
+- Kiểm: Babel OK · `ast` OK · 206 hàm / 80 route, không trùng · route chưa khai quyền `[]` · quét secret sạch (chỉ chữ "token" trong
+  nhật ký) · xem trên server 5051 (ảnh: cột trái đúng thứ tự). `CO_GI_MOI.md` `## v2.1.3`: *"Thanh bên trái: Báo cáo tài chính chuyển
+  xuống cuối danh sách"* + *"Cập nhật hệ thống"* (màn Điểm sử dụng chỉ quản trị thấy) — mô phỏng `_tach_co_gi_moi`: máy 2.1.2 thấy 2 dòng.
+- Build `python build_exe.py iPOS_Accounting_Report` ⇒ **2.1.3** (23:31). **M3:** chạy EXE tách hẳn ⇒ `/api/version` 2.1.3 · trang dịch sẵn,
+  0 thẻ `text/babel` · bản dịch có `diemsudung` đứng trước `baocao` ⇒ tắt EXE thử.
+- ⚠️ Chưa thử tài khoản **không phải ADMIN** trên Google thật (cần Đại Ca đăng nhập tài khoản nhân viên — agent không gõ mật khẩu);
+  phía máy chủ đã thử 403 ở M2 (việc 51).
+
+---
+
+## 08/10/2026 — Việc 51: màn "Điểm sử dụng" (điểm đang dùng phần mềm kế toán + thời hạn bảo trì) · ✅ commit local (CHƯA push) · ✅ Apps Script Version 6
+
+> **Triển khai Apps Script 08/10/2026 22:25 — Version 6, cùng Deployment ID** (`AKfycbx8Zr…`, khớp `server.py` + `ketnoi.json`),
+> `ping` ⇒ `{"ok": true, "ban": "2026-10-08a"}`. Cách làm (Đại Ca bảo tự xử, mở sẵn Chrome): đối chiếu bản trong trình soạn với git
+> `HEAD~1` bằng SHA-256 **ngay trong trang** (chuẩn hoá dòng token về chuỗi giữ chỗ — khớp, tức Google = Version 5 không ai sửa tay) ·
+> dán Code.gs repo vào ô tạm + so SHA-256 (khớp) · ghi vào Monaco **dòng 1–35 và 37–hết, KHÔNG đụng dòng 36 (`const TOKEN`)** ⇒ token
+> thật không đi qua clipboard / khung chat · so SHA-256 lần nữa (khớp repo trừ dòng token) · Lưu · Quản lý bản triển khai → ✏️ → Phiên
+> bản mới. Nút **Deploy cuối do Đại Ca bấm** (chế độ tự động chặn agent triển khai bản đang chạy thật).
+>
+> **Đại Ca hỏi: "Ngày bắt đầu" lấy được từ log ngày thêm đơn vị không? ⇒ KHÔNG.** Đo DB thật 08/10:
+> - `DM_ORGANIZATION` / `ORGANIZATION_MAPPING` **không có cột ngày** nào.
+> - `LOGGING` ghi thêm/sửa `DM_ITEM`, `DM_JOB`, `DM_WAREHOUSE`, `DM_PR_DETAIL`, `organization_mapping` (gắn máy POS ↔ đơn vị ↔ người
+>   dùng)… nhưng **không có một dòng nào về thêm `DM_ORGANIZATION`** — cả `IACC_CHULONG` (log từ 17/05/2026) lẫn `IACC_CHULONG_2025`
+>   (log từ 05/09/2025). Dò `LIKE` trên 3 triệu dòng LOGGING mất ~143s, nhóm theo tên bảng ~14s.
+> - Log gắn máy POS **muộn hơn** ngày bán đầu (đơn vị 80: bán 28/08, log 03/09; 82: bán 05/10, log 08/10) ⇒ không dùng làm ngày bắt đầu.
+> - Gần nhất là **ngày bán đầu tiên của máy POS** (`SALE.WORKSTATION_ID`, gộp 2 DB: `IACC_CHULONG_2025` SALE từ 09/01/2025 +
+>   `IACC_CHULONG`): **~66/86 dòng rơi vào 25/08–01/09/2025** = đợt nối POS vào kế toán đồng loạt ⇒ chỉ biết "dùng từ trước"; ~16 điểm mở
+>   sau đó có ngày tin được (vd 19 → 01/11/2025 · 74 → 17/01/2026 · 03 → 23/03/2026 · 82 → 05/10/2026).
+> - ⚠️ **7 mã đơn vị bị đổi tên / dùng lại giữa 2 DB** (01, 03, 43, 60, 71, 72, 73 — vd `72` năm 2025 là xưởng *XU-BTA-8C*, nay là
+>   *HKD Nông Sản Việt*) ⇒ ngày theo **mã đơn vị** của năm cũ có thể là của đơn vị khác; phải theo **máy POS**.
+> - **Soi lại kỹ (Đại Ca hỏi lần 2):** lập *từ điển mọi dạng dòng* LOGGING của cả 2 DB (~20.000 dạng, bỏ chứng từ theo `SYS_TRAN`) ⇒ **không
+>   có dạng nào là thêm/sửa đơn vị**. Nhưng **suy gián tiếp được** = lần đầu mã đơn vị xuất hiện trong log (tạo kho `Org:xx`, tài khoản
+>   `Đơn vị:xx`, gắn máy POS, chứng từ đầu tiên) — chỉ có nghĩa với mã tạo **sau khi log bắt đầu**: `74` ≤ 18/12/2025 15:18 · `75` ≤
+>   26/12/2025 14:12 · `80`, `81` sáng 21/07/2026 (kho tạo 09:22/09:23, `DM_JOB` 09:00) · `82` 18/09/2026 trong khoảng 10:04–15:47 (kho
+>   `CH.00081` tạo lúc 10:04 còn `Org:00`, 15:47 chuyển `Org:00->82`) · xưởng `69`–`73` 13–17/09/2025 (⚠️ `71`–`73` sau này đổi thành cửa
+>   hàng ⇒ ngày tạo mã ≠ ngày mở). Mã `01`–`68`, `76`–`79` có từ trước khi log bắt đầu ⇒ không biết. Ngày tạo mã **sớm hơn** ngày bán đầu
+>   vài tuần (`80`: tạo 21/07, bán 28/08) ⇒ hai mốc khác nghĩa. Script: `do_lan_dau_log.py` (scratchpad phiên c02ece56).
+> - ✅ **Đại Ca chốt + đã điền 08/10/2026 23:00 trên Google THẬT** (server xem 5051, Đại Ca tự đăng nhập + tự bấm **Đồng bộ** lần
+>   đầu 22:31 ⇒ **86 dòng**): **72 dòng có trong `Danh sách điểm bảo trì_TỔNG_MÃ POS.xlsx`** (67 máy POS khớp mã POS + 5 dòng không POS:
+>   VPCTY↔01, CHSVAM↔66, XUHUDTD↔69, XUHN111TD↔70, XUBTA8C↔72 — kể cả 4 dòng 0 đồng) ⇒ **10/10/2025 – 09/10/2026** (1 lần gọi
+>   `gia_han`). **7 điểm ngoài danh sách có ngày tạo kho trong log** ⇒ từ ngày tạo kho, hết hạn +12 tháng − 1 ngày (7 lần `luu`):
+>   19 22/10/2025 · 06 21/11/2025 · 12 24/11/2025 · 74 18/12/2025 · 75 25/12/2025 · 80 21/07/2026 · 82 18/09/2026. **7 điểm kho tạo
+>   trước khi log bắt đầu ⇒ để trống** (Đại Ca chốt): 03, 71, 73, 76, 77, 78, 79. Đọc lại từ Sheet: **86/86 đúng**, lần BT = 1, không lịch
+>   sử. ⚠️ 72 dòng danh sách hết hạn **09/10/2026** ⇒ màn hiện *"Còn 1 ngày"* — gia hạn kỳ BTKT mới khi hợp đồng chốt.
+>   Ghi qua đúng API của app (`/api/diem_su_dung/gia_han`, `/luu`) từ tab đã đăng nhập; lệnh JS quá 45s của công cụ nhưng cả 8 request
+>   xong (log server 200) — **không chạy lại**, đọc Sheet đối chiếu.
+> - **7 điểm để trống — soi thêm (Đại Ca hỏi):** kho + mã CV của cả 7 **chỉ có ở DB 2026** (DB 2025 không có) ⇒ tạo trong khoảng
+>   01/01–17/05/2026, đúng quãng LOGGING DB 2026 **không còn** (log bắt đầu 17/05/2026 15:01). Quét LOGGING mọi dòng nhắc mã kho / mã CV /
+>   POS (bỏ kiểm kê, ~175s/DB): sớm nhất là người dùng cửa hàng sửa tài khoản 17–18/05 ⇒ đã có từ trước. `SEC_LOG` chỉ là log đăng nhập
+>   phần mềm cũ 2013–2016. Mốc gần nhất = **chứng từ kho đầu tiên** (`dbo.WAREHOUSE`): 03 16/03 · 73 25/03 · 71 28/03 · 76, 77 21/04 ·
+>   79 16/05 (bán 13/05) · 78 18/06/2026. Đo trên 7 điểm biết ngày tạo: kho tạo **trước** chứng từ kho đầu tiên **2–36 ngày** (19: +2,
+>   75: +2, 12: +5, 82: +15, 06: +16, 74: +21, 80: +36) ⇒ chỉ là mốc muộn, không phải ngày tạo.
+>   ⇒ **Đại Ca chốt: 7 điểm này để trống, Đại Ca tự điền** (08/10/2026). Không ghi gì thêm lên Sheet.
 
 > **Commit local 08/10/2026** (Đại Ca duyệt, chưa push). Kiểm trước commit: `ast` OK · Babel OK · Code.gs dịch được · quét route chưa
 > khai quyền `[]` · quét secret sạch (chỉ 2 chú thích nhắc tên cột `PASSWORD`/`TOKEN`) · Code.gs vẫn giữ chuỗi giữ chỗ `TOKEN` /
@@ -227,7 +284,7 @@ Kho tổng HN `78`, Seven AM, 3 xưởng) · 1 dòng thiếu mã CV (`66` Seven 
   (hiện *"Từ DB lúc thêm dòng"*) · hỏi trước khi bỏ thay đổi · gia hạn 1 dòng + 3 dòng · lịch sử *"Lần 1"* · tìm không dấu · sắp theo cột Còn.
   **Sửa trong lúc thử:** cột Ghi chú bị ép còn **41px**, tiêu đề đè cột Sửa ⇒ cộng lại độ rộng còn **157px** · hộp kết quả hiện trước khi bảng nạp
   xong ⇒ đổi thứ tự · nhãn ô ngày IN HOA ⇒ chữ thường · dấu "—" lơ lửng dưới ô hết hạn trống ⇒ bỏ.
-- ❌ **Chưa:** M3 (EXE) · **Google THẬT** (Code.gs chưa triển khai) · tài khoản không phải ADMIN trên Google thật.
+- ❌ **Chưa:** M3 (EXE) · **Google THẬT** (Code.gs đã triển khai 08/10 22:25, chờ thử) · tài khoản không phải ADMIN trên Google thật.
 
 **⏭️ Còn**
 1. **Đại Ca triển khai Code.gs**: `python phanquyen_gas/chuan_bi_deploy.py` → dán → *Triển khai → Quản lý bản triển khai → ✏️ → Phiên bản mới*

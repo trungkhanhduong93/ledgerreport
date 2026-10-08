@@ -5206,12 +5206,13 @@ window.showConnectionLost = function() {
                   mo_ta: 'Chứng từ bán hàng, nhập kho và danh sách PO', mau: { nen: '#fff7ed', chu: '#c2410c' } },
                 { id: 'kho',     ten: 'Kho',        icon: 'archive',    tabs: ['warehouse', 'warehouse_balance', 'btp_reconcile', 'dcnb_reconcile'],
                   mo_ta: 'Chứng từ kho, tồn thực tế và hai bảng đối chiếu xuất – nhập', mau: { nen: '#ecfeff', chu: '#0e7490' } },
-                { id: 'baocao',  ten: 'Báo cáo TC', icon: 'chart-line', tabs: null,   // trang liệt kê thẻ, xem DanhSachBaoCao
-                  ten_day: 'Báo cáo tài chính',
-                  mo_ta: 'KQKD, cân đối kế toán, lưu chuyển tiền tệ, công nợ, thuế', mau: { nen: '#f5f3ff', chu: '#6d28d9' } },
                 // Việc 51 (08/10/2026): màn riêng, khai ở MAN_RIENG. Mặc định chỉ ADMIN thấy (mã quyền 'diem_su_dung').
                 { id: 'diemsudung', ten: 'Điểm sử dụng', icon: 'map-pin', tabs: ['diem_su_dung'],
                   mo_ta: 'Điểm đang dùng phần mềm kế toán và thời hạn bảo trì', mau: { nen: '#f0fdf4', chu: '#15803d' } },
+                // Báo cáo TC luôn CUỐI danh sách phân hệ (Đại Ca chốt 08/10/2026) — "Khác" chèn ngay trước nó.
+                { id: 'baocao',  ten: 'Báo cáo TC', icon: 'chart-line', tabs: null,   // trang liệt kê thẻ, xem DanhSachBaoCao
+                  ten_day: 'Báo cáo tài chính',
+                  mo_ta: 'KQKD, cân đối kế toán, lưu chuyển tiền tệ, công nợ, thuế', mau: { nen: '#f5f3ff', chu: '#6d28d9' } },
             ];
             const daGan = new Set(ds.flatMap(p => p.tabs || []));
             const conLai = DOC_TABS.map(t => t.id).filter(id => !daGan.has(id));

@@ -3,7 +3,7 @@
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
 > 🆕 **08/10/2026 — Việc 51: màn "Điểm sử dụng"** (danh sách điểm dùng phần mềm + thời hạn bảo trì, chỉ ADMIN) — **commit local,
-> CHƯA push / build**. ⚠️ **`Code.gs` trong repo = `2026-10-08a`, trên Google vẫn Version 5 `2026-09-21c`** — chưa triển khai. Xem nhật ký việc 51.
+> CHƯA push / build**. ✅ **Apps Script đã triển khai Version 6 `2026-10-08a` (08/10/2026 22:25)**, `ping` OK. Xem nhật ký việc 51.
 > 🆕 **02–04/10/2026 — BC017 Báo cáo bán hàng** (mẫu iPOS 3.1, đối chiếu doanh thu): 3 kiểu xem × chi tiết/tổng hợp + cấu hình cột,
 > kiểm trên DB thật — ✅ **phát hành trong `v2.1.1` (05/10/2026)** — xem § 1.2 *BC017* + nhật ký việc 49.
 > 🆕 **05/10/2026 — Việc 50**: đợt 1 **cấu hình cột BC007 · BC008 · BC012 · BC015 · BC016** (khuôn BC017) + đợt 2 **ghim cột bất kỳ
@@ -38,7 +38,7 @@
 > · Lên số hiệu đời mới thì `python build_exe.py iPOS_Accounting_Report X.Y.Z` (tham số 2 — thêm 25/09/2026);
 > không truyền thì script tự tăng như cũ
 > · Tab đối chiếu điều chuyển **đã đạt M4** — Đại Ca bấm thử trên giao diện, đúng
-> · Apps Script: **Version 5** (`ban 2026-09-21c`)
+> · Apps Script: **Version 6** (`ban 2026-10-08a`, 08/10/2026) — trước đó Version 5 (`2026-09-21c`)
 > ⚠️ **Đừng ghi cứng digest/kích thước của asset vào tài liệu** — mỗi lần push (kể cả push mỗi
 > file `.md`) là Actions build lại và **thay asset bằng binary khác SHA**. Xem việc treo số 11.
 > ✅ Tài khoản nhân viên trên Google Sheet + đổi mật khẩu `admin` + tick quyền 2 tab mới: **Đại Ca

@@ -31,7 +31,7 @@
 /** Mã bản của chính file này. `ping` trả về chuỗi này để biết **bản đang chạy
  *  trên Google có phải bản mới nhất không** — trước đây không có cách nào biết,
  *  sửa xong quên Triển khai là ngồi đoán. Đổi file này thì đổi luôn chuỗi này. */
-const BAN_CODE = '2026-09-21c';
+const BAN_CODE = '2026-10-08a';
 
 const TOKEN = 'DAN_TOKEN_NGAU_NHIEN_VAO_DAY';
 
@@ -86,7 +86,8 @@ const PERM = [
   { ma: 'BC014', nhom: 'BÁO CÁO', ten: 'BC014 · Bảng kê hóa đơn bán ra' },
   { ma: 'BC015', nhom: 'BÁO CÁO', ten: 'BC015 · Bán hàng theo nguồn đơn' },
   { ma: 'BC016', nhom: 'BÁO CÁO', ten: 'BC016 · Nhập xuất tồn Nhà hàng' },
-  { ma: 'perm_admin', nhom: 'QUẢN TRỊ', ten: 'Tab Phân quyền' }
+  { ma: 'perm_admin', nhom: 'QUẢN TRỊ', ten: 'Tab Phân quyền' },
+  { ma: 'diem_su_dung', nhom: 'QUẢN TRỊ', ten: 'Danh sách điểm sử dụng (bảo trì)' }
 ];
 
 /** Cột của sheet "User đăng nhập" (hàng 3 = mã). */
@@ -500,6 +501,11 @@ function doPost(e) {
       case 'dat_mat_khau': return _traLoi(_apiDatMatKhau(p));
       case 'luu_chuc_vu':  return _traLoi(_apiLuuChucVu(p));
       case 'xoa_chuc_vu':  return _traLoi(_apiXoaChucVu(p));
+      // Màn "Điểm sử dụng" (việc 51, 08/10/2026) — xem khối DANH SÁCH ĐIỂM SỬ DỤNG cuối file.
+      case 'doc_diem':     return _traLoi(_apiDocDiem(p));
+      case 'dong_bo_diem': return _traLoi(_apiDongBoDiem(p));
+      case 'luu_diem':     return _traLoi(_apiLuuDiem(p));
+      case 'gia_han_diem': return _traLoi(_apiGiaHanDiem(p));
       case 'ping':         return _traLoi({ ok: true, iter: PBKDF2_ITER, gio: _bayGio(),
                                             ban: BAN_CODE, co_ratelimit: true });
       default:             return _traLoi({ ok: false, loi: 'Không hiểu hành động: ' + p.hanh_dong });
@@ -890,4 +896,306 @@ function onEdit(e) {
   } catch (err) {
     SpreadsheetApp.getActiveSpreadsheet().toast('Lỗi: ' + err.message);
   }
+}
+
+// ============================== DANH SÁCH ĐIỂM SỬ DỤNG (việc 51, 08/10/2026) ==============================
+// Màn "Điểm sử dụng" của app: mỗi dòng = một điểm (đơn vị × máy POS) đang dùng phần mềm kế toán + thời hạn bảo trì.
+// App (server.py) đọc DB của Chú Long rồi GỬI LÊN; ở đây chỉ lưu và trả lại — Google không nối được SQL Server.
+// Luật Đại Ca chốt 08/10/2026:
+//  1. Đồng bộ CHỈ THÊM dòng có KHOA chưa có. Dòng đã có thì KHÔNG đụng ô nào (kể cả ô trống), không xoá dòng nào.
+//  2. Mọi ô sửa tay được trên app. KHOA = "mã điểm|POS ID" chụp LÚC THÊM và không ai sửa ⇒ sửa mã điểm / POS ID
+//     trên app không làm lần đồng bộ sau tưởng là điểm mới. GOC_* giữ giá trị DB lúc thêm (app hiện "Từ DB lúc thêm dòng").
+//  3. Gia hạn: kỳ đang chạy vào LICH_SU_BT ("Lần N: từ – đến", các lần ngăn bằng " | "), SO_LAN_BT +1, kỳ mới thành kỳ đang chạy.
+//     SỬA ngày (luu_diem) KHÔNG phải gia hạn: không vào lịch sử, không tăng số lần.
+// ⚠️ server.py `_gs_goi` TỰ GỌI LẠI khi mạng chập chờn ⇒ mọi lệnh ở đây phải chịu được gọi hai lần:
+//    thêm theo KHOA · sửa = ghi đè cùng giá trị · gia hạn so kỳ hiện tại với kỳ app đã thấy (đã là kỳ mới ⇒ coi như xong).
+// Ô ngày lưu dạng CHỮ "dd/MM/yyyy" (định dạng ô '@'): khỏi lệ thuộc múi giờ / kiểu ngày Mỹ của bảng tính.
+const SH_DIEM = 'Danh sách điểm sử dụng';
+const NHOM_DB = 'LẤY TỪ DB LÚC THÊM DÒNG · SỬA ĐƯỢC TRÊN APP';
+const NHOM_APP = 'NHẬP TRÊN APP';
+const NHOM_TU = 'APP TỰ GHI — KHÔNG SỬA';
+const COT_DIEM = [
+  { ma: 'MA_DIEM',          nhom: NHOM_DB,  ten: 'Mã điểm',          rong: 64 },
+  { ma: 'TEN_DIEM',         nhom: NHOM_DB,  ten: 'Tên điểm',         rong: 260 },
+  { ma: 'POS_ID',           nhom: NHOM_DB,  ten: 'POS ID',           rong: 72 },
+  { ma: 'MA_KHO',           nhom: NHOM_DB,  ten: 'Mã kho',           rong: 110 },
+  { ma: 'MA_CONG_VIEC',     nhom: NHOM_DB,  ten: 'Mã công việc',     rong: 110 },
+  { ma: 'NGAY_BAT_DAU',     nhom: NHOM_APP, ten: 'Ngày bắt đầu',     rong: 96 },
+  { ma: 'NGAY_HET_HAN',     nhom: NHOM_APP, ten: 'Ngày hết hạn',     rong: 96 },
+  { ma: 'SO_LAN_BT',        nhom: NHOM_APP, ten: 'Số lần bảo trì',   rong: 72 },
+  { ma: 'LICH_SU_BT',       nhom: NHOM_APP, ten: 'Lịch sử bảo trì',  rong: 320 },
+  { ma: 'GHI_CHU',          nhom: NHOM_APP, ten: 'Ghi chú',          rong: 220 },
+  { ma: 'THEM_LUC',         nhom: NHOM_TU,  ten: 'Thêm vào lúc',     rong: 130 },
+  { ma: 'SUA_LUC',          nhom: NHOM_TU,  ten: 'Sửa lúc',          rong: 130 },
+  { ma: 'SUA_BOI',          nhom: NHOM_TU,  ten: 'Sửa bởi',          rong: 90 },
+  { ma: 'KHOA',             nhom: NHOM_TU,  ten: 'Khoá (ẩn)',        rong: 110, an: true },
+  { ma: 'GOC_MA_DIEM',      nhom: NHOM_TU,  ten: 'Gốc DB: mã điểm',  rong: 80,  an: true },
+  { ma: 'GOC_TEN_DIEM',     nhom: NHOM_TU,  ten: 'Gốc DB: tên điểm', rong: 200, an: true },
+  { ma: 'GOC_POS_ID',       nhom: NHOM_TU,  ten: 'Gốc DB: POS ID',   rong: 80,  an: true },
+  { ma: 'GOC_MA_KHO',       nhom: NHOM_TU,  ten: 'Gốc DB: mã kho',   rong: 100, an: true },
+  { ma: 'GOC_MA_CONG_VIEC', nhom: NHOM_TU,  ten: 'Gốc DB: mã CV',    rong: 100, an: true }
+];
+const DIEM_TRUONG_DB = ['MA_DIEM', 'TEN_DIEM', 'POS_ID', 'MA_KHO', 'MA_CONG_VIEC'];
+const DIEM_TRUONG_SUA = DIEM_TRUONG_DB.concat(['NGAY_BAT_DAU', 'NGAY_HET_HAN', 'GHI_CHU']);
+const DIEM_TRA_VE = DIEM_TRUONG_SUA.concat(['SO_LAN_BT', 'LICH_SU_BT', 'THEM_LUC', 'SUA_LUC', 'SUA_BOI',
+  'GOC_MA_DIEM', 'GOC_TEN_DIEM', 'GOC_POS_ID', 'GOC_MA_KHO', 'GOC_MA_CONG_VIEC']);
+const DIEM_SO_DONG_TOI_DA = 2000;
+
+/** Dựng sheet nếu chưa có; có rồi thì CHỈ chèn cột còn thiếu ở cuối, không đụng dữ liệu. Trả sheet. */
+function _dungSheetDiem(ss) {
+  let sh = ss.getSheetByName(SH_DIEM);
+  if (!sh) {
+    sh = ss.insertSheet(SH_DIEM);
+    sh.getRange(1, 1, 3, COT_DIEM.length).setValues([
+      COT_DIEM.map(c => c.nhom), COT_DIEM.map(c => c.ten), COT_DIEM.map(c => c.ma)
+    ]);
+    COT_DIEM.forEach((c, i) => sh.setColumnWidth(i + 1, c.rong));
+    _dinhDangTieuDe(sh, COT_DIEM.length);
+    sh.setFrozenRows(3);
+    sh.setFrozenColumns(2);
+  } else {
+    const co = _docMaCot(sh);
+    COT_DIEM.forEach(function (c) {
+      if (co[c.ma]) return;
+      const cot = sh.getLastColumn() + 1;
+      sh.getRange(1, cot, 3, 1).setValues([[c.nhom], [c.ten], [c.ma]]);
+      sh.setColumnWidth(cot, c.rong);
+      co[c.ma] = cot;
+    });
+    _dinhDangTieuDe(sh, sh.getLastColumn());
+  }
+  const co = _docMaCot(sh);
+  // Ô dữ liệu = CHỮ: "01" giữ số 0 đầu, ngày giữ đúng "dd/MM/yyyy".
+  sh.getRange(4, 1, Math.max(sh.getMaxRows() - 3, 1), sh.getLastColumn()).setNumberFormat('@');
+  COT_DIEM.forEach(function (c) {
+    if (!c.an || !co[c.ma]) return;
+    try { sh.hideColumns(co[c.ma]); } catch (e) { /* ẩn hỏng thì thôi — chỉ để gọn mắt */ }
+  });
+  return sh;
+}
+
+/** Xác thực tài khoản đang dùng app + đòi quyền màn Điểm sử dụng. Ném lỗi nếu không đạt. */
+function _doiQuyenDiem(p) {
+  const conKhoa = _conBiKhoa_(p.user);
+  if (conKhoa) throw new Error(_loiTamKhoa_(conKhoa));
+  const u = _xacThuc(p.user, p.mat_khau);
+  if (!u) {
+    _ghiLanSai_(p.user);
+    throw new Error('Phiên đăng nhập không còn hợp lệ với Google (mật khẩu đã đổi?) — đăng xuất rồi đăng nhập lại.');
+  }
+  if (u.khoa) throw new Error('Tài khoản đã bị khóa');
+  if (String(u.chuc_vu || '').toUpperCase() !== 'ADMIN' && u.items.indexOf('diem_su_dung') < 0) {
+    throw new Error('Tài khoản này chưa được cấp quyền màn Điểm sử dụng.');
+  }
+  return u;
+}
+
+function _chuDiem(v, toiDa) {
+  return String(v == null ? '' : v).trim().slice(0, toiDa || 200);
+}
+
+/** '' hợp lệ (ô trống). Còn lại phải đúng dd/MM/yyyy và là ngày có thật. */
+function _ngayHopLe(s) {
+  if (s === '') return true;
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s);
+  if (!m) return false;
+  const d = new Date(+m[3], +m[2] - 1, +m[1]);
+  return d.getFullYear() === +m[3] && d.getMonth() === +m[2] - 1 && d.getDate() === +m[1];
+}
+
+function _soNgay(s) {   // dd/MM/yyyy → số so sánh được (yyyyMMdd)
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s || '');
+  return m ? +(m[3] + m[2] + m[1]) : 0;
+}
+
+function _kiemKy(bd, hh) {
+  if (!_ngayHopLe(bd)) throw new Error('Ngày bắt đầu không hợp lệ (cần dd/mm/yyyy): ' + bd);
+  if (!_ngayHopLe(hh)) throw new Error('Ngày hết hạn không hợp lệ (cần dd/mm/yyyy): ' + hh);
+  if (bd && hh && _soNgay(hh) < _soNgay(bd)) throw new Error('Ngày hết hạn ' + hh + ' trước ngày bắt đầu ' + bd);
+}
+
+function _dongBoLuc() {
+  const pr = PropertiesService.getScriptProperties();
+  return { luc: pr.getProperty('DIEM_DONG_BO_LUC') || '', boi: pr.getProperty('DIEM_DONG_BO_BOI') || '' };
+}
+
+function _diemThanhDoiTuong(b, r) {
+  const o = { khoa: _o(b, r, 'KHOA') };
+  DIEM_TRA_VE.forEach(function (ma) { o[ma.toLowerCase()] = _o(b, r, ma); });
+  return o;
+}
+
+/** Đọc toàn bộ danh sách. Chưa có sheet (chưa đồng bộ lần nào) ⇒ danh sách rỗng, KHÔNG tự dựng sheet. */
+function _apiDocDiem(p) {
+  _doiQuyenDiem(p);
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SH_DIEM);
+  if (!sh) return { ok: true, diem: [], chua_co_sheet: true, dong_bo: _dongBoLuc() };
+  const b = _docBang(SH_DIEM);
+  const diem = [];
+  let khongKhoa = 0;
+  b.rows.forEach(function (r) {
+    if (!_o(b, r, 'KHOA')) { if (_o(b, r, 'MA_DIEM') || _o(b, r, 'TEN_DIEM')) khongKhoa++; return; }
+    diem.push(_diemThanhDoiTuong(b, r));
+  });
+  return { ok: true, diem: diem, dong_khong_khoa: khongKhoa, dong_bo: _dongBoLuc() };
+}
+
+/** p.diem = [{khoa, ma_diem, ten_diem, pos_id, ma_kho, ma_cong_viec}] do app đọc từ DB. Chỉ THÊM khoá chưa có. */
+function _apiDongBoDiem(p) {
+  const u = _doiQuyenDiem(p);
+  const vao = Array.isArray(p.diem) ? p.diem : null;
+  if (!vao) throw new Error('Thiếu danh sách điểm');
+  if (vao.length > DIEM_SO_DONG_TOI_DA) throw new Error('Danh sách điểm quá dài (' + vao.length + ' dòng)');
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = _dungSheetDiem(ss);
+  const b = _docBang(SH_DIEM);
+  const daCo = {};
+  b.rows.forEach(function (r) { const k = _o(b, r, 'KHOA'); if (k) daCo[k] = true; });
+
+  const bayGio = _bayGio();
+  const soCot = sh.getLastColumn();
+  const moi = [];
+  const them = [];
+  vao.forEach(function (d) {
+    const khoa = _chuDiem(d && d.khoa, 80);
+    if (!khoa || daCo[khoa]) return;
+    daCo[khoa] = true;                       // trùng ngay trong gói gửi lên ⇒ chỉ lấy lần đầu
+    const gt = {};
+    DIEM_TRUONG_DB.forEach(function (ma) { gt[ma] = _chuDiem(d[ma.toLowerCase()], ma === 'TEN_DIEM' ? 200 : 60); });
+    const hang = new Array(soCot).fill('');
+    DIEM_TRUONG_DB.forEach(function (ma) {
+      hang[b.cot[ma] - 1] = gt[ma];
+      hang[b.cot['GOC_' + ma] - 1] = gt[ma];
+    });
+    hang[b.cot['KHOA'] - 1] = khoa;
+    hang[b.cot['THEM_LUC'] - 1] = bayGio;
+    moi.push(hang);
+    them.push({ khoa: khoa, ma_diem: gt.MA_DIEM, ten_diem: gt.TEN_DIEM, pos_id: gt.POS_ID });
+  });
+  if (moi.length) {
+    const dau = Math.max(sh.getLastRow(), 3) + 1;
+    const vung = sh.getRange(dau, 1, moi.length, soCot);
+    vung.setNumberFormat('@');
+    vung.setValues(moi);
+  }
+  const pr = PropertiesService.getScriptProperties();
+  pr.setProperty('DIEM_DONG_BO_LUC', bayGio);
+  pr.setProperty('DIEM_DONG_BO_BOI', u.id);
+  _ghiLog(u.id, 'ĐIỂM SỬ DỤNG — ĐỒNG BỘ',
+          'thêm ' + them.length + ' dòng' + (them.length ? ': ' + them.map(t => t.khoa).join(', ') : ''), p.may);
+  return { ok: true, them: them, so_them: them.length, tong: Object.keys(daCo).length, dong_bo: _dongBoLuc() };
+}
+
+/** Sửa MỘT dòng. p.khoa, p.gia_tri = {MA_DIEM: …} (chỉ các ô sửa được), p.cu = giá trị lúc app mở hộp sửa. */
+function _apiLuuDiem(p) {
+  const u = _doiQuyenDiem(p);
+  const khoa = _chuDiem(p.khoa, 80);
+  const gt = p.gia_tri || {}, cu = p.cu || {};
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SH_DIEM);
+  if (!sh) throw new Error('Chưa có sheet "' + SH_DIEM + '" — bấm Đồng bộ trước');
+  const b = _docBang(SH_DIEM);
+  let soDong = 0, dong = null;
+  for (let i = 0; i < b.rows.length; i++) {
+    if (_o(b, b.rows[i], 'KHOA') === khoa) { soDong = i + 4; dong = b.rows[i]; break; }
+  }
+  if (!dong) throw new Error('Không tìm thấy dòng ' + khoa + ' trên Google Sheet — bấm Tải lại rồi thử lại.');
+
+  const moi = {};
+  Object.keys(gt).forEach(function (ma) {
+    if (DIEM_TRUONG_SUA.indexOf(ma) < 0) return;
+    moi[ma] = _chuDiem(gt[ma], ma === 'GHI_CHU' ? 1000 : (ma === 'TEN_DIEM' ? 200 : 60));
+  });
+  const bdMoi = ('NGAY_BAT_DAU' in moi) ? moi.NGAY_BAT_DAU : _o(b, dong, 'NGAY_BAT_DAU');
+  const hhMoi = ('NGAY_HET_HAN' in moi) ? moi.NGAY_HET_HAN : _o(b, dong, 'NGAY_HET_HAN');
+  _kiemKy(bdMoi, hhMoi);
+
+  // Người khác (hay chính Sheet) vừa sửa ô này khác với lúc app mở hộp ⇒ không ghi đè mù.
+  // Ô đã đúng bằng giá trị mới (lần gọi lại sau khi lần đầu đã ghi) thì không tính là đụng nhau.
+  const dung = [];
+  Object.keys(moi).forEach(function (ma) {
+    const hienTai = _o(b, dong, ma);
+    if (ma in cu && hienTai !== String(cu[ma] == null ? '' : cu[ma]).trim() && hienTai !== moi[ma]) dung.push(ma);
+  });
+  if (dung.length) {
+    throw new Error('Dòng này vừa được sửa ở nơi khác (' + dung.join(', ') + ', lúc ' + _o(b, dong, 'SUA_LUC') +
+                    ' bởi ' + _o(b, dong, 'SUA_BOI') + '). Bấm Tải lại rồi sửa lại.');
+  }
+
+  const doi = [];
+  Object.keys(moi).forEach(function (ma) {
+    const hienTai = _o(b, dong, ma);
+    if (hienTai === moi[ma]) return;
+    doi.push(ma + ': "' + hienTai + '" → "' + moi[ma] + '"');
+    sh.getRange(soDong, b.cot[ma]).setNumberFormat('@').setValue(moi[ma]);
+  });
+  // Điền kỳ ĐẦU TIÊN qua hộp sửa (chưa có ngày nào, chưa có số lần) ⇒ số lần = 1. Sửa ngày sau đó không đổi số lần.
+  if (!_o(b, dong, 'NGAY_BAT_DAU') && !_o(b, dong, 'NGAY_HET_HAN') && !_o(b, dong, 'SO_LAN_BT') && bdMoi && hhMoi) {
+    sh.getRange(soDong, b.cot['SO_LAN_BT']).setNumberFormat('@').setValue('1');
+    doi.push('SO_LAN_BT: "" → "1"');
+  }
+  if (doi.length) {
+    sh.getRange(soDong, b.cot['SUA_LUC']).setNumberFormat('@').setValue(_bayGio());
+    sh.getRange(soDong, b.cot['SUA_BOI']).setNumberFormat('@').setValue(u.id);
+    _ghiLog(u.id, 'ĐIỂM SỬ DỤNG — SỬA', khoa + ' · ' + doi.join('; '), p.may);
+  }
+  const b2 = _docBang(SH_DIEM);
+  return { ok: true, khong_doi: !doi.length, dong: _diemThanhDoiTuong(b2, b2.rows[soDong - 4]) };
+}
+
+/** Gia hạn nhiều dòng một lần. p.tu, p.den = kỳ mới; p.dong = [{khoa, bd_cu, hh_cu}] = kỳ app đang thấy. */
+function _apiGiaHanDiem(p) {
+  const u = _doiQuyenDiem(p);
+  const tu = _chuDiem(p.tu, 10), den = _chuDiem(p.den, 10);
+  if (!tu || !den) throw new Error('Phải chọn đủ Từ ngày và Đến ngày');
+  _kiemKy(tu, den);
+  const ds = Array.isArray(p.dong) ? p.dong : [];
+  if (!ds.length) throw new Error('Chưa chọn dòng nào');
+  if (ds.length > DIEM_SO_DONG_TOI_DA) throw new Error('Quá nhiều dòng (' + ds.length + ')');
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SH_DIEM);
+  if (!sh) throw new Error('Chưa có sheet "' + SH_DIEM + '" — bấm Đồng bộ trước');
+  const b = _docBang(SH_DIEM);
+  const viTri = {};
+  b.rows.forEach(function (r, i) { const k = _o(b, r, 'KHOA'); if (k) viTri[k] = i; });
+
+  const cotGhi = ['NGAY_BAT_DAU', 'NGAY_HET_HAN', 'SO_LAN_BT', 'LICH_SU_BT', 'SUA_LUC', 'SUA_BOI'];
+  const cot = {};   // mã → mảng giá trị cả cột (sửa trong bộ nhớ, ghi một lần mỗi cột)
+  cotGhi.forEach(function (ma) { cot[ma] = b.rows.map(r => [_o(b, r, ma)]); });
+  const bayGio = _bayGio();
+  const xong = [], daCo = [], lech = [], khongThay = [];
+  const daXet = {};
+  ds.forEach(function (d) {
+    const khoa = _chuDiem(d && d.khoa, 80);
+    if (!khoa || daXet[khoa]) return;
+    daXet[khoa] = true;
+    if (!(khoa in viTri)) { khongThay.push(khoa); return; }
+    const i = viTri[khoa];
+    const bd = cot.NGAY_BAT_DAU[i][0], hh = cot.NGAY_HET_HAN[i][0];
+    if (bd === tu && hh === den) { daCo.push(khoa); return; }            // lần gọi lại sau khi đã gia hạn xong
+    if (bd !== _chuDiem(d.bd_cu, 10) || hh !== _chuDiem(d.hh_cu, 10)) { lech.push(khoa); return; }
+    const so = parseInt(cot.SO_LAN_BT[i][0], 10) || 0;
+    let soMoi;
+    if (bd || hh) {
+      const muc = 'Lần ' + (so || 1) + ': ' + bd + ' – ' + hh;
+      const ls = cot.LICH_SU_BT[i][0];
+      cot.LICH_SU_BT[i][0] = ls ? ls + ' | ' + muc : muc;
+      soMoi = (so || 1) + 1;
+    } else {
+      soMoi = so + 1;                                                    // chưa có kỳ nào ⇒ đây là kỳ đầu tiên
+    }
+    cot.NGAY_BAT_DAU[i][0] = tu;
+    cot.NGAY_HET_HAN[i][0] = den;
+    cot.SO_LAN_BT[i][0] = String(soMoi);
+    cot.SUA_LUC[i][0] = bayGio;
+    cot.SUA_BOI[i][0] = u.id;
+    xong.push(khoa);
+  });
+  if (xong.length) {
+    cotGhi.forEach(function (ma) {
+      const vung = sh.getRange(4, b.cot[ma], b.rows.length, 1);
+      vung.setNumberFormat('@');
+      vung.setValues(cot[ma]);
+    });
+    _ghiLog(u.id, 'ĐIỂM SỬ DỤNG — GIA HẠN', xong.length + ' dòng → ' + tu + ' – ' + den + ': ' + xong.join(', '), p.may);
+  }
+  return { ok: true, xong: xong, da_co: daCo, lech: lech, khong_thay: khongThay };
 }

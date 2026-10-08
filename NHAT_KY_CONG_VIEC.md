@@ -3,7 +3,9 @@
 > Toàn bộ những gì đã làm với **LedgerReport**, và **vì sao**. Đọc file này trước khi sửa tiếp.
 > Kiến trúc, ma trận báo cáo, phương án backup: [CLAUDE.md](CLAUDE.md).
 > Mổ xẻ sâu sự cố + 4 bài học: [SU_CO_15082026.md](SU_CO_15082026.md).
-> 🚀 **Bản mới nhất: `v2.1.0` (29/09/2026)** — Đại Ca chốt lên **2.1** cho đợt tính năng này; code y `v2.0.9`.
+> 🚀 **Bản mới nhất: `v2.1.2` (06/10/2026)** — cột ghim phải hụt 4px khi cuộn chạm cuối.
+>   `v2.1.1` (05/10) = **BC017 Báo cáo bán hàng** + cấu hình cột 5 báo cáo + ghim cột / vừa khít 9 màn danh sách (việc 49, 50).
+>   `v2.1.0` (29/09) = Đại Ca chốt lên **2.1** cho đợt tính năng mở app nhanh; code y `v2.0.9`.
 >   `v2.0.9` (29/09) = **mở app ~0,2s** (việc 24 dịch sẵn giao diện + việc 25 thư viện trong app) · Tải lại
 >   hỏi Google quyền · popup Hủy xuất Có/Không + tạm dừng · icon từng màn · GitHub Actions Node 24 + `paths-ignore` (việc 11).
 >   `v2.0.8` (29/09) = **Hủy xuất không còn thoáng hiện file dở trong thư mục xuất** (việc 44).
@@ -15,13 +17,14 @@
 >   `v2.0.0` (25/09 tối) = **giao diện mới `DATA REPORT`** — Đại Ca chốt lên *Ver 2* ·
 >   `v2.0.1` (26/09) = **thông báo có bản mới kiểu mới** (hộp thoại + nút cam + thẻ nhắc, "Có gì mới" đọc `CO_GI_MOI.md`) ·
 >   `v2.0.2` (26/09) = **vá lỗi nhân viên thường không xuất được Excel Báo cáo TC** (có từ v2.0.0, Bẫy 30) + việc 9, 10, 23.
-> ✅ **EXE trên máy Đại Ca = đúng file CI v2.0.7** (SHA256 khớp digest) — lên bằng **đường cập nhật thật** từ file CI v2.0.6
->   (`/api/apply_update`). Thư mục làm việc đang ở `main`.
+> ✅ **EXE trên máy Đại Ca = đúng file CI v2.1.2** (SHA256 khớp digest) — lên bằng **đường cập nhật thật** từ file CI v2.1.1
+>   (`/api/apply_update`, 06/10/2026). Thư mục làm việc đang ở `main`.
 > 🔑 Luật nghiệp vụ gốc chốt 24/09: iPOS **tự sinh** phiếu nhập `NDCNB` khi phiếu xuất `XDCNB` ghi sổ — đổi hẳn cách
 >   đọc tab đối chiếu điều chuyển. Xem các mục 24/09.
 > ✅ Tài khoản nhân viên trên Google Sheet + đổi mật khẩu `admin` + tick quyền 2 tab mới: **Đại Ca báo xong 25/09** (việc 1, 3, 4).
 > 🟡 **Việc 7 — lọc 2 chiều tab điều chuyển: đã phát hành trong v2.0.0, CHƯA có xác nhận thử với số liệu thật.**
 > Apps Script trên Google: **Version 5** (21/09/2026 19:33), mã bản `2026-09-21c` — **đã triển khai**.
+> 🔴 **`Code.gs` trong repo đã lên `2026-10-08a` (việc 51, 08/10/2026) — CHƯA triển khai lên Google.** Xem mục *08/10/2026 — Việc 51*.
 >
 > 📌 **Việc còn treo gom ở ngay dưới: [§ VIỆC CẦN LÀM](#-việc-cần-làm).**
 >
@@ -46,9 +49,10 @@
 
 ## 📌 VIỆC CẦN LÀM
 
-> *Cập nhật 29/09/2026.* Gom hết việc còn treo về một chỗ. Nhận việc mới thì **đọc mục này trước**.
+> *Cập nhật 08/10/2026.* Gom hết việc còn treo về một chỗ. Nhận việc mới thì **đọc mục này trước**.
 > ⚠️ Tiêu đề mục này **cố ý không ghi ngày** — mọi đường dẫn `#-việc-cần-làm` trỏ vào nó; ghi ngày là gãy link.
-> Trạng thái: **v2.1.0 đã phát hành** (29/09/2026 16h54 — code y v2.0.9), là `Latest`, và **EXE trên máy Đại Ca = đúng file CI** (SHA256 khớp digest).
+> Trạng thái: **v2.1.2 đã phát hành** (06/10/2026), là `Latest`, và **EXE trên máy Đại Ca = đúng file CI** (SHA256 khớp digest).
+> Đang dở: **việc 51** (màn Điểm sử dụng) — đã commit local 08/10, **chưa push, chưa build, Code.gs `2026-10-08a` chưa triển khai**.
 >
 > ✅ **Từ v2.0.9 (việc 11) workflow có `paths-ignore`** — push CHỈ tài liệu (`**.md`, `docs/**`, `docs-cu/**`) **không build lại EXE**,
 > asset không đổi SHA ⇒ push nhật ký thoải mái. ⚠️ Commit đụng `.github/workflows/` thì `git push` thường bị từ chối (Git Credential
@@ -92,6 +96,7 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | 17 | ~~Nút `TRUY VẤN` đang chuyển màu navy → tím~~ ✅ **XONG 25/09** | Đại Ca chốt: chữ **"Lọc"**, navy đặc, như mẫu iPOS. Nằm trong thanh lọc mới của 9 màn danh sách |
 | 18 | ~~Chốt mốc commit phần đăng nhập nhanh + sửa font~~ ✅ **commit `c64540a`** | Phát hành v2.0.0 |
 | 19 | ~~Đại Ca xem GĐ3 rồi chốt commit~~ ✅ **Đại Ca chốt OK sáng 25/09** (*"cái đó thì ok rồi"*) ⇒ đã commit GĐ3 | ⚠️ Đại Ca chốt chung, **không nói rõ đã thử từng mục dưới đây chưa** — lần đầu dùng số liệu thật thì để ý. Danh sách cần xem ở mục *"Việc Đại Ca xem sáng 25/09"* trong nhật ký 25/09 (tiếp 3), ngay dưới § này. Ba việc tôi **không** tự thử được: hộp *"Chuyển mẫu báo cáo?"* khi có số liệu thật · menu **Xuất Excel / Xuất PDF** khi có số liệu (chưa có số liệu thì nút tắt) · kéo thả thứ tự ô lọc bằng chuột thật. Và **đọc lại mô tả 16 thẻ** — tôi tự viết |
+| 51 | ⏳ **Màn "Điểm sử dụng"** — danh sách điểm dùng phần mềm kế toán + thời hạn bảo trì (Đại Ca yêu cầu 08/10/2026). **Code xong, thử đạt** (Code.gs giả lập 35/35 · M2 DB thật 29/29 · giao diện 1366px), **đã commit local 08/10 (CHƯA push), CHƯA build** | 🔴 **Code.gs bản `2026-10-08a` CHƯA triển khai** — Đại Ca làm qua `chuan_bi_deploy.py` (Bẫy 19, 23), rồi thử trên Google thật. Sau đó CO_GI_MOI + phát hành (hỏi trước khi push). Mục nhật ký *08/10/2026 — Việc 51* |
 | 50 | ⏳ **Cấu hình cột 5 báo cáo + ghim cột / vừa khít cột 9 màn danh sách** (Đại Ca yêu cầu 05/10/2026). **Đợt 1 — cấu hình cột BC007 · BC008 · BC012 · BC015 · BC016: XONG** (Đại Ca bảo làm tiếp đợt 2). **Đợt 2 — ghim cột bất kỳ sát lề trái/phải + bấm đúp mép = vừa khít + nút "Vừa khít tất cả cột": XONG**, kiểm DB thật 9/9 màn. Đại Ca thử 05/10: OK, đổi icon ghim (mẫu ô bảng) + bỏ chú thích cuối hộp. ✅ **Phát hành `v2.1.1` 05/10/2026** (cập nhật thật 2.1.0 → 2.1.1 khớp SHA CI) | ✅ Lệch 4px cột ghim phải: **đã sửa** (tay kéo cột cuối thò ra ngoài bảng) — ✅ **phát hành `v2.1.2` 06/10/2026**. "Đứng hình": thử lại 88 lượt bằng dữ liệu giả **không tái hiện được**, giả thuyết làm mờ nền **bị bác** ⇒ chỉ còn theo dõi nếu nhân viên báo. Mục *05/10/2026 (khuya, tiếp)*. Server thử code mới: **cổng 5053** (`server_thu_5053.py` trong scratchpad phiên 05/10, chết theo phiên chat). Mục nhật ký *05/10/2026 (tối) — Việc 50 đợt 2* + *05/10/2026 — Việc 50 (đợt 1)* |
 | 49 | ⏳ **BC017 Báo cáo bán hàng** (mẫu iPOS 3.1, đối chiếu doanh thu) — 3 kiểu xem × chi tiết/tổng hợp + cấu hình cột + mặc định BHVAT/BHK, **kiểm trên DB thật đạt**, ✅ **phát hành `v2.1.1` 05/10/2026** | Còn: soi vài phiếu với mẫu 3.1 trên iPOS Chú Long · **tick quyền BC017 cho chức vụ nhân viên ở tab Phân quyền** (ADMIN tự có) — hai việc này Đại Ca làm. ✅ Ô `password` trong `config.json` **đã xoá 05/10** (Đại Ca bảo) ⇒ thử DB thật lần sau phải điền lại. Điểm mở: chi tiết cả tháng **8–10s/trang** (chưa tăng tốc) · 1366px thêm cột là kéo ngang · mỗi lần tick một cột thêm chưa có là tải lại 1 lần. Server thử 5052 (script trong scratchpad) **tự tắt sau ~2 giờ** — giới hạn chạy nền của công cụ, không phải lỗi app; tắt thì bật lại. Mục nhật ký *04/10/2026* + *03/10/2026 — BC017* |
 | 48 | ⏳ **Chưa thử với Google THẬT: Tải lại khi quyền vừa bị đổi** (v2.1.0) | Đã thử bằng Google giả lập (9 ca) + giao diện server thử. Ca thật: quản trị đổi quyền tài khoản đang đăng nhập ở máy khác → máy đó bấm Tải lại ⇒ phải về màn đăng nhập kèm *"Quyền của tài khoản vừa được thay đổi…"*. Đại Ca chốt *"tạm thời ok"* 29/09 nhưng chưa nói đã thử ca này |
@@ -166,6 +171,71 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 08/10/2026 — Việc 51: màn "Điểm sử dụng" (điểm đang dùng phần mềm kế toán + thời hạn bảo trì) · ✅ commit local (CHƯA push) · ⚠️ Apps Script CHƯA TRIỂN KHAI
+
+> **Commit local 08/10/2026** (Đại Ca duyệt, chưa push). Kiểm trước commit: `ast` OK · Babel OK · Code.gs dịch được · quét route chưa
+> khai quyền `[]` · quét secret sạch (chỉ 2 chú thích nhắc tên cột `PASSWORD`/`TOKEN`) · Code.gs vẫn giữ chuỗi giữ chỗ `TOKEN` /
+> `ADMIN_DK_BOOTSTRAP` (Bẫy 19) · `config.json`, `ketnoi.json` vẫn bị `.gitignore`.
+
+**Bối cảnh.** Sáng 08/10 Đại Ca nhờ ráp **mã POS IC** vào danh sách điểm bảo trì của Chú Long (file Excel **ngoài repo**,
+`Desktop\CHU LONG\`: `…_TỔNG_MÃ POS.xlsx` 72 dòng + `…_ĐIỂM MỚI.xlsx` 13 điểm). Mã POS IC = `ORGANIZATION_MAPPING.WORKSTATION_ID`; mã công
+việc ↔ đơn vị **không có trong danh mục** (`DM_JOB` không có cột đơn vị, `DM_ORGANIZATION_MAPPING.JOB_ID` trống) ⇒ suy từ phiếu bán.
+Đọc 2 hợp đồng .docx cùng thư mục: điểm mới mua bản quyền 3.000.000 ⇒ bảo hành 12 tháng ⇒ hợp đồng bảo trì **600.000/điểm/năm**
+(BTKT 40.800.000, tự gia hạn). ⚠️ **HĐ BTKT ghi thời hạn *"từ 10/10/2026 đến 09/10/2026"* — sai năm, đã báo Đại Ca.**
+⚠️ Máy `92042` (vốn của 421 Cộng Hoà) nay chạy cho **526 Quốc Lộ 50** (đơn vị 81, `CH00080`) từ 27/08/2026 **mà vẫn ghi đối tượng
+`TN.421CH`** — cấu hình bên iPOS, đã báo, app không sửa. Rồi Đại Ca muốn theo dõi thời hạn **trên LedgerReport**.
+
+**Đại Ca chốt** (qua nhiều vòng phác thảo — **mục 09** của https://claude.ai/artifact/7kiiWQ13PPR7eXN2AgPhtc, 6 khung 09A–09F):
+- Bảng danh sách điểm + nút **Đồng bộ**: dò `DM_ORGANIZATION` (bỏ 10 dòng nhóm `ORGANIZATION_TYPE='01'`) ⇒ **82 đơn vị**; tự thêm mã điểm · tên ·
+  POS ID · mã kho · mã công việc vào Google Sheet **"Danh sách điểm sử dụng"** (cùng file với tài khoản). Đơn vị 2 máy POS ⇒ **2 dòng** ⇒ **86 dòng**.
+- **Chỉ đọc DB khi bấm Đồng bộ** (*"đơn giản, giảm tải tài nguyên"*); vào màn chỉ đọc Sheet. **Đồng bộ chỉ THÊM điểm mới** — dòng đã có không
+  đụng ô nào (kể cả ô trống), không xoá dòng nào.
+- Ngày **điền TRÊN APP**, app ghi lên Sheet (lúc đầu Đại Ca hiểu nhầm là điền thẳng trên Sheet). **Bảng chỉ xem** — bấm nút bút chì mới mở
+  hộp sửa (*"tránh nhầm"*); **mọi ô sửa tay được**.
+- Ngày bắt đầu + ngày hết hạn + **số lần bảo trì + lịch sử** (một ô chữ). **Gia hạn = Từ ngày · Đến ngày · Lưu** (*"làm đơn giản thôi"* — bỏ
+  hộp so sánh trước/sau, bỏ chip "Bảo hành"); gia hạn nhiều dòng một lần (HĐ gia hạn cả loạt ngày 10/10).
+- **Chỉ ADMIN thấy** (mã quyền `diem_su_dung`, chức vụ khác tick ở tab Phân quyền).
+
+**Cách làm**
+- **`phanquyen_gas/Code.gs`** (`BAN_CODE` **`2026-10-08a`**, thêm `diem_su_dung` vào `PERM`): khối *DANH SÁCH ĐIỂM SỬ DỤNG* cuối file — sheet
+  (3 hàng tiêu đề như 3 sheet cũ, ô dữ liệu định dạng **chữ** để giữ `01` và `dd/mm/yyyy`) + 4 lệnh `doc_diem` · `dong_bo_diem` · `luu_diem` ·
+  `gia_han_diem`. Xác thực bằng **tài khoản đang dùng app** (uid + mã đã băm), ADMIN hoặc có mã `diem_su_dung`. Cột ẩn **`KHOA`** (mã điểm|POS ID
+  chụp lúc thêm, không ai sửa) ⇒ sửa tay mã điểm / POS ID không sinh dòng trùng; cột ẩn **`GOC_*`** giữ giá trị DB lúc thêm. Mọi lệnh **chịu được
+  gọi lại** (`_gs_goi` tự gọi lại): thêm theo KHOA · `luu_diem` ghi đè cùng giá trị, **chặn ghi đè mù** khi ô vừa bị sửa nơi khác · `gia_han_diem`
+  so kỳ cũ app đang thấy (đã là kỳ mới ⇒ "đã có", không cộng lần hai). Mỗi lần ghi 1 dòng vào sheet Nhật ký.
+- **`server.py`** (+7 hàm, +4 route): mã quyền + nhãn + `PERM_ROUTE_STATIC`; `_gs_tk_phien` (mã băm trong kho phiên RAM — Bẫy 17), `_gs_diem`,
+  `_diem_doc_db`, route `/api/diem_su_dung` (GET) · `/dong_bo` · `/luu` · `/gia_han`. ⛔ Lỗi phía Google **không trả 401** (Bẫy 1): thiếu mã băm
+  400 · mất mạng 503 · Apps Script cũ ⇒ *"cần bản 2026-10-08a"*. Đồng bộ giữ khoá DB **chỉ trong lúc chạy SQL**, xong mới gọi Google.
+  ⛔ `ORGANIZATION_MAPPING` có cột `PASSWORD` / `TOKEN` — câu SQL chỉ chọn đúng 3 cột.
+- **`index.html`**: `MAN_RIENG` + `timManHinh` (⛔ **không nhét vào `DOC_TABS`** — checklist Phân quyền xếp DOC_TABS vào nhóm "Danh sách chứng từ"),
+  phân hệ `diemsudung` trong `PHAN_HE`, icon `map-pin` / `pencil`, mã quyền ở nhóm *Quản trị*, component `DiemSuDung` + `HopSuaDiem` +
+  `HopGiaHanDiem` + `HopKetQuaDongBo`.
+
+**Số đo DB thật**: 5 câu đọc, câu phiếu bán 60 ngày (suy mã CV) **6,5s**, cả lượt **6,7–8,6s**. **86 dòng** · 6 dòng không máy POS (Kho tổng HCM,
+Kho tổng HN `78`, Seven AM, 3 xưởng) · 1 dòng thiếu mã CV (`66` Seven AM — không bán từ 01/08) · **80/80 máy POS khớp mã CV + mã kho** với 2 file đã đối chiếu.
+
+**🧪 Verify**
+- **M1:** `ast` OK · **206 hàm / 80 route**, so `HEAD` mất **0** hàm, **0** route · không trùng tên · quét route chưa khai quyền **`[]`** · Babel OK ·
+  Code.gs dịch được (`new Function`).
+- **Code.gs trên Google giả lập** (node, Sheet trong bộ nhớ, `Utilities`/HMAC thật): **35/35**.
+- **M2:** `server.py` thật (nạp **bỏ dòng tắt cổng 5050**) + Code.gs trên node + **DB thật**: **29/29** — gồm **403** ở cả 4 route cho chức vụ không có
+  mã, chức vụ được tick thì vào được, mất mạng 503, phiên thiếu mã băm 400.
+- **Giao diện:** server thử **5052** (DB thật + Google giả lập) + Chrome ngầm **1366×768**: đồng bộ 86 dòng · hộp kết quả · sửa `K.TONG → VPCTY`
+  (hiện *"Từ DB lúc thêm dòng"*) · hỏi trước khi bỏ thay đổi · gia hạn 1 dòng + 3 dòng · lịch sử *"Lần 1"* · tìm không dấu · sắp theo cột Còn.
+  **Sửa trong lúc thử:** cột Ghi chú bị ép còn **41px**, tiêu đề đè cột Sửa ⇒ cộng lại độ rộng còn **157px** · hộp kết quả hiện trước khi bảng nạp
+  xong ⇒ đổi thứ tự · nhãn ô ngày IN HOA ⇒ chữ thường · dấu "—" lơ lửng dưới ô hết hạn trống ⇒ bỏ.
+- ❌ **Chưa:** M3 (EXE) · **Google THẬT** (Code.gs chưa triển khai) · tài khoản không phải ADMIN trên Google thật.
+
+**⏭️ Còn**
+1. **Đại Ca triển khai Code.gs**: `python phanquyen_gas/chuan_bi_deploy.py` → dán → *Triển khai → Quản lý bản triển khai → ✏️ → Phiên bản mới*
+   (⛔ không "Triển khai mới") → `ping` phải ra **`2026-10-08a`**.
+2. Thử lại trên Google thật (đồng bộ lần đầu ~86 dòng, sửa, gia hạn).
+3. `CO_GI_MOI.md` (màn này chỉ ADMIN thấy ⇒ hỏi Đại Ca ghi gì) · build · phát hành — **hỏi trước khi commit / push**.
+⚠️ Phát hành EXE mà **chưa** triển khai Code.gs ⇒ màn mới báo *"Bản Apps Script trên Google chưa có chức năng này"*; các màn khác không ảnh hưởng.
+Script thử nằm ở scratchpad phiên `ec0e7817` (`thu_code_gs.js`, `gs_gia_lap.js`, `thu_m2.py`, `server_thu_5052.py`, `cdp.py`) — đã tắt server thử + Chrome ngầm.
 
 ---
 

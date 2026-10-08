@@ -169,7 +169,8 @@ def _xoa_db_cfg():
 PERM_TABS    = ['ledger', 'sale', 'voucher', 'purchase', 'warehouse', 'warehouse_balance',
                 'btp_reconcile', 'dcnb_reconcile', 'po_list']
 PERM_REPORTS = ['BC%03d' % i for i in range(1, 18)]          # BC001..BC017
-PERM_EXTRA   = ['perm_admin']                                # tab "Phân quyền" — CHỈ ADMIN
+PERM_EXTRA   = ['perm_admin',                                # tab "Phân quyền" — CHỈ ADMIN
+                'diem_su_dung']                              # màn "Điểm sử dụng" (việc 51) — mặc định chỉ ADMIN
 PERM_ALL_ITEMS = PERM_TABS + PERM_REPORTS + PERM_EXTRA
 
 # Nhãn tiếng Việt của từng mã — gửi sang Apps Script để nó đặt tên cột cho mục MỚI trên
@@ -182,6 +183,7 @@ PERM_ITEM_LABELS = {
     'dcnb_reconcile': 'Đối chiếu điều chuyển nội bộ',
     'po_list': 'Danh sách PO (yêu cầu mua hàng)',
     'perm_admin': 'Tab Phân quyền (quản trị)',
+    'diem_su_dung': 'Danh sách điểm sử dụng (bảo trì)',
 }
 
 def _nhan_muc_quyen():
@@ -254,6 +256,9 @@ PERM_ROUTE_STATIC = {
     '/api/perm/config': 'perm_admin', '/api/perm/user': 'perm_admin',
     '/api/perm/user/delete': 'perm_admin',
     '/api/perm/role': 'perm_admin', '/api/perm/role/delete': 'perm_admin',
+    # Màn Điểm sử dụng (việc 51) — chức vụ khác ADMIN phải được tick 'diem_su_dung' ở tab Phân quyền.
+    '/api/diem_su_dung': 'diem_su_dung', '/api/diem_su_dung/dong_bo': 'diem_su_dung',
+    '/api/diem_su_dung/luu': 'diem_su_dung', '/api/diem_su_dung/gia_han': 'diem_su_dung',
 }
 # path không giới hạn theo mục (vẫn cần đăng nhập SQL — từng endpoint tự kiểm)
 PERM_PUBLIC = {
@@ -1371,6 +1376,210 @@ def perm_set_password():
         except Exception as e:
             logger.warning('Khong xoa duoc cache sau khi doi mat khau: %s', e)
     return kq
+
+# ---------------------------------------------------------------------------
+# MÀN "ĐIỂM SỬ DỤNG" (việc 51, Đại Ca chốt 08/10/2026) — danh sách điểm đang dùng phần mềm kế toán + thời hạn bảo trì.
+# Dữ liệu NẰM TRÊN GOOGLE SHEET (sheet "Danh sách điểm sử dụng", cùng file với tài khoản). ⛔ KHÔNG ghi gì vào SQL Server
+# (DB kế toán của khách — app chỉ đọc). DB chỉ được ĐỌC lúc bấm "Đồng bộ" (Đại Ca: "đồng bộ khi cần, giảm tải tài nguyên");
+# vào màn hình chỉ đọc Google Sheet. Luật thêm / sửa / gia hạn nằm ở khối DANH SÁCH ĐIỂM SỬ DỤNG cuối phanquyen_gas/Code.gs.
+# Gọi Google bằng chính tài khoản đang dùng app: uid + MÃ ĐÃ BĂM giữ trong kho phiên ở RAM (Bẫy 17) — không hỏi lại mật khẩu.
+# ⛔ Lỗi ở đây KHÔNG trả 401 (trừ khi chưa đăng nhập SQL): frontend gặp 401 là đá người dùng ra màn đăng nhập (Bẫy 1).
+# ---------------------------------------------------------------------------
+import re as _re
+_DIEM_BAN_GS = '2026-10-08a'     # bản Code.gs đầu tiên có 4 lệnh *_diem
+_DIEM_SO_NGAY_CV = 60            # suy mã công việc từ phiếu bán N ngày gần nhất
+_DIEM_NGAY_RE = _re.compile(r'^\d{2}/\d{2}/\d{4}$')
+
+
+def _gs_tk_phien():
+    """(tài khoản, mã đã băm) của người đang dùng app — đúng chuỗi đã gửi Google lúc đăng nhập, KHÔNG phải mật khẩu gốc."""
+    sid = session.get('sid')
+    with _phien_lock:
+        m = _phien_db.get(sid) if sid else None
+        kq = dict(m.get('kiem_quyen') or {}) if m else {}
+    return kq.get('uid') or '', kq.get('dk') or ''
+
+
+def _gs_diem(hanh_dong, **thamso):
+    """Gọi một lệnh *_diem trên Google. Trả (kết quả, None) hoặc (None, response lỗi để trả thẳng)."""
+    if not _gs_config():
+        return None, _loi_chua_cau_hinh()
+    uid, dk = _gs_tk_phien()
+    if not uid or not dk:
+        return None, (jsonify({"status": "error", "message":
+                               "Phiên này không giữ được tài khoản để hỏi Google — đăng xuất rồi đăng nhập lại."}), 400)
+    try:
+        kq = _gs_goi(hanh_dong, user=uid, mat_khau=dk, **thamso)
+    except _GSOffline as e:
+        return None, (jsonify({"status": "error", "message":
+                               "Không nối được Google Sheet (%s). Màn Điểm sử dụng cần có mạng." % e}), 503)
+    except Exception as e:
+        return None, (jsonify({"status": "error", "message": str(e)}), 502)
+    if not kq.get('ok'):
+        loi = kq.get('loi') or 'Google Sheet từ chối'
+        if loi.startswith('Không hiểu hành động'):
+            loi = ('Bản Apps Script trên Google chưa có chức năng này (cần bản %s trở lên). '
+                   'Báo người quản trị triển khai lại Code.gs.' % _DIEM_BAN_GS)
+        return None, (jsonify({"status": "error", "message": loi}), 400)
+    return kq, None
+
+
+def _diem_doc_db(cursor):
+    """DB → danh sách điểm (đơn vị × máy POS). CHỈ ĐỌC.
+
+    Đo 08/10/2026 trên IACC_CHULONG: 92 dòng DM_ORGANIZATION − 10 dòng nhóm = 82 đơn vị; 76 đơn vị có máy POS (80 máy),
+    4 đơn vị có 2 máy ⇒ 86 dòng. Tốn ~5–6 giây, gần hết ở câu phiếu bán 60 ngày (suy mã công việc, ~4,5 giây).
+    - Đơn vị có 2 máy POS ⇒ 2 dòng (Đại Ca chốt), tên lấy theo ĐỐI TƯỢNG của từng máy (CL-HCM-67 / 71 Hậu Giang) để phân biệt.
+    - Mã công việc: danh mục không ghi đơn vị nào dùng mã nào ⇒ lấy mã xuất hiện NHIỀU NHẤT trên phiếu bán của máy đó
+      (không có thì của cả đơn vị) trong 60 ngày. Điểm chưa bán phiếu nào ⇒ để trống, Đại Ca sửa tay.
+    - Khoá dòng = "mã điểm|POS ID" — Google chỉ thêm khoá chưa có (xem Code.gs)."""
+    s = lambda x: ('' if x is None else str(x)).strip()
+    # Bỏ dòng NHÓM: ORGANIZATION_TYPE '01' = công ty gốc '00' + 9 dòng "Khu vực …" (đo 08/10/2026); bỏ đơn vị ngưng dùng.
+    cursor.execute("SELECT ORGANIZATION_ID, ORGANIZATION_NAME FROM dbo.DM_ORGANIZATION "
+                   "WHERE ORGANIZATION_TYPE <> '01' AND ACTIVE = 1 ORDER BY ORGANIZATION_ID")
+    don_vi = [(s(r[0]), s(r[1])) for r in cursor.fetchall()]
+    # ⛔ ORGANIZATION_MAPPING còn có cột PASSWORD / TOKEN (tài khoản API POS của iPOS) — CHỈ chọn đúng các cột dưới.
+    cursor.execute("SELECT DISTINCT M.ORGANIZATION_ID, M.WORKSTATION_ID, P.PR_DETAIL_NAME FROM dbo.ORGANIZATION_MAPPING M "
+                   "LEFT JOIN dbo.DM_PR_DETAIL P ON P.PR_DETAIL_ID = M.PR_DETAIL_ID")
+    pos_cua_dv = {}
+    for org, ws, ten_dt in cursor.fetchall():
+        org, ws = s(org), s(ws)
+        if not ws or ws == '0':
+            continue
+        ds = pos_cua_dv.setdefault(org, {})
+        ds.setdefault(ws, s(ten_dt))
+    cursor.execute("SELECT DISTINCT WORKSTATION_ID, WAREHOUSE_ID FROM dbo.WAREHOUSE_MAPPING")
+    kho_cua_pos = {}
+    for ws, kho in cursor.fetchall():
+        if s(kho):
+            kho_cua_pos.setdefault(s(ws), set()).add(s(kho))
+    cursor.execute("SELECT ORGANIZATION_ID, WAREHOUSE_ID FROM dbo.DM_WAREHOUSE WHERE ACTIVE = 1")
+    kho_cua_dv = {}
+    for org, kho in cursor.fetchall():
+        kho_cua_dv.setdefault(s(org), set()).add(s(kho))
+    tu_ngay = (datetime.now() - timedelta(days=_DIEM_SO_NGAY_CV)).strftime('%Y%m%d')   # Bẫy 4: ngày truyền dạng yyyymmdd
+    cursor.execute("SELECT S.ORGANIZATION_ID, S.WORKSTATION_ID, D.JOB_ID, COUNT(*) FROM dbo.SALE S "
+                   "JOIN dbo.SALE_DETAIL D ON D.FR_KEY = S.PR_KEY "
+                   "WHERE S.TRAN_DATE >= ? AND D.JOB_ID <> '' "
+                   "GROUP BY S.ORGANIZATION_ID, S.WORKSTATION_ID, D.JOB_ID", (tu_ngay,))
+    dem_pos, dem_dv = {}, {}
+    for org, ws, job, n in cursor.fetchall():
+        org, ws, job = s(org), s(ws), s(job)
+        dp = dem_pos.setdefault((org, ws), {})
+        dp[job] = dp.get(job, 0) + n
+        dd = dem_dv.setdefault(org, {})
+        dd[job] = dd.get(job, 0) + n
+    nhieu_nhat = lambda d: max(sorted(d), key=lambda k: d[k]) if d else ''
+
+    ket_qua = []
+    for org, ten_dv in don_vi:
+        may = pos_cua_dv.get(org) or {}
+        kho_dv = ', '.join(sorted(kho_cua_dv.get(org, ())))
+        if not may:
+            ket_qua.append({'khoa': org + '|', 'ma_diem': org, 'ten_diem': ten_dv, 'ten_don_vi': ten_dv, 'pos_id': '',
+                            'ma_kho': kho_dv, 'ma_cong_viec': nhieu_nhat(dem_dv.get(org))})
+            continue
+        for ws in sorted(may, key=lambda x: (len(x), x)):
+            ket_qua.append({
+                'khoa': org + '|' + ws, 'ma_diem': org, 'ten_don_vi': ten_dv, 'pos_id': ws,
+                'ten_diem': (may[ws] or ten_dv) if len(may) > 1 else ten_dv,
+                'ma_kho': ', '.join(sorted(kho_cua_pos.get(ws, ()))) or kho_dv,
+                'ma_cong_viec': nhieu_nhat(dem_pos.get((org, ws))) or nhieu_nhat(dem_dv.get(org)),
+            })
+    return ket_qua
+
+
+@app.route("/api/diem_su_dung")
+def diem_su_dung_doc():
+    """Vào màn hình: CHỈ đọc Google Sheet, không đụng DB."""
+    if not _db_cfg():
+        return jsonify({"status": "error", "message": "Chưa đăng nhập"}), 401
+    kq, loi = _gs_diem('doc_diem')
+    if loi:
+        return loi
+    return jsonify({"status": "ok", "diem": kq.get('diem') or [], "dong_bo": kq.get('dong_bo') or {},
+                    "chua_co_sheet": bool(kq.get('chua_co_sheet')), "dong_khong_khoa": kq.get('dong_khong_khoa') or 0})
+
+
+@app.route("/api/diem_su_dung/dong_bo", methods=["POST"])
+def diem_su_dung_dong_bo():
+    """Nút Đồng bộ: đọc DB (khoá DB chỉ trong lúc chạy SQL) rồi gửi Google — Google chỉ THÊM điểm chưa có."""
+    if not _db_cfg():
+        return jsonify({"status": "error", "message": "Chưa đăng nhập"}), 401
+    if not _gs_config():
+        return _loi_chua_cau_hinh()
+    t0 = _time.time()
+    try:
+        with global_db_lock:
+            try:
+                ds = _diem_doc_db(get_connection().cursor())
+            except pyodbc.Error:
+                invalidate_pool()            # kết nối hỏng ⇒ dựng lại đúng một lần, như @with_db_lock
+                ds = _diem_doc_db(get_connection().cursor())
+    except Exception as e:
+        logger.warning('Dong bo diem su dung: doc DB hong: %s', e)
+        return jsonify({"status": "error", "message": "Không đọc được danh sách điểm từ DB.", "chi_tiet": str(e)}), 500
+    giay_db = round(_time.time() - t0, 1)
+    kq, loi = _gs_diem('dong_bo_diem', diem=[{k: d[k] for k in ('khoa', 'ma_diem', 'ten_diem', 'pos_id', 'ma_kho',
+                                                                   'ma_cong_viec')} for d in ds])
+    if loi:
+        return loi
+    k_them = {t.get('khoa') for t in (kq.get('them') or [])}
+    moi = [d for d in ds if d['khoa'] in k_them]
+    dem = {}
+    for d in moi:
+        dem.setdefault(d['ma_diem'], []).append(d)
+    return jsonify({
+        "status": "ok", "so_them": len(moi), "tong": kq.get('tong'), "so_diem_db": len(ds), "giay_db": giay_db,
+        "them": moi,
+        "khong_pos": [d for d in moi if not d['pos_id']],
+        "thieu_cv": [d for d in moi if not d['ma_cong_viec']],
+        "tach_2_may": [{'ma_diem': m, 'ten_don_vi': v[0]['ten_don_vi'], 'so_may': len(v)} for m, v in dem.items() if len(v) > 1],
+        "dong_bo": kq.get('dong_bo') or {},
+    })
+
+
+@app.route("/api/diem_su_dung/luu", methods=["POST"])
+def diem_su_dung_luu():
+    """Hộp sửa một điểm: ghi các ô đã đổi. `cu` = giá trị lúc mở hộp — Google dùng để không ghi đè mù."""
+    if not _db_cfg():
+        return jsonify({"status": "error", "message": "Chưa đăng nhập"}), 401
+    d = request.json or {}
+    khoa = str(d.get('khoa') or '').strip()
+    gia_tri = d.get('gia_tri') if isinstance(d.get('gia_tri'), dict) else {}
+    cu = d.get('cu') if isinstance(d.get('cu'), dict) else {}
+    if not khoa or not gia_tri:
+        return jsonify({"status": "error", "message": "Thiếu dòng cần sửa"}), 400
+    for ma in ('NGAY_BAT_DAU', 'NGAY_HET_HAN'):
+        v = str(gia_tri.get(ma) or '').strip()
+        if v and not _DIEM_NGAY_RE.match(v):
+            return jsonify({"status": "error", "message": "Ngày phải dạng dd/mm/yyyy: " + v}), 400
+    kq, loi = _gs_diem('luu_diem', khoa=khoa, gia_tri=gia_tri, cu=cu)
+    if loi:
+        return loi
+    return jsonify({"status": "ok", "dong": kq.get('dong'), "khong_doi": bool(kq.get('khong_doi'))})
+
+
+@app.route("/api/diem_su_dung/gia_han", methods=["POST"])
+def diem_su_dung_gia_han():
+    """Gia hạn bảo trì 1 hoặc nhiều dòng: cùng một kỳ mới. `dong[].bd_cu / hh_cu` = kỳ app đang thấy (Google so để
+    chịu được gọi lại và không gia hạn nhầm dòng vừa bị sửa ở nơi khác)."""
+    if not _db_cfg():
+        return jsonify({"status": "error", "message": "Chưa đăng nhập"}), 401
+    d = request.json or {}
+    tu, den = str(d.get('tu') or '').strip(), str(d.get('den') or '').strip()
+    if not _DIEM_NGAY_RE.match(tu) or not _DIEM_NGAY_RE.match(den):
+        return jsonify({"status": "error", "message": "Phải chọn đủ Từ ngày và Đến ngày (dd/mm/yyyy)"}), 400
+    dong = [x for x in (d.get('dong') or []) if isinstance(x, dict) and str(x.get('khoa') or '').strip()]
+    if not dong:
+        return jsonify({"status": "error", "message": "Chưa chọn dòng nào"}), 400
+    kq, loi = _gs_diem('gia_han_diem', tu=tu, den=den, dong=[
+        {'khoa': str(x.get('khoa')).strip(), 'bd_cu': str(x.get('bd_cu') or '').strip(),
+         'hh_cu': str(x.get('hh_cu') or '').strip()} for x in dong])
+    if loi:
+        return loi
+    return jsonify({"status": "ok", "xong": kq.get('xong') or [], "da_co": kq.get('da_co') or [],
+                    "lech": kq.get('lech') or [], "khong_thay": kq.get('khong_thay') or []})
 
 # ---------------------------------------------------------------------------
 # DANH MỤC LOẠI CHỨNG TỪ ("Loại CT") — nguồn là dbo.SYS_TRAN, KHÔNG phải

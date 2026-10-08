@@ -2,6 +2,8 @@
 
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
+> 🆕 **08/10/2026 — Việc 51: màn "Điểm sử dụng"** (danh sách điểm dùng phần mềm + thời hạn bảo trì, chỉ ADMIN) — **commit local,
+> CHƯA push / build**. ⚠️ **`Code.gs` trong repo = `2026-10-08a`, trên Google vẫn Version 5 `2026-09-21c`** — chưa triển khai. Xem nhật ký việc 51.
 > 🆕 **02–04/10/2026 — BC017 Báo cáo bán hàng** (mẫu iPOS 3.1, đối chiếu doanh thu): 3 kiểu xem × chi tiết/tổng hợp + cấu hình cột,
 > kiểm trên DB thật — ✅ **phát hành trong `v2.1.1` (05/10/2026)** — xem § 1.2 *BC017* + nhật ký việc 49.
 > 🆕 **05/10/2026 — Việc 50**: đợt 1 **cấu hình cột BC007 · BC008 · BC012 · BC015 · BC016** (khuôn BC017) + đợt 2 **ghim cột bất kỳ

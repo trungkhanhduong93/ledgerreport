@@ -749,7 +749,10 @@ window.showConnectionLost = function() {
                 "id-card": '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M5.8 16c.6-1.4 1.8-2.1 3.2-2.1s2.6.7 3.2 2.1"/><path d="M14.5 10h4M14.5 14h3"/>',
                 "users": '<circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8"/><path d="M18 14.4c1.8.8 3 2.8 3 5.6"/>',
                 "eye": '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
-                "eye-off": '<path d="M10.6 5.1A10.8 10.8 0 0 1 12 5c6.4 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4.2"/><path d="M6.6 6.6C3.7 8.4 2 12 2 12s3.6 7 10 7c1.9 0 3.5-.6 4.9-1.4"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="M3 3l18 18"/>'
+                "eye-off": '<path d="M10.6 5.1A10.8 10.8 0 0 1 12 5c6.4 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4.2"/><path d="M6.6 6.6C3.7 8.4 2 12 2 12s3.6 7 10 7c1.9 0 3.5-.6 4.9-1.4"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="M3 3l18 18"/>',
+                // 08/10/2026 — màn Điểm sử dụng (việc 51): icon phân hệ + nút Sửa cuối dòng. Bộ Lucide.
+                "map-pin": '<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>',
+                "pencil": '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>'
             };
             return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} dangerouslySetInnerHTML={{ __html: icons[name] || '' }} />;
         };
@@ -5158,6 +5161,12 @@ window.showConnectionLost = function() {
             { id: 'dcnb_reconcile', name: 'Danh sách đối chiếu điều chuyển nội bộ (xuất – nhập)', short: 'Đối chiếu điều chuyển', icon: 'swap' },
             { id: 'po_list', name: 'Danh sách PO – yêu cầu mua hàng', short: 'PO – yêu cầu mua hàng', icon: 'clipboard-list' },
         ];
+        // Màn hình KHÔNG phải danh sách chứng từ (không lọc kỳ, không cột COT_BANG, không xuất CSV) nhưng vẫn nằm trong một
+        // phân hệ ở cột trái. ⛔ Đừng nhét vào DOC_TABS: checklist Phân quyền xếp DOC_TABS vào nhóm "Danh sách chứng từ".
+        const MAN_RIENG = [
+            { id: 'diem_su_dung', name: 'Danh sách điểm sử dụng', short: 'Danh sách điểm sử dụng', icon: 'map-pin' },
+        ];
+        const timManHinh = (id) => DOC_TABS.find(x => x.id === id) || MAN_RIENG.find(x => x.id === id);
 
         // ===== CỘT CỦA 9 BẢNG DANH SÁCH — ẩn/hiện + kéo giãn (Đại Ca chốt 25/09/2026) =====
         // Mỗi cột: [khoá, nhãn tiêu đề, độ rộng gốc (px, theo lớp w-* của tiêu đề), [khoá cột trong file xuất]].
@@ -5200,6 +5209,9 @@ window.showConnectionLost = function() {
                 { id: 'baocao',  ten: 'Báo cáo TC', icon: 'chart-line', tabs: null,   // trang liệt kê thẻ, xem DanhSachBaoCao
                   ten_day: 'Báo cáo tài chính',
                   mo_ta: 'KQKD, cân đối kế toán, lưu chuyển tiền tệ, công nợ, thuế', mau: { nen: '#f5f3ff', chu: '#6d28d9' } },
+                // Việc 51 (08/10/2026): màn riêng, khai ở MAN_RIENG. Mặc định chỉ ADMIN thấy (mã quyền 'diem_su_dung').
+                { id: 'diemsudung', ten: 'Điểm sử dụng', icon: 'map-pin', tabs: ['diem_su_dung'],
+                  mo_ta: 'Điểm đang dùng phần mềm kế toán và thời hạn bảo trì', mau: { nen: '#f0fdf4', chu: '#15803d' } },
             ];
             const daGan = new Set(ds.flatMap(p => p.tabs || []));
             const conLai = DOC_TABS.map(t => t.id).filter(id => !daGan.has(id));
@@ -5229,6 +5241,399 @@ window.showConnectionLost = function() {
                 </div>
             </div>
         );
+
+        // ===== MÀN "ĐIỂM SỬ DỤNG" — việc 51 (Đại Ca chốt 08/10/2026, phác thảo mục 09) =====
+        // Danh sách điểm (đơn vị × máy POS) đang dùng phần mềm kế toán + thời hạn bảo trì. Dữ liệu nằm ở Google Sheet
+        // "Danh sách điểm sử dụng": vào màn CHỈ đọc Sheet; DB chỉ được đọc khi bấm Đồng bộ (Đại Ca: "đồng bộ khi cần").
+        // Đại Ca chốt: bảng CHỈ ĐỂ XEM, sửa phải bấm nút bút chì mở hộp (tránh sửa nhầm) · Đồng bộ chỉ THÊM điểm mới, không
+        // đụng dòng đã có · Gia hạn = chọn Từ ngày, Đến ngày, Lưu là xong (lịch sử + số lần do Google tự ghi) · làm ĐƠN GIẢN.
+        // Mỗi lệnh Lưu / Gia hạn đi qua Google 4–7 giây ⇒ phải có trạng thái chờ, không là người dùng bấm lại.
+        const DSD_NGAY = (s) => { const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s || ''); return m ? new Date(+m[3], +m[2] - 1, +m[1]) : null; };
+        const DSD_CHU = (d) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+        const dsdHomNay = () => { const h = new Date(); h.setHours(0, 0, 0, 0); return h; };
+        const dsdConNgay = (hh) => { const d = DSD_NGAY(hh); return d ? Math.round((d - dsdHomNay()) / 86400000) : null; };
+        // Kỳ mới gợi ý = nối tiếp kỳ cũ: từ = hết hạn cũ + 1 ngày, đến = thêm 1 năm (trừ 1 ngày). Chưa có kỳ ⇒ từ hôm nay.
+        const dsdKyMoi = (hh) => {
+            const c = DSD_NGAY(hh);
+            const tu = c ? new Date(c.getFullYear(), c.getMonth(), c.getDate() + 1) : dsdHomNay();
+            return { tu: DSD_CHU(tu), den: DSD_CHU(new Date(tu.getFullYear() + 1, tu.getMonth(), tu.getDate() - 1)) };
+        };
+        const dsdSoSanh = (a, b) => String(a || '').localeCompare(String(b || ''), 'vi', { numeric: true });
+        const DSD_O_SUA = [   // [mã gửi Google, khoá trong dòng, nhãn]
+            ['MA_DIEM', 'ma_diem', 'Mã điểm'], ['POS_ID', 'pos_id', 'POS ID'], ['TEN_DIEM', 'ten_diem', 'Tên điểm'],
+            ['MA_KHO', 'ma_kho', 'Mã kho'], ['MA_CONG_VIEC', 'ma_cong_viec', 'Mã công việc'],
+            ['NGAY_BAT_DAU', 'ngay_bat_dau', 'Ngày bắt đầu'], ['NGAY_HET_HAN', 'ngay_het_han', 'Ngày hết hạn'], ['GHI_CHU', 'ghi_chu', 'Ghi chú'],
+        ];
+        // Độ rộng đo ở 1366px (khung bảng còn ~1109px): cộng các cột cố định = 952 ⇒ Ghi chú còn ~157px. Nới cột nào thì bớt
+        // cột khác — bản đầu cộng 1068px, Ghi chú bị ép còn 41px và tiêu đề đè sang cột Sửa (đo 08/10/2026).
+        const DSD_COT = [   // [khoá sắp xếp, nhãn, độ rộng px | null = phần còn lại, căn giữa?]
+            ['ma_diem', 'Mã điểm', 56, true], ['ten_diem', 'Tên điểm', 192, false], ['pos_id', 'POS ID', 68, true],
+            ['ma_kho', 'Mã kho', 96, false], ['ma_cong_viec', 'Mã CV', 88, false], ['so_lan_bt', 'Lần BT', 56, true],
+            ['ngay_bat_dau', 'Bắt đầu', 86, true], ['ngay_het_han', 'Hết hạn', 86, true], ['con', 'Còn', 104, false],
+            ['ghi_chu', 'Ghi chú', null, false],
+        ];
+        const goiDiem = async (url, body) => {
+            const r = await fetch(url, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : undefined);
+            let j = {};
+            try { j = await r.json(); } catch (e) { /* máy chủ trả không phải JSON — báo theo mã lỗi bên dưới */ }
+            if (r.status === 401) { const e = new Error('Phiên đăng nhập đã hết'); e.hetPhien = true; throw e; }
+            if (!r.ok || j.status !== 'ok') throw new Error(j.message || ('Lỗi ' + r.status));
+            return j;
+        };
+        const OConNgay = ({ hh }) => {
+            const n = dsdConNgay(hh);
+            if (n === null) return <span className="text-slate-400">—</span>;
+            if (n < 0) return <span className="font-bold text-red-700">Quá hạn {-n} ngày</span>;
+            return <span className={'font-bold ' + (n <= 30 ? 'text-orange-700' : 'text-emerald-700')}>{n} ngày</span>;
+        };
+        const KhungHop = ({ rong, onDong, children, tieuDe, phu, icon }) => (
+            <div className="fixed inset-0 z-[5000] bg-slate-900/45 flex items-center justify-center p-4" onMouseDown={e => { if (e.target === e.currentTarget) onDong(); }}>
+                <div role="dialog" aria-modal="true" className="bg-white rounded-2xl shadow-2xl max-h-[calc(100vh-32px)] flex flex-col overflow-hidden" style={{ width: rong }}>
+                    <div className="flex items-start gap-3 px-5 pt-4 pb-3 border-b border-slate-100 shrink-0">
+                        {icon && <span className="w-9 h-9 shrink-0 rounded-full bg-blue-50 text-[#1e3a8a] flex items-center justify-center"><Icon name={icon} size={16} strokeWidth="2" /></span>}
+                        <div className="flex-1 min-w-0">
+                            <div className="text-[16px] font-bold text-slate-900 truncate">{tieuDe}</div>
+                            {phu && <div className="text-[12px] text-slate-500 mt-0.5 truncate">{phu}</div>}
+                        </div>
+                        <button type="button" onClick={onDong} aria-label="Đóng" className="w-8 h-8 rounded-lg text-slate-500 hover:bg-slate-100 flex items-center justify-center"><Icon name="x" size={16} strokeWidth="2" /></button>
+                    </div>
+                    {children}
+                </div>
+            </div>
+        );
+        const NUT_PHU = 'h-9 px-4 rounded-lg border border-slate-200 bg-white text-[12px] font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50';
+        const NUT_CHINH = 'h-9 px-4 rounded-lg bg-[#1e3a8a] hover:bg-[#172554] text-white text-[12px] font-bold flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed';
+
+        // Hộp sửa một điểm — sửa được mọi ô. Ô khác giá trị DB lúc thêm dòng thì viền cam + "Từ DB lúc thêm dòng: … · Lấy lại".
+        const HopSuaDiem = ({ dong, onDong, onDaLuu, onGiaHan, onHetPhien }) => {
+            const [f, setF] = useState(() => Object.fromEntries(DSD_O_SUA.map(([ma, k]) => [ma, dong[k] || ''])));
+            const [dangLuu, setDangLuu] = useState(false);
+            const [loi, setLoi] = useState('');
+            const doi = DSD_O_SUA.filter(([ma, k]) => (f[ma] || '').trim() !== (dong[k] || ''));
+            const hoiBo = () => !doi.length || window.confirm('Có thay đổi CHƯA LƯU. Bỏ thay đổi đó?');
+            const dong_ = () => { if (!dangLuu && hoiBo()) onDong(); };
+            const luu = async () => {
+                if (dangLuu || !doi.length) return;
+                const bd = (f.NGAY_BAT_DAU || '').trim(), hh = (f.NGAY_HET_HAN || '').trim();
+                if (bd && hh && DSD_NGAY(hh) < DSD_NGAY(bd)) { setLoi('Ngày hết hạn đang trước ngày bắt đầu.'); return; }
+                setDangLuu(true); setLoi('');
+                try {
+                    const j = await goiDiem('/api/diem_su_dung/luu', {
+                        khoa: dong.khoa,
+                        gia_tri: Object.fromEntries(doi.map(([ma]) => [ma, (f[ma] || '').trim()])),
+                        cu: Object.fromEntries(doi.map(([ma, k]) => [ma, dong[k] || ''])),
+                    });
+                    onDaLuu(j.dong);
+                } catch (e) { if (e.hetPhien) onHetPhien(); else setLoi(e.message); } finally { setDangLuu(false); }
+            };
+            const oNhap = (ma, k, nhan, rong2) => {
+                const goc = dong['goc_' + k];
+                const khacGoc = goc !== undefined && DSD_O_SUA.slice(0, 5).some(x => x[0] === ma) && (f[ma] || '').trim() !== goc;
+                return (
+                    <div className={rong2 ? 'col-span-2' : ''} key={ma}>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1" htmlFor={'dsd-' + ma}>{nhan}</label>
+                        <input id={'dsd-' + ma} type="text" value={f[ma]} disabled={dangLuu} onChange={e => setF(x => ({ ...x, [ma]: e.target.value }))}
+                            className={'w-full h-9 px-2.5 rounded-lg border text-[13px] text-slate-900 outline-none focus:ring-2 focus:ring-blue-100 ' + (khacGoc ? 'border-amber-500 bg-amber-50' : 'border-slate-300 bg-white')} />
+                        {khacGoc && <div className="text-[11px] text-slate-500 mt-1">Từ DB lúc thêm dòng: <b className="text-slate-700">{goc || '(trống)'}</b> · <button type="button" className="text-blue-700 font-bold hover:underline" onClick={() => setF(x => ({ ...x, [ma]: goc }))}>Lấy lại</button></div>}
+                    </div>
+                );
+            };
+            const oNgay = (ma, nhan, them) => (
+                <div key={ma}>
+                    <IOSDatePicker label={<span className="normal-case tracking-normal text-[11px] font-bold text-slate-700">{nhan}</span>} value={f[ma]} disabled={dangLuu} onChange={v => setF(x => ({ ...x, [ma]: v }))} />
+                    <div className="flex items-center gap-2 mt-1 text-[11px]">
+                        {them}
+                        {f[ma] && !dangLuu && <button type="button" className="text-slate-500 hover:text-red-700 ml-auto" onClick={() => setF(x => ({ ...x, [ma]: '' }))}>Xoá ngày</button>}
+                    </div>
+                </div>
+            );
+            const lichSu = (dong.lich_su_bt || '').split(' | ').map(x => x.trim()).filter(Boolean);
+            return (
+                <KhungHop rong={640} onDong={dong_} icon="pencil" tieuDe={`Sửa điểm ${dong.ma_diem} – ${dong.ten_diem}`}
+                    phu={`Thêm vào lúc ${dong.them_luc || '—'}` + (dong.sua_luc ? ` · sửa lần cuối ${dong.sua_luc} bởi ${dong.sua_boi}` : '')}>
+                    <div className="px-5 py-3 overflow-y-auto">
+                        <div className="text-[10px] font-bold tracking-[0.08em] uppercase text-slate-500 mb-2">Thông tin điểm — lấy từ DB lúc thêm dòng</div>
+                        <div className="grid grid-cols-2 gap-x-3.5 gap-y-2.5">
+                            {oNhap('MA_DIEM', 'ma_diem', 'Mã điểm')}
+                            {oNhap('POS_ID', 'pos_id', 'POS ID')}
+                            {oNhap('TEN_DIEM', 'ten_diem', 'Tên điểm', true)}
+                            {oNhap('MA_KHO', 'ma_kho', 'Mã kho')}
+                            {oNhap('MA_CONG_VIEC', 'ma_cong_viec', 'Mã công việc')}
+                        </div>
+                        <div className="flex items-center gap-2.5 mt-4 mb-2">
+                            <span className="text-[10px] font-bold tracking-[0.08em] uppercase text-slate-500">Kỳ bảo trì hiện tại</span>
+                            {dong.so_lan_bt && <span className="h-5 leading-5 px-2 rounded-full bg-blue-50 text-[#1e3a8a] text-[11px] font-bold">Lần {dong.so_lan_bt}</span>}
+                            <button type="button" disabled={dangLuu} onClick={() => { if (hoiBo()) onGiaHan(dong); }}
+                                className="ml-auto h-8 px-3 rounded-lg border border-[#1e3a8a] text-[#1e3a8a] text-[12px] font-bold flex items-center gap-1.5 hover:bg-blue-50 disabled:opacity-50">
+                                <Icon name="refresh" size={13} strokeWidth="2" />Gia hạn bảo trì
+                            </button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-x-3.5">
+                            {oNgay('NGAY_BAT_DAU', 'Ngày bắt đầu')}
+                            {oNgay('NGAY_HET_HAN', 'Ngày hết hạn', f.NGAY_HET_HAN ? <OConNgay hh={f.NGAY_HET_HAN} /> : null)}
+                        </div>
+                        <div className="text-[11px] text-slate-500 mt-1.5">Sửa 2 ô ngày = sửa lại kỳ hiện tại (gõ sai). Sang kỳ mới thì bấm <b className="text-[#1e3a8a]">Gia hạn bảo trì</b>.</div>
+                        <div className="text-[10px] font-bold tracking-[0.08em] uppercase text-slate-500 mt-4 mb-1.5">Lịch sử bảo trì</div>
+                        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-[12px] text-slate-700 tabular-nums">
+                            {lichSu.length ? lichSu.map((x, i) => {
+                                const k = x.indexOf(': ');
+                                return <div key={i} className="flex gap-3 py-0.5"><b className="w-14 text-[#1e3a8a]">{k > 0 ? x.slice(0, k) : ''}</b><span>{k > 0 ? x.slice(k + 2) : x}</span></div>;
+                            }) : <div className="py-0.5 text-slate-400">Chưa có kỳ cũ nào.</div>}
+                        </div>
+                        <div className="mt-3">{oNhap('GHI_CHU', 'ghi_chu', 'Ghi chú', true)}</div>
+                        {loi && <div className="mt-3 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-[12px] text-red-800 whitespace-pre-line">{loi}</div>}
+                    </div>
+                    <div className="flex items-center gap-2 px-5 py-3.5 border-t border-slate-100 shrink-0">
+                        <span className="text-[11px] text-slate-500 mr-auto">{dangLuu ? 'Đang ghi lên Google Sheet… (khoảng 4–7 giây)' : 'Lưu là ghi lên Google Sheet ngay (khoảng 4–7 giây).'}</span>
+                        <button type="button" className={NUT_PHU} disabled={dangLuu} onClick={dong_}>Huỷ</button>
+                        <button type="button" className={NUT_CHINH} disabled={dangLuu || !doi.length} onClick={luu}>
+                            {dangLuu && <Icon name="loader" size={13} className="animate-spin" />}Lưu
+                        </button>
+                    </div>
+                </KhungHop>
+            );
+        };
+
+        // Hộp gia hạn — 1 hay nhiều dòng như nhau: Từ ngày · Đến ngày · Lưu (Đại Ca chốt "làm đơn giản").
+        const HopGiaHanDiem = ({ ds, onDong, onXong, onHetPhien }) => {
+            const goiY = (() => {   // nhiều dòng: lấy kỳ hết hạn hay gặp nhất (hợp đồng gia hạn cả loạt cùng ngày)
+                const dem = {};
+                ds.forEach(d => { if (d.ngay_het_han) dem[d.ngay_het_han] = (dem[d.ngay_het_han] || 0) + 1; });
+                const hh = Object.keys(dem).sort((a, b) => dem[b] - dem[a])[0] || '';
+                return dsdKyMoi(hh);
+            })();
+            const [tu, setTu] = useState(goiY.tu);
+            const [den, setDen] = useState(goiY.den);
+            const [dangLuu, setDangLuu] = useState(false);
+            const [loi, setLoi] = useState('');
+            const luu = async () => {
+                if (dangLuu) return;
+                if (!tu || !den) { setLoi('Chọn đủ Từ ngày và Đến ngày.'); return; }
+                if (DSD_NGAY(den) < DSD_NGAY(tu)) { setLoi('Đến ngày đang trước Từ ngày.'); return; }
+                setDangLuu(true); setLoi('');
+                try {
+                    const j = await goiDiem('/api/diem_su_dung/gia_han', { tu, den, dong: ds.map(d => ({ khoa: d.khoa, bd_cu: d.ngay_bat_dau || '', hh_cu: d.ngay_het_han || '' })) });
+                    onXong(j, tu, den);
+                } catch (e) { if (e.hetPhien) onHetPhien(); else setLoi(e.message); } finally { setDangLuu(false); }
+            };
+            const ten = ds.map(d => d.ma_diem + ' – ' + d.ten_diem);
+            return (
+                <KhungHop rong={460} onDong={() => { if (!dangLuu) onDong(); }} icon="refresh"
+                    tieuDe={ds.length > 1 ? `Gia hạn bảo trì cho ${ds.length} dòng` : 'Gia hạn bảo trì'}
+                    phu={ten.slice(0, 3).join(' · ') + (ten.length > 3 ? ` · và ${ten.length - 3} dòng khác` : '')}>
+                    <div className="px-5 py-4 grid grid-cols-2 gap-3.5">
+                        <IOSDatePicker label={<span className="normal-case tracking-normal text-[11px] font-bold text-slate-700">Từ ngày</span>} value={tu} disabled={dangLuu} onChange={setTu} />
+                        <IOSDatePicker label={<span className="normal-case tracking-normal text-[11px] font-bold text-slate-700">Đến ngày</span>} value={den} disabled={dangLuu} onChange={setDen} />
+                        {loi && <div className="col-span-2 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-[12px] text-red-800 whitespace-pre-line">{loi}</div>}
+                    </div>
+                    <div className="flex items-center justify-end gap-2 px-5 pb-4">
+                        {dangLuu && <span className="text-[11px] text-slate-500 mr-auto">Đang ghi lên Google Sheet…</span>}
+                        <button type="button" className={NUT_PHU} disabled={dangLuu} onClick={onDong}>Huỷ</button>
+                        <button type="button" className={NUT_CHINH} disabled={dangLuu} onClick={luu}>
+                            {dangLuu && <Icon name="loader" size={13} className="animate-spin" />}Lưu
+                        </button>
+                    </div>
+                </KhungHop>
+            );
+        };
+
+        const HopKetQuaDongBo = ({ kq, onDong }) => {
+            const chip = (d, i) => <span key={i} className="inline-block h-5 leading-5 px-1.5 mr-1 mt-1 rounded bg-slate-100 text-slate-700 text-[11px] font-bold">{d}</span>;
+            const muc = (icon, mau, tieuDe, noiDung) => (
+                <div className="flex gap-3 py-3 border-t border-slate-100">
+                    <span className={'w-7 h-7 shrink-0 rounded-lg flex items-center justify-center ' + mau}><Icon name={icon} size={14} strokeWidth="2.2" /></span>
+                    <div className="min-w-0"><div className="text-[13px] font-bold text-slate-900 mb-0.5">{tieuDe}</div><div className="text-[12px] leading-relaxed text-slate-600">{noiDung}</div></div>
+                </div>
+            );
+            return (
+                <KhungHop rong={600} onDong={onDong} icon="check" tieuDe="Đồng bộ xong"
+                    phu={`Đọc DB mất ${kq.giay_db} giây · ${kq.so_diem_db} điểm trong DB · ghi vào sheet "Danh sách điểm sử dụng"`}>
+                    <div className="px-5 pb-2 overflow-y-auto">
+                        {kq.so_them === 0 ? muc('check', 'bg-emerald-50 text-emerald-700', 'Không có điểm mới', `Sheet đã đủ ${kq.tong} điểm — không thêm dòng nào.`) : <>
+                            {muc('plus', 'bg-blue-50 text-[#1e3a8a]', `Thêm ${kq.so_them} dòng mới`, <>
+                                {kq.them.slice(0, 12).map((d, i) => chip(d.ma_diem + (d.pos_id ? ' · ' + d.pos_id : '') + ' · ' + d.ten_diem, i))}
+                                {kq.them.length > 12 && <span className="text-[11px] text-slate-500"> và {kq.them.length - 12} dòng khác</span>}
+                            </>)}
+                            {kq.tach_2_may.length > 0 && muc('layers', 'bg-slate-100 text-slate-600', `${kq.tach_2_may.length} đơn vị có 2 máy POS — tách thành 2 dòng`, kq.tach_2_may.map((d, i) => chip(d.ma_diem + ' ' + d.ten_don_vi, i)))}
+                            {kq.khong_pos.length > 0 && muc('server', 'bg-slate-100 text-slate-600', `${kq.khong_pos.length} dòng không có máy POS`, kq.khong_pos.map((d, i) => chip(d.ma_diem + ' ' + d.ten_diem, i)))}
+                            {kq.thieu_cv.length > 0 && muc('alert-triangle', 'bg-orange-50 text-orange-700', `${kq.thieu_cv.length} dòng thiếu mã công việc`,
+                                <>{kq.thieu_cv.map((d, i) => chip(d.ma_diem + ' ' + d.ten_diem, i))}<div className="mt-1">Không có phiếu bán nào trong 60 ngày nên chưa suy ra được — để trống, sửa tay nếu cần.</div></>)}
+                        </>}
+                        <div className="flex items-center gap-2 px-3 py-2.5 mt-1 mb-2 rounded-lg bg-slate-50 text-[12px] text-slate-600">
+                            <Icon name="shield" size={14} strokeWidth="2" className="text-emerald-700 shrink-0" />
+                            Dòng đã có trong sheet: không đụng tới ô nào. Không xoá dòng nào. Lần đồng bộ sau chỉ thêm điểm mới.
+                        </div>
+                    </div>
+                    <div className="flex justify-end px-5 py-3.5 border-t border-slate-100"><button type="button" className={NUT_CHINH} onClick={onDong}>Đóng</button></div>
+                </KhungHop>
+            );
+        };
+
+        const DiemSuDung = ({ onHetPhien }) => {
+            const [ds, setDs] = useState(null);          // null = đang tải lần đầu
+            const [dongBo, setDongBo] = useState({});
+            const [loi, setLoi] = useState('');
+            const [bao, setBao] = useState('');          // thông báo xanh sau khi gia hạn
+            const [dangTai, setDangTai] = useState(false);
+            const [dangDongBo, setDangDongBo] = useState(false);
+            const [ketQuaDb, setKetQuaDb] = useState(null);
+            const [tim, setTim] = useState('');
+            const [sx, setSx] = useState({ cot: 'ma_diem', tang: true });
+            const [chon, setChon] = useState(() => new Set());
+            const [sua, setSua] = useState(null);
+            const [giaHan, setGiaHan] = useState(null);
+            const xuLyLoi = (e) => { if (e.hetPhien) onHetPhien(); else setLoi(e.message); };
+            const tai = async () => {
+                setDangTai(true); setLoi('');
+                try {
+                    const j = await goiDiem('/api/diem_su_dung');
+                    setDs(j.diem || []); setDongBo(j.dong_bo || {});
+                    setChon(c => new Set([...c].filter(k => (j.diem || []).some(d => d.khoa === k))));
+                } catch (e) { xuLyLoi(e); if (ds === null) setDs([]); } finally { setDangTai(false); }
+            };
+            useEffect(() => { tai(); }, []);
+            const dongBoNgay = async () => {
+                if (dangDongBo) return;
+                setDangDongBo(true); setLoi(''); setBao('');
+                // Nạp lại bảng XONG rồi mới hiện hộp kết quả — không thì hộp hiện lên trên một bảng còn trống và nút vẫn "Đang đồng bộ".
+                try { const j = await goiDiem('/api/diem_su_dung/dong_bo', {}); await tai(); setKetQuaDb(j); }
+                catch (e) { xuLyLoi(e); } finally { setDangDongBo(false); }
+            };
+            const xongGiaHan = (j, tu, den) => {
+                setGiaHan(null); setSua(null); setChon(new Set());
+                const phan = [`Đã gia hạn ${j.xong.length} dòng → ${tu} – ${den}.`];
+                if (j.da_co.length) phan.push(`${j.da_co.length} dòng đã ở đúng kỳ này từ trước.`);
+                if (j.lech.length) phan.push(`${j.lech.length} dòng KHÔNG gia hạn vì vừa bị sửa ở nơi khác (${j.lech.join(', ')}) — xem lại rồi gia hạn lại.`);
+                if (j.khong_thay.length) phan.push(`${j.khong_thay.length} dòng không còn trên Sheet (${j.khong_thay.join(', ')}).`);
+                setBao(phan.join(' '));
+                tai();
+            };
+            const hien = useMemo(() => {
+                const q = boDau(tim.trim());
+                let x = (ds || []).filter(d => !q || boDau([d.ma_diem, d.ten_diem, d.pos_id, d.ma_kho, d.ma_cong_viec, d.ghi_chu].join(' ')).includes(q));
+                const gt = (d) => sx.cot === 'con' || sx.cot === 'ngay_het_han' ? (DSD_NGAY(d.ngay_het_han) || { getTime: () => Infinity }).getTime()
+                    : sx.cot === 'ngay_bat_dau' ? (DSD_NGAY(d.ngay_bat_dau) || { getTime: () => Infinity }).getTime()
+                    : sx.cot === 'so_lan_bt' ? (parseInt(d.so_lan_bt, 10) || 0) : null;
+                x = [...x].sort((a, b) => {
+                    const va = gt(a), vb = gt(b);
+                    const kq = va !== null ? (va === vb ? 0 : va < vb ? -1 : 1) : dsdSoSanh(a[sx.cot], b[sx.cot]);
+                    return (sx.tang ? kq : -kq) || dsdSoSanh(a.ma_diem, b.ma_diem) || dsdSoSanh(a.pos_id, b.pos_id);
+                });
+                return x;
+            }, [ds, tim, sx]);
+            const daChon = (ds || []).filter(d => chon.has(d.khoa));
+            const tatCaDangHien = hien.length > 0 && hien.every(d => chon.has(d.khoa));
+            const doiChon = (k) => setChon(c => { const n = new Set(c); n.has(k) ? n.delete(k) : n.add(k); return n; });
+            const chonHet = () => setChon(c => { const n = new Set(c); if (tatCaDangHien) hien.forEach(d => n.delete(d.khoa)); else hien.forEach(d => n.add(d.khoa)); return n; });
+            const bamCot = (cot) => setSx(s => s.cot === cot ? { cot, tang: !s.tang } : { cot, tang: true });
+            const td = 'h-[29px] px-2 border-t border-r border-slate-100 whitespace-nowrap overflow-hidden text-ellipsis text-slate-700';
+            return (
+                <>
+                    <div className="bg-white border-b border-slate-200 px-6 py-3 shrink-0 flex items-end gap-3 flex-wrap">
+                        <div>
+                            <div className="text-[10px] font-bold tracking-[0.08em] uppercase text-slate-600 mb-1">Đồng bộ lần cuối</div>
+                            <div className="h-8 flex items-center gap-2 text-[12px] text-slate-700">
+                                {dongBo.luc ? <><Icon name="check" size={13} strokeWidth="2.4" className="text-emerald-700" /><b className="tabular-nums">{dongBo.luc}</b><span className="text-slate-300">·</span>{dongBo.boi}</>
+                                    : <span className="text-slate-500">Chưa đồng bộ lần nào</span>}
+                                {ds && <><span className="text-slate-300">·</span><span className="text-slate-500">{ds.length} dòng</span></>}
+                            </div>
+                        </div>
+                        <div className="flex-1"></div>
+                        <div className="w-[260px] shrink-0">
+                            <label className="block text-[10px] font-bold tracking-[0.08em] uppercase text-slate-600 mb-1" htmlFor="dsd-tim">Tìm mã điểm, tên điểm, POS ID</label>
+                            <div className="h-8 border border-slate-200 rounded-lg flex items-center gap-1.5 px-2.5 bg-white">
+                                <Icon name="search" size={13} className="text-slate-400 shrink-0" />
+                                <input id="dsd-tim" type="text" value={tim} onChange={e => setTim(e.target.value)} className="flex-1 min-w-0 border-0 outline-none text-[12px] bg-transparent" />
+                                {tim && <button type="button" aria-label="Xoá ô tìm" onClick={() => setTim('')} className="text-slate-400 hover:text-slate-700"><Icon name="x" size={12} /></button>}
+                            </div>
+                        </div>
+                        <button type="button" disabled={!daChon.length} onClick={() => setGiaHan(daChon)}
+                            className="h-8 px-3 rounded-lg border text-[11px] font-bold flex items-center gap-1.5 shrink-0 disabled:text-slate-400 disabled:border-slate-200 border-[#1e3a8a] text-[#1e3a8a] hover:bg-blue-50 disabled:hover:bg-white">
+                            <Icon name="refresh" size={13} strokeWidth="2" />{daChon.length ? `Gia hạn bảo trì cho ${daChon.length} dòng đã chọn` : 'Gia hạn bảo trì cho dòng đã chọn'}
+                        </button>
+                        <button type="button" disabled={dangDongBo} onClick={dongBoNgay} title="Đọc DB rồi thêm điểm mới vào Google Sheet — dòng đã có không bị đụng tới"
+                            className="h-8 px-4 rounded-lg bg-[#1e3a8a] hover:bg-[#172554] text-white text-[12px] font-bold flex items-center gap-1.5 shrink-0 disabled:opacity-60">
+                            <Icon name={dangDongBo ? 'loader' : 'refresh'} size={13} strokeWidth="2" className={dangDongBo ? 'animate-spin' : ''} />{dangDongBo ? 'Đang đồng bộ… (10–20 giây)' : 'Đồng bộ'}
+                        </button>
+                    </div>
+                    {(loi || bao) && (
+                        <div className={'px-6 py-2 text-[12px] border-b shrink-0 flex items-start gap-2 ' + (loi ? 'bg-red-50 border-red-200 text-red-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800')}>
+                            <Icon name={loi ? 'alert-triangle' : 'check'} size={14} strokeWidth="2" className="shrink-0 mt-[1px]" />
+                            <span className="flex-1 whitespace-pre-line">{loi || bao}</span>
+                            <button type="button" aria-label="Đóng thông báo" onClick={() => { setLoi(''); setBao(''); }} className="opacity-70 hover:opacity-100"><Icon name="x" size={13} /></button>
+                        </div>
+                    )}
+                    <div className="flex-1 min-h-0 p-3 bg-slate-50 flex flex-col">
+                        <div className="flex-1 min-h-0 bg-white border border-slate-200 rounded-xl flex flex-col overflow-hidden relative">
+                            {(ds === null || dangTai) && <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center"><Icon name="loader" size={22} className="animate-spin text-[#1e3a8a]" /></div>}
+                            {ds && ds.length === 0 && !dangTai ? (
+                                <div className="flex-1 flex flex-col items-center justify-center text-center gap-2 p-8">
+                                    <Icon name="map-pin" size={28} strokeWidth="1.6" className="text-slate-300" />
+                                    <div className="text-[14px] font-bold text-slate-700">Chưa có dữ liệu</div>
+                                    <div className="text-[12px] text-slate-500 max-w-[420px]">Bấm <b>Đồng bộ</b> để lấy danh sách điểm từ DB lần đầu (đọc DB khoảng 7 giây, ghi Google Sheet thêm vài giây).</div>
+                                </div>
+                            ) : (
+                                <div className="flex-1 min-h-0 overflow-auto">
+                                    <table className="w-full border-collapse text-[11.5px]" style={{ tableLayout: 'fixed', minWidth: 1060 }}>
+                                        <colgroup><col style={{ width: 34 }} /><col style={{ width: 34 }} />{DSD_COT.map(c => <col key={c[0]} style={c[2] ? { width: c[2] } : undefined} />)}<col style={{ width: 52 }} /></colgroup>
+                                        <thead className="sticky top-0 z-[1]">
+                                            <tr className="bg-slate-50">
+                                                <th className="h-8 border-b border-r border-slate-200 text-center"><input type="checkbox" aria-label="Chọn tất cả dòng đang hiện" checked={tatCaDangHien} onChange={chonHet} className="w-3.5 h-3.5 accent-[#1e3a8a]" /></th>
+                                                <th className="h-8 border-b border-r border-slate-200 text-[10px] font-bold uppercase tracking-[0.06em] text-slate-600">#</th>
+                                                {DSD_COT.map(([k, nhan]) => (
+                                                    <th key={k} onClick={() => bamCot(k)} className="h-8 px-2 border-b border-r border-slate-200 text-[10px] font-bold uppercase tracking-[0.06em] text-slate-600 whitespace-nowrap cursor-pointer select-none hover:bg-slate-100">
+                                                        <span className="inline-flex items-center gap-1">{nhan}{sx.cot === k && <Icon name={sx.tang ? 'arrow-up' : 'arrow-down'} size={10} strokeWidth="2.4" className="text-[#1e3a8a]" />}</span>
+                                                    </th>
+                                                ))}
+                                                <th className="h-8 border-b border-slate-200 text-[10px] font-bold uppercase tracking-[0.06em] text-slate-600">Sửa</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {hien.map((d, i) => (
+                                                <tr key={d.khoa} className={'group ' + (chon.has(d.khoa) ? 'bg-blue-50' : 'hover:bg-slate-50')}>
+                                                    <td className={td + ' text-center px-0'}><input type="checkbox" aria-label={'Chọn ' + d.ma_diem + ' ' + d.ten_diem} checked={chon.has(d.khoa)} onChange={() => doiChon(d.khoa)} className="w-3.5 h-3.5 accent-[#1e3a8a]" /></td>
+                                                    <td className={td + ' text-center text-slate-400'}>{i + 1}</td>
+                                                    <td className={td + ' text-center'}>{d.ma_diem}</td>
+                                                    <td className={td + ' font-bold text-slate-900'} title={d.ten_diem}>{d.ten_diem}</td>
+                                                    <td className={td + ' text-center font-bold text-[#1e3a8a] tabular-nums'}>{d.pos_id || <span className="text-slate-300 font-normal">—</span>}</td>
+                                                    <td className={td} title={d.ma_kho}>{d.ma_kho}</td>
+                                                    <td className={td}>{d.ma_cong_viec || <span className="text-slate-300">—</span>}</td>
+                                                    <td className={td + ' text-center font-bold text-[#1e3a8a]'}>{d.so_lan_bt || <span className="text-slate-300 font-normal">—</span>}</td>
+                                                    <td className={td + ' text-center tabular-nums'}>{d.ngay_bat_dau || <i className="text-slate-400">chưa điền</i>}</td>
+                                                    <td className={td + ' text-center tabular-nums'}>{d.ngay_het_han || <i className="text-slate-400">chưa điền</i>}</td>
+                                                    <td className={td + ' text-right tabular-nums'}><OConNgay hh={d.ngay_het_han} /></td>
+                                                    <td className={td} title={d.ghi_chu}>{d.ghi_chu}</td>
+                                                    <td className="h-[29px] border-t border-slate-100 text-center">
+                                                        <button type="button" aria-label={'Sửa ' + d.ma_diem + ' ' + d.ten_diem} title="Mở hộp sửa" onClick={() => setSua(d)}
+                                                            className="w-[30px] h-6 rounded-md border border-slate-200 bg-white text-[#1e3a8a] inline-flex items-center justify-center group-hover:bg-[#1e3a8a] group-hover:border-[#1e3a8a] group-hover:text-white">
+                                                            <Icon name="pencil" size={13} strokeWidth="2" />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                    {ds && ds.length > 0 && hien.length === 0 && <div className="p-6 text-center text-[12px] text-slate-500">Không có dòng nào khớp "{tim}".</div>}
+                                </div>
+                            )}
+                            <div className="shrink-0 h-11 border-t border-slate-200 flex items-center gap-5 px-6 text-[12px] text-slate-500">
+                                <span>Kết quả <b className="text-[13px] text-slate-900 tabular-nums">{hien.length}</b> dòng{tim && ds ? ` / ${ds.length}` : ''}</span>
+                                <span className="ml-auto flex items-center gap-3.5 text-[11px]">
+                                    <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-700"></span>Còn trên 30 ngày</span>
+                                    <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-orange-700"></span>Còn 30 ngày trở xuống</span>
+                                    <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-700"></span>Quá hạn</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    {sua && <HopSuaDiem dong={sua} onDong={() => setSua(null)} onHetPhien={onHetPhien}
+                        onDaLuu={(moi) => { if (moi) setDs(x => x.map(d => d.khoa === moi.khoa ? moi : d)); setSua(null); }}
+                        onGiaHan={(d) => { setSua(null); setGiaHan([d]); }} />}
+                    {giaHan && <HopGiaHanDiem ds={giaHan} onDong={() => setGiaHan(null)} onXong={xongGiaHan} onHetPhien={onHetPhien} />}
+                    {ketQuaDb && <HopKetQuaDongBo kq={ketQuaDb} onDong={() => setKetQuaDb(null)} />}
+                </>
+            );
+        };
 
         // ===== TRANG CHỦ — GĐ4 giao diện mới (Đại Ca chốt 25/09/2026) =====
         // Mở app / đăng nhập xong là vào đây. Đại Ca chốt "tạm thời lên mẫu, chưa lấy số liệu" ⇒ trang
@@ -5366,7 +5771,7 @@ window.showConnectionLost = function() {
                                 <DongPhanHe icon={p.icon} ten={p.ten_day || p.ten} mui={mo} nhan={phanHeDangMo === p.id}
                                     dangChon={!mo && phanHeDangMo === p.id} onClick={() => doiDong(p.id)} />
                                 {mo && tabs.map(id => {
-                                    const t = DOC_TABS.find(x => x.id === id);
+                                    const t = timManHinh(id);
                                     return <DongManHinh key={id} ten={t.short || t.name} icon={t.icon} dangChon={activeTab === id} onClick={() => onChonManHinh(id)} />;
                                 })}
                             </React.Fragment>
@@ -5506,10 +5911,11 @@ window.showConnectionLost = function() {
             const [dangLuu, setDangLuu] = useState('');
             // Nhãn 24 mục để hiển thị checklist (lấy từ chính DOC_TABS + REPORT_TYPES + tab quản trị)
             const ITEM_LABEL = {}; DOC_TABS.forEach(t => ITEM_LABEL[t.id] = t.name); REPORT_TYPES.forEach(r => ITEM_LABEL[r.id] = r.id + ' — ' + r.name); ITEM_LABEL['perm_admin'] = 'Tab Phân quyền (quản trị)';
+            ITEM_LABEL['diem_su_dung'] = 'Danh sách điểm sử dụng (bảo trì)';
             const ITEM_SECTIONS = [
                 { title: 'Danh sách chứng từ', ids: DOC_TABS.map(t => t.id), cot2: true },
                 { title: 'Báo cáo tài chính', ids: REPORT_TYPES.map(r => r.id) },
-                { title: 'Quản trị', ids: ['perm_admin'] },
+                { title: 'Quản trị', ids: ['perm_admin', 'diem_su_dung'] },
             ];
             // Nhãn NGẮN cho ô tick trong khung sửa chức vụ (ITEM_LABEL giữ tên đầy đủ cho lời cảnh báo).
             const nhanMuc = (code) => {
@@ -5517,7 +5923,7 @@ window.showConnectionLost = function() {
                 if (t) return <span className="truncate">{t.short || t.name}</span>;
                 const r = REPORT_TYPES.find(x => x.id === code);
                 if (r) return <><span className="w-[42px] shrink-0 text-[11px] text-slate-500 tabular-nums">{r.id}</span><span className="truncate">{r.ten || r.name}</span></>;
-                return <span className="truncate">{code === 'perm_admin' ? 'Tab Phân quyền' : code}</span>;
+                return <span className="truncate">{code === 'perm_admin' ? 'Tab Phân quyền' : code === 'diem_su_dung' ? 'Điểm sử dụng (bảo trì)' : code}</span>;
             };
             // Đơn vị: editing.orgs === null nghĩa TẤT CẢ (không giới hạn, gồm cả đơn vị thêm sau này).
             const orgChecked = (id) => !editing || editing.orgs === null || editing.orgs.includes(id);
@@ -6379,7 +6785,7 @@ window.showConnectionLost = function() {
                         daMoBaoCao && !xemDsBaoCao && baoCaoDangMo && canSee(reportType)   // đang ở trang liệt kê thì ẩn (Đại Ca chốt 25/09)
                             ? [{ id: 'bao_cao', ten: reportType + ' · ' + (baoCaoDangMo.ten || baoCaoDangMo.name), icon: 'file-text' }] : [])
                     : (((PHAN_HE.find(p => p.id === phanHeDangMo) || {}).tabs) || []).filter(canSee).map(id => {
-                        const t = DOC_TABS.find(x => x.id === id);
+                        const t = timManHinh(id);
                         return { id, ten: t.short || t.name, icon: t.icon || 'table' };
                     });
             // Cột phân hệ thu gọn (64px) hay mở rộng (216px, kiểu 06C) — nhớ trên máy, mặc định MỞ RỘNG.
@@ -6391,7 +6797,7 @@ window.showConnectionLost = function() {
             // Cột mở rộng + đang ở màn danh sách ⇒ hàng tab ngang thành dòng đường dẫn (màn con đã nằm ở cột).
             const duongDan = (() => {
                 if (gonCotPhanHe || !phanHeDangMo || phanHeDangMo === 'baocao') return null;
-                const p = PHAN_HE.find(x => x.id === phanHeDangMo), t = DOC_TABS.find(x => x.id === activeTab);
+                const p = PHAN_HE.find(x => x.id === phanHeDangMo), t = timManHinh(activeTab);
                 return p && t ? { phanHe: p.ten_day || p.ten, manHinh: t.short || t.name } : null;
             })();
             const tabDangChon = activeTab === 'report' ? (xemDsBaoCao ? 'ds_bao_cao' : 'bao_cao')
@@ -9087,6 +9493,9 @@ window.showConnectionLost = function() {
                     />
 
                     {activeTab === 'home' && <TrangChu the={theTrangChu} nguoiDung={nguoiDung} onMo={moTuTrangChu} />}
+
+                    {/* Việc 51: màn riêng (MAN_RIENG), không phải danh sách chứng từ. Chỉ ai có mã 'diem_su_dung' (mặc định ADMIN). */}
+                    {activeTab === 'diem_su_dung' && canSee('diem_su_dung') && <DiemSuDung onHetPhien={() => setIsLoggedIn(false)} />}
 
                     {activeTab === 'ledger' && (
                         <>

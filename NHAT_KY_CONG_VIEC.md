@@ -21,8 +21,8 @@
 >   `v2.0.0` (25/09 tối) = **giao diện mới `DATA REPORT`** — Đại Ca chốt lên *Ver 2* ·
 >   `v2.0.1` (26/09) = **thông báo có bản mới kiểu mới** (hộp thoại + nút cam + thẻ nhắc, "Có gì mới" đọc `CO_GI_MOI.md`) ·
 >   `v2.0.2` (26/09) = **vá lỗi nhân viên thường không xuất được Excel Báo cáo TC** (có từ v2.0.0, Bẫy 30) + việc 9, 10, 23.
-> ✅ **EXE trên máy Đại Ca = đúng file CI v2.1.4** (SHA256 khớp digest) — lên bằng **đường cập nhật thật** CI v2.1.2 → 2.1.3 → 2.1.4
->   (`/api/apply_update`, 08/10/2026). Thư mục làm việc đang ở `main`.
+> ✅ **EXE trên máy Đại Ca = đúng file CI v2.1.5** (SHA256 khớp digest `1414d115…`) — lên bằng **đường cập nhật thật** CI 2.1.4 → 2.1.5
+>   (Đại Ca bấm Cập nhật trên hộp thoại, 09/10/2026). Thư mục làm việc đang ở `main`.
 > 🔑 Luật nghiệp vụ gốc chốt 24/09: iPOS **tự sinh** phiếu nhập `NDCNB` khi phiếu xuất `XDCNB` ghi sổ — đổi hẳn cách
 >   đọc tab đối chiếu điều chuyển. Xem các mục 24/09.
 > ✅ Tài khoản nhân viên trên Google Sheet + đổi mật khẩu `admin` + tick quyền 2 tab mới: **Đại Ca báo xong 25/09** (việc 1, 3, 4).
@@ -54,7 +54,8 @@
 
 > *Cập nhật 09/10/2026.* Gom hết việc còn treo về một chỗ. Nhận việc mới thì **đọc mục này trước**.
 > ⚠️ Tiêu đề mục này **cố ý không ghi ngày** — mọi đường dẫn `#-việc-cần-làm` trỏ vào nó; ghi ngày là gãy link.
-> Trạng thái: **v2.1.5** (09/10/2026) — bộ lọc hạn bảo trì màn Điểm sử dụng (việc 52). Kết quả Actions + cập nhật thật: mục *09/10/2026 — Việc 52*.
+> Trạng thái: **v2.1.5 đã phát hành** (09/10/2026), là `Latest`, **EXE trên máy Đại Ca = đúng file CI** (SHA256 khớp digest) —
+> bộ lọc hạn bảo trì màn Điểm sử dụng (việc 52). Mục *09/10/2026 — Việc 52*.
 > Việc 51 (màn Điểm sử dụng) **đã phát hành v2.1.3/v2.1.4**; Apps Script **Version 6** `2026-10-08a`. Còn: thử tài khoản không phải ADMIN.
 >
 > ✅ **Từ v2.0.9 (việc 11) workflow có `paths-ignore`** — push CHỈ tài liệu (`**.md`, `docs/**`, `docs-cu/**`) **không build lại EXE**,
@@ -202,6 +203,13 @@ mốc *"0 ngày, dưới 30 ngày, hơn 30 ngày"*; rồi *"ok ra bản v2.1.5 l
 - Kiểm trước push: `ast` OK · không trùng tên hàm · route chưa khai quyền `[]` · quét secret sạch.
 - ⚠️ Chưa xem với Google Sheet thật (86 dòng) — lọc chạy hoàn toàn ở trình duyệt nên nguồn dữ liệu không ảnh hưởng. Chuyển màn
   rồi quay lại ⇒ bộ lọc về "Tất cả" (giống ô tìm).
+- **Phát hành:** push `be2c6fe..b43bafa` ⇒ Actions run `37891117690` **`success`** ⇒ Release **`v2.1.5` = `Latest`**, tag → `b43bafa`,
+  digest EXE `1414d115…` (13.726.444 B), `CO_GI_MOI.md` tại tag đúng 2 dòng.
+- **Cập nhật thật 2.1.4 → 2.1.5:** đặt lại file CI v2.1.4 (SHA `deaf52d7…`, cất ở scratchpad trước khi build) vào `dist\` (bản build
+  local 2.1.5 cất ở scratchpad) → mở → `check_update` ⇒ `has_update`, "Có gì mới" đúng 2 dòng, sha256 = digest → **Đại Ca tự bấm Cập nhật
+  trên hộp thoại** (agent gọi `apply_update` cùng lúc ⇒ nhận `busy`, vô hại) ⇒ tải ~8s ⇒ `dist\` **SHA = digest CI** · gọn 3 file (bản mới
+  đã tự dọn `.old` ⇒ đã khởi động được; cửa sổ sau đó bị đóng nên app tắt) ⇒ mở lại: `/api/version` 2.1.5 · hết báo cập nhật · trang
+  dịch sẵn có bộ lọc. App để đang chạy.
 
 ---
 

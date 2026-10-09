@@ -3,7 +3,8 @@
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
 > 🆕 **09/10/2026 — Việc 52: màn Điểm sử dụng có bộ lọc hạn bảo trì** (hàng chip Tất cả · Hết hạn · Dưới 30 · Hơn 30 · Chưa điền
-> hạn, khớp màu ô "Còn") + ô 0 ngày chữ đỏ + cột "Còn" 124px — **bản `v2.1.5`**. Xem nhật ký việc 52.
+> hạn, khớp màu ô "Còn") + ô 0 ngày chữ đỏ + cột "Còn" 124px — ✅ **`v2.1.5` ĐÃ PHÁT HÀNH 09/10/2026, `Latest`, EXE máy Đại Ca
+> = file CI** (lên bằng đường cập nhật thật 2.1.4 → 2.1.5). Xem nhật ký việc 52.
 > ✅ **v2.1.4 — ĐÃ PHÁT HÀNH 08/10/2026, EXE máy Đại Ca = file CI** — code y `v2.1.3`, chỉ viết lại "Có gì mới".
 > 🆕 **08/10/2026 — Việc 51: màn "Điểm sử dụng"** (danh sách điểm dùng phần mềm + thời hạn bảo trì, chỉ ADMIN) + thanh bên: Báo cáo TC
 > **luôn cuối** — ✅ **phát hành `v2.1.3`**. ✅ **Apps Script Version 6 `2026-10-08a`** (08/10/2026 22:25). Xem nhật ký việc 51.

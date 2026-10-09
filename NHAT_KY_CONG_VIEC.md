@@ -3,7 +3,9 @@
 > Toàn bộ những gì đã làm với **LedgerReport**, và **vì sao**. Đọc file này trước khi sửa tiếp.
 > Kiến trúc, ma trận báo cáo, phương án backup: [CLAUDE.md](CLAUDE.md).
 > Mổ xẻ sâu sự cố + 4 bài học: [SU_CO_15082026.md](SU_CO_15082026.md).
-> 🚀 **Bản mới nhất: `v2.1.4` (08/10/2026)** — code y `v2.1.3`, chỉ viết lại "Có gì mới" (*Thêm danh sách điểm sử dụng* · *Cập nhật hệ thống*).
+> 🚀 **Bản mới nhất: `v2.1.5` (09/10/2026)** — màn Điểm sử dụng: **bộ lọc hạn bảo trì** (Hết hạn · Dưới 30 · Hơn 30 · Chưa điền hạn)
+>   + ô "Còn" 0 ngày chữ đỏ + cột "Còn" không còn cắt chữ (việc 52).
+>   `v2.1.4` (08/10) = code y `v2.1.3`, chỉ viết lại "Có gì mới" (*Thêm danh sách điểm sử dụng* · *Cập nhật hệ thống*).
 >   `v2.1.3` (08/10) = **màn "Điểm sử dụng"** (việc 51, chỉ quản trị) + thanh bên: Báo cáo TC xuống cuối.
 >   `v2.1.2` (06/10) = cột ghim phải hụt 4px khi cuộn chạm cuối.
 >   `v2.1.1` (05/10) = **BC017 Báo cáo bán hàng** + cấu hình cột 5 báo cáo + ghim cột / vừa khít 9 màn danh sách (việc 49, 50).
@@ -50,9 +52,9 @@
 
 ## 📌 VIỆC CẦN LÀM
 
-> *Cập nhật 08/10/2026.* Gom hết việc còn treo về một chỗ. Nhận việc mới thì **đọc mục này trước**.
+> *Cập nhật 09/10/2026.* Gom hết việc còn treo về một chỗ. Nhận việc mới thì **đọc mục này trước**.
 > ⚠️ Tiêu đề mục này **cố ý không ghi ngày** — mọi đường dẫn `#-việc-cần-làm` trỏ vào nó; ghi ngày là gãy link.
-> Trạng thái: **v2.1.4 đã phát hành** (08/10/2026), là `Latest`, và **EXE trên máy Đại Ca = đúng file CI** (SHA256 khớp digest).
+> Trạng thái: **v2.1.5** (09/10/2026) — bộ lọc hạn bảo trì màn Điểm sử dụng (việc 52). Kết quả Actions + cập nhật thật: mục *09/10/2026 — Việc 52*.
 > Việc 51 (màn Điểm sử dụng) **đã phát hành v2.1.3/v2.1.4**; Apps Script **Version 6** `2026-10-08a`. Còn: thử tài khoản không phải ADMIN.
 >
 > ✅ **Từ v2.0.9 (việc 11) workflow có `paths-ignore`** — push CHỈ tài liệu (`**.md`, `docs/**`, `docs-cu/**`) **không build lại EXE**,
@@ -172,6 +174,34 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 09/10/2026 — Việc 52: màn Điểm sử dụng thêm bộ lọc hạn bảo trì · phát hành v2.1.5
+
+Đại Ca: *"Cái tab điểm sử dụng cho thêm điều kiện lọc đi m, đang không lọc được"* (trước đó màn này chỉ có ô tìm chữ) ⇒ chọn
+mốc *"0 ngày, dưới 30 ngày, hơn 30 ngày"*; rồi *"ok ra bản v2.1.5 luôn, sửa màu đỏ luôn, làm các bước còn lại luôn và cập nhật nhật ký"*.
+- `index.html` (chỉ giao diện, máy chủ không đổi):
+  - **Hàng chip ngay dưới thanh trên** (`DSD_LOC_HAN`), cùng kiểu hàng chip trạng thái 3 màn đối chiếu (chọn MỘT, "Tất cả" đầu):
+    Tất cả · **Hết hạn** (còn ≤ 0 ngày, gồm quá hạn) · **Dưới 30 ngày** (1–30) · **Hơn 30 ngày** (> 30) · **Chưa điền hạn** (thêm —
+    thiếu nó thì dòng chưa có ngày hết hạn không thuộc mốc nào, không lọc ra được). Số trên chip = số dòng của nhóm trên **toàn danh
+    sách** (không trừ ô tìm). Kết hợp được với ô tìm; chân bảng ghi `N dòng / tổng` khi đang lọc.
+  - Nhóm tính bằng `dsdNhomHan` — **khớp màu ô "Còn"** (`OConNgay`) và chú thích chân bảng; đổi mốc thì đổi cả 3 chỗ.
+  - Ô "Còn" = 0 ngày ⇒ chữ đỏ **"Hết hạn hôm nay"** (trước: "0 ngày" màu cam, lệch với chip "Hết hạn"). Chú thích chân bảng:
+    *Còn 1 – 30 ngày* · *Hết hạn / quá hạn*.
+  - **Cột "Còn" 104 → 124px**: "Quá hạn 280 ngày" cần 114px — từ v2.1.3 bị cắt thành *"Quá hạn 12 n…"*. Ghi chú còn ~152px ở 1366.
+  - Bản đầu đặt chip chung hàng với ô tìm ⇒ đo 1366px: 4 chip chiếm 455px, 2 nút **Gia hạn** + **Đồng bộ** rớt xuống dòng ⇒ chuyển chip
+    xuống hàng riêng.
+- 🧪 M1 Babel OK · server thử 5052 (nạp `server.py` **bỏ dòng `kill_process_on_port(5050)`** — EXE Đại Ca lúc đó đang mở; dữ liệu
+  giả 10 dòng; **không gọi Google**): từng chip, chip + ô tìm, không khớp, về Tất cả — đều đúng dòng, đúng số. 1366 + 1280px: hàng trên
+  1 dòng, chip 1 dòng; cột Còn hết cắt ở 1366. ⚠️ 1280px bảng cuộn ngang 22px — **có từ trước** (`minWidth: 1060` > khung 1038px).
+- Build `python build_exe.py iPOS_Accounting_Report` ⇒ **2.1.5** (12:53 — app Đại Ca đã tự tắt trước đó, không build đè app đang chạy).
+  **M3:** chạy EXE tách hẳn ⇒ `/api/version` 2.1.5 · trang dịch sẵn, không còn `babel-standalone` · có `dsdNhomHan`, chữ "Hết hạn hôm
+  nay", cột Còn 124.
+- `CO_GI_MOI.md` `## v2.1.5` 2 dòng — mô phỏng `_tach_co_gi_moi`: máy 2.1.4 thấy đúng 2 dòng, máy 2.1.2 thấy 4.
+- Kiểm trước push: `ast` OK · không trùng tên hàm · route chưa khai quyền `[]` · quét secret sạch.
+- ⚠️ Chưa xem với Google Sheet thật (86 dòng) — lọc chạy hoàn toàn ở trình duyệt nên nguồn dữ liệu không ảnh hưởng. Chuyển màn
+  rồi quay lại ⇒ bộ lọc về "Tất cả" (giống ô tìm).
 
 ---
 

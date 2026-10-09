@@ -5253,6 +5253,9 @@ window.showConnectionLost = function() {
         const DSD_CHU = (d) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
         const dsdHomNay = () => { const h = new Date(); h.setHours(0, 0, 0, 0); return h; };
         const dsdConNgay = (hh) => { const d = DSD_NGAY(hh); return d ? Math.round((d - dsdHomNay()) / 86400000) : null; };
+        // Nhóm hạn bảo trì cho bộ lọc (09/10/2026): ≤ 0 ngày (gồm quá hạn) · 1–30 · > 30 · chưa điền ngày hết hạn.
+        // Khớp màu ô "Còn" (OConNgay): ≤ 0 đỏ · 1–30 cam · > 30 xanh — đổi mốc ở đây thì đổi cả OConNgay + chú thích chân bảng.
+        const dsdNhomHan = (hh) => { const n = dsdConNgay(hh); if (n === null) return 'chua'; if (n <= 0) return 'qua'; if (n <= 30) return 'd30'; return 't30'; };
         // Kỳ mới gợi ý = nối tiếp kỳ cũ: từ = hết hạn cũ + 1 ngày, đến = thêm 1 năm (trừ 1 ngày). Chưa có kỳ ⇒ từ hôm nay.
         const dsdKyMoi = (hh) => {
             const c = DSD_NGAY(hh);
@@ -5265,13 +5268,24 @@ window.showConnectionLost = function() {
             ['MA_KHO', 'ma_kho', 'Mã kho'], ['MA_CONG_VIEC', 'ma_cong_viec', 'Mã công việc'],
             ['NGAY_BAT_DAU', 'ngay_bat_dau', 'Ngày bắt đầu'], ['NGAY_HET_HAN', 'ngay_het_han', 'Ngày hết hạn'], ['GHI_CHU', 'ghi_chu', 'Ghi chú'],
         ];
-        // Độ rộng đo ở 1366px (khung bảng còn ~1109px): cộng các cột cố định = 952 ⇒ Ghi chú còn ~157px. Nới cột nào thì bớt
+        // Độ rộng đo ở 1366px (khung bảng còn ~1109px): cộng các cột cố định = 972 ⇒ Ghi chú còn ~137px. Nới cột nào thì bớt
         // cột khác — bản đầu cộng 1068px, Ghi chú bị ép còn 41px và tiêu đề đè sang cột Sửa (đo 08/10/2026).
+        // Cột "Còn" 104 → 124 (09/10/2026): "Quá hạn 280 ngày" cần 114px, ở 104 bị cắt thành "Quá hạn 12 n…".
         const DSD_COT = [   // [khoá sắp xếp, nhãn, độ rộng px | null = phần còn lại, căn giữa?]
             ['ma_diem', 'Mã điểm', 56, true], ['ten_diem', 'Tên điểm', 192, false], ['pos_id', 'POS ID', 68, true],
             ['ma_kho', 'Mã kho', 96, false], ['ma_cong_viec', 'Mã CV', 88, false], ['so_lan_bt', 'Lần BT', 56, true],
-            ['ngay_bat_dau', 'Bắt đầu', 86, true], ['ngay_het_han', 'Hết hạn', 86, true], ['con', 'Còn', 104, false],
+            ['ngay_bat_dau', 'Bắt đầu', 86, true], ['ngay_het_han', 'Hết hạn', 86, true], ['con', 'Còn', 124, false],
             ['ghi_chu', 'Ghi chú', null, false],
+        ];
+        // Hàng chip lọc theo hạn bảo trì — cùng kiểu hàng chip trạng thái 3 màn đối chiếu (chọn MỘT, "Tất cả" đứng đầu).
+        // Đại Ca chốt 3 mốc 0 / dưới 30 / hơn 30 ngày; thêm "Chưa điền hạn" vì dòng chưa có ngày hết hạn không thuộc mốc nào
+        // ⇒ thiếu chip này là các dòng đó không lọc ra được. [mã nhóm (dsdNhomHan), nhãn, giải thích, màu]
+        const DSD_LOC_HAN = [
+            ['', 'Tất cả', 'Mọi dòng', 'text-slate-600 border-slate-200 bg-slate-50'],
+            ['qua', 'Hết hạn', 'Còn 0 ngày hoặc đã quá hạn', 'text-rose-600 border-rose-200 bg-rose-50'],
+            ['d30', 'Dưới 30 ngày', 'Còn 1 – 30 ngày', 'text-orange-600 border-orange-200 bg-orange-50'],
+            ['t30', 'Hơn 30 ngày', 'Còn trên 30 ngày', 'text-emerald-600 border-emerald-200 bg-emerald-50'],
+            ['chua', 'Chưa điền hạn', 'Chưa có ngày hết hạn', 'text-slate-500 border-slate-200 bg-white'],
         ];
         const goiDiem = async (url, body) => {
             const r = await fetch(url, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : undefined);
@@ -5285,6 +5299,7 @@ window.showConnectionLost = function() {
             const n = dsdConNgay(hh);
             if (n === null) return <span className="text-slate-400">—</span>;
             if (n < 0) return <span className="font-bold text-red-700">Quá hạn {-n} ngày</span>;
+            if (n === 0) return <span className="font-bold text-red-700">Hết hạn hôm nay</span>;   // cùng nhóm "Hết hạn" của bộ lọc (dsdNhomHan)
             return <span className={'font-bold ' + (n <= 30 ? 'text-orange-700' : 'text-emerald-700')}>{n} ngày</span>;
         };
         const KhungHop = ({ rong, onDong, children, tieuDe, phu, icon }) => (
@@ -5483,6 +5498,7 @@ window.showConnectionLost = function() {
             const [chon, setChon] = useState(() => new Set());
             const [sua, setSua] = useState(null);
             const [giaHan, setGiaHan] = useState(null);
+            const [locHan, setLocHan] = useState('');   // mã nhóm của DSD_LOC_HAN đang chọn; '' = Tất cả
             const xuLyLoi = (e) => { if (e.hetPhien) onHetPhien(); else setLoi(e.message); };
             const tai = async () => {
                 setDangTai(true); setLoi('');
@@ -5511,7 +5527,9 @@ window.showConnectionLost = function() {
             };
             const hien = useMemo(() => {
                 const q = boDau(tim.trim());
-                let x = (ds || []).filter(d => !q || boDau([d.ma_diem, d.ten_diem, d.pos_id, d.ma_kho, d.ma_cong_viec, d.ghi_chu].join(' ')).includes(q));
+                let x = (ds || []).filter(d =>
+                    (!q || boDau([d.ma_diem, d.ten_diem, d.pos_id, d.ma_kho, d.ma_cong_viec, d.ghi_chu].join(' ')).includes(q))
+                    && (!locHan || dsdNhomHan(d.ngay_het_han) === locHan));
                 const gt = (d) => sx.cot === 'con' || sx.cot === 'ngay_het_han' ? (DSD_NGAY(d.ngay_het_han) || { getTime: () => Infinity }).getTime()
                     : sx.cot === 'ngay_bat_dau' ? (DSD_NGAY(d.ngay_bat_dau) || { getTime: () => Infinity }).getTime()
                     : sx.cot === 'so_lan_bt' ? (parseInt(d.so_lan_bt, 10) || 0) : null;
@@ -5521,7 +5539,7 @@ window.showConnectionLost = function() {
                     return (sx.tang ? kq : -kq) || dsdSoSanh(a.ma_diem, b.ma_diem) || dsdSoSanh(a.pos_id, b.pos_id);
                 });
                 return x;
-            }, [ds, tim, sx]);
+            }, [ds, tim, sx, locHan]);
             const daChon = (ds || []).filter(d => chon.has(d.khoa));
             const tatCaDangHien = hien.length > 0 && hien.every(d => chon.has(d.khoa));
             const doiChon = (k) => setChon(c => { const n = new Set(c); n.has(k) ? n.delete(k) : n.add(k); return n; });
@@ -5530,7 +5548,7 @@ window.showConnectionLost = function() {
             const td = 'h-[29px] px-2 border-t border-r border-slate-100 whitespace-nowrap overflow-hidden text-ellipsis text-slate-700';
             return (
                 <>
-                    <div className="bg-white border-b border-slate-200 px-6 py-3 shrink-0 flex items-end gap-3 flex-wrap">
+                    <div className="bg-white px-6 pt-3 pb-2.5 shrink-0 flex items-end gap-3 flex-wrap">
                         <div>
                             <div className="text-[10px] font-bold tracking-[0.08em] uppercase text-slate-600 mb-1">Đồng bộ lần cuối</div>
                             <div className="h-8 flex items-center gap-2 text-[12px] text-slate-700">
@@ -5556,6 +5574,20 @@ window.showConnectionLost = function() {
                             className="h-8 px-4 rounded-lg bg-[#1e3a8a] hover:bg-[#172554] text-white text-[12px] font-bold flex items-center gap-1.5 shrink-0 disabled:opacity-60">
                             <Icon name={dangDongBo ? 'loader' : 'refresh'} size={13} strokeWidth="2" className={dangDongBo ? 'animate-spin' : ''} />{dangDongBo ? 'Đang đồng bộ… (10–20 giây)' : 'Đồng bộ'}
                         </button>
+                    </div>
+                    {/* Hàng chip lọc theo hạn bảo trì (09/10/2026) — cùng kiểu hàng chip trạng thái 3 màn đối chiếu. Số = số dòng
+                        của nhóm trên toàn danh sách (không trừ ô tìm), để biết ngay còn bao nhiêu điểm sắp / đã hết hạn. */}
+                    <div className="bg-white border-b border-slate-200 px-6 pb-3 shrink-0 flex items-center gap-2 flex-wrap">
+                        {DSD_LOC_HAN.map(([k, nhan, giai, tone]) => {
+                            const on = locHan === k;
+                            const dem = ds ? (k ? ds.filter(d => dsdNhomHan(d.ngay_het_han) === k).length : ds.length) : null;
+                            return (
+                                <button key={k || 'all'} type="button" onClick={() => setLocHan(k)} aria-pressed={on} title={giai}
+                                    className={`px-3 h-[30px] rounded-lg border text-[10px] font-black uppercase tracking-wider transition-all ${on ? 'ring-2 ring-indigo-400 ' + tone : tone + ' opacity-70 hover:opacity-100'}`}>
+                                    {nhan}{dem !== null ? ` · ${dem.toLocaleString()}` : ''}
+                                </button>
+                            );
+                        })}
                     </div>
                     {(loi || bao) && (
                         <div className={'px-6 py-2 text-[12px] border-b shrink-0 flex items-start gap-2 ' + (loi ? 'bg-red-50 border-red-200 text-red-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800')}>
@@ -5614,15 +5646,15 @@ window.showConnectionLost = function() {
                                             ))}
                                         </tbody>
                                     </table>
-                                    {ds && ds.length > 0 && hien.length === 0 && <div className="p-6 text-center text-[12px] text-slate-500">Không có dòng nào khớp "{tim}".</div>}
+                                    {ds && ds.length > 0 && hien.length === 0 && <div className="p-6 text-center text-[12px] text-slate-500">Không có dòng nào khớp {tim ? '"' + tim + '"' : 'bộ lọc'}{tim && locHan ? ' + bộ lọc hạn bảo trì' : ''}.</div>}
                                 </div>
                             )}
                             <div className="shrink-0 h-11 border-t border-slate-200 flex items-center gap-5 px-6 text-[12px] text-slate-500">
-                                <span>Kết quả <b className="text-[13px] text-slate-900 tabular-nums">{hien.length}</b> dòng{tim && ds ? ` / ${ds.length}` : ''}</span>
+                                <span>Kết quả <b className="text-[13px] text-slate-900 tabular-nums">{hien.length}</b> dòng{(tim || locHan) && ds ? ` / ${ds.length}` : ''}</span>
                                 <span className="ml-auto flex items-center gap-3.5 text-[11px]">
                                     <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-700"></span>Còn trên 30 ngày</span>
-                                    <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-orange-700"></span>Còn 30 ngày trở xuống</span>
-                                    <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-700"></span>Quá hạn</span>
+                                    <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-orange-700"></span>Còn 1 – 30 ngày</span>
+                                    <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-700"></span>Hết hạn / quá hạn</span>
                                 </span>
                             </div>
                         </div>

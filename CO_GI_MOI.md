@@ -16,6 +16,10 @@
 >   một lần), hiện tối đa 8 dòng, dư thì ghi "… và N thay đổi khác".
 > - Dòng không bắt đầu bằng `- ` (như khối ghi chú này) app bỏ qua.
 
+## v2.1.5
+- Điểm sử dụng: thêm bộ lọc theo hạn bảo trì — Hết hạn · Dưới 30 ngày · Hơn 30 ngày · Chưa điền hạn
+- Điểm sử dụng: điểm hết hạn hôm nay hiện chữ đỏ, cột "Còn" không còn bị cắt chữ
+
 ## v2.1.4
 - Thêm danh sách điểm sử dụng
 - Cập nhật hệ thống

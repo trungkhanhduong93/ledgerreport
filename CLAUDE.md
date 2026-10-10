@@ -3,7 +3,8 @@
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
 > 🆕 **10/10/2026 — Việc 53: nhóm "Hệ thống" sát đáy cột** (gộp Điểm sử dụng + Phân quyền) + **khối "Bảo trì điểm sử dụng" 5 ô
-> trên Trang chủ** (bấm ô = mở danh sách lọc sẵn) — ⏳ **CHƯA commit / phát hành**. Xem § 1.1 *Điều hướng* + *Trang chủ* + nhật ký việc 53.
+> trên Trang chủ** (bấm ô = mở danh sách lọc sẵn) — ✅ **`v2.1.6` ĐÃ PHÁT HÀNH 10/10/2026, `Latest`, EXE máy Đại Ca = file CI**
+> (lên bằng đường cập nhật thật 2.1.5 → 2.1.6). Xem § 1.1 *Điều hướng* + *Trang chủ* + nhật ký việc 53.
 > 🆕 **09/10/2026 — Việc 52: màn Điểm sử dụng có bộ lọc hạn bảo trì** (hàng chip Tất cả · Hết hạn · Dưới 30 · Hơn 30 · Chưa điền
 > hạn, khớp màu ô "Còn") + ô 0 ngày chữ đỏ + cột "Còn" 124px — ✅ **`v2.1.5` ĐÃ PHÁT HÀNH 09/10/2026, `Latest`, EXE máy Đại Ca
 > = file CI** (lên bằng đường cập nhật thật 2.1.4 → 2.1.5). Xem nhật ký việc 52.
@@ -17,7 +18,7 @@
 > § 1.1 *Cột của 9 bảng* + nhật ký việc 50.
 > ✅ **v2.1.2 — ĐÃ PHÁT HÀNH 06/10/2026, `Latest`, EXE máy Đại Ca = file CI** (cột ghim phải hụt 4px khi cuộn chạm cuối). Mục nhật ký *06/10/2026 — Phát hành v2.1.2*.
 > ✅ **v2.1.1 — 05/10/2026** (BC017 + việc 50). Mục nhật ký *05/10/2026 (khuya) — Phát hành v2.1.1*.
-> Cập nhật gần nhất: **09/10/2026** · **Bản mới nhất: `v2.1.5`** · `v2.1.0` (= code `v2.0.9`, Đại Ca chốt lên 2.1 — xem dòng ✅ v2.0.9 ngay dưới) · v2.0.6: **việc 41** đồng hồ đếm ngược khi xuất Excel Nhật ký chung
+> Cập nhật gần nhất: **10/10/2026** · **Bản mới nhất: `v2.1.6`** · `v2.1.0` (= code `v2.0.9`, Đại Ca chốt lên 2.1 — xem dòng ✅ v2.0.9 ngay dưới) · v2.0.6: **việc 41** đồng hồ đếm ngược khi xuất Excel Nhật ký chung
 > (đo + thử giao diện trên DB thật; bắt được lỗi làm hỏng hẳn xuất Excel chi tiết — **Bẫy 31**) + **việc 42** đăng nhập nhanh không
 > còn đá người ra khi Google chỉ là chưa trả lời được. Mục nhật ký *29/09/2026 — Phát hành v2.0.6*. EXE trên máy Đại Ca = đúng file CI.
 > Mục *28/09/2026 (khuya)*: **Đại Ca giữ Google Sheet, không chuyển Supabase** — đọc lý do trước khi đề xuất lại.

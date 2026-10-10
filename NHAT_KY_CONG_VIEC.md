@@ -3,6 +3,8 @@
 > Toàn bộ những gì đã làm với **LedgerReport**, và **vì sao**. Đọc file này trước khi sửa tiếp.
 > Kiến trúc, ma trận báo cáo, phương án backup: [CLAUDE.md](CLAUDE.md).
 > Mổ xẻ sâu sự cố + 4 bài học: [SU_CO_15082026.md](SU_CO_15082026.md).
+> 🆕 **10/10/2026 — Việc 53** (⏳ chưa commit / phát hành): nhóm **"Hệ thống"** (Điểm sử dụng + Phân quyền) sát đáy cột trái +
+>   khối **"Bảo trì điểm sử dụng"** 5 ô trên Trang chủ, bấm ô = mở danh sách lọc sẵn. Mục *10/10/2026 — Việc 53*.
 > 🚀 **Bản mới nhất: `v2.1.5` (09/10/2026)** — màn Điểm sử dụng: **bộ lọc hạn bảo trì** (Hết hạn · Dưới 30 · Hơn 30 · Chưa điền hạn)
 >   + ô "Còn" 0 ngày chữ đỏ + cột "Còn" không còn cắt chữ (việc 52).
 >   `v2.1.4` (08/10) = code y `v2.1.3`, chỉ viết lại "Có gì mới" (*Thêm danh sách điểm sử dụng* · *Cập nhật hệ thống*).
@@ -100,6 +102,7 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | 17 | ~~Nút `TRUY VẤN` đang chuyển màu navy → tím~~ ✅ **XONG 25/09** | Đại Ca chốt: chữ **"Lọc"**, navy đặc, như mẫu iPOS. Nằm trong thanh lọc mới của 9 màn danh sách |
 | 18 | ~~Chốt mốc commit phần đăng nhập nhanh + sửa font~~ ✅ **commit `c64540a`** | Phát hành v2.0.0 |
 | 19 | ~~Đại Ca xem GĐ3 rồi chốt commit~~ ✅ **Đại Ca chốt OK sáng 25/09** (*"cái đó thì ok rồi"*) ⇒ đã commit GĐ3 | ⚠️ Đại Ca chốt chung, **không nói rõ đã thử từng mục dưới đây chưa** — lần đầu dùng số liệu thật thì để ý. Danh sách cần xem ở mục *"Việc Đại Ca xem sáng 25/09"* trong nhật ký 25/09 (tiếp 3), ngay dưới § này. Ba việc tôi **không** tự thử được: hộp *"Chuyển mẫu báo cáo?"* khi có số liệu thật · menu **Xuất Excel / Xuất PDF** khi có số liệu (chưa có số liệu thì nút tắt) · kéo thả thứ tự ô lọc bằng chuột thật. Và **đọc lại mô tả 16 thẻ** — tôi tự viết |
+| 53 | ⏳ **Nhóm "Hệ thống" (Điểm sử dụng + Phân quyền) sát đáy cột + khối "Bảo trì điểm sử dụng" 5 ô trên Trang chủ** (Đại Ca yêu cầu 10/10/2026) | Code xong, thử giao diện 28/28 (1366 + 1280px, dữ liệu giả). Còn: Đại Ca xem thật ở `http://127.0.0.1:5051` · commit · `CO_GI_MOI` + build + phát hành (hỏi trước khi push). Mục nhật ký *10/10/2026 — Việc 53* |
 | 51 | ✅ **Màn "Điểm sử dụng"** — danh sách điểm dùng phần mềm kế toán + thời hạn bảo trì (Đại Ca yêu cầu 08/10/2026). **Phát hành v2.1.3 (+ v2.1.4 sửa "Có gì mới") 08/10/2026**, Apps Script Version 6, Google thật đã đồng bộ 86 dòng + điền kỳ 79 dòng | ✅ Code.gs `2026-10-08a` **đã triển khai Version 6** (08/10 22:25). ✅ Google thật (ADMIN): đồng bộ 86 dòng + gia hạn 72 dòng + lưu 7 dòng, đọc lại 86/86 đúng (08/10 23:00). Còn: thử tài khoản **không phải ADMIN** · CO_GI_MOI + build + phát hành (hỏi trước khi push) · gia hạn kỳ BTKT mới cho 72 dòng (hết hạn 09/10/2026). Mục nhật ký *08/10/2026 — Việc 51* |
 | 50 | ⏳ **Cấu hình cột 5 báo cáo + ghim cột / vừa khít cột 9 màn danh sách** (Đại Ca yêu cầu 05/10/2026). **Đợt 1 — cấu hình cột BC007 · BC008 · BC012 · BC015 · BC016: XONG** (Đại Ca bảo làm tiếp đợt 2). **Đợt 2 — ghim cột bất kỳ sát lề trái/phải + bấm đúp mép = vừa khít + nút "Vừa khít tất cả cột": XONG**, kiểm DB thật 9/9 màn. Đại Ca thử 05/10: OK, đổi icon ghim (mẫu ô bảng) + bỏ chú thích cuối hộp. ✅ **Phát hành `v2.1.1` 05/10/2026** (cập nhật thật 2.1.0 → 2.1.1 khớp SHA CI) | ✅ Lệch 4px cột ghim phải: **đã sửa** (tay kéo cột cuối thò ra ngoài bảng) — ✅ **phát hành `v2.1.2` 06/10/2026**. "Đứng hình": thử lại 88 lượt bằng dữ liệu giả **không tái hiện được**, giả thuyết làm mờ nền **bị bác** ⇒ chỉ còn theo dõi nếu nhân viên báo. Mục *05/10/2026 (khuya, tiếp)*. Server thử code mới: **cổng 5053** (`server_thu_5053.py` trong scratchpad phiên 05/10, chết theo phiên chat). Mục nhật ký *05/10/2026 (tối) — Việc 50 đợt 2* + *05/10/2026 — Việc 50 (đợt 1)* |
 | 49 | ⏳ **BC017 Báo cáo bán hàng** (mẫu iPOS 3.1, đối chiếu doanh thu) — 3 kiểu xem × chi tiết/tổng hợp + cấu hình cột + mặc định BHVAT/BHK, **kiểm trên DB thật đạt**, ✅ **phát hành `v2.1.1` 05/10/2026** | Còn: soi vài phiếu với mẫu 3.1 trên iPOS Chú Long · **tick quyền BC017 cho chức vụ nhân viên ở tab Phân quyền** (ADMIN tự có) — hai việc này Đại Ca làm. ✅ Ô `password` trong `config.json` **đã xoá 05/10** (Đại Ca bảo) ⇒ thử DB thật lần sau phải điền lại. Điểm mở: chi tiết cả tháng **8–10s/trang** (chưa tăng tốc) · 1366px thêm cột là kéo ngang · mỗi lần tick một cột thêm chưa có là tải lại 1 lần. Server thử 5052 (script trong scratchpad) **tự tắt sau ~2 giờ** — giới hạn chạy nền của công cụ, không phải lỗi app; tắt thì bật lại. Mục nhật ký *04/10/2026* + *03/10/2026 — BC017* |
@@ -175,6 +178,47 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 10/10/2026 — Việc 53: nhóm "Hệ thống" ở đáy cột + khối "Bảo trì điểm sử dụng" trên Trang chủ · ⏳ CHƯA commit / phát hành
+
+Đại Ca (gửi ảnh, khoanh đỏ *Điểm sử dụng* + *Phân quyền*): *"Kiểm tra nguyên tắc và gộp cái này vào chung 1 gr là hệ thống. Sau đó cho
+các ô thông tin dạng tổng hợp ở ngoài trang chủ cho cái danh sách điểm sử dụng, khi bấm vào nó sẽ ra chi tiết liên quan"*.
+Hỏi trước 3 điểm, Đại Ca chọn đủ 3 phương án đề xuất: nhóm **sát đáy cột** (Báo cáo TC vẫn cuối danh sách chính) · bấm ô = **mở màn
+Điểm sử dụng, chip lọc chọn sẵn** · khối ô **TRÊN** thẻ Phân hệ.
+**Đổi sau khi xem thật** (5051, Google thật: 86 · 0 · 1 · 78 · 7): *"Đem cái này xuống dưới ngen"* ⇒ khối nay đứng **DƯỚI** thẻ Phân hệ. Rồi *"Cái này ghi là còn hạn bảo trì nha"* (chỉ ô Hơn 30 ngày) ⇒ ô đó tên **"Còn hạn bảo trì"** (`DIEM_TC_NHAN`); chip trên màn danh sách vẫn "Hơn 30 ngày".
+- `index.html` (chỉ giao diện, máy chủ không đổi, **không thêm route**):
+  - `PHAN_HE`: bỏ phân hệ `diemsudung`, thêm **`hethong`** (`tabs: ['diem_su_dung', 'perm_admin']`, cờ **`day: true`** = vẽ ở đáy cột,
+    icon mới `settings`). `MAN_RIENG` thêm `perm_admin` (tên + icon cho dòng màn con). "Khác" chèn trước `baocao` theo **id**, không còn
+    `length - 1` (Hệ thống nay đứng sau Báo cáo TC trong mảng).
+  - `ThanhPhanHe`: tách `dsChinh` / `dsDay`, bỏ 3 prop `coPhanQuyen` / `dangOPhanQuyen` / `onPhanQuyen`. Thu gọn 64px: nút **Hệ thống** ở đáy.
+  - Hàng tab: cột MỞ RỘNG ở Phân quyền vẫn là *Tài khoản · Chức vụ* (không thành đường dẫn); cột THU GỌN thì nhóm Hệ thống trải thành
+    *Điểm sử dụng · Tài khoản · Chức vụ* (hàng tab không đổi hình khi chuyển màn). `chonTab` nhận `pq_user`/`pq_role` từ mọi màn.
+  - Trang chủ: bỏ thẻ Phân quyền rời ⇒ thẻ **Hệ thống · 2 màn hình**. Khối **"Bảo trì điểm sử dụng"** (`KhoiDiemTrangChu`): 5 ô = đúng 5 chip
+    `DSD_LOC_HAN` (Tất cả · Hết hạn · Dưới 30 · Hơn 30 · Chưa điền hạn), số đếm bằng `dsdNhomHan` ⇒ **số trên ô = số trên chip**. Hết hạn /
+    Dưới 30 có số > 0 thì ô tô nền đỏ / cam. Dòng *"Đồng bộ lần cuối …"* cạnh tiêu đề. Chỉ hiện với ai có mã `diem_su_dung`.
+  - Nguồn = `/api/diem_su_dung` (**Google Sheet, không SQL** — trang chủ vẫn 0 truy vấn SQL). **Tải ngầm**: ô hiện "…" + *"Đang đọc Google
+    Sheet…"*. Giữ bản đã tải ở App: quay lại trang chủ thấy số ngay, chỉ hỏi lại Google khi bản giữ cũ hơn **5 phút** (`DIEM_TC_TUOI_MS`);
+    màn Điểm sử dụng tải xong (vào màn, sau Lưu / Gia hạn / Đồng bộ) **báo lên** (`onDuLieu`) ⇒ sửa xong về trang chủ là số đã mới, không
+    tốn thêm lần gọi. Lỗi Google ⇒ dòng đỏ + **Thử lại**, trang chủ vẫn dùng bình thường. ⛔ Chỉ gọi khi **đã nạp quyền** (`allowedItems`
+    null thì `canSee` trả true ⇒ nhân viên sẽ ăn 403).
+  - Chip lọc của màn Điểm sử dụng nay do **App giữ** (`locHanDsd`) ⇒ khác v2.1.5: rời màn rồi quay lại **giữ nguyên chip** (trước về "Tất cả").
+  - Checklist quyền ở khung sửa chức vụ: nhóm "Quản trị" đổi tên **"Hệ thống"** cho trùng cột trái (mã quyền không đổi).
+  - Cột mở rộng: logo `pb-4 → pb-3`, vạch ngăn `my-1.5 → my-1`. Lý do: nhóm Hệ thống mở 2 màn con làm cột cao thêm 28px ⇒ đo ở **1366×690**
+    (laptop thật) cột thừa **1px** ⇒ hiện thanh cuộn 15px, cắt chữ *"PO – yêu cầu mua h…"*. Sau sửa: **683/690px**, không cuộn.
+- 🧪 **M1** `check_babel.js` OK · `dich_giao_dien.js` OK (bản dịch sẵn cho EXE). **Giao diện** (server thử 5052 dữ liệu giả 10 dòng, Google
+  giả lập chậm 2 giây, Phân quyền trả dữ liệu giả — **không gọi Google thật**; Chrome ngầm CDP): **28/28 đạt ở cả 1366 và 1280px** — thứ tự
+  cột (Hệ thống sau Báo cáo TC, sát đáy, 2 màn con), 5 ô = 10/3/2/3/2, khối nằm trên thẻ, 1 lần gọi Google, bấm ô Hết hạn ⇒ chip Hết hạn +
+  3 dòng + đường dẫn *Hệ thống › Điểm sử dụng*, về trang chủ **không gọi Google lại**, ô Tất cả, Phân quyền 2 tab, thu gọn 3 tab qua lại,
+  thẻ Hệ thống về màn đang dở, Google lỗi ⇒ Thử lại ra số, **tài khoản không phải ADMIN: không có khối, không có nhóm Hệ thống, 0 lần gọi**.
+  Không tràn ngang, ô cao bằng nhau 130px ở 1280 (mô tả "Còn 0 ngày hoặc đã quá hạn" được xuống dòng — bản đầu bị cắt), 0 lỗi JS.
+- ✅ Đại Ca xem thật trên **http://127.0.0.1:5051** (Google + DB thật) ⇒ 2 lần chỉnh (khối xuống dưới · tên "Còn hạn bảo trì") ⇒
+  *"ok rồi đó, chơi đi m"*. Chạy lại bộ thử sau 2 lần chỉnh: **29/29** ở 1366 + 1280px.
+- `CO_GI_MOI.md` `## v2.1.6` 2 dòng. Kiểm trước push: `ast` OK · không trùng tên hàm · route chưa khai quyền `[]` · quét secret sạch.
+- Build `python build_exe.py iPOS_Accounting_Report` ⇒ **2.1.6** (11:13, app không chạy lúc build; EXE CI v2.1.5 `1414d115…` cất ở
+  scratchpad trước). **M3:** chạy EXE tách hẳn ⇒ `/api/version` 2.1.6 · trang dịch sẵn, không còn `babel-standalone` · có nhóm
+  `hethong`, `KhoiDiemTrangChu`, chữ "Còn hạn bảo trì".
 
 ---
 

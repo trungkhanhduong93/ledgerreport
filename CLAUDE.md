@@ -2,6 +2,8 @@
 
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
+> 🆕 **10/10/2026 — Việc 53: nhóm "Hệ thống" sát đáy cột** (gộp Điểm sử dụng + Phân quyền) + **khối "Bảo trì điểm sử dụng" 5 ô
+> trên Trang chủ** (bấm ô = mở danh sách lọc sẵn) — ⏳ **CHƯA commit / phát hành**. Xem § 1.1 *Điều hướng* + *Trang chủ* + nhật ký việc 53.
 > 🆕 **09/10/2026 — Việc 52: màn Điểm sử dụng có bộ lọc hạn bảo trì** (hàng chip Tất cả · Hết hạn · Dưới 30 · Hơn 30 · Chưa điền
 > hạn, khớp màu ô "Còn") + ô 0 ngày chữ đỏ + cột "Còn" 124px — ✅ **`v2.1.5` ĐÃ PHÁT HÀNH 09/10/2026, `Latest`, EXE máy Đại Ca
 > = file CI** (lên bằng đường cập nhật thật 2.1.4 → 2.1.5). Xem nhật ký việc 52.
@@ -212,16 +214,26 @@ bấm tên nhóm = đóng/mở; phân hệ 1 màn bấm tên là vào thẳng. *
 `lr_nhom_phan_he_dong`. ⚠️ Mở rộng ăn thêm 152px chiều ngang: ở 1280px, BC012 (4 ô lọc) ô bị ép còn 113px —
 vẫn một hàng, không cắt chữ (đo 25/09). Tên hiển thị: **`DATA REPORT`** (`APP_NAME`). Khai báo ở `PHAN_HE` trong `index.html`:
 Tổng hợp (`ledger`) · Tiền (`voucher`) · Mua & bán (`sale`, `purchase`, `po_list`) ·
-Kho (`warehouse`, `warehouse_balance`, `btp_reconcile`, `dcnb_reconcile`) · **Báo cáo TC**.
-Phân quyền nằm **sát đáy cột**; ô tài khoản (có Đăng xuất) ở **góc phải trên cùng**, sau nút Tải lại
+Kho (`warehouse`, `warehouse_balance`, `btp_reconcile`, `dcnb_reconcile`) · **Báo cáo TC** (luôn cuối danh sách chính) ·
+**Hệ thống** (`diem_su_dung`, `perm_admin` — cờ **`day: true`** ⇒ vẽ **sát đáy cột**, Đại Ca chốt 10/10/2026, việc 53; trước đó
+Điểm sử dụng là phân hệ riêng và Phân quyền là một nút rời ở đáy). Cả hai màn khai ở `MAN_RIENG`. Phân quyền giữ hàng tab
+*Tài khoản · Chức vụ* (cột mở rộng); cột **thu gọn** thì hàng tab của nhóm là *Điểm sử dụng · Tài khoản · Chức vụ*.
+Ô tài khoản (có Đăng xuất) ở **góc phải trên cùng**, sau nút Tải lại
 (Đại Ca chốt 25/09/2026 tối — menu mở xuống, mép phải thẳng nút).
+⚠️ Cột mở rộng ở laptop **1366×690** chỉ còn **7px** dư (683/690, đo 10/10/2026) — thêm một dòng nữa là hiện thanh cuộn 15px, cắt chữ
+màn con. Thêm mục vào cột thì đo lại ở 690px cao.
 
 **Trang chủ** *(GĐ4, 25/09/2026)* — nút **đầu** cột, `activeTab = 'home'`, component `TrangChu`. Mở app hoặc
-đăng nhập xong là vào đây. Hiện **chỉ lời chào + thẻ phân hệ** — Đại Ca chốt *"tạm thời lên mẫu, chưa lấy
-số liệu"* ⇒ trang này **không gọi truy vấn SQL nào**. Thẻ = đúng các phân hệ người đó thấy ở cột trái
-(+ Phân quyền nếu có quyền); số trên thẻ đếm từ `PHAN_HE` / `REPORT_TYPES` theo quyền. Mô tả + màu thẻ
-khai ở `PHAN_HE` (`mo_ta`, `mau`, `ten_day`) — thêm phân hệ mới thì điền luôn, thiếu thì thẻ ra màu xám.
-⏭️ Khi thêm khối số liệu ("Việc cần xử lý" trong phác thảo): **kỳ = tháng hiện tại** (Đại Ca chốt), mỗi ô
+đăng nhập xong là vào đây. Lời chào + thẻ phân hệ + **khối "Bảo trì điểm sử dụng"** (việc 53) bên dưới. Trang này
+**không gọi truy vấn SQL nào**. Thẻ = đúng các phân hệ người đó thấy ở cột trái; số trên thẻ đếm từ `PHAN_HE` /
+`REPORT_TYPES` theo quyền. Mô tả + màu thẻ khai ở `PHAN_HE` (`mo_ta`, `mau`, `ten_day`) — thêm phân hệ mới thì điền
+luôn, thiếu thì thẻ ra màu xám.
+**Khối "Bảo trì điểm sử dụng"** *(Đại Ca chốt 10/10/2026 — đứng DƯỚI thẻ phân hệ; bản đầu đặt trên, Đại Ca xem thật rồi bảo đem xuống)*: 5 ô = đúng 5 chip `DSD_LOC_HAN` của màn Điểm sử
+dụng (đếm bằng `dsdNhomHan` ⇒ số ô = số chip; tên ô riêng ở `DIEM_TC_NHAN` — ô > 30 ngày tên **"Còn hạn bảo trì"**, Đại Ca chốt); **bấm ô = mở màn đó với chip chọn sẵn** (`locHanDsd` do App giữ). Chỉ ai có mã
+`diem_su_dung`. Nguồn = `/api/diem_su_dung` (**Google Sheet**), **tải ngầm**; App giữ bản đã tải, về trang chủ chỉ hỏi lại Google khi bản giữ
+cũ hơn 5 phút (`DIEM_TC_TUOI_MS`); màn Điểm sử dụng tải xong thì báo lên (`onDuLieu`). ⛔ Chỉ gọi khi **đã nạp quyền** — `allowedItems`
+null thì `canSee()` trả true ⇒ nhân viên gọi là ăn 403.
+⏭️ Khi thêm khối số liệu SQL ("Việc cần xử lý" trong phác thảo): **kỳ = tháng hiện tại** (Đại Ca chốt), mỗi ô
 là truy vấn 6–8 giây ⇒ **tải ngầm**, đừng bắt trang chờ.
 
 **Tab Phân quyền** *(giao diện mới 25/09/2026)* — hai màn **Tài khoản / Chức vụ** nằm trên hàng tab ngang

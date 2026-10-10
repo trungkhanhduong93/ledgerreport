@@ -752,7 +752,9 @@ window.showConnectionLost = function() {
                 "eye-off": '<path d="M10.6 5.1A10.8 10.8 0 0 1 12 5c6.4 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4.2"/><path d="M6.6 6.6C3.7 8.4 2 12 2 12s3.6 7 10 7c1.9 0 3.5-.6 4.9-1.4"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="M3 3l18 18"/>',
                 // 08/10/2026 — màn Điểm sử dụng (việc 51): icon phân hệ + nút Sửa cuối dòng. Bộ Lucide.
                 "map-pin": '<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>',
-                "pencil": '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>'
+                "pencil": '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>',
+                // 10/10/2026 — nhóm "Hệ thống" ở đáy cột phân hệ (gộp Điểm sử dụng + Phân quyền). Lucide settings.
+                "settings": '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>'
             };
             return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} dangerouslySetInnerHTML={{ __html: icons[name] || '' }} />;
         };
@@ -5163,8 +5165,10 @@ window.showConnectionLost = function() {
         ];
         // Màn hình KHÔNG phải danh sách chứng từ (không lọc kỳ, không cột COT_BANG, không xuất CSV) nhưng vẫn nằm trong một
         // phân hệ ở cột trái. ⛔ Đừng nhét vào DOC_TABS: checklist Phân quyền xếp DOC_TABS vào nhóm "Danh sách chứng từ".
+        // 'perm_admin' (10/10/2026): Phân quyền thành màn con của nhóm Hệ thống — khai ở đây để cột phân hệ có tên + icon.
         const MAN_RIENG = [
-            { id: 'diem_su_dung', name: 'Danh sách điểm sử dụng', short: 'Danh sách điểm sử dụng', icon: 'map-pin' },
+            { id: 'diem_su_dung', name: 'Danh sách điểm sử dụng', short: 'Điểm sử dụng', icon: 'map-pin' },
+            { id: 'perm_admin', name: 'Phân quyền', short: 'Phân quyền', icon: 'lock' },
         ];
         const timManHinh = (id) => DOC_TABS.find(x => x.id === id) || MAN_RIENG.find(x => x.id === id);
 
@@ -5206,17 +5210,19 @@ window.showConnectionLost = function() {
                   mo_ta: 'Chứng từ bán hàng, nhập kho và danh sách PO', mau: { nen: '#fff7ed', chu: '#c2410c' } },
                 { id: 'kho',     ten: 'Kho',        icon: 'archive',    tabs: ['warehouse', 'warehouse_balance', 'btp_reconcile', 'dcnb_reconcile'],
                   mo_ta: 'Chứng từ kho, tồn thực tế và hai bảng đối chiếu xuất – nhập', mau: { nen: '#ecfeff', chu: '#0e7490' } },
-                // Việc 51 (08/10/2026): màn riêng, khai ở MAN_RIENG. Mặc định chỉ ADMIN thấy (mã quyền 'diem_su_dung').
-                { id: 'diemsudung', ten: 'Điểm sử dụng', icon: 'map-pin', tabs: ['diem_su_dung'],
-                  mo_ta: 'Điểm đang dùng phần mềm kế toán và thời hạn bảo trì', mau: { nen: '#f0fdf4', chu: '#15803d' } },
-                // Báo cáo TC luôn CUỐI danh sách phân hệ (Đại Ca chốt 08/10/2026) — "Khác" chèn ngay trước nó.
+                // Báo cáo TC luôn CUỐI danh sách phân hệ chính (Đại Ca chốt 08/10/2026) — "Khác" chèn ngay trước nó.
                 { id: 'baocao',  ten: 'Báo cáo TC', icon: 'chart-line', tabs: null,   // trang liệt kê thẻ, xem DanhSachBaoCao
                   ten_day: 'Báo cáo tài chính',
                   mo_ta: 'KQKD, cân đối kế toán, lưu chuyển tiền tệ, công nợ, thuế', mau: { nen: '#f5f3ff', chu: '#6d28d9' } },
+                // Hệ thống (Đại Ca chốt 10/10/2026): gộp Điểm sử dụng (việc 51) + Phân quyền, nằm SÁT ĐÁY cột (`day`) — chỗ
+                // Phân quyền đứng trước đó. Cả hai màn khai ở MAN_RIENG; mặc định chỉ ADMIN thấy ('diem_su_dung', 'perm_admin').
+                // Phân quyền có 2 màn con Tài khoản / Chức vụ trên hàng tab ngang (tabHangNgang ở App).
+                { id: 'hethong', ten: 'Hệ thống', icon: 'settings', tabs: ['diem_su_dung', 'perm_admin'], day: true,
+                  mo_ta: 'Điểm sử dụng (thời hạn bảo trì) và phân quyền tài khoản', mau: { nen: '#f1f5f9', chu: '#475569' } },
             ];
             const daGan = new Set(ds.flatMap(p => p.tabs || []));
             const conLai = DOC_TABS.map(t => t.id).filter(id => !daGan.has(id));
-            if (conLai.length) ds.splice(ds.length - 1, 0, { id: 'khac', ten: 'Khác', icon: 'grid', tabs: conLai,
+            if (conLai.length) ds.splice(ds.findIndex(p => p.id === 'baocao'), 0, { id: 'khac', ten: 'Khác', icon: 'grid', tabs: conLai,
                 mo_ta: 'Màn hình chưa gắn vào phân hệ nào', mau: { nen: '#f1f5f9', chu: '#475569' } });
             return ds;
         })();
@@ -5485,7 +5491,9 @@ window.showConnectionLost = function() {
             );
         };
 
-        const DiemSuDung = ({ onHetPhien }) => {
+        // `locHan` / `onLocHan`: chip lọc hạn do App giữ (10/10/2026) ⇒ bấm ô trên Trang chủ mở màn này với chip đã chọn sẵn.
+        // `onDuLieu`: tải xong thì báo App ⇒ khối số trên Trang chủ dùng luôn, khỏi gọi Google thêm lần nữa.
+        const DiemSuDung = ({ onHetPhien, locHan, onLocHan, onDuLieu }) => {
             const [ds, setDs] = useState(null);          // null = đang tải lần đầu
             const [dongBo, setDongBo] = useState({});
             const [loi, setLoi] = useState('');
@@ -5498,13 +5506,14 @@ window.showConnectionLost = function() {
             const [chon, setChon] = useState(() => new Set());
             const [sua, setSua] = useState(null);
             const [giaHan, setGiaHan] = useState(null);
-            const [locHan, setLocHan] = useState('');   // mã nhóm của DSD_LOC_HAN đang chọn; '' = Tất cả
+            const setLocHan = onLocHan;   // locHan = mã nhóm của DSD_LOC_HAN đang chọn; '' = Tất cả
             const xuLyLoi = (e) => { if (e.hetPhien) onHetPhien(); else setLoi(e.message); };
             const tai = async () => {
                 setDangTai(true); setLoi('');
                 try {
                     const j = await goiDiem('/api/diem_su_dung');
                     setDs(j.diem || []); setDongBo(j.dong_bo || {});
+                    if (onDuLieu) onDuLieu(j);
                     setChon(c => new Set([...c].filter(k => (j.diem || []).some(d => d.khoa === k))));
                 } catch (e) { xuLyLoi(e); if (ds === null) setDs([]); } finally { setDangTai(false); }
             };
@@ -5669,13 +5678,72 @@ window.showConnectionLost = function() {
         };
 
         // ===== TRANG CHỦ — GĐ4 giao diện mới (Đại Ca chốt 25/09/2026) =====
-        // Mở app / đăng nhập xong là vào đây. Đại Ca chốt "tạm thời lên mẫu, chưa lấy số liệu" ⇒ trang
-        // này KHÔNG gọi truy vấn SQL nào: chỉ lời chào + thẻ phân hệ. Số trên thẻ (số màn hình, số báo
-        // cáo) đếm từ PHAN_HE / REPORT_TYPES theo QUYỀN của người đang đăng nhập — không đụng DB.
-        // ⏭️ Lúc thêm khối số liệu ("Việc cần xử lý" trong phác thảo): kỳ = THÁNG HIỆN TẠI (Đại Ca chốt);
+        // Mở app / đăng nhập xong là vào đây: lời chào + thẻ phân hệ + (ai có quyền 'diem_su_dung') khối "Bảo trì điểm sử dụng" bên dưới.
+        // Trang này KHÔNG gọi truy vấn SQL nào. Số trên thẻ (số màn hình, số báo cáo) đếm từ PHAN_HE / REPORT_TYPES theo QUYỀN
+        // của người đang đăng nhập. Khối bảo trì (10/10/2026) đọc Google Sheet, tải NGẦM ở App (xem taiDiemTrangChu).
+        // ⏭️ Lúc thêm khối số liệu SQL ("Việc cần xử lý" trong phác thảo): kỳ = THÁNG HIỆN TẠI (Đại Ca chốt);
         //    mỗi ô là truy vấn 6–8 giây ⇒ phải tải NGẦM, đừng bắt trang chờ.
         const THU_TRONG_TUAN = ['Chủ nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
-        const TrangChu = ({ the, nguoiDung, onMo }) => {
+        // Khối bảo trì: bản đã tải còn dùng được bao lâu trước khi về trang chủ phải hỏi lại Google (mỗi lần hỏi 2–5 giây).
+        const DIEM_TC_TUOI_MS = 5 * 60 * 1000;
+        // 5 ô = đúng 5 chip lọc của màn Điểm sử dụng (DSD_LOC_HAN, nhóm theo dsdNhomHan) ⇒ số trên ô = số trên chip.
+        // [màu chấm, màu số, nền + viền khi số > 0 (chỉ 2 nhóm cần xử lý)]
+        // Tên ô khác tên chip (mô tả dưới số vẫn lấy từ DSD_LOC_HAN). t30: Đại Ca chốt 10/10/2026 "ghi là còn hạn bảo trì".
+        const DIEM_TC_NHAN = { '': 'Tất cả điểm', t30: 'Còn hạn bảo trì' };
+        const DIEM_TC_MAU = {
+            '':   ['#1e3a8a', '#0f172a', null],
+            qua:  ['#b91c1c', '#b91c1c', 'bg-red-50 border-red-200'],
+            d30:  ['#c2410c', '#c2410c', 'bg-orange-50 border-orange-200'],
+            t30:  ['#047857', '#047857', null],
+            chua: ['#94a3b8', '#475569', null],
+        };
+        const KhoiDiemTrangChu = ({ diem, onMoDiem, onThuLai }) => {
+            const ds = diem.diem;   // undefined = chưa tải xong lần nào
+            const db = diem.dong_bo || {};
+            return (
+                <section aria-label="Bảo trì điểm sử dụng" className="mt-7">
+                    <div className="flex items-baseline gap-3 mb-3 flex-wrap">
+                        <h2 className="text-[15px] font-bold text-slate-900">Bảo trì điểm sử dụng</h2>
+                        {db.luc && <span className="text-[12px] text-slate-500 tabular-nums">Đồng bộ lần cuối {db.luc}{db.boi ? ' · ' + db.boi : ''}</span>}
+                        {diem.dangTai && <span className="text-[12px] text-slate-500 flex items-center gap-1.5 self-center"><Icon name="loader" size={12} className="animate-spin" />Đang đọc Google Sheet…</span>}
+                    </div>
+                    {diem.loi && (
+                        <div className="mb-3 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-[12px] text-red-800 flex items-center gap-2">
+                            <Icon name="alert-triangle" size={14} strokeWidth="2" className="shrink-0" />
+                            <span className="flex-1">Không đọc được danh sách điểm: {diem.loi}</span>
+                            <button type="button" onClick={onThuLai} className="font-bold hover:underline">Thử lại</button>
+                        </div>
+                    )}
+                    {ds && ds.length === 0 && !diem.dangTai && (
+                        <div className="mb-3 text-[12px] text-slate-500">Danh sách đang trống — vào <b>Hệ thống › Điểm sử dụng</b>, bấm <b>Đồng bộ</b> để lấy điểm từ DB.</div>
+                    )}
+                    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+                        {DSD_LOC_HAN.map(([k, nhan, giai]) => {
+                            const [cham, chuSo, nenCan] = DIEM_TC_MAU[k];
+                            const n = ds ? (k ? ds.filter(d => dsdNhomHan(d.ngay_het_han) === k).length : ds.length) : null;
+                            const nen = nenCan && n > 0 ? nenCan : 'bg-white border-slate-200';
+                            return (
+                                <button key={k || 'all'} type="button" onClick={() => onMoDiem(k)}
+                                    title={(k ? 'Mở danh sách điểm: ' + nhan.toLowerCase() : 'Mở danh sách điểm sử dụng') + ' (' + giai.toLowerCase() + ')'}
+                                    className={'group flex flex-col p-4 border rounded-xl text-left transition-colors hover:border-indigo-400 ' + nen}>
+                                    <span className="flex items-center gap-2 text-[12px] font-bold text-slate-700">
+                                        <span className="w-2 h-2 rounded-full shrink-0" style={{ background: cham }}></span>
+                                        <span className="truncate">{DIEM_TC_NHAN[k] || nhan}</span>
+                                    </span>
+                                    <span className="text-[28px] font-bold leading-none tabular-nums mt-2.5" style={{ color: n === null ? '#cbd5e1' : chuSo }}>{n === null ? '…' : n.toLocaleString()}</span>
+                                    {/* mô tả được xuống dòng: ở 1280px ô còn ~170px, "Còn 0 ngày hoặc đã quá hạn" bị cắt (đo 10/10/2026) */}
+                                    <span className="flex items-end gap-1 mt-2 text-[11.5px] leading-snug text-slate-500">
+                                        <span className="flex-1 min-w-0">{k ? giai : 'Toàn bộ danh sách điểm'}</span>
+                                        <Icon name="chevron-right" size={14} strokeWidth="2" className="shrink-0 text-slate-300 group-hover:text-indigo-600 transition-colors" />
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </section>
+            );
+        };
+        const TrangChu = ({ the, nguoiDung, onMo, diem, onMoDiem, onThuLaiDiem }) => {
             const now = new Date();
             const gio = now.getHours();
             const buoi = gio < 11 ? 'buổi sáng' : gio < 13 ? 'buổi trưa' : gio < 18 ? 'buổi chiều' : 'buổi tối';
@@ -5707,6 +5775,8 @@ window.showConnectionLost = function() {
                                 </button>
                             ))}
                         </div>
+                        {/* Khối bảo trì đứng DƯỚI thẻ phân hệ — Đại Ca chốt 10/10/2026 (bản đầu cùng ngày đặt trên, xem thật rồi bảo "đem xuống dưới"). */}
+                        {diem && <KhoiDiemTrangChu diem={diem} onMoDiem={onMoDiem} onThuLai={onThuLaiDiem} />}
                     </div>
                 </div>
             );
@@ -5759,9 +5829,11 @@ window.showConnectionLost = function() {
                 <span className="truncate">{ten}</span>
             </button>
         );
-        // Đáy cột: Phân quyền (chỉ ai có quyền mới thấy) rồi nút Thu gọn / Mở rộng. Ô tài khoản ở góc phải trên cùng.
+        // Đáy cột: nhóm Hệ thống (phân hệ có `day` — Điểm sử dụng + Phân quyền, chỉ ai có quyền mới thấy) rồi nút Thu gọn /
+        // Mở rộng. Ô tài khoản ở góc phải trên cùng.
         const ThanhPhanHe = ({ dsPhanHe, phanHeDangMo, activeTab, canSee, onChon, onChonManHinh, dangOTrangChu, onTrangChu,
-                               coPhanQuyen, dangOPhanQuyen, onPhanQuyen, gon, onDoiGon }) => {
+                               gon, onDoiGon }) => {
+            const dsChinh = dsPhanHe.filter(p => !p.day), dsDay = dsPhanHe.filter(p => p.day);
             const [dong, setDong] = useState(() => {   // nhóm đang ĐÓNG — mặc định mở hết
                 try { const v = JSON.parse(localStorage.getItem('lr_nhom_phan_he_dong') || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; }
             });
@@ -5775,44 +5847,49 @@ window.showConnectionLost = function() {
                 <nav aria-label="Phân hệ" className="shrink-0 flex flex-col items-center gap-1 py-3 overflow-y-auto" style={{ width: 64, ...khung }}>
                     <LogoApp lop="w-8 h-8 shrink-0 mb-3" />
                     <NutPhanHe icon="home" ten="Trang chủ" dangChon={dangOTrangChu} onClick={onTrangChu} />
-                    {dsPhanHe.map(p => (
+                    {dsChinh.map(p => (
                         <NutPhanHe key={p.id} icon={p.icon} ten={p.ten} dangChon={phanHeDangMo === p.id} onClick={() => onChon(p.id)} />
                     ))}
                     <div className="flex-1"></div>
-                    {coPhanQuyen && <NutPhanHe icon="lock" ten="Phân quyền" dangChon={dangOPhanQuyen} onClick={onPhanQuyen} />}
+                    {dsDay.map(p => (
+                        <NutPhanHe key={p.id} icon={p.icon} ten={p.ten} dangChon={phanHeDangMo === p.id} onClick={() => onChon(p.id)} />
+                    ))}
                     <button type="button" onClick={onDoiGon} title="Mở rộng cột" aria-label="Mở rộng cột phân hệ"
                         className="w-[58px] h-8 shrink-0 mt-1 rounded-lg flex items-center justify-center text-[#93c5fd] hover:text-white transition-colors">
                         <Icon name="chevrons-right" size={16} strokeWidth="2" />
                     </button>
                 </nav>
             );
+            const veNhom = (p) => {
+                const tabs = p.tabs ? p.tabs.filter(canSee) : null;
+                if (!tabs || tabs.length <= 1)
+                    return <DongPhanHe key={p.id} icon={p.icon} ten={p.ten_day || p.ten} dangChon={phanHeDangMo === p.id} onClick={() => onChon(p.id)} />;
+                const mo = !dong.includes(p.id);
+                return (
+                    <React.Fragment key={p.id}>
+                        {/* Nhóm đang ĐÓNG mà chứa màn đang mở ⇒ tô nền nhóm, không thì mất dấu đang ở đâu */}
+                        <DongPhanHe icon={p.icon} ten={p.ten_day || p.ten} mui={mo} nhan={phanHeDangMo === p.id}
+                            dangChon={!mo && phanHeDangMo === p.id} onClick={() => doiDong(p.id)} />
+                        {mo && tabs.map(id => {
+                            const t = timManHinh(id);
+                            return <DongManHinh key={id} ten={t.short || t.name} icon={t.icon} dangChon={activeTab === id} onClick={() => onChonManHinh(id)} />;
+                        })}
+                    </React.Fragment>
+                );
+            };
             return (
                 <nav aria-label="Phân hệ" className="shrink-0 flex flex-col gap-0.5 py-3 px-2.5 overflow-y-auto" style={{ width: 216, ...khung }}>
-                    <div className="flex items-center gap-2.5 px-1.5 pb-4 shrink-0">
+                    {/* pb-3 + vạch ngăn my-1 (10/10/2026, trước pb-4 / my-1.5): nhóm Hệ thống mở 2 màn con làm cột cao thêm 28px ⇒
+                        laptop 1366×768 (~690px cao) thừa 1px là hiện thanh cuộn 15px, cắt chữ "PO – yêu cầu mua h…". Nay 683/690px. */}
+                    <div className="flex items-center gap-2.5 px-1.5 pb-3 shrink-0">
                         <LogoApp lop="w-7 h-7 shrink-0" />
                         <span className="text-[14px] font-bold text-white whitespace-nowrap" style={{ letterSpacing: '0.04em' }}>DATA REPORT</span>
                     </div>
                     <DongPhanHe icon="home" ten="Trang chủ" dangChon={dangOTrangChu} onClick={onTrangChu} />
-                    {dsPhanHe.map(p => {
-                        const tabs = p.tabs ? p.tabs.filter(canSee) : null;
-                        if (!tabs || tabs.length <= 1)
-                            return <DongPhanHe key={p.id} icon={p.icon} ten={p.ten_day || p.ten} dangChon={phanHeDangMo === p.id} onClick={() => onChon(p.id)} />;
-                        const mo = !dong.includes(p.id);
-                        return (
-                            <React.Fragment key={p.id}>
-                                {/* Nhóm đang ĐÓNG mà chứa màn đang mở ⇒ tô nền nhóm, không thì mất dấu đang ở đâu */}
-                                <DongPhanHe icon={p.icon} ten={p.ten_day || p.ten} mui={mo} nhan={phanHeDangMo === p.id}
-                                    dangChon={!mo && phanHeDangMo === p.id} onClick={() => doiDong(p.id)} />
-                                {mo && tabs.map(id => {
-                                    const t = timManHinh(id);
-                                    return <DongManHinh key={id} ten={t.short || t.name} icon={t.icon} dangChon={activeTab === id} onClick={() => onChonManHinh(id)} />;
-                                })}
-                            </React.Fragment>
-                        );
-                    })}
+                    {dsChinh.map(veNhom)}
                     <div className="flex-1"></div>
-                    {coPhanQuyen && <DongPhanHe icon="lock" ten="Phân quyền" dangChon={dangOPhanQuyen} onClick={onPhanQuyen} />}
-                    <div className="h-px my-1.5 shrink-0" style={{ background: CPH.ke }}></div>
+                    {dsDay.map(veNhom)}
+                    <div className="h-px my-1 shrink-0" style={{ background: CPH.ke }}></div>
                     <button type="button" onClick={onDoiGon} aria-label="Thu gọn cột phân hệ"
                         className="w-full h-8 shrink-0 rounded-lg flex items-center gap-2.5 px-2.5 text-[12px] text-[#93c5fd] hover:text-white transition-colors">
                         <Icon name="chevrons-left" size={15} strokeWidth="2" className="shrink-0" />Thu gọn cột
@@ -5948,7 +6025,7 @@ window.showConnectionLost = function() {
             const ITEM_SECTIONS = [
                 { title: 'Danh sách chứng từ', ids: DOC_TABS.map(t => t.id), cot2: true },
                 { title: 'Báo cáo tài chính', ids: REPORT_TYPES.map(r => r.id) },
-                { title: 'Quản trị', ids: ['perm_admin', 'diem_su_dung'] },
+                { title: 'Hệ thống', ids: ['perm_admin', 'diem_su_dung'] },   // trùng tên nhóm ở cột phân hệ (10/10/2026, trước là "Quản trị")
             ];
             // Nhãn NGẮN cho ô tick trong khung sửa chức vụ (ITEM_LABEL giữ tên đầy đủ cho lời cảnh báo).
             const nhanMuc = (code) => {
@@ -6798,48 +6875,79 @@ window.showConnectionLost = function() {
                 setDaMoBaoCao(true);
             };
             const baoCaoDangMo = REPORT_TYPES.find(r => r.id === reportType);
-            // Thẻ trên Trang chủ = đúng các phân hệ người này thấy ở cột trái (+ Phân quyền nếu có quyền).
+            // Thẻ trên Trang chủ = đúng các phân hệ người này thấy ở cột trái (Phân quyền nay nằm trong thẻ Hệ thống).
             const theTrangChu = dsPhanHe.map(p => ({
                 id: p.id, ten: p.ten_day || p.ten, icon: p.icon, mo_ta: p.mo_ta,
                 mau: p.mau || { nen: '#f1f5f9', chu: '#475569' },
                 nhan: p.tabs ? `${p.tabs.filter(canSee).length} màn hình` : `${REPORT_TYPES.filter(r => canSee(r.id)).length} báo cáo`,
-            })).concat(canSee('perm_admin') ? [{
-                id: 'perm_admin', ten: 'Phân quyền', icon: 'lock', mo_ta: 'Tài khoản, chức vụ và quyền xem theo từng đơn vị',
-                mau: { nen: '#f1f5f9', chu: '#475569' }, nhan: 'Quản trị',
-            }] : []);
-            const moTuTrangChu = (id) => { if (id === 'perm_admin') setActiveTab('perm_admin'); else chonPhanHe(id); };
-            const tabHangNgang = activeTab === 'home'
-                ? [{ id: 'home', ten: 'Trang chủ', icon: 'home' }]
-                : activeTab === 'perm_admin'
-                ? [{ id: 'pq_user', ten: 'Tài khoản', icon: 'user', so: demPhanQuyen.user },
-                   { id: 'pq_role', ten: 'Chức vụ', icon: 'shield', so: demPhanQuyen.role }]
-                : activeTab === 'report'
-                    ? [{ id: 'ds_bao_cao', ten: 'Tất cả báo cáo', icon: 'grid' }].concat(
-                        daMoBaoCao && !xemDsBaoCao && baoCaoDangMo && canSee(reportType)   // đang ở trang liệt kê thì ẩn (Đại Ca chốt 25/09)
-                            ? [{ id: 'bao_cao', ten: reportType + ' · ' + (baoCaoDangMo.ten || baoCaoDangMo.name), icon: 'file-text' }] : [])
-                    : (((PHAN_HE.find(p => p.id === phanHeDangMo) || {}).tabs) || []).filter(canSee).map(id => {
-                        const t = timManHinh(id);
-                        return { id, ten: t.short || t.name, icon: t.icon || 'table' };
-                    });
+            }));
+            const moTuTrangChu = (id) => chonPhanHe(id);
             // Cột phân hệ thu gọn (64px) hay mở rộng (216px, kiểu 06C) — nhớ trên máy, mặc định MỞ RỘNG.
             const [gonCotPhanHe, setGonCotPhanHe] = useState(() => { try { return localStorage.getItem('lr_cot_phan_he_gon') === '1'; } catch (e) { return false; } });
             const doiGonCotPhanHe = () => setGonCotPhanHe(v => {
                 try { localStorage.setItem('lr_cot_phan_he_gon', v ? '0' : '1'); } catch (e) { /* vẫn chạy, chỉ không nhớ */ }
                 return !v;
             });
+            // Phân quyền = 2 màn con Tài khoản / Chức vụ. Cột MỞ RỘNG: đang ở Phân quyền thì hàng tab chỉ có 2 tab này (Điểm sử
+            // dụng đã nằm ở cột). Cột THU GỌN: nhóm Hệ thống trải thành Điểm sử dụng · Tài khoản · Chức vụ — để hàng tab không đổi
+            // hình khi chuyển giữa hai màn (10/10/2026).
+            const tabPhanQuyenNgang = [{ id: 'pq_user', ten: 'Tài khoản', icon: 'user', so: demPhanQuyen.user },
+                                       { id: 'pq_role', ten: 'Chức vụ', icon: 'shield', so: demPhanQuyen.role }];
+            const tabHangNgang = activeTab === 'home'
+                ? [{ id: 'home', ten: 'Trang chủ', icon: 'home' }]
+                : activeTab === 'perm_admin' && !gonCotPhanHe
+                ? tabPhanQuyenNgang
+                : activeTab === 'report'
+                    ? [{ id: 'ds_bao_cao', ten: 'Tất cả báo cáo', icon: 'grid' }].concat(
+                        daMoBaoCao && !xemDsBaoCao && baoCaoDangMo && canSee(reportType)   // đang ở trang liệt kê thì ẩn (Đại Ca chốt 25/09)
+                            ? [{ id: 'bao_cao', ten: reportType + ' · ' + (baoCaoDangMo.ten || baoCaoDangMo.name), icon: 'file-text' }] : [])
+                    : (((PHAN_HE.find(p => p.id === phanHeDangMo) || {}).tabs) || []).filter(canSee).flatMap(id => {
+                        if (id === 'perm_admin') return tabPhanQuyenNgang;
+                        const t = timManHinh(id);
+                        return [{ id, ten: t.short || t.name, icon: t.icon || 'table' }];
+                    });
             // Cột mở rộng + đang ở màn danh sách ⇒ hàng tab ngang thành dòng đường dẫn (màn con đã nằm ở cột).
+            // Phân quyền giữ hàng tab (Tài khoản / Chức vụ), không thành đường dẫn.
             const duongDan = (() => {
-                if (gonCotPhanHe || !phanHeDangMo || phanHeDangMo === 'baocao') return null;
+                if (gonCotPhanHe || !phanHeDangMo || phanHeDangMo === 'baocao' || activeTab === 'perm_admin') return null;
                 const p = PHAN_HE.find(x => x.id === phanHeDangMo), t = timManHinh(activeTab);
                 return p && t ? { phanHe: p.ten_day || p.ten, manHinh: t.short || t.name } : null;
             })();
             const tabDangChon = activeTab === 'report' ? (xemDsBaoCao ? 'ds_bao_cao' : 'bao_cao')
                 : activeTab === 'perm_admin' ? (tabPhanQuyen === 'role' ? 'pq_role' : 'pq_user') : activeTab;
             const chonTab = (id) => {
-                if (activeTab === 'perm_admin') { setTabPhanQuyen(id === 'pq_role' ? 'role' : 'user'); return; }
+                if (id === 'pq_user' || id === 'pq_role') { setTabPhanQuyen(id === 'pq_role' ? 'role' : 'user'); setActiveTab('perm_admin'); return; }
                 if (activeTab === 'report') setXemDsBaoCao(id === 'ds_bao_cao');
-                else if (id !== 'perm_admin') setActiveTab(id);
+                else setActiveTab(id);
             };
+
+            // ===== Khối "Bảo trì điểm sử dụng" trên Trang chủ (Đại Ca chốt 10/10/2026) =====
+            // Nguồn = Google Sheet "Danh sách điểm sử dụng" qua /api/diem_su_dung (KHÔNG chạy SQL) — cùng nguồn màn Điểm sử dụng.
+            // ⛔ Chỉ gọi khi ĐÃ NẠP quyền và có mã 'diem_su_dung': allowedItems = null thì canSee() trả true ⇒ nhân viên ăn 403.
+            // Tải NGẦM: trang chủ vẽ ngay, ô hiện "…" tới khi có số. Bản đã tải giữ ở đây ⇒ quay lại trang chủ thấy số ngay, chỉ hỏi
+            // lại Google khi bản giữ cũ hơn DIEM_TC_TUOI_MS. Màn Điểm sử dụng tải xong (vào màn, sau Lưu / Gia hạn / Đồng bộ) cũng
+            // báo lên đây (onDuLieu) ⇒ sửa xong quay về trang chủ là số đã mới, không tốn thêm lần gọi Google.
+            // Bấm ô = mở màn Điểm sử dụng với chip lọc hạn tương ứng (locHanDsd — App giữ, màn đó đọc/ghi qua props).
+            const [diemTrangChu, setDiemTrangChu] = useState(null);   // { diem, dong_bo, luc, loi, dangTai }
+            const [locHanDsd, setLocHanDsd] = useState('');
+            const coQuyenDiem = !!allowedItems && allowedItems.includes('diem_su_dung');
+            const nhanDiem = (j) => setDiemTrangChu({ diem: j.diem || [], dong_bo: j.dong_bo || {}, luc: Date.now(), loi: '', dangTai: false });
+            const taiDiemTrangChu = async () => {
+                setDiemTrangChu(x => ({ ...(x || {}), dangTai: true, loi: '' }));
+                try { nhanDiem(await goiDiem('/api/diem_su_dung')); }
+                catch (e) {
+                    if (e.hetPhien) { setIsLoggedIn(false); return; }
+                    setDiemTrangChu(x => ({ ...(x || {}), dangTai: false, loi: e.message }));
+                }
+            };
+            useEffect(() => {
+                if (!isLoggedIn || activeTab !== 'home' || !coQuyenDiem) return;
+                const x = diemTrangChu;
+                if (x && (x.dangTai || (x.luc && Date.now() - x.luc < DIEM_TC_TUOI_MS))) return;
+                taiDiemTrangChu();
+            }, [isLoggedIn, activeTab, coQuyenDiem]);
+            useEffect(() => { if (!isLoggedIn) { setDiemTrangChu(null); setLocHanDsd(''); } }, [isLoggedIn]);
+            const moDiemTheoHan = (k) => { setLocHanDsd(k); setActiveTab('diem_su_dung'); };
 
             const loadPerms = async () => {
                 try {
@@ -9493,9 +9601,6 @@ window.showConnectionLost = function() {
                         onChonManHinh={id => setActiveTab(id)}
                         dangOTrangChu={activeTab === 'home'}
                         onTrangChu={() => setActiveTab('home')}
-                        coPhanQuyen={canSee('perm_admin')}
-                        dangOPhanQuyen={activeTab === 'perm_admin'}
-                        onPhanQuyen={() => setActiveTab('perm_admin')}
                         gon={gonCotPhanHe}
                         onDoiGon={doiGonCotPhanHe}
                     />
@@ -9525,10 +9630,12 @@ window.showConnectionLost = function() {
                         </>}
                     />
 
-                    {activeTab === 'home' && <TrangChu the={theTrangChu} nguoiDung={nguoiDung} onMo={moTuTrangChu} />}
+                    {activeTab === 'home' && <TrangChu the={theTrangChu} nguoiDung={nguoiDung} onMo={moTuTrangChu}
+                        diem={coQuyenDiem ? (diemTrangChu || { dangTai: true }) : null} onMoDiem={moDiemTheoHan} onThuLaiDiem={taiDiemTrangChu} />}
 
                     {/* Việc 51: màn riêng (MAN_RIENG), không phải danh sách chứng từ. Chỉ ai có mã 'diem_su_dung' (mặc định ADMIN). */}
-                    {activeTab === 'diem_su_dung' && canSee('diem_su_dung') && <DiemSuDung onHetPhien={() => setIsLoggedIn(false)} />}
+                    {activeTab === 'diem_su_dung' && canSee('diem_su_dung') && <DiemSuDung onHetPhien={() => setIsLoggedIn(false)}
+                        locHan={locHanDsd} onLocHan={setLocHanDsd} onDuLieu={nhanDiem} />}
 
                     {activeTab === 'ledger' && (
                         <>

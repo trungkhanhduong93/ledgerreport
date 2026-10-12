@@ -16,6 +16,9 @@
 >   một lần), hiện tối đa 8 dòng, dư thì ghi "… và N thay đổi khác".
 > - Dòng không bắt đầu bằng `- ` (như khối ghi chú này) app bỏ qua.
 
+## v2.1.7
+- Nhập xuất tồn nhà hàng: cột Xuất kho công cụ dụng cụ đứng ngay cạnh cột Xuất hủy
+
 ## v2.1.6
 - Cột trái: Điểm sử dụng và Phân quyền gộp vào nhóm Hệ thống ở cuối cột
 - Trang chủ: thêm ô tổng hợp hạn bảo trì điểm sử dụng, bấm vào ô để mở danh sách đã lọc sẵn

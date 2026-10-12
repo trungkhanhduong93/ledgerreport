@@ -181,6 +181,19 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 
 ---
 
+## 12/10/2026 — BC016: mã chứng từ mới `XKHOCCDC` (Xuất kho công cụ dụng cụ) đứng cạnh Xuất hủy · v2.1.7 (chờ push)
+
+Đại Ca thêm mã `XKHOCCDC` vào `SYS_TRAN`, hỏi BC016 có tự thêm cột không. **Có, không cần chỉnh**: cột nhập/xuất của BC016 dựng từ
+`TRAN_ID` có phát sinh trong `WAREHOUSE_VIEW` của kỳ, tên lấy từ `SYS_TRAN`; cấu hình cột lưu danh sách **ẩn** ⇒ cột mới mặc định hiện.
+Đo DB thật 12/10: `SYS_TRAN` có `XKHOCCDC` (SALE / XKHO, `ACTIVE=1`, `IS_SALE=0`) · **chưa có phiếu nào** (SALE / WAREHOUSE / VIEW = 0) ·
+364 mã nhóm `CCDC` đều `IS_WAREHOUSE_BALANCE=1` ⇒ lọt `WAREHOUSE_VIEW`. ⚠️ Prefix số phiếu `XDC` **trùng** mã `XDC` Xuất điều chỉnh
+(đã có tiền lệ: XKHO/XKHODLK chung `XKDL`, XHUY/XKHOSD chung `XKHH`) — báo cáo tách theo `TRAN_ID` nên không lẫn số.
+Mã chưa khai thứ tự thì đứng cuối khối xuất ⇒ Đại Ca chốt **đứng ngay sau Xuất hủy**: thêm vào `NXT_TRAN_ORDER_OUT` sau `XHUY`.
+- 🧪 M1 `ast` OK, không trùng tên hàm. Mô phỏng `order_cols`: kỳ có `XKHOCCDC` ⇒ `… XHUY, XKHOCCDC, XSC …`; kỳ không có ⇒ không có cột.
+  **Chưa thử trên số liệu thật** (chưa có phiếu). Không build local (Đại Ca đang mở app) ⇒ tăng `version.txt` + `version_info.txt` tay lên 2.1.7.
+
+---
+
 ## 10/10/2026 — Việc 53: nhóm "Hệ thống" ở đáy cột + khối "Bảo trì điểm sử dụng" trên Trang chủ · phát hành v2.1.6
 
 Đại Ca (gửi ảnh, khoanh đỏ *Điểm sử dụng* + *Phân quyền*): *"Kiểm tra nguyên tắc và gộp cái này vào chung 1 gr là hệ thống. Sau đó cho

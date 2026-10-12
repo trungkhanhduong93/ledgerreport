@@ -9311,7 +9311,8 @@ FROM dbo.SALE_VIEW S WITH (NOLOCK) WHERE {where_sql}"""
 # để đối chiếu được từng khối. TRAN_ID lạ (DB khác, hoặc iPOS thêm mới) xếp sau, theo alphabet.
 NXT_TRAN_ORDER_IN = ["NM", "MNB", "NMND", "NMTU", "NKHO", "NSP", "NDCNB", "NDC"]
 NXT_TRAN_ORDER_OUT = ["BH", "BHVAT", "BHK", "XDCNB", "BNB", "XKHOSXBTP", "XKHO",
-                      "XKHODLK", "XKHOHN", "XHUY", "XSC", "XKHOKK", "XDC"]
+                      "XKHODLK", "XKHOHN", "XHUY", "XKHOCCDC", "XSC", "XKHOKK", "XDC"]
+# XKHOCCDC (Xuất kho công cụ dụng cụ) — mã mới thêm vào SYS_TRAN 10/2026, Đại Ca chốt 12/10/2026 đứng ngay sau Xuất hủy.
 
 
 def _nxt_open_cutoff(from_dt):

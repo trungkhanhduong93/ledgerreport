@@ -6720,45 +6720,24 @@ def get_trial_balance():
         cur = get_connection().cursor()
         first_day_of_year = date(from_dt.year, 1, 1).strftime("%Y%m%d")
 
-        # 1. Lấy danh mục DM_ACCOUNT
-        cur.execute("SELECT ACCOUNT_ID, ACCOUNT_NAME, IS_PARENT, ACCOUNT_TYPE_ID, PARENT_ACCOUNT_ID FROM dbo.DM_ACCOUNT WITH (NOLOCK)")
+        # 1. Lấy danh mục DM_ACCOUNT — kiểu số dư theo đúng cột BALANCE_TYPE (DEB / CRD / DEBCRD), Đại Ca chốt 21/10/2026.
+        # ⛔ Đừng quay lại ACCOUNT_TYPE_ID: đó là mã phân loại (01…26), không phải kiểu số dư. Bản trước đọc cột đó rồi ghi
+        # đè theo đầu số + ép lưỡng tính 131/331/1388/3388 ⇒ lệch DM 30/290 TK (vd 13682 lưỡng tính mà ra số âm cột Nợ).
+        # Chỉ khi BALANCE_TYPE trống / lạ mới đoán theo đầu số.
+        cur.execute("SELECT ACCOUNT_ID, ACCOUNT_NAME, IS_PARENT, BALANCE_TYPE, PARENT_ACCOUNT_ID FROM dbo.DM_ACCOUNT WITH (NOLOCK)")
         accounts = {}
         for r in cur.fetchall():
             acc_id = (r[0] or "").strip()
             db_type = (r[3] or "").strip().lower()
-            
-            # Ép chuẩn loại tài khoản theo Kế toán Việt Nam (nếu DB rác/thiếu)
-            if acc_id.startswith(('3', '4', '5', '7', '214', '229')):
-                db_type = 'crd'
-            elif acc_id.startswith(('1', '2', '6', '8', '9')):
-                db_type = 'deb'
-            else:
-                db_type = 'deb'
-                
+            if db_type not in ('deb', 'crd', 'debcrd'):
+                db_type = 'crd' if acc_id.startswith(('3', '4', '5', '7', '214', '229')) else 'deb'
+
             accounts[acc_id] = {
                 "name": (r[1] or "").strip(),
                 "is_parent": bool(r[2]),
                 "type": db_type,
                 "parent_id": (r[4] or "").strip()
             }
-            
-        # 1.1 Kế thừa thuộc tính lưỡng tính (debcrd) từ tài khoản cha hoặc tiền tố chuẩn
-        sorted_accs = sorted(accounts.keys(), key=lambda x: len(x))
-        for acc_id in sorted_accs:
-            # Ép kiểu cho các tài khoản lưỡng tính kinh điển nếu DB config sai
-            if acc_id.startswith('131') or acc_id.startswith('331') or acc_id.startswith('1388') or acc_id.startswith('3388'):
-                accounts[acc_id]["type"] = 'debcrd'
-            
-            parent_id = accounts[acc_id]["parent_id"]
-            if not parent_id:
-                for i in range(len(acc_id)-1, 0, -1):
-                    prefix = acc_id[:i]
-                    if prefix in accounts and accounts[prefix]["is_parent"]:
-                        parent_id = prefix
-                        break
-            if parent_id and parent_id in accounts:
-                if accounts[parent_id]["type"] == 'debcrd':
-                    accounts[acc_id]["type"] = 'debcrd'
 
         # 2. Lấy Dư đầu kỳ (từ BALANCE_VIEW đầu năm)
         q_open = f"""

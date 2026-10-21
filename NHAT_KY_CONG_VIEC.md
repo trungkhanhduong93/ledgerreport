@@ -181,6 +181,45 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 
 ---
 
+## 21/10/2026 — BC006 Cân đối phát sinh: kiểu số dư theo `DM_ACCOUNT.BALANCE_TYPE` · ✅ commit local (CHƯA push, chưa phát hành)
+
+Đại Ca hỏi dư cuối kỳ BC006 có theo kiểu số dư trong `DM_ACCOUNT` không. **Không.** `get_trial_balance` đọc `ACCOUNT_TYPE_ID`
+(thực ra là **mã phân loại** `01`…`26`) rồi **ghi đè hết** theo đầu số (3/4/5/7/214/229 → Có, còn lại → Nợ) + ép lưỡng tính
+`131`/`331`/`1388`/`3388` và TK con. Kiểu số dư thật nằm ở **`BALANCE_TYPE`** (`DEB` 169 · `CRD` 99 · `DEBCRD` 22, đủ 290/290 TK).
+Có từ commit đầu `27d5e98` (chép từ LedgerStudio).
+
+**Đo DB thật (chỉ đọc), T09/2026, loại đơn vị `66`:** lệch DM **30/290 TK**; chỉ **4 TK ra số khác**, 26 TK còn lại không có số liệu
+2026 hoặc ra y nhau:
+
+| TK | DM | Code cũ | Dư cuối cũ | Dư cuối theo DM |
+|---|---|---|---|---|
+| `1311` | DEB | lưỡng tính | Nợ 9,878 tỷ · Có 9,878 tỷ | Nợ 20.214 |
+| `1312` | DEB | lưỡng tính | Nợ 22,243 tỷ · Có 510.000 | Nợ 22,243 tỷ |
+| `13682` | DEBCRD | Nợ | Nợ **−853 tr** | Nợ 481 tr · Có 1,335 tỷ |
+| `33683` | DEB | Có | Có 138 tr | Nợ **−138 tr** |
+
+⚠️ `1311`: **−9,56 tỷ nằm ở dòng đối tượng TRỐNG** (thu tiền không gắn khách), cửa hàng dư Nợ ⇒ tách theo đối tượng thì hai bên
+phình ~9,88 tỷ. ⚠️ `33683` DM khai `DEB` nhưng số dư thật bên Có ⇒ theo DM ra số âm cột Nợ — **sửa khai báo trong iPOS**, không sửa code.
+
+**Đại Ca chốt: theo `DM_ACCOUNT`.** Đã sửa `get_trial_balance` (+8/−29): đọc `BALANCE_TYPE`; bỏ ghi đè đầu số + ép lưỡng tính +
+kế thừa lưỡng tính từ TK cha; `BALANCE_TYPE` trống/lạ mới đoán theo đầu số. Lưỡng tính vẫn tách hai bên **theo từng đối tượng** như cũ.
+Không báo cáo nào khác dùng đoạn này; giao diện không đổi.
+- 🧪 M1 `ast` OK, không trùng tên hàm. M2 trên **cursor giả** (cả bản HEAD lẫn bản mới qua `test_client`, cổng 5050 trống): HTTP 200,
+  đúng 4 ca (`1311` gộp Nợ · `13682` tách 2 bên · `33683` âm cột Nợ · `331`/`1111`/`4111` y cũ), tổng dư cuối Nợ = Có.
+- ⏳ **Chưa chạy trên DB thật** (mật khẩu `config.json` đã xoá sau lần đo đầu — Đại Ca chưa điền lại). Kế hoạch: HEAD vs mới, 4 kỳ
+  (T01 · T09 · 01/01–30/09 · 01–20/10/2026), đạt khi chỉ 4 TK trên + TK cha đổi. ⏳ M4 cần file Cân đối phát sinh xuất từ iPOS.
+- ✅ **Cập nhật cùng ngày — đã chạy DB thật** (Đại Ca điền lại mật khẩu; đo xong đã xoá lại ô `password`). Đại Ca **đã sửa `33683`
+  sang `CRD` trong iPOS** ⇒ hết ca âm cột Nợ. `test_client` HEAD vs mới, 4 kỳ trên, HTTP 200, số dòng y nhau (89 · 104 · 107 · 93).
+  ⚠️ Lần so đầu thấy cả `112`/`113…` đổi **phát sinh** — **không phải do code**: DB đang có người nhập/sửa chứng từ giữa 2 lần chạy
+  (bản cũ chạy lần 1 vs lần 2 cũng lệch đúng các TK đó). Chạy lại bản cũ **ngay sau** bản mới: **phát sinh khớp 100%**, **0 TK ngoài nhóm
+  dự kiến bị đổi**, tổng phát sinh Nợ = Có, tổng dư cuối Nợ = Có. TK đổi số: `1311`, `1312`, `13682` + cha `131`/`136`/`1368`, và kỳ
+  T10 thêm `521`/`5211`/`5213` (DM `DEB`, code cũ `crd` ⇒ trước hiện **−2,80 tỷ ở cột Có**, nay **2,80 tỷ cột Nợ**). Dư cuối T09/2026:
+  `131` Nợ 32,12 tỷ · Có 9,88 tỷ → **Nợ 22,24 tỷ** · `13682` Nợ −853 tr → **Nợ 481 tr · Có 1,335 tỷ** · tổng dư cuối 212,11 → **203,57 tỷ**.
+  ⚠️ Theo DM `DEB` thì `1311` dư Có ròng sẽ ra **số âm cột Nợ** (T01/2026: −1.000 đ) — đúng luật Đại Ca chốt.
+  Đạt **M2 trên DB thật**; ⏳ M3 (build EXE) + M4 (khớp file iPOS) chưa làm.
+
+---
+
 ## 12/10/2026 — BC016: mã chứng từ mới `XKHOCCDC` (Xuất kho công cụ dụng cụ) đứng cạnh Xuất hủy · phát hành v2.1.7
 
 Đại Ca thêm mã `XKHOCCDC` vào `SYS_TRAN`, hỏi BC016 có tự thêm cột không. **Có, không cần chỉnh**: cột nhập/xuất của BC016 dựng từ

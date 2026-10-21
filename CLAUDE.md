@@ -510,7 +510,7 @@ Nguồn `dbo.PO` + `dbo.PO_DETAIL` (**không có view**). 2026: 4.217 phiếu / 
 | BC003 | KQKD theo tháng (tuỳ chỉnh) | `/api/report` | như BC001 |
 | BC004 | KQKD theo công việc (tuỳ chỉnh) | `/api/report_by_job` | như BC002 |
 | BC005 | Bảng cân đối kế toán (TT200, B01-DN) | `/api/balance_sheet` | BALANCE_VIEW + LEDGER |
-| BC006 | Bảng cân đối phát sinh (B09-DN) | `/api/trial_balance` | BALANCE_VIEW + LEDGER |
+| BC006 | Bảng cân đối phát sinh (B09-DN) | `/api/trial_balance` | BALANCE_VIEW + LEDGER · kiểu số dư = **`DM_ACCOUNT.BALANCE_TYPE`** (Đại Ca chốt 21/10/2026 — Bẫy 32) |
 | BC007 | Sổ nhật ký chung (S03a-DN) | `/api/journal` | LEDGER ⋈ DM_ORGANIZATION |
 | BC008 | Sổ chi tiết tài khoản (S38-DN) | `/api/account_details` | BALANCE_VIEW + LEDGER |
 | BC009 | LCTT trực tiếp (B03-DN) | `/api/cash_flow` | LEDGER theo TK đối ứng |
@@ -1156,6 +1156,16 @@ for column 1 of 't'"* (cột trùng tên cũng lỗi, 8156). Câu đếm chạy 
 ➡️ Đã sửa 2 lớp: đặt tên cột (`'NKC' AS BANG`) + đếm hỏng thì **xuất tiếp không có tổng** (trình duyệt lấy tạm tổng trên màn).
 Thêm cột vào câu xuất có `count_sql` thì **đặt tên cột**. Và **tính năng đụng tới câu SQL phải chạy ít nhất một lần trên DB
 thật trước khi phát hành** — DB giả chỉ đủ để thử giao diện.
+
+---
+
+### Bẫy 32 — Kiểu số dư TK nằm ở `DM_ACCOUNT.BALANCE_TYPE`, **không phải `ACCOUNT_TYPE_ID`** *(21/10/2026)*
+
+`BALANCE_TYPE` = `DEB` / `CRD` / `DEBCRD` (đủ 290/290 TK trên `IACC_CHULONG`). `ACCOUNT_TYPE_ID` chỉ là **mã phân loại** `01`…`26`.
+BC006 từ commit đầu đọc nhầm `ACCOUNT_TYPE_ID` rồi tự xếp theo đầu số + ép lưỡng tính `131`/`331`/`1388`/`3388` ⇒ lệch DM 30/290 TK
+(`13682` lưỡng tính mà ra **−853 triệu ở cột Nợ**). Nay đọc `BALANCE_TYPE`; trống/lạ mới đoán theo đầu số.
+⛔ **Đừng "sửa giúp" ép lại `131` lưỡng tính hay đổi bên `33683`** — Đại Ca chốt theo DM; DM khai sai thì **sửa khai báo trong iPOS**.
+Lưỡng tính tách hai bên **theo từng đối tượng** (`PR_DETAIL_ID`). Chi tiết số đo: nhật ký *21/10/2026*.
 
 ---
 

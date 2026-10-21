@@ -181,7 +181,7 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 
 ---
 
-## 21/10/2026 — BC006 Cân đối phát sinh: kiểu số dư theo `DM_ACCOUNT.BALANCE_TYPE` · ✅ commit local (CHƯA push, chưa phát hành)
+## 21/10/2026 — BC006 Cân đối phát sinh: kiểu số dư theo `DM_ACCOUNT.BALANCE_TYPE` · ✅ phát hành v2.1.8
 
 Đại Ca hỏi dư cuối kỳ BC006 có theo kiểu số dư trong `DM_ACCOUNT` không. **Không.** `get_trial_balance` đọc `ACCOUNT_TYPE_ID`
 (thực ra là **mã phân loại** `01`…`26`) rồi **ghi đè hết** theo đầu số (3/4/5/7/214/229 → Có, còn lại → Nợ) + ép lưỡng tính
@@ -217,6 +217,14 @@ Không báo cáo nào khác dùng đoạn này; giao diện không đổi.
   `131` Nợ 32,12 tỷ · Có 9,88 tỷ → **Nợ 22,24 tỷ** · `13682` Nợ −853 tr → **Nợ 481 tr · Có 1,335 tỷ** · tổng dư cuối 212,11 → **203,57 tỷ**.
   ⚠️ Theo DM `DEB` thì `1311` dư Có ròng sẽ ra **số âm cột Nợ** (T01/2026: −1.000 đ) — đúng luật Đại Ca chốt.
   Đạt **M2 trên DB thật**; ⏳ M3 (build EXE) + M4 (khớp file iPOS) chưa làm.
+- **Phát hành** (Đại Ca: *"ok chơi lun đi"*): QA trước push — `ast` OK, không trùng hàm, 206 hàm / 80 route **không mất gì** so `origin/main`,
+  Bẫy 30 ra `[]`, `_tach_co_gi_moi` đọc đúng mục `## v2.1.8` (`node` không có trong PATH ⇒ chưa chạy `check_babel.js`; `index.html` không đổi).
+  `version.txt` + `version_info.txt` tăng tay lên 2.1.8. Push `b4927e4..70bc553` (2 commit: `8573062` sửa + `70bc553` số hiệu / CO_GI_MOI),
+  `git push origin HEAD:main` từ worktree Orca. Actions run `39569463225` **`success`** ⇒ Release **`v2.1.8` = `Latest`**, tag → `70bc553`,
+  `CO_GI_MOI.md` + `version.txt` tại tag đúng. EXE máy Đại Ca (đang là đúng file CI v2.1.7 `ea9661b3…`, app tắt) ⇒ **thay bằng file CI v2.1.8**,
+  SHA khớp digest GitHub `0e7a73ea…` (13.794.999 B), FileVersion 2.1.8; bản 2.1.7 cất ở `%TEMP%\ledger_v218_dl\`, không để trong `dist\`.
+  ⚠️ **Chưa mở EXE thử** (tránh bật cửa sổ lên màn Đại Ca) ⇒ M3 chưa xác nhận. `gh` trong phiên này **chưa đăng nhập** ⇒ theo dõi Actions
+  bằng API công khai GitHub (`curl api.github.com/...`), repo công khai nên không cần token.
 
 ---
 

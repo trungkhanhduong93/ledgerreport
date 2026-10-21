@@ -16,6 +16,9 @@
 >   một lần), hiện tối đa 8 dòng, dư thì ghi "… và N thay đổi khác".
 > - Dòng không bắt đầu bằng `- ` (như khối ghi chú này) app bỏ qua.
 
+## v2.1.8
+- Bảng cân đối phát sinh: số dư đầu kỳ và cuối kỳ nằm đúng bên Nợ hoặc Có theo kiểu số dư khai trong danh mục tài khoản
+
 ## v2.1.7
 - Nhập xuất tồn nhà hàng: cột Xuất kho công cụ dụng cụ đứng ngay cạnh cột Xuất hủy
 

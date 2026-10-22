@@ -299,6 +299,11 @@ thứ tự, **nhớ riêng từng báo cáo trên máy** (`localStorage` khoá `
 ⛔ **Số trên nút phễu = số ô ĐANG CÓ GIÁ TRỊ mà bị giấu trong bảng — đừng bỏ.** Ô lọc bị giấu mà
 vẫn áp dụng thì người xem tưởng số liệu là toàn bộ.
 ⛔ Thêm ô lọc cho báo cáo thì khai vào `O_LOC_BAO_CAO`, **đừng viết thẳng vào hàng điều kiện**.
+**Ô Đơn vị — "Lọc danh sách theo tài khoản"** *(Đại Ca chốt 22/10/2026, chỉ quản trị)*: dòng đầu khung (`ChonTheoTaiKhoan`) chọn một
+tài khoản DATA REPORT ⇒ danh sách chỉ còn các đơn vị đã tick cho tài khoản đó ở tab Phân quyền. ⛔ **Chỉ LỌC, không tự tick** — người xem
+tick / "Chọn tất cả N đang hiện" để chốt; tick cũ ngoài danh sách **giữ lại nhưng phải báo** (dòng vàng + nút Bỏ). Nguồn `/api/perm/config`
+(Google, mật khẩu quản trị) — nạp một lần mỗi lần mở app, **không giữ mật khẩu**, đăng xuất là xoá. Quản trị = `allowedItems` có
+`perm_admin` (⛔ không dùng `canSee`). Prop `dauKhung` / `coChonTatCa` / `khoaDs` của `PremiumDropdown` không truyền ⇒ ô y cũ.
 ⚠️ Lớp nổi gắn vào `body` bằng portal (lịch của `IOSDatePicker`) phải mang **`data-lop-noi`** — không
 thì bấm vào nó bị tính là "bấm ra ngoài" và bảng Thời gian / Bộ lọc nâng cao tự đóng.
 

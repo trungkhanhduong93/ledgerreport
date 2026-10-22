@@ -181,6 +181,33 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 
 ---
 
+## 22/10/2026 — Báo cáo TC: ô Đơn vị lọc danh sách theo tài khoản (chỉ quản trị) · ⏳ chưa phát hành
+
+Đại Ca muốn xem nhiều cửa hàng của một người quản lý mà khỏi tick từng đơn vị. **Đại Ca chốt** (hỏi từng điểm):
+nguồn = **tài khoản DATA REPORT** (ô Đơn vị của từng tài khoản trong tab Phân quyền) · **chỉ quản trị** · **mọi Báo cáo TC** (ô Đơn vị
+dùng chung) · dòng **trên cùng trong ô Đơn vị** · chọn tài khoản **chỉ LỌC danh sách, KHÔNG tự tick** — tự tick / "Chọn tất cả" để chốt lại
+(Đại Ca: *"lọc lại danh sách đơn vị và cho tick chọn tất cả … để xác định 1 lần nữa"*) · tick cũ ngoài danh sách **giữ lại + báo rõ**
+(xem gộp nhiều người được; dòng vàng *"Đang chọn thêm N đơn vị ngoài danh sách của …"* + nút **Bỏ N đơn vị**).
+
+Đã làm (chỉ `index.html`, máy chủ không đổi — `/api/perm/config` vốn trả `orgs` từng tài khoản, đòi mật khẩu quản trị):
+- `PremiumDropdown` thêm 3 prop tuỳ chọn `dauKhung` · `coChonTatCa` · `khoaDs` (đổi tài khoản ⇒ danh sách cuộn về đầu). **Không truyền ⇒ DOM
+  y cũ** (mọi ô lọc khác, kể cả ô Đơn vị của nhân viên — đã kiểm lớp `rounded-t-2xl` của ô tìm còn nguyên).
+- `ChonTheoTaiKhoan` (cấp ngoài cùng): chưa nạp ⇒ nút *Chọn theo tài khoản…* ⇒ ô mật khẩu quản trị; nạp rồi ⇒ `<select>` các tài khoản
+  **có giới hạn đơn vị** (tài khoản "Tất cả đơn vị" = `orgs: null` bị bỏ, không có gì để lọc), sắp theo tên, ghi số đơn vị + *đã khoá*.
+- App: `laQuanTri` = `allowedItems` **có** `perm_admin` (⛔ không dùng `canSee` — `allowedItems` null là true cho cả nhân viên);
+  `tkDonVi` chỉ ở RAM, **đăng xuất là xoá**; **mật khẩu không giữ lại**. Tab Phân quyền nạp danh sách thì báo lên (`onNapTk`) ⇒ khỏi hỏi lại.
+  Khung có dòng đầu cao `max-h-[470px]` (thường 400px).
+- 🧪 M1: dịch JSX bằng đúng Babel của trình duyệt (`dich_giao_dien.js`, chạy bằng `node.exe` kèm Playwright —
+  máy không có Node riêng). M2 giao diện: server thử 5052 (DB giả, **`/api/perm/config` thay bằng danh sách giả — không gọi Google**,
+  bỏ dòng `kill_process_on_port(5050)`) + Chrome ngầm CDP 1366×768: sai mật khẩu ⇒ báo *Sai mật khẩu quản trị*; đúng ⇒ 3 tài khoản
+  (bỏ đúng tài khoản "tất cả"); tick 05 + 30 rồi chọn A ⇒ còn 5 dòng, cảnh báo *1 đơn vị ngoài*; Chọn tất cả ⇒ 6 mục; Bỏ 1 đơn vị ⇒ 5 mục
+  (03 05 07 11 12); bấm lại khi đủ ⇒ bỏ hết; ✕ ⇒ 40 dòng; đóng/mở lại ⇒ không hỏi mật khẩu (`/api/perm/config` gọi đúng 2 lần);
+  ô tìm vẫn lọc trong danh sách tài khoản; chữ trong ô chọn 172/256px; khung đáy 588px (vừa 768 và 690). Tài khoản thường: không có dòng này.
+  Sửa trong lúc thử: tên tài khoản bị cắt (đưa nhãn lên dòng riêng) · đổi tài khoản mà danh sách giữ vị trí cuộn cũ (`khoaDs`).
+- ⏳ **Chưa thử với Google thật** (mật khẩu quản trị thật + danh sách tài khoản thật) và chưa build EXE.
+
+---
+
 ## 21/10/2026 — BC006 Cân đối phát sinh: kiểu số dư theo `DM_ACCOUNT.BALANCE_TYPE` · ✅ phát hành v2.1.8
 
 Đại Ca hỏi dư cuối kỳ BC006 có theo kiểu số dư trong `DM_ACCOUNT` không. **Không.** `get_trial_balance` đọc `ACCOUNT_TYPE_ID`

@@ -16,6 +16,11 @@
 >   một lần), hiện tối đa 8 dòng, dư thì ghi "… và N thay đổi khác".
 > - Dòng không bắt đầu bằng `- ` (như khối ghi chú này) app bỏ qua.
 
+## v2.1.9
+- Trang chủ: thêm khối Thao tác nhanh — ghim màn hình, báo cáo hay dùng để bấm mở ngay
+- Tìm màn hình: bấm Ctrl+F (hoặc ô Tìm màn hình trên cùng) rồi gõ tên hoặc mã báo cáo để mở nhanh, gõ không dấu được
+- Báo cáo tài chính (quản trị): ô Đơn vị lọc nhanh theo tài khoản quản lý, tick chọn tất cả một lần
+
 ## v2.1.8
 - Bảng cân đối phát sinh: số dư đầu kỳ và cuối kỳ nằm đúng bên Nợ hoặc Có theo kiểu số dư khai trong danh mục tài khoản
 

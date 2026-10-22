@@ -2,6 +2,9 @@
 
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
+> 🆕 **22/10/2026 — Trang chủ: khối "Thao tác nhanh" (ghim màn hình) + hộp tìm màn hình Ctrl+F** (Ctrl+F lần 2 = tìm chữ của Chrome) ·
+> **Báo cáo TC: ô Đơn vị lọc danh sách theo tài khoản** (chỉ quản trị) — ✅ **`v2.1.9` ĐÃ PHÁT HÀNH 22/10/2026, `Latest`, EXE máy Đại Ca =
+> file CI** (thay trực tiếp). Xem § 1.1 *Trang chủ* + *Hàng điều kiện báo cáo* + nhật ký 22/10.
 > 🆕 **21/10/2026 — BC006 Cân đối phát sinh: kiểu số dư theo `DM_ACCOUNT.BALANCE_TYPE`** (trước đọc nhầm `ACCOUNT_TYPE_ID` rồi tự xếp
 > theo đầu số — **Bẫy 32**) — ✅ **`v2.1.8` ĐÃ PHÁT HÀNH 21/10/2026, `Latest`, EXE máy Đại Ca = file CI** (thay trực tiếp, chưa mở thử).
 > 🆕 **12/10/2026 — BC016: mã mới `XKHOCCDC` (Xuất kho công cụ dụng cụ) đứng ngay sau Xuất hủy** (`NXT_TRAN_ORDER_OUT`; cột BC016 vốn
@@ -22,7 +25,7 @@
 > § 1.1 *Cột của 9 bảng* + nhật ký việc 50.
 > ✅ **v2.1.2 — ĐÃ PHÁT HÀNH 06/10/2026, `Latest`, EXE máy Đại Ca = file CI** (cột ghim phải hụt 4px khi cuộn chạm cuối). Mục nhật ký *06/10/2026 — Phát hành v2.1.2*.
 > ✅ **v2.1.1 — 05/10/2026** (BC017 + việc 50). Mục nhật ký *05/10/2026 (khuya) — Phát hành v2.1.1*.
-> Cập nhật gần nhất: **21/10/2026** · **Bản mới nhất: `v2.1.8`** · `v2.1.0` (= code `v2.0.9`, Đại Ca chốt lên 2.1 — xem dòng ✅ v2.0.9 ngay dưới) · v2.0.6: **việc 41** đồng hồ đếm ngược khi xuất Excel Nhật ký chung
+> Cập nhật gần nhất: **22/10/2026** · **Bản mới nhất: `v2.1.9`** · `v2.1.0` (= code `v2.0.9`, Đại Ca chốt lên 2.1 — xem dòng ✅ v2.0.9 ngay dưới) · v2.0.6: **việc 41** đồng hồ đếm ngược khi xuất Excel Nhật ký chung
 > (đo + thử giao diện trên DB thật; bắt được lỗi làm hỏng hẳn xuất Excel chi tiết — **Bẫy 31**) + **việc 42** đăng nhập nhanh không
 > còn đá người ra khi Google chỉ là chưa trả lời được. Mục nhật ký *29/09/2026 — Phát hành v2.0.6*. EXE trên máy Đại Ca = đúng file CI.
 > Mục *28/09/2026 (khuya)*: **Đại Ca giữ Google Sheet, không chuyển Supabase** — đọc lý do trước khi đề xuất lại.

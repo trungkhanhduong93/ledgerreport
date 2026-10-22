@@ -181,7 +181,7 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 
 ---
 
-## 22/10/2026 — Trang chủ: khối "Thao tác nhanh" (ghim màn hình) + hộp tìm màn hình Ctrl+F · ⏳ chưa phát hành
+## 22/10/2026 — Trang chủ: khối "Thao tác nhanh" (ghim màn hình) + hộp tìm màn hình Ctrl+F · ✅ phát hành v2.1.9
 
 Đại Ca gửi ảnh Trang chủ (khoanh khung trống dưới khối Bảo trì) + ảnh hộp tìm của iPOS Inventory: *"ghim các màn hình hoặc báo cáo
 thường dùng … thêm thanh lọc tìm kiếm hoặc thao tác ctrl+F"*. **Đại Ca chốt:** Ctrl+F mở hộp tìm, **bấm Ctrl+F lần nữa = ô tìm chữ của
@@ -203,10 +203,17 @@ trên Trang chủ (không ghim trong hộp tìm, không ghim trên tab).
   Thanh trên 1366 / 1280, cả cột mở rộng lẫn **thu gọn** (Kho 4 tab: tab cuối 640px, ô tìm 690px) ⇒ không đè, không cuộn ngang.
   Nhân viên KT (quyền BC005 + BC006) ⇒ hộp tìm chỉ có Trang chủ, BC005, BC006; mục đã ghim mà không có quyền bị ẩn.
 - ⚠️ **Chưa thử Ctrl+F lần 2 mở ô tìm chữ trong cửa sổ app thật** (Chrome chạy ngầm không có ô tìm chữ để thấy) — Đại Ca thử ở 5051.
+- **Đại Ca thử ở 5051: *"ok ngon lành rồi, làm các bước còn lại đi và phát hành github luôn"*.** Phát hành **v2.1.9** gộp việc này + ô Đơn vị
+  theo tài khoản (mục dưới). QA trước push: `server.py` **không đổi** so `origin/main`, M1 `ast` OK, Bẫy 30 `[]`, JSX dịch OK, `_tach_co_gi_moi`
+  đọc đúng 3 dòng `## v2.1.9`, quét secret sạch. `version.txt` + `version_info.txt` tăng tay 2.1.9. Push `4c2dd9f..7e0173c` (5 commit:
+  `440094c` `0ef735e` `2e640f6` ô Đơn vị · `23c8c3d` Thao tác nhanh · `7e0173c` số hiệu / CO_GI_MOI) bằng `git push origin HEAD:main` từ worktree.
+  Actions run `39716631351` **`success`** ⇒ Release **`v2.1.9` = `Latest`**, tag → `7e0173c`, `version.txt` + `CO_GI_MOI.md` tại tag đúng.
+  EXE máy Đại Ca (đang đúng file CI v2.1.8, app tắt) ⇒ **thay bằng file CI v2.1.9**, SHA khớp digest `36ac5132…` (13.805.973 B), FileVersion 2.1.9;
+  bản 2.1.8 cất ở scratchpad phiên, không để trong `dist\`. Chưa mở EXE thử (tránh bật cửa sổ lên màn Đại Ca).
 
 ---
 
-## 22/10/2026 — Báo cáo TC: ô Đơn vị lọc danh sách theo tài khoản (chỉ quản trị) · ⏳ chưa phát hành
+## 22/10/2026 — Báo cáo TC: ô Đơn vị lọc danh sách theo tài khoản (chỉ quản trị) · ✅ phát hành v2.1.9 (xem mục trên)
 
 Đại Ca muốn xem nhiều cửa hàng của một người quản lý mà khỏi tick từng đơn vị. **Đại Ca chốt** (hỏi từng điểm):
 nguồn = **tài khoản DATA REPORT** (ô Đơn vị của từng tài khoản trong tab Phân quyền) · **chỉ quản trị** · **mọi Báo cáo TC** (ô Đơn vị

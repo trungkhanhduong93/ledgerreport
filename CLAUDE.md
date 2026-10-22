@@ -238,6 +238,12 @@ dụng (đếm bằng `dsdNhomHan` ⇒ số ô = số chip; tên ô riêng ở `
 `diem_su_dung`. Nguồn = `/api/diem_su_dung` (**Google Sheet**), **tải ngầm**; App giữ bản đã tải, về trang chủ chỉ hỏi lại Google khi bản giữ
 cũ hơn 5 phút (`DIEM_TC_TUOI_MS`); màn Điểm sử dụng tải xong thì báo lên (`onDuLieu`). ⛔ Chỉ gọi khi **đã nạp quyền** — `allowedItems`
 null thì `canSee()` trả true ⇒ nhân viên gọi là ăn 403.
+**Thao tác nhanh + hộp tìm màn hình** *(Đại Ca chốt 22/10/2026, mẫu iPOS Inventory)*: khối **"Thao tác nhanh"** đứng DƯỚI khối Bảo trì =
+màn / báo cáo đã ghim; ghim **chỉ** bằng ô **"+ Thêm màn hình"** (`HopChonGhim`), nút **Sửa** để đổi thứ tự / bỏ ghim. **Ctrl+F** (hoặc ô
+"Tìm màn hình…" trên thanh trên) mở `HopTimManHinh`: Đã ghim · Vừa mở · mọi màn có quyền. ⛔ **Bấm Ctrl+F lần nữa khi hộp đang mở ⇒ đóng hộp
+và KHÔNG chặn phím** ⇒ Chrome mở ô tìm chữ trên trang như cũ — đừng bỏ, Đại Ca chốt để không mất tìm chữ trong báo cáo. Ghim + vừa mở lưu
+**trên máy, riêng tài khoản** (`lr_ghim_<tk>`, `lr_vua_mo_<tk>`). Danh mục tìm = `dsManHinhTim(canSee)` — thêm màn / báo cáo mới vào
+`DOC_TABS` / `MAN_RIENG` / `REPORT_TYPES` là tự có trong hộp tìm.
 ⏭️ Khi thêm khối số liệu SQL ("Việc cần xử lý" trong phác thảo): **kỳ = tháng hiện tại** (Đại Ca chốt), mỗi ô
 là truy vấn 6–8 giây ⇒ **tải ngầm**, đừng bắt trang chờ.
 

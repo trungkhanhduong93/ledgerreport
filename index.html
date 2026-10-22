@@ -126,6 +126,8 @@ window.showConnectionLost = function() {
         /* Font chữ toàn bộ là Arial (Đại Ca chốt) — kể cả chỗ trước dùng font-mono (Consolas).
            Arial vốn có chữ số rộng bằng nhau nên cột số vẫn thẳng hàng. */
         .font-mono { font-family: AppSans, Arial, Helvetica, sans-serif !important; font-variant-numeric: tabular-nums; }
+        /* Nhãn phím tắt (Ctrl + F, Enter, Esc…) — hộp tìm màn hình + Thao tác nhanh (22/10/2026). */
+        .phim-tat { display: inline-block; min-width: 18px; padding: 1px 5px; border: 1px solid #cbd5e1; border-bottom-width: 2px; border-radius: 5px; background: #fff; font: 700 10.5px/1.4 AppSans, Arial, sans-serif; color: #334155; text-align: center; }
         .label-text { font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 0.08em; padding-left: 2px; }
         .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
@@ -5871,7 +5873,7 @@ window.showConnectionLost = function() {
                 </section>
             );
         };
-        const TrangChu = ({ the, nguoiDung, onMo, diem, onMoDiem, onThuLaiDiem }) => {
+        const TrangChu = ({ the, nguoiDung, onMo, diem, onMoDiem, onThuLaiDiem, khoiThaoTac = null }) => {
             const now = new Date();
             const gio = now.getHours();
             const buoi = gio < 11 ? 'buổi sáng' : gio < 13 ? 'buổi trưa' : gio < 18 ? 'buổi chiều' : 'buổi tối';
@@ -5905,7 +5907,226 @@ window.showConnectionLost = function() {
                         </div>
                         {/* Khối bảo trì đứng DƯỚI thẻ phân hệ — Đại Ca chốt 10/10/2026 (bản đầu cùng ngày đặt trên, xem thật rồi bảo "đem xuống dưới"). */}
                         {diem && <KhoiDiemTrangChu diem={diem} onMoDiem={onMoDiem} onThuLai={onThuLaiDiem} />}
+                        {/* Thao tác nhanh đứng dưới khối bảo trì — đúng chỗ Đại Ca khoanh (22/10/2026). */}
+                        {khoiThaoTac}
                     </div>
+                </div>
+            );
+        };
+
+        // ===== THAO TÁC NHANH + HỘP TÌM MÀN HÌNH (Đại Ca chốt 22/10/2026, theo mẫu iPOS Inventory) =====
+        // • Trang chủ có khối "Thao tác nhanh" = các màn / báo cáo đã GHIM; ghim CHỈ bằng ô "+ Thêm" trên Trang chủ (Đại Ca chọn).
+        // • Ctrl+F (hoặc bấm ô "Tìm màn hình" trên thanh trên) ⇒ hộp tìm: Đã ghim · Vừa mở · mọi màn hình. Đang mở hộp mà bấm Ctrl+F
+        //   LẦN NỮA ⇒ hộp đóng và KHÔNG chặn phím ⇒ Chrome mở ô tìm chữ trên trang như cũ (Đại Ca chốt — không mất tính năng đó).
+        // • Ghim + vừa mở lưu TRÊN MÁY, riêng từng tài khoản: localStorage 'lr_ghim_<tài khoản>', 'lr_vua_mo_<tài khoản>'.
+        // • Chỉ liệt kê màn người đó CÓ QUYỀN (canSee) — mất quyền thì ô ghim tự ẩn, không xoá khỏi máy.
+        const VUA_MO_TOI_DA = 6;
+        const NHOM_TIM = ['Màn hình', 'Báo cáo tài chính', 'Hệ thống'];
+        const dsManHinhTim = (canSee) => {
+            const phanHeCua = (id) => { const p = PHAN_HE.find(x => (x.tabs || []).includes(id)); return p ? (p.ten_day || p.ten) : ''; };
+            return [
+                { id: 'home', ten: 'Trang chủ', phu: 'Lời chào, phân hệ, thao tác nhanh', icon: 'home', nhom: 'Màn hình' },
+                ...DOC_TABS.filter(t => canSee(t.id)).map(t => ({ id: t.id, ten: t.short || t.name, phu: 'Danh sách · ' + phanHeCua(t.id), icon: t.icon, tim: t.name, nhom: 'Màn hình' })),
+                ...REPORT_TYPES.filter(r => canSee(r.id)).map(r => ({ id: r.id, ma: r.id, ten: r.ten || r.name, phu: r.id + ' · Báo cáo tài chính', icon: 'chart-line', tim: r.mo_ta, nhom: 'Báo cáo tài chính' })),
+                ...MAN_RIENG.filter(t => canSee(t.id)).map(t => ({ id: t.id, ten: t.short || t.name, phu: 'Hệ thống', icon: t.icon, tim: t.name, nhom: 'Hệ thống' })),
+            ];
+        };
+        // Gõ không dấu được; nhiều từ ⇒ phải khớp ĐỦ các từ (vd "can doi ps"). Thứ tự: mã báo cáo bắt đầu bằng chữ gõ · tên bắt đầu
+        // bằng chữ gõ · đủ các từ NGAY TRONG TÊN · còn lại (khớp nhờ dòng phụ / mô tả — vd "ban hang" khớp "Mua & bán" của PO).
+        const timManHinhTheoChu = (ds, q) => {
+            const tu = boDau(q).split(/\s+/).filter(Boolean);
+            if (!tu.length) return ds;
+            const dau = boDau(q.trim());
+            const hang = (it) => { const ten = boDau(it.ten); return (it.ma && boDau(it.ma).startsWith(dau)) ? 0 : ten.startsWith(dau) ? 1 : tu.every(w => ten.includes(w)) ? 2 : 3; };
+            return ds.map(it => ({ it, s: boDau([it.ma, it.ten, it.phu, it.tim].filter(Boolean).join(' ')) }))
+                .filter(x => tu.every(w => x.s.includes(w)))
+                .map(x => ({ it: x.it, d: hang(x.it) }))
+                .sort((a, b) => a.d - b.d).map(x => x.it);
+        };
+        const OIconMan = ({ icon, lon }) => (
+            <span className={`${lon ? 'w-[34px] h-[34px]' : 'w-8 h-8'} shrink-0 rounded-lg flex items-center justify-center bg-indigo-50 text-indigo-700 border border-indigo-100`}>
+                <Icon name={icon || 'file-text'} size={lon ? 17 : 15} strokeWidth="1.8" />
+            </span>
+        );
+
+        // Hộp tìm màn hình. ↑ ↓ chọn · Enter mở · Esc đóng. Ctrl+F lần 2 do App xử (đóng hộp, nhường Chrome).
+        const HopTimManHinh = ({ ds, ghim, vuaMo, onMo, onDong }) => {
+            const [q, setQ] = useState('');
+            const [chon, setChon] = useState(0);
+            const khungRef = useRef(null);
+            const nhom = useMemo(() => {
+                if (q.trim()) return [{ ten: 'Kết quả', ds: timManHinhTheoChu(ds, q) }];
+                const theoId = (id) => ds.find(x => x.id === id);
+                const g = ghim.map(theoId).filter(Boolean);
+                const v = vuaMo.filter(id => !ghim.includes(id)).map(theoId).filter(Boolean);
+                const daCo = new Set([...g, ...v].map(x => x.id));
+                const out = [];
+                if (g.length) out.push({ ten: 'Đã ghim', ds: g });
+                if (v.length) out.push({ ten: 'Vừa mở', ds: v });
+                NHOM_TIM.forEach(n => { const l = ds.filter(x => x.nhom === n && !daCo.has(x.id)); if (l.length) out.push({ ten: n, ds: l }); });
+                return out;
+            }, [q, ds, ghim, vuaMo]);
+            const phang = nhom.flatMap(n => n.ds);
+            useEffect(() => { setChon(0); }, [q]);
+            useEffect(() => {
+                const el = khungRef.current && khungRef.current.querySelector(`[data-i="${chon}"]`);
+                if (el) el.scrollIntoView({ block: 'nearest' });
+            }, [chon]);
+            const phim = (e) => {
+                if (e.key === 'ArrowDown') { e.preventDefault(); setChon(i => Math.min(i + 1, phang.length - 1)); }
+                else if (e.key === 'ArrowUp') { e.preventDefault(); setChon(i => Math.max(i - 1, 0)); }
+                else if (e.key === 'Enter') { e.preventDefault(); if (phang[chon]) onMo(phang[chon].id); }
+                else if (e.key === 'Escape') { e.preventDefault(); onDong(); }
+            };
+            let i = -1;
+            return createPortal(
+                <div className="fixed inset-0 z-[1000] flex items-start justify-center pt-[10vh] px-4" data-lop-noi>
+                    <div className="absolute inset-0 bg-slate-900/30" onMouseDown={onDong}></div>
+                    <div role="dialog" aria-label="Tìm màn hình" className="relative w-full max-w-[640px] max-h-[76vh] flex flex-col bg-white rounded-2xl border border-slate-200 shadow-[0_24px_70px_rgba(15,23,42,0.35)]">
+                        <div className="flex items-center gap-3 px-5 h-[58px] border-b border-slate-100 shrink-0">
+                            <Icon name="search" size={16} className="text-indigo-600 shrink-0" />
+                            <input autoFocus value={q} onChange={e => setQ(e.target.value)} onKeyDown={phim}
+                                placeholder="Nhập tên màn hình hoặc mã báo cáo, ví dụ: cân đối phát sinh, BC006"
+                                className="flex-1 min-w-0 h-full text-[14px] text-slate-800 placeholder:text-slate-400 outline-none bg-transparent" />
+                            <button type="button" onClick={onDong} title="Đóng (Esc)" className="w-8 h-8 shrink-0 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"><Icon name="x" size={15} /></button>
+                        </div>
+                        <div ref={khungRef} className="flex-1 min-h-0 overflow-auto custom-scrollbar px-2 py-2">
+                            {phang.length === 0 && <div className="px-4 py-10 text-center text-[13px] text-slate-500">Không có màn hình nào khớp “{q.trim()}”</div>}
+                            {nhom.map(n => n.ds.length > 0 && (
+                                <div key={n.ten} className="mb-1">
+                                    <div className="px-3 pt-2.5 pb-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wide">{n.ten}{n.ten === 'Kết quả' ? ` (${n.ds.length})` : ''}</div>
+                                    {n.ds.map(it => { i += 1; const so = i; return (
+                                        <button key={n.ten + it.id} type="button" data-i={so} onMouseMove={() => { if (chon !== so) setChon(so); }} onClick={() => onMo(it.id)}
+                                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left ${chon === so ? 'bg-indigo-50' : ''}`}>
+                                            <OIconMan icon={it.icon} />
+                                            <span className="flex-1 min-w-0">
+                                                <span className="block text-[13.5px] font-bold text-slate-800 truncate">{it.ten}</span>
+                                                <span className="block text-[11.5px] text-slate-500 truncate">{it.phu}</span>
+                                            </span>
+                                            {chon === so && <span className="shrink-0 text-[11px] text-slate-400">Enter để mở</span>}
+                                        </button>
+                                    ); })}
+                                </div>
+                            ))}
+                        </div>
+                        <div className="shrink-0 flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-2.5 border-t border-slate-100 text-[11px] text-slate-500">
+                            <span><kbd className="phim-tat">↑</kbd> <kbd className="phim-tat">↓</kbd> di chuyển</span>
+                            <span><kbd className="phim-tat">Enter</kbd> mở màn hình</span>
+                            <span><kbd className="phim-tat">Esc</kbd> đóng</span>
+                            <span><kbd className="phim-tat">Ctrl + F</kbd> lần nữa: tìm chữ trên trang</span>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            );
+        };
+
+        // Hộp chọn màn để ghim (mở từ ô "+ Thêm" trên Trang chủ). Tick là ghim/bỏ ghim NGAY, không có nút Lưu riêng.
+        const HopChonGhim = ({ ds, ghim, onLuu, onDong }) => {
+            const [q, setQ] = useState('');
+            useEffect(() => {
+                const esc = (e) => { if (e.key === 'Escape') onDong(); };
+                document.addEventListener('keydown', esc);
+                return () => document.removeEventListener('keydown', esc);
+            }, []);
+            const kq = timManHinhTheoChu(ds, q);
+            const doi = (id) => onLuu(ghim.includes(id) ? ghim.filter(x => x !== id) : [...ghim, id]);
+            return createPortal(
+                <div className="fixed inset-0 z-[1000] flex items-start justify-center pt-[8vh] px-4" data-lop-noi>
+                    <div className="absolute inset-0 bg-slate-900/30" onMouseDown={onDong}></div>
+                    <div role="dialog" aria-label="Ghim màn hình" className="relative w-full max-w-[560px] max-h-[80vh] flex flex-col bg-white rounded-2xl border border-slate-200 shadow-[0_24px_70px_rgba(15,23,42,0.35)]">
+                        <div className="px-5 pt-4 pb-3 border-b border-slate-100 shrink-0">
+                            <div className="flex items-center">
+                                <div className="flex-1 text-[15px] font-bold text-slate-900">Ghim vào Thao tác nhanh</div>
+                                <button type="button" onClick={onDong} title="Đóng (Esc)" className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"><Icon name="x" size={15} /></button>
+                            </div>
+                            <div className="text-[12px] text-slate-500 mt-0.5">Tick màn hình hoặc báo cáo hay dùng — đã ghim {ghim.filter(id => ds.some(x => x.id === id)).length}</div>
+                            <div className="relative mt-3">
+                                <Icon name="search" size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                <input autoFocus value={q} onChange={e => setQ(e.target.value)} placeholder="Tìm màn hình hoặc mã báo cáo…"
+                                    className="w-full h-9 pl-9 pr-3 rounded-xl border border-slate-200 text-[12.5px] outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400" />
+                            </div>
+                        </div>
+                        <div className="flex-1 min-h-0 overflow-auto custom-scrollbar px-2 py-2">
+                            {kq.length === 0 && <div className="px-4 py-8 text-center text-[13px] text-slate-500">Không có màn hình nào khớp “{q.trim()}”</div>}
+                            {NHOM_TIM.map(n => { const l = kq.filter(x => x.nhom === n); return l.length > 0 && (
+                                <div key={n} className="mb-1">
+                                    <div className="px-3 pt-2 pb-1 text-[11px] font-bold text-slate-500 uppercase tracking-wide">{n}</div>
+                                    {l.map(it => { const co = ghim.includes(it.id); return (
+                                        <button key={it.id} type="button" onClick={() => doi(it.id)}
+                                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left ${co ? 'bg-indigo-50' : 'hover:bg-slate-50'}`}>
+                                            <span className={`w-4 h-4 shrink-0 rounded border-2 flex items-center justify-center ${co ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-slate-300 bg-white'}`}>{co && <Icon name="check" size={10} />}</span>
+                                            <OIconMan icon={it.icon} />
+                                            <span className="flex-1 min-w-0">
+                                                <span className="block text-[13px] font-bold text-slate-800 truncate">{it.ten}</span>
+                                                <span className="block text-[11.5px] text-slate-500 truncate">{it.phu}</span>
+                                            </span>
+                                        </button>
+                                    ); })}
+                                </div>
+                            ); })}
+                        </div>
+                        <div className="shrink-0 flex justify-end px-5 py-3 border-t border-slate-100">
+                            <button type="button" onClick={onDong} className="h-9 px-6 rounded-xl bg-indigo-600 text-white text-[12px] font-bold hover:bg-indigo-700">Xong</button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            );
+        };
+
+        // Khối "Thao tác nhanh" trên Trang chủ. "Sửa" ⇒ mỗi ô có ← → (đổi thứ tự) và ✕ (bỏ ghim).
+        const KhoiThaoTacNhanh = ({ ds, ghim, onMo, onLuu }) => {
+            const [sua, setSua] = useState(false);
+            const [moChon, setMoChon] = useState(false);
+            const dsGhim = ghim.map(id => ds.find(x => x.id === id)).filter(Boolean);
+            // Ô bị ẩn vì mất quyền vẫn giữ trong máy, xếp cuối — có quyền lại là hiện lại.
+            const luuThuTu = (hien) => onLuu([...hien.map(x => x.id), ...ghim.filter(id => !ds.some(x => x.id === id))]);
+            const doiCho = (i, d) => { const m = [...dsGhim]; const j = i + d; if (j < 0 || j >= m.length) return; [m[i], m[j]] = [m[j], m[i]]; luuThuTu(m); };
+            useEffect(() => { if (!dsGhim.length) setSua(false); }, [dsGhim.length]);
+            const nutSua = 'w-6 h-6 flex items-center justify-center rounded-md bg-white border border-slate-200 text-slate-500 shadow-sm hover:text-indigo-700 hover:border-indigo-300 disabled:opacity-30';
+            return (
+                <div className="mt-8">
+                    <div className="flex items-baseline gap-3 mb-3">
+                        <h2 className="text-[15px] font-bold text-slate-900">Thao tác nhanh</h2>
+                        <span className="text-[12px] text-slate-500">Màn hình và báo cáo hay dùng — bấm để mở ngay · <kbd className="phim-tat">Ctrl + F</kbd> để tìm màn hình</span>
+                        <span className="flex-1"></span>
+                        {dsGhim.length > 0 && (
+                            <button type="button" onClick={() => setSua(v => !v)} className={`text-[12px] font-bold px-3 h-7 rounded-lg ${sua ? 'bg-indigo-600 text-white' : 'text-indigo-700 hover:bg-indigo-50'}`}>{sua ? 'Xong' : 'Sửa'}</button>
+                        )}
+                    </div>
+                    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
+                        {dsGhim.map((it, i) => (
+                            <div key={it.id} className="relative">
+                                <button type="button" onClick={() => { if (!sua) onMo(it.id); }}
+                                    className={`w-full flex items-center gap-3 p-3.5 bg-white border rounded-xl text-left transition-colors ${sua ? 'border-dashed border-indigo-300 cursor-default' : 'border-slate-200 hover:border-indigo-400'}`}>
+                                    <OIconMan icon={it.icon} lon />
+                                    <span className="flex-1 min-w-0">
+                                        <span className="block text-[13.5px] font-bold text-slate-900 truncate">{it.ten}</span>
+                                        <span className="block text-[11.5px] text-slate-500 truncate mt-0.5">{it.phu}</span>
+                                    </span>
+                                </button>
+                                {sua && (
+                                    <div className="absolute -top-2.5 right-2 flex gap-1">
+                                        <button type="button" title="Đưa lên trước" disabled={i === 0} onClick={() => doiCho(i, -1)} className={nutSua}><Icon name="chevron-left" size={12} /></button>
+                                        <button type="button" title="Đưa ra sau" disabled={i === dsGhim.length - 1} onClick={() => doiCho(i, 1)} className={nutSua}><Icon name="chevron-right" size={12} /></button>
+                                        <button type="button" title="Bỏ ghim" onClick={() => luuThuTu(dsGhim.filter(x => x.id !== it.id))} className={nutSua + ' hover:!text-red-600 hover:!border-red-300'}><Icon name="x" size={12} /></button>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                        {!sua && (
+                            <button type="button" onClick={() => setMoChon(true)}
+                                className="flex items-center gap-3 p-3.5 rounded-xl border border-dashed border-slate-300 text-left text-slate-500 hover:border-indigo-400 hover:text-indigo-700 hover:bg-white">
+                                <span className="w-[34px] h-[34px] shrink-0 rounded-lg flex items-center justify-center border border-dashed border-current"><Icon name="plus" size={16} /></span>
+                                <span className="flex-1 min-w-0">
+                                    <span className="block text-[13.5px] font-bold truncate">Thêm màn hình</span>
+                                    <span className="block text-[11.5px] truncate mt-0.5">{dsGhim.length ? 'Ghim thêm màn hoặc báo cáo' : 'Ghim màn hoặc báo cáo hay dùng'}</span>
+                                </span>
+                            </button>
+                        )}
+                    </div>
+                    {moChon && <HopChonGhim ds={ds.filter(x => x.id !== 'home')} ghim={ghim} onLuu={onLuu} onDong={() => setMoChon(false)} />}
                 </div>
             );
         };
@@ -7026,6 +7247,54 @@ window.showConnectionLost = function() {
                 nhan: p.tabs ? `${p.tabs.filter(canSee).length} màn hình` : `${REPORT_TYPES.filter(r => canSee(r.id)).length} báo cáo`,
             }));
             const moTuTrangChu = (id) => chonPhanHe(id);
+
+            // ===== Thao tác nhanh + hộp tìm màn hình (22/10/2026) — xem chú thích ở dsManHinhTim =====
+            const dsTimMan = useMemo(() => dsManHinhTim(canSee), [allowedItems]);
+            const khoaTn = nguoiDung && nguoiDung.app_user ? String(nguoiDung.app_user) : '';
+            const docDsMay = (k) => { try { const v = JSON.parse(localStorage.getItem(k) || '[]'); return Array.isArray(v) ? v.filter(x => typeof x === 'string') : []; } catch (e) { return []; } };
+            const [ghimTn, setGhimTn] = useState([]);
+            const [vuaMoTn, setVuaMoTn] = useState([]);
+            useEffect(() => {   // đổi tài khoản (đăng nhập người khác trên cùng máy) ⇒ nạp đúng bộ của người đó
+                setGhimTn(khoaTn ? docDsMay('lr_ghim_' + khoaTn) : []);
+                setVuaMoTn(khoaTn ? docDsMay('lr_vua_mo_' + khoaTn) : []);
+            }, [khoaTn]);
+            const luuGhimTn = (moi) => {
+                setGhimTn(moi);
+                if (khoaTn) { try { localStorage.setItem('lr_ghim_' + khoaTn, JSON.stringify(moi)); } catch (e) { /* vẫn chạy, chỉ không nhớ */ } }
+            };
+            // "Vừa mở": màn danh sách / màn riêng đang mở, hoặc báo cáo đang XEM (trang liệt kê báo cáo không tính).
+            const manDangMo = activeTab === 'report' ? (daMoBaoCao && !xemDsBaoCao ? reportType : null) : (activeTab && activeTab !== 'home' ? activeTab : null);
+            useEffect(() => {
+                if (!manDangMo || !khoaTn) return;
+                setVuaMoTn(p => {
+                    if (p[0] === manDangMo) return p;
+                    const moi = [manDangMo, ...p.filter(x => x !== manDangMo)].slice(0, VUA_MO_TOI_DA);
+                    try { localStorage.setItem('lr_vua_mo_' + khoaTn, JSON.stringify(moi)); } catch (e) { /* vẫn chạy, chỉ không nhớ */ }
+                    return moi;
+                });
+            }, [manDangMo, khoaTn]);
+            const [moTimMan, setMoTimMan] = useState(false);
+            const moTimManRef = useRef(false);
+            moTimManRef.current = moTimMan;
+            // Ctrl+F: lần 1 mở hộp tìm màn hình (chặn phím); đang mở mà bấm lần nữa ⇒ đóng hộp, KHÔNG chặn ⇒ Chrome mở ô tìm chữ.
+            useEffect(() => {
+                if (!isLoggedIn) { setMoTimMan(false); return; }
+                const phim = (e) => {
+                    if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
+                    if ((e.key || '').toLowerCase() !== 'f' && e.code !== 'KeyF') return;
+                    if (moTimManRef.current) { setMoTimMan(false); return; }
+                    e.preventDefault();
+                    setMoTimMan(true);
+                };
+                window.addEventListener('keydown', phim, true);
+                return () => window.removeEventListener('keydown', phim, true);
+            }, [isLoggedIn]);
+            const moTheoMa = (id) => {
+                setMoTimMan(false);
+                if (id === 'home') { setActiveTab('home'); return; }
+                if (REPORT_TYPES.some(r => r.id === id)) { setActiveTab('report'); moBaoCao(id); return; }
+                setActiveTab(id);
+            };
             // Cột phân hệ thu gọn (64px) hay mở rộng (216px, kiểu 06C) — nhớ trên máy, mặc định MỞ RỘNG.
             const [gonCotPhanHe, setGonCotPhanHe] = useState(() => { try { return localStorage.getItem('lr_cot_phan_he_gon') === '1'; } catch (e) { return false; } });
             const doiGonCotPhanHe = () => setGonCotPhanHe(v => {
@@ -9755,6 +10024,12 @@ window.showConnectionLost = function() {
                         onChon={chonTab}
                         duongDan={duongDan}
                         phai={<>
+                            <button type="button" onClick={() => setMoTimMan(true)} title="Tìm màn hình hoặc báo cáo (Ctrl + F)"
+                                className="o-tim-man h-8 px-3 mr-1 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white hover:border-indigo-300 text-slate-500 text-[11.5px] flex items-center gap-2 transition-colors">
+                                <Icon name="search" size={12} className="shrink-0" />
+                                <span className="o-tim-man-chu whitespace-nowrap">Tìm màn hình…</span>
+                                <kbd className="phim-tat">Ctrl+F</kbd>
+                            </button>
                             {!autoUpdate.isUpdating && <NutCoBanMoi info={autoUpdate.updateInfo} onBam={autoUpdate.moLaiHopThoai} />}
                             <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mr-2" title="Đang kết nối cơ sở dữ liệu">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
@@ -9775,7 +10050,9 @@ window.showConnectionLost = function() {
                     />
 
                     {activeTab === 'home' && <TrangChu the={theTrangChu} nguoiDung={nguoiDung} onMo={moTuTrangChu}
-                        diem={coQuyenDiem ? (diemTrangChu || { dangTai: true }) : null} onMoDiem={moDiemTheoHan} onThuLaiDiem={taiDiemTrangChu} />}
+                        diem={coQuyenDiem ? (diemTrangChu || { dangTai: true }) : null} onMoDiem={moDiemTheoHan} onThuLaiDiem={taiDiemTrangChu}
+                        khoiThaoTac={<KhoiThaoTacNhanh ds={dsTimMan} ghim={ghimTn} onMo={moTheoMa} onLuu={luuGhimTn} />} />}
+                    {moTimMan && <HopTimManHinh ds={dsTimMan} ghim={ghimTn} vuaMo={vuaMoTn} onMo={moTheoMa} onDong={() => setMoTimMan(false)} />}
 
                     {/* Việc 51: màn riêng (MAN_RIENG), không phải danh sách chứng từ. Chỉ ai có mã 'diem_su_dung' (mặc định ADMIN). */}
                     {activeTab === 'diem_su_dung' && canSee('diem_su_dung') && <DiemSuDung onHetPhien={() => setIsLoggedIn(false)}

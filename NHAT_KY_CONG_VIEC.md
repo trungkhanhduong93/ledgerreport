@@ -181,6 +181,31 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 
 ---
 
+## 22/10/2026 — Trang chủ: khối "Thao tác nhanh" (ghim màn hình) + hộp tìm màn hình Ctrl+F · ⏳ chưa phát hành
+
+Đại Ca gửi ảnh Trang chủ (khoanh khung trống dưới khối Bảo trì) + ảnh hộp tìm của iPOS Inventory: *"ghim các màn hình hoặc báo cáo
+thường dùng … thêm thanh lọc tìm kiếm hoặc thao tác ctrl+F"*. **Đại Ca chốt:** Ctrl+F mở hộp tìm, **bấm Ctrl+F lần nữa = ô tìm chữ của
+Chrome như cũ** (không mất tính năng tìm chữ trong báo cáo) · ghim lưu **trên máy, riêng từng tài khoản** · ghim **chỉ bằng ô "+ Thêm"**
+trên Trang chủ (không ghim trong hộp tìm, không ghim trên tab).
+
+Đã làm (chỉ `index.html`):
+- `dsManHinhTim(canSee)` = Trang chủ + 9 danh sách + 17 báo cáo + Điểm sử dụng / Phân quyền, **chỉ mục có quyền**. Tìm `timManHinhTheoChu`:
+  gõ không dấu, nhiều từ phải khớp đủ; thứ tự mã BC → tên bắt đầu bằng chữ gõ → đủ từ trong tên → còn lại (khớp nhờ dòng phụ).
+- `HopTimManHinh` (portal, `data-lop-noi`): Đã ghim · Vừa mở (6 mục, bỏ mục đã ghim) · Màn hình · Báo cáo tài chính · Hệ thống; ↑ ↓ Enter
+  Esc, bấm nền là đóng; chân hộp ghi phím tắt (lớp CSS `.phim-tat`). Ô **"Tìm màn hình… Ctrl+F"** ở đầu cụm phải của thanh trên.
+- Ctrl+F: listener `keydown` pha capture ở `window` khi đã đăng nhập; hộp đang mở ⇒ đóng hộp và **không** `preventDefault`.
+- `KhoiThaoTacNhanh` dưới khối Bảo trì: ô ghim (icon + tên + dòng phụ), ô **"+ Thêm màn hình"** ⇒ `HopChonGhim` (tick là ghim ngay, có ô tìm);
+  **Sửa** ⇒ ← → đổi thứ tự, ✕ bỏ ghim. Mất quyền ⇒ ô tự ẩn nhưng vẫn giữ trong máy.
+- App: `lr_ghim_<tài khoản>` / `lr_vua_mo_<tài khoản>`; "vừa mở" ghi khi mở màn danh sách / màn riêng / **xem** một báo cáo (trang liệt kê không tính).
+- 🧪 M1 JSX (Babel trình duyệt). Thử 5052 + Chrome ngầm, **phím thật** qua CDP: Ctrl+F mở hộp, ô gõ có focus; "can doi" ⇒ 2 kết quả, ↓ Enter
+  ⇒ mở BC006; "bc017" ⇒ BC017 đầu; "ban hang" ⇒ BC015, Chứng từ bán hàng, BC017, PO cuối; chữ không khớp ⇒ báo; Ctrl+F lần 2 / Esc / bấm nền
+  ⇒ đóng. Ghim 3 mục (lưu `["BC006","sale","BC017"]`), Sửa đổi chỗ + bỏ 1 ⇒ `["sale","BC006"]`, bấm ô ⇒ mở đúng báo cáo, vừa mở ghi đúng.
+  Thanh trên 1366 / 1280, cả cột mở rộng lẫn **thu gọn** (Kho 4 tab: tab cuối 640px, ô tìm 690px) ⇒ không đè, không cuộn ngang.
+  Nhân viên KT (quyền BC005 + BC006) ⇒ hộp tìm chỉ có Trang chủ, BC005, BC006; mục đã ghim mà không có quyền bị ẩn.
+- ⚠️ **Chưa thử Ctrl+F lần 2 mở ô tìm chữ trong cửa sổ app thật** (Chrome chạy ngầm không có ô tìm chữ để thấy) — Đại Ca thử ở 5051.
+
+---
+
 ## 22/10/2026 — Báo cáo TC: ô Đơn vị lọc danh sách theo tài khoản (chỉ quản trị) · ⏳ chưa phát hành
 
 Đại Ca muốn xem nhiều cửa hàng của một người quản lý mà khỏi tick từng đơn vị. **Đại Ca chốt** (hỏi từng điểm):

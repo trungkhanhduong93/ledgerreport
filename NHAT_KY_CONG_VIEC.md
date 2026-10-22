@@ -205,6 +205,10 @@ dùng chung) · dòng **trên cùng trong ô Đơn vị** · chọn tài khoản
   ô tìm vẫn lọc trong danh sách tài khoản; chữ trong ô chọn 172/256px; khung đáy 588px (vừa 768 và 690). Tài khoản thường: không có dòng này.
   Sửa trong lúc thử: tên tài khoản bị cắt (đưa nhãn lên dòng riêng) · đổi tài khoản mà danh sách giữ vị trí cuộn cũ (`khoaDs`).
 - ⏳ **Chưa thử với Google thật** (mật khẩu quản trị thật + danh sách tài khoản thật) và chưa build EXE.
+- **Cập nhật cùng ngày — Đại Ca thử thật ở 5051** (bật từ worktree, bỏ dòng tắt cổng 5050), gửi ảnh khung vàng: *"cho hiển thị thêm danh
+  sách đang chọn ngoài để chủ động bỏ tay"*. ⇒ Khung vàng **liệt kê từng đơn vị ngoài danh sách** (mã + tên + ✕ bỏ riêng), cuộn khi quá
+  3 dòng (`max-h-[84px]`); nút đổi thành **"Bỏ tất cả"**, chỉ hiện khi ≥ 2 đơn vị (1 đơn vị thì ✕ là đủ). Thử 5052: tick 05 + 30…34, chọn A ⇒
+  liệt kê 30 31 32 33 34 (cuộn 128/84px); ✕ 31 ⇒ còn 4; Bỏ tất cả ⇒ hết khung vàng, còn 05; đổi sang B ⇒ chỉ 03 ngoài, không có nút Bỏ tất cả.
 
 ---
 

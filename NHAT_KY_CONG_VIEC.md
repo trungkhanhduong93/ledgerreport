@@ -209,6 +209,10 @@ dùng chung) · dòng **trên cùng trong ô Đơn vị** · chọn tài khoản
   sách đang chọn ngoài để chủ động bỏ tay"*. ⇒ Khung vàng **liệt kê từng đơn vị ngoài danh sách** (mã + tên + ✕ bỏ riêng), cuộn khi quá
   3 dòng (`max-h-[84px]`); nút đổi thành **"Bỏ tất cả"**, chỉ hiện khi ≥ 2 đơn vị (1 đơn vị thì ✕ là đủ). Thử 5052: tick 05 + 30…34, chọn A ⇒
   liệt kê 30 31 32 33 34 (cuộn 128/84px); ✕ 31 ⇒ còn 4; Bỏ tất cả ⇒ hết khung vàng, còn 05; đổi sang B ⇒ chỉ 03 ngoài, không có nút Bỏ tất cả.
+- **Lần sửa 2 (Đại Ca gửi 2 ảnh):** (1) *"là 1 câu, để chữ bỏ tất cả kế bên nhìn kỳ và dễ hiểu nhầm"* ⇒ câu cảnh báo đứng **riêng một dòng**
+  (kết bằng dấu hai chấm), nút bỏ hết dời xuống **cuối khung vàng**, có viền, chữ **"Bỏ chọn cả N đơn vị này"**. (2) *"chỗ yêu cầu điền mật khẩu
+  thì chữ tô đỏ lên để người dùng biết là làm gì"* ⇒ dòng hướng dẫn **đỏ đậm 11px** *"Nhập mật khẩu quản trị để lọc theo tài khoản"* (bản đầu
+  *"…để xem đơn vị của từng tài khoản"* gãy 2 dòng, rút ngắn; đo lại 1 dòng 16,5px). Thử 5052: màu `rgb(220, 38, 38)`; bấm nút bỏ hết ⇒ còn 05.
 
 ---
 

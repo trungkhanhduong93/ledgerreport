@@ -102,6 +102,7 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | 17 | ~~Nút `TRUY VẤN` đang chuyển màu navy → tím~~ ✅ **XONG 25/09** | Đại Ca chốt: chữ **"Lọc"**, navy đặc, như mẫu iPOS. Nằm trong thanh lọc mới của 9 màn danh sách |
 | 18 | ~~Chốt mốc commit phần đăng nhập nhanh + sửa font~~ ✅ **commit `c64540a`** | Phát hành v2.0.0 |
 | 19 | ~~Đại Ca xem GĐ3 rồi chốt commit~~ ✅ **Đại Ca chốt OK sáng 25/09** (*"cái đó thì ok rồi"*) ⇒ đã commit GĐ3 | ⚠️ Đại Ca chốt chung, **không nói rõ đã thử từng mục dưới đây chưa** — lần đầu dùng số liệu thật thì để ý. Danh sách cần xem ở mục *"Việc Đại Ca xem sáng 25/09"* trong nhật ký 25/09 (tiếp 3), ngay dưới § này. Ba việc tôi **không** tự thử được: hộp *"Chuyển mẫu báo cáo?"* khi có số liệu thật · menu **Xuất Excel / Xuất PDF** khi có số liệu (chưa có số liệu thì nút tắt) · kéo thả thứ tự ô lọc bằng chuột thật. Và **đọc lại mô tả 16 thẻ** — tôi tự viết |
+| 54 | ⏳ **"Chọn thêm cột" cho 9 màn danh sách chứng từ** (Đại Ca yêu cầu 02/11/2026) — cột mới lấy thêm từ iPOS trong hộp Cấu hình cột, khuôn BC017 (mặc định ẩn, máy chủ chỉ lấy cột đang tick) | Đại Ca chốt: **cả 4 phân hệ** · em **đo DB thật rồi đưa danh sách để Đại Ca tick** · **Hades code** (lần đầu project dùng Hades — trao đổi ở [THAO_LUAN.md](THAO_LUAN.md)). Đang chờ Đại Ca điền lại mật khẩu SQL vào `config.json` để đo. → **Cập nhật 02/11 tối:** đã đo, Đại Ca tick 35 cột / 8 màn; Đại Ca đổi: **Claude Code tự code** (gấp) — ✅ **code xong cả 8 màn, kiểm DB thật + giao diện, CHƯA build / CHƯA phát hành**. Còn: Đại Ca bấm thử · CO_GI_MOI + build + push (hỏi trước). Mục nhật ký *02/11/2026 — Việc 54* |
 | 53 | ✅ **Nhóm "Hệ thống" (Điểm sử dụng + Phân quyền) sát đáy cột + khối "Bảo trì điểm sử dụng" 5 ô trên Trang chủ** (Đại Ca yêu cầu 10/10/2026) | ✅ **Phát hành v2.1.6 10/10/2026** — Đại Ca xem thật (Google thật 86 điểm) + chỉnh 2 lần, thử giao diện 29/29, EXE máy Đại Ca = file CI. Còn: thử bằng tài khoản không phải ADMIN trên Google thật (đã thử bằng dữ liệu giả). Mục nhật ký *10/10/2026 — Việc 53* |
 | 51 | ✅ **Màn "Điểm sử dụng"** — danh sách điểm dùng phần mềm kế toán + thời hạn bảo trì (Đại Ca yêu cầu 08/10/2026). **Phát hành v2.1.3 (+ v2.1.4 sửa "Có gì mới") 08/10/2026**, Apps Script Version 6, Google thật đã đồng bộ 86 dòng + điền kỳ 79 dòng | ✅ Code.gs `2026-10-08a` **đã triển khai Version 6** (08/10 22:25). ✅ Google thật (ADMIN): đồng bộ 86 dòng + gia hạn 72 dòng + lưu 7 dòng, đọc lại 86/86 đúng (08/10 23:00). Còn: thử tài khoản **không phải ADMIN** · CO_GI_MOI + build + phát hành (hỏi trước khi push) · gia hạn kỳ BTKT mới cho 72 dòng (hết hạn 09/10/2026). Mục nhật ký *08/10/2026 — Việc 51* |
 | 50 | ⏳ **Cấu hình cột 5 báo cáo + ghim cột / vừa khít cột 9 màn danh sách** (Đại Ca yêu cầu 05/10/2026). **Đợt 1 — cấu hình cột BC007 · BC008 · BC012 · BC015 · BC016: XONG** (Đại Ca bảo làm tiếp đợt 2). **Đợt 2 — ghim cột bất kỳ sát lề trái/phải + bấm đúp mép = vừa khít + nút "Vừa khít tất cả cột": XONG**, kiểm DB thật 9/9 màn. Đại Ca thử 05/10: OK, đổi icon ghim (mẫu ô bảng) + bỏ chú thích cuối hộp. ✅ **Phát hành `v2.1.1` 05/10/2026** (cập nhật thật 2.1.0 → 2.1.1 khớp SHA CI) | ✅ Lệch 4px cột ghim phải: **đã sửa** (tay kéo cột cuối thò ra ngoài bảng) — ✅ **phát hành `v2.1.2` 06/10/2026**. "Đứng hình": thử lại 88 lượt bằng dữ liệu giả **không tái hiện được**, giả thuyết làm mờ nền **bị bác** ⇒ chỉ còn theo dõi nếu nhân viên báo. Mục *05/10/2026 (khuya, tiếp)*. Server thử code mới: **cổng 5053** (`server_thu_5053.py` trong scratchpad phiên 05/10, chết theo phiên chat). Mục nhật ký *05/10/2026 (tối) — Việc 50 đợt 2* + *05/10/2026 — Việc 50 (đợt 1)* |
@@ -178,6 +179,34 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 02/11/2026 — Việc 54: "chọn thêm cột" ở 8 màn danh sách chứng từ · ✅ code + kiểm DB thật · ⏳ chưa phát hành
+
+Đại Ca 02/11: *"Trong các danh sách chứng từ t muốn có thêm điều kiện được chọn thêm cột…"*. Trước đó em **chưa** từng hỏi việc này (05/10 chỉ
+hỏi ghim / vừa khít cho 9 màn + cột thêm cho 5 báo cáo). Chốt: cả 4 phân hệ · em đo DB rồi Đại Ca tick · ban đầu giao Hades, sau Đại Ca bảo
+*"m làm luôn cho nhanh"* ⇒ Claude Code tự code. Chi tiết đặc tả + kiểm: **[THAO_LUAN.md](THAO_LUAN.md)** (mục 02/11 tiếp 2, tiếp 3).
+
+### Đo + chọn cột
+- Đo 13 nguồn trên DB thật (mẫu 1 ngày / 1 tuần / 1 tháng tuỳ bảng), lọc tay còn 93 cột ứng viên, 20 gợi ý ⇒ trang tick riêng tư
+  https://claude.ai/artifact/DnbhfR1Qc6Jqv763PcuLNj (collection `chon_cot`). Đại Ca tick **35 cột / 8 màn**, Tồn kho thực tế không thêm.
+- Phát hiện khi đo: màn **Tổng hợp chưa bao giờ hiện Ghi chú** (`COMMENTS` 92,6% — màn vẽ `DESCRIPTION || COMMENTS` mà Diễn giải luôn có) ·
+  **Mua hàng thiếu Thành tiền** (`AMOUNT` 99,4%). `JOB_QTY` ở `XKHO` khớp số món bán 2.702/2.758 cặp đơn vị × món (10/09) — Đại Ca chốt lấy
+  thẳng giá trị trên dòng kho, không nối về phiếu bán.
+
+### Đã làm (`server.py` +8 hàm, 0 route mới · `index.html`) — luật ở CLAUDE.md § 1.1 *Cột thêm*
+- Khung: `COT_THEM_DS` hai đầu, cột thêm nối cuối `COT_BANG`, mặc định ẩn bằng khoá `them`, máy chủ chỉ SELECT cột được xin (`cot_them`).
+- Đợt A Tổng hợp · đợt B Chứng từ tiền, Bán hàng, Mua hàng, PO, Chứng từ kho · đợt C 2 màn đối chiếu.
+- Sửa trong lúc làm: luật CSS tay kéo cột cuối đang hiện thua độ ưu tiên (lệch ~3px) · 2 hàm tải tự dựng tham số không xin `cot_them`.
+
+### 🧪 Verify — xem số đo ở THAO_LUAN.md *tiếp 3*
+- M1 OK · M2 DB thật: không xin cột thêm ⇒ SQL + JSON trùng khít bản `e24d138` · có cột thêm ⇒ cột gốc / tổng / phân trang y nguyên, tên
+  danh mục đúng 100% · giao diện Chrome ngầm 1366×768 đạt 6 màn (đợt A + B).
+- ⏳ Chưa: M3 (build EXE) · Đại Ca bấm thử · đợt C đang chạy đối chứng (ghi bổ sung bên dưới khi xong).
+- ✅ **Bổ sung 23:30:** đợt C (2 màn đối chiếu) đạt M2 DB thật — SQL trùng khít bản cũ cả khi có cột thêm (cột lấy từ đầu phiếu xuất, ghép ở Python),
+  đối chiếu độc lập theo (đơn vị, số phiếu, ngày) đúng 400/400. ⚠️ Phát hiện **có từ trước**: xuất Excel Đối chiếu điều chuyển 1 tuần ~4 phút 15s
+  (không qua `#dc`) — ngoài việc 54, chưa làm. Đính chính kết luận "truy vấn con làm chậm": xem THAO_LUAN.md *tiếp 5*.
 
 ---
 

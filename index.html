@@ -622,7 +622,8 @@ window.showConnectionLost = function() {
                 <td className="border-r whitespace-nowrap px-3">{r.EXTRA_NAME_2}</td>
                 <td className="border-r text-right font-mono px-2 text-emerald-700">{fmtInt(r.INCOME_AMOUNT)}</td>
                 <td className="border-r text-right font-mono px-2 text-violet-600">{fmtInt(r.VAT_INCOME_AMOUNT)}</td>
-                <td className="whitespace-nowrap px-3 text-slate-500">{r.COMMENTS}</td>
+                <td className="border-r whitespace-nowrap px-3 text-slate-500">{r.COMMENTS}</td>
+                {veTdCotThem('sale', r)}
             </HangCot>
         ));
 
@@ -663,7 +664,8 @@ window.showConnectionLost = function() {
                 <td className="border-r whitespace-nowrap px-2">{r.REFERENCE_NO}</td>
                 <td className="border-r text-center italic">{r.EMPLOYEE_ID}</td>
                 <td className="border-r text-center">{r.CURRENCY_ID}</td>
-                <td className="text-center">{r.STATUS}</td>
+                <td className="border-r text-center">{r.STATUS}</td>
+                {veTdCotThem('voucher', r)}
             </HangCot>
         ));
 
@@ -5133,7 +5135,8 @@ window.showConnectionLost = function() {
                 <td className="border-r text-center italic">{r.EXPENSE_ID}</td>
                 <td className="border-r whitespace-nowrap px-3 italic">{r.EXPENSE_NAME}</td>
                 <td className="border-r text-center italic">{r.JOB_ID}</td>
-                <td className="whitespace-nowrap px-3 italic">{r.JOB_NAME}</td>
+                <td className="border-r whitespace-nowrap px-3 italic">{r.JOB_NAME}</td>
+                {veTdCotThem('purchase', r)}
             </HangCot>
         ));
 
@@ -5168,7 +5171,8 @@ window.showConnectionLost = function() {
                     <td className="border-r text-center italic">{r.EXPENSE_ID}</td>
                     <td className="border-r whitespace-nowrap px-3 italic">{r.EXPENSE_NAME}</td>
                     <td className="border-r text-center italic">{r.JOB_ID}</td>
-                    <td className="whitespace-nowrap px-3 italic">{r.JOB_NAME}</td>
+                    <td className="border-r whitespace-nowrap px-3 italic">{r.JOB_NAME}</td>
+                    {veTdCotThem('warehouse', r)}
                 </HangCot>
             );
         });
@@ -5208,7 +5212,8 @@ window.showConnectionLost = function() {
                 <td className="border-r text-center font-bold text-indigo-700">{r.BANK_ID}</td>
                 <td className="border-r px-4 whitespace-nowrap italic text-indigo-700">{r.BANK_NAME}</td>
                 <td className="border-r text-center font-bold text-teal-700">{r.BANK_ID_CONTRA}</td>
-                <td className="px-4 whitespace-nowrap italic text-teal-700">{r.BANK_NAME_CONTRA}</td>
+                <td className="border-r px-4 whitespace-nowrap italic text-teal-700">{r.BANK_NAME_CONTRA}</td>
+                {veTdCotThem('ledger', r)}
             </HangCot>
         ));
 
@@ -5309,6 +5314,43 @@ window.showConnectionLost = function() {
         //    đề, ô tìm, dòng dữ liệu của cả 9 bảng đều đúng 1 ô / cột.)
         // Khoá xuất nhiều hơn 1 = cột trên màn hình gộp mã + tên, file xuất tách 2 cột (ẩn là bỏ cả hai).
         // Cột chỉ có trong file xuất (Địa chỉ, MST… của Bán hàng) không ẩn được trên màn hình ⇒ luôn xuất.
+        // ===== CỘT THÊM 9 MÀN DANH SÁCH (việc 54 — Đại Ca chốt 02/11/2026) =====
+        // Cột lấy thêm từ iPOS — MẶC ĐỊNH ẨN, nằm cuối hộp Cấu hình cột dưới dòng "Cột thêm". Nối vào CUỐI COT_BANG (dưới) ⇒ ẩn / ghim /
+        // vừa khít / kéo giãn chạy như cột thường. Cột đang hiện lưu ở khoá `them` của lr_cot_<tab> (KHÔNG ở `an`). Máy chủ chỉ trả cột
+        // đang hiện (tham số cot_them). Đợt đầu: chỉ xem + xuất Excel — không sắp xếp / ô tìm / gom nhóm theo cột thêm.
+        // [khoá = trường JSON 'CT_…', nhãn, độ rộng px, kiểu 'chu' | 'so' (số lượng, 2 số lẻ) | 'tien' (số nguyên)]. ⛔ Khoá + thứ tự khớp
+        // COT_THEM_DS trong server.py. Tồn kho thực tế không có cột thêm (Đại Ca không chọn 02/11/2026).
+        const COT_THEM_DS = {
+            ledger: [['CT_COMMENTS', 'Ghi chú', 220, 'chu'], ['CT_QUANTITY', 'Số lượng', 96, 'so'],
+                     ['CT_EXTRA_ID_2', 'Mã nguồn đơn', 112, 'chu'], ['CT_EXTRA_NAME_2', 'Tên nguồn đơn', 180, 'chu']],
+            voucher: [['CT_COMMENTS', 'Ghi chú', 220, 'chu'], ['CT_USER_ID', 'Tài khoản lập phiếu', 130, 'chu'],
+                      ['CT_ORIG_TRAN_ID', 'Nguồn nhập phiếu', 110, 'chu'], ['CT_ORIG_TRAN_NO', 'Số chứng từ gốc', 140, 'chu'],
+                      ['CT_EXTRA_ID_1', 'Mã bộ phận', 96, 'chu'], ['CT_EXTRA_NAME_1', 'Tên bộ phận', 160, 'chu'],
+                      ['CT_EXTRA_ID_2', 'Mã nguồn đơn', 112, 'chu'], ['CT_EXTRA_NAME_2', 'Tên nguồn đơn', 160, 'chu']],
+            sale: [['CT_PRODUCT_ID', 'Mã sản phẩm', 104, 'chu'], ['CT_PRODUCT_NAME', 'Tên sản phẩm', 180, 'chu'],
+                   ['CT_ITEM_CLASS_ID', 'Nhóm hàng', 90, 'chu'], ['CT_ITEM_CLASS1_ID', 'Loại hàng', 90, 'chu'], ['CT_JOB_CLASS_ID', 'Nhóm công việc', 110, 'chu'],
+                   ['CT_REAL_DISCOUNT2_AMOUNT', 'Chiết khấu', 110, 'tien'], ['CT_EXPORT_TAX_AMOUNT', 'Hoa hồng', 110, 'tien'],
+                   ['CT_LUX_TAX_AMOUNT', 'Voucher', 100, 'tien'], ['CT_WORKSTATION_ID', 'Mã POS', 90, 'chu']],
+            purchase: [['CT_AMOUNT', 'Thành tiền', 120, 'tien'], ['CT_COMMENTS', 'Ghi chú', 220, 'chu'], ['CT_ACCOUNT_ID', 'TK công nợ', 96, 'chu'],
+                       ['CT_ITEM_CLASS_ID', 'Nhóm hàng', 90, 'chu'], ['CT_ORIG_TRAN_NO', 'Số chứng từ gốc', 140, 'chu'], ['CT_COG_AMOUNT', 'Giá trị nhập kho', 130, 'tien']],
+            po_list: [['CT_PR_DETAIL_ID', 'Mã nhà cung cấp', 110, 'chu'], ['CT_PR_DETAIL_NAME', 'Tên nhà cung cấp', 200, 'chu'],
+                      ['CT_VAT_TAX_RATE', 'Thuế suất', 80, 'so'], ['CT_VAT_TAX_AMOUNT', 'Tiền thuế', 110, 'tien'],
+                      ['CT_USER_ID', 'Tài khoản lập phiếu', 130, 'chu'], ['CT_CONTACT_PERSON', 'Người liên hệ', 150, 'chu']],
+            warehouse: [['CT_PRODUCT_ID', 'Mã sản phẩm', 104, 'chu'], ['CT_PRODUCT_NAME', 'Tên sản phẩm', 180, 'chu'], ['CT_COMMENTS', 'Ghi chú', 220, 'chu'],
+                        ['CT_ITEM_CLASS_ID', 'Nhóm hàng', 90, 'chu'], ['CT_JOB_QTY', 'Số lượng sản phẩm', 120, 'so']],
+            btp_reconcile: [['CT_USER_ID_XUAT', 'Tài khoản lập phiếu xuất', 150, 'chu']],
+            dcnb_reconcile: [['CT_SO_TRAN_NO', 'Số đơn đặt hàng', 150, 'chu'], ['CT_COMMENTS_XUAT', 'Ghi chú phiếu xuất', 220, 'chu']],
+        };
+        const laCotThem = (tab, k) => (COT_THEM_DS[tab] || []).some(c => c[0] === k);
+        // Ô tiêu đề / ô hàng tìm / ô dữ liệu của cột thêm — LUÔN vẽ đủ (ẩn bằng CSS), đúng 1 ô / cột.
+        const veThCotThem = (tab) => (COT_THEM_DS[tab] || []).map(([k, nhan]) => <th key={k} className="border-r px-3">{nhan}</th>);
+        const veThTimCotThem = (tab) => (COT_THEM_DS[tab] || []).map(([k]) => <th key={k} className="border-r px-1 py-1"></th>);
+        const veTdCotThem = (tab, r) => (COT_THEM_DS[tab] || []).map(([k, , , kieu]) => {
+            const v = r[k];
+            return kieu === 'so' || kieu === 'tien'
+                ? <td key={k} className="border-r text-right font-mono px-2">{v === '' || v == null ? '' : (kieu === 'tien' ? fmtInt(v) : fmtNum(v))}</td>
+                : <td key={k} className="border-r whitespace-nowrap truncate max-w-[250px] px-3">{v == null ? '' : v}</td>;
+        });
         const COT_BANG = {
             ledger: [['_stt','#',56,[]], ['TRAN_DATE','Ngày CT',112,["TRAN_DATE"]], ['TRAN_NO','Số Chứng Từ',144,["TRAN_NO"]], ['TRAN_ID','Mã CT',64,["TRAN_ID"]], ['TRAN_NAME','Tên chứng từ',160,["TRAN_NAME"]], ['ACCOUNT_ID','Tài khoản',96,["ACCOUNT_ID"]], ['ACCOUNT_ID_CONTRA','Đối ứng',96,["ACCOUNT_ID_CONTRA"]], ['DESCRIPTION','Diễn giải',256,["DESCRIPTION"]], ['DEBIT','Nợ',176,["DEBIT"]], ['CREDIT','Có',176,["CREDIT"]], ['PR_DETAIL_ID','Mã ĐT',96,["PR_DETAIL_ID"]], ['PR_DETAIL_NAME','Đối tượng',224,["PR_DETAIL_NAME"]], ['PR_DETAIL_ID_CONTRA','Mã ĐT ĐƯ',96,["PR_DETAIL_ID_CONTRA"]], ['PR_DETAIL_NAME_CONTRA','Đối tượng ĐƯ',224,["PR_DETAIL_NAME_CONTRA"]], ['EXPENSE_ID','Mã MCP',96,["EXPENSE_ID"]], ['EXPENSE_NAME','Mục chi phí',176,["EXPENSE_NAME"]], ['EXPENSE_ID_CONTRA','Mã MCP ĐƯ',96,["EXPENSE_ID_CONTRA"]], ['EXPENSE_NAME_CONTRA','Mục chi phí ĐƯ',176,["EXPENSE_NAME_CONTRA"]], ['ORGANIZATION_ID','Mã ĐV',96,["ORGANIZATION_ID"]], ['ORGANIZATION_NAME','Tên Đơn vị',176,["ORGANIZATION_NAME"]], ['ITEM_ID','Mã HH',96,["ITEM_ID"]], ['ITEM_NAME','Hàng hóa',176,["ITEM_NAME"]], ['ITEM_ID_CONTRA','Mã HH ĐƯ',96,["ITEM_ID_CONTRA"]], ['ITEM_NAME_CONTRA','Hàng hóa ĐƯ',176,["ITEM_NAME_CONTRA"]], ['JOB_ID','Mã CV',96,["JOB_ID"]], ['JOB_NAME','Công việc',176,["JOB_NAME"]], ['JOB_ID_CONTRA','Mã CV ĐƯ',96,["JOB_ID_CONTRA"]], ['JOB_NAME_CONTRA','Công việc ĐƯ',176,["JOB_NAME_CONTRA"]], ['PRODUCT_ID','Mã SP',96,["PRODUCT_ID"]], ['PRODUCT_NAME','Sản phẩm',176,["PRODUCT_NAME"]], ['BANK_ID','Mã NH',96,["BANK_ID"]], ['BANK_NAME','Ngân hàng',176,["BANK_NAME"]], ['BANK_ID_CONTRA','Mã NH ĐƯ',96,["BANK_ID_CONTRA"]], ['BANK_NAME_CONTRA','NH đối ứng',176,["BANK_NAME_CONTRA"]]],
             sale: [['_stt','#',48,[]], ['ORGANIZATION_ID','Mã ĐV',80,["ORGANIZATION_ID"]], ['ORGANIZATION_NAME','Tên đơn vị',160,["ORGANIZATION_NAME"]], ['TRAN_ID','Mã CT',64,["TRAN_ID"]], ['TRAN_NAME','Tên chứng từ',160,["TRAN_NAME"]], ['TRAN_NO','Số CT',128,["TRAN_NO"]], ['TRAN_DATE','Ngày CT',96,["TRAN_DATE"]], ['VAT_TRAN_NO','Số HĐ',112,["VAT_TRAN_NO"]], ['VAT_TRAN_DATE','Ngày HĐ',96,["VAT_TRAN_DATE"]], ['VAT_TRAN_SERIE','Ký hiệu',96,["VAT_TRAN_SERIE"]], ['PR_DETAIL_ID','Mã ĐT',96,["PR_DETAIL_ID"]], ['PR_DETAIL_NAME','Tên đối tượng',176,["PR_DETAIL_NAME"]], ['WAREHOUSE_ID','Mã kho',80,["WAREHOUSE_ID"]], ['WAREHOUSE_NAME','Tên kho',144,["WAREHOUSE_NAME"]], ['ITEM_ID','Mã hàng',96,["ITEM_ID"]], ['ITEM_NAME','Tên hàng hóa',176,["ITEM_NAME"]], ['DESCRIPTION','Diễn giải',224,["DESCRIPTION"]], ['UNIT_ID','ĐVT',64,["UNIT_ID"]], ['UNIT_NAME','Tên ĐVT',96,["UNIT_NAME"]], ['QUANTITY','Số lượng',96,["QUANTITY"]], ['UNIT_PRICE','Đơn giá',112,["UNIT_PRICE"]], ['AMOUNT','Thành tiền',128,["AMOUNT"]], ['DISCOUNT_AMOUNT','Giảm giá',96,["DISCOUNT_AMOUNT"]], ['VAT_TAX_RATE','Thuế %',64,["VAT_TAX_RATE"]], ['VAT_TAX_AMOUNT','Tiền thuế',112,["VAT_TAX_AMOUNT"]], ['TOTAL_AMOUNT','Tổng TT',128,["TOTAL_AMOUNT"]], ['COG_AMOUNT','Giá vốn',128,["COG_AMOUNT"]], ['ACCOUNT_ID','TK',80,["ACCOUNT_ID"]], ['ACCOUNT_ID_PR','TK công nợ',96,["ACCOUNT_ID_PR"]], ['ACCOUNT_ID_COST','TK kho',80,["ACCOUNT_ID_COST"]], ['ACCOUNT_ID_INCOME','TK DT',80,["ACCOUNT_ID_INCOME"]], ['ACCOUNT_ID_VAT','TK thuế',80,["ACCOUNT_ID_VAT"]], ['EXPENSE_ID','Mã MCP',96,["EXPENSE_ID"]], ['EXPENSE_NAME','Tên MCP',144,["EXPENSE_NAME"]], ['JOB_ID','Mã CV',96,["JOB_ID"]], ['JOB_NAME','Tên công việc',144,["JOB_NAME"]], ['IS_RETURN','Trả',64,["IS_RETURN"]], ['PAYMENT_METHOD_ID','Mã HTTT',80,["PAYMENT_METHOD_ID"]], ['PAYMENT_METHOD_NAME','Hình thức TT',144,["PAYMENT_METHOD_NAME"]], ['EXTRA_ID_2','Mã nguồn',96,["EXTRA_ID_2"]], ['EXTRA_NAME_2','Nguồn đơn',144,["EXTRA_NAME_2"]], ['INCOME_AMOUNT','Doanh thu',128,["INCOME_AMOUNT"]], ['VAT_INCOME_AMOUNT','Thuế DT',112,["VAT_INCOME_AMOUNT"]], ['COMMENTS','Ghi chú',224,["COMMENTS"]]],
@@ -5320,6 +5362,10 @@ window.showConnectionLost = function() {
             dcnb_reconcile: [['_stt','#',48,[]], ['DON_VI_XUAT','ĐV xuất',64,["DON_VI_XUAT", "TEN_DV_XUAT"]], ['NGAY_XUAT','Ngày xuất',96,["NGAY_XUAT"]], ['SO_PHIEU_XUAT','Phiếu xuất',112,["SO_PHIEU_XUAT"]], ['KHO_XUAT','Kho xuất',96,["KHO_XUAT", "TEN_KHO_XUAT"]], ['MA_HANG','Mã hàng',112,["MA_HANG"]], ['TEN_HANG','Tên hàng',176,["TEN_HANG"]], ['DVT','ĐVT',64,["DVT"]], ['SL_XUAT','SL xuất',112,["SL_XUAT"]], ['TIEN_XUAT','Tiền xuất',112,["TIEN_XUAT"]], ['DON_VI_NHAP','ĐV nhận',80,["DON_VI_NHAP"]], ['TEN_DV_NHAP','Tên đơn vị nhận',176,["TEN_DV_NHAP"]], ['SO_PHIEU_NHAP','Phiếu nhập',128,["SO_PHIEU_NHAP"]], ['NGAY_NHAP','Ngày nhập',96,["NGAY_NHAP"]], ['KHO_NHAP','Kho nhập',96,["KHO_NHAP", "TEN_KHO_NHAP"]], ['SL_NHAN','SL nhận',112,["SL_NHAN"]], ['CHENH_SL','Chênh SL',96,["CHENH_SL"]], ['TRANG_THAI','Trạng thái',176,["TRANG_THAI"]], ['GHI_CHU','Ghi chú',384,["GHI_CHU"]]],
             po_list: [['_stt','#',48,[]], ['DON_VI','ĐV',64,["DON_VI"]], ['TEN_DON_VI','Tên đơn vị',176,["TEN_DON_VI"]], ['LOAI_PO','Loại',64,["LOAI_PO", "TEN_LOAI"]], ['SO_PHIEU','Số phiếu PO',160,["SO_PHIEU"]], ['NGAY','Ngày lập',96,["NGAY"]], ['NGAY_GIAO','Ngày giao',96,["NGAY_GIAO"]], ['KHO','Kho',112,["KHO", "TEN_KHO"]], ['MA_HANG','Mã hàng',112,["MA_HANG"]], ['TEN_HANG','Tên hàng',208,["TEN_HANG"]], ['DVT','ĐVT',64,["DVT"]], ['SL_DAT','SL đặt',112,["SL_DAT"]], ['DON_GIA','Đơn giá',112,["DON_GIA"]], ['THANH_TIEN','Thành tiền',128,["THANH_TIEN"]], ['TONG_TIEN','Tổng tiền',128,["TONG_TIEN"]], ['TRANG_THAI','Trạng thái',128,["TRANG_THAI"]], ['GHI_CHU','Ghi chú',320,["GHI_CHU"]]],
         };
+        // Cột thêm (việc 54) đứng CUỐI mỗi bảng — thứ tự này phải đúng thứ tự ô trong JSX (veThCotThem / veThTimCotThem / veTdCotThem).
+        Object.keys(COT_THEM_DS).forEach(tab => {
+            COT_BANG[tab] = COT_BANG[tab].concat(COT_THEM_DS[tab].map(([k, nhan, rong]) => [k, nhan, rong, [k]]));
+        });
 
         // ===== ĐIỀU HƯỚNG 2 TẦNG — GĐ3 giao diện mới (Đại Ca chốt 25/09/2026) =====
         // Tầng 1 = cột icon navy bên trái = PHÂN HỆ. Tầng 2 = hàng tab ngang = MÀN HÌNH của phân hệ đó.
@@ -7548,6 +7594,7 @@ window.showConnectionLost = function() {
                 Object.keys(extras).forEach(k => { query.set(k, extras[k]); });
                 
                 if (ledgerSort.field) { query.set('order_by', ledgerSort.field); query.set('order_dir', ledgerSort.dir); }
+                const ctLedger = cotThemDangHien('ledger'); if (ctLedger.length) query.set('cot_them', ctLedger.join(','));   // cột thêm (việc 54)
 
                 try {
                     const r = await fetch(`/api/ledger?${query.toString()}`, { signal: abortRef.current.signal });
@@ -7692,6 +7739,7 @@ window.showConnectionLost = function() {
                 Object.keys(filters).forEach(k => { if(Array.isArray(filters[k])) query.set(k, filters[k].join(',')); });
                 query.set('wh_ids', (saleFilters.wh_ids || []).join(','));
                 if (saleSort.field) { query.set('order_by', saleSort.field); query.set('order_dir', saleSort.dir); }
+                datCotThem(query, 'sale');   // cột thêm đang hiện (việc 54) — dùng chung xem + đếm + xuất
                 return query;
             };
 
@@ -7801,6 +7849,7 @@ window.showConnectionLost = function() {
                 const query = new URLSearchParams({ ...filters, ...clean, ...extra, page: targetPage, page_size: targetPageSize });
                 Object.keys(filters).forEach(k => { if(Array.isArray(filters[k])) query.set(k, filters[k].join(',')); });
                 if (voucherSort.field) { query.set('order_by', voucherSort.field); query.set('order_dir', voucherSort.dir); }
+                datCotThem(query, 'voucher');   // cột thêm đang hiện (việc 54) — dùng chung xem + đếm + xuất
                 return query;
             };
 
@@ -7929,6 +7978,7 @@ window.showConnectionLost = function() {
                 Object.keys(filters).forEach(k => { if(Array.isArray(filters[k])) query.set(k, filters[k].join(',')); });
                 query.set('wh_ids', (purchaseFilters.wh_ids || []).join(','));
                 if (purchaseSort.field) { query.set('order_by', purchaseSort.field); query.set('order_dir', purchaseSort.dir); }
+                datCotThem(query, 'purchase');   // cột thêm đang hiện (việc 54) — dùng chung xem + đếm + xuất
                 return query;
             };
 
@@ -7999,6 +8049,7 @@ window.showConnectionLost = function() {
                 if (purchaseSort.field) { query.set('order_by', purchaseSort.field); query.set('order_dir', purchaseSort.dir); }
                 
 
+                datCotThem(query, 'purchase');   // cột thêm (việc 54) — hàm tải này tự dựng tham số, không qua buildPurchaseQuery
                 try {
                     const r = await fetch(`/api/purchase?${query.toString()}`, { signal: abortRef.current.signal });
                     if (r.status === 401) { setIsLoggedIn(false); return; }
@@ -8087,6 +8138,7 @@ window.showConnectionLost = function() {
                 Object.keys(filters).forEach(k => { if(Array.isArray(filters[k])) query.set(k, filters[k].join(',')); });
                 query.set('wh_ids', (warehouseFilters.wh_ids || []).join(','));
                 if (warehouseSort.field) { query.set('order_by', warehouseSort.field); query.set('order_dir', warehouseSort.dir); }
+                datCotThem(query, 'warehouse');   // cột thêm đang hiện (việc 54) — dùng chung xem + đếm + xuất
                 return query;
             };
 
@@ -8158,6 +8210,7 @@ window.showConnectionLost = function() {
                 if (warehouseSort.field) { query.set('order_by', warehouseSort.field); query.set('order_dir', warehouseSort.dir); }
                 
 
+                datCotThem(query, 'warehouse');   // cột thêm (việc 54) — hàm tải này tự dựng tham số, không qua buildWarehouseQuery
                 try {
                     const r = await fetch(`/api/warehouse?${query.toString()}`, { signal: abortRef.current.signal });
                     if (r.status === 401) { setIsLoggedIn(false); return; }
@@ -8283,6 +8336,7 @@ window.showConnectionLost = function() {
                 Object.keys(sp).forEach(k => { if (sp[k]) query.set(k, sp[k]); });
                 if (btpSort.field) { query.set('order_by', btpSort.field); query.set('order_dir', btpSort.dir); }
                 Object.keys(extra).forEach(k => query.set(k, extra[k]));
+                datCotThem(query, 'btp_reconcile');   // cột thêm đang hiện (việc 54) — dùng chung xem + đếm + xuất
                 return query;
             };
 
@@ -8398,6 +8452,7 @@ window.showConnectionLost = function() {
                 Object.keys(sp).forEach(k => { if (sp[k]) query.set(k, sp[k]); });
                 if (dcnbSort.field) { query.set('order_by', dcnbSort.field); query.set('order_dir', dcnbSort.dir); }
                 Object.keys(extra).forEach(k => query.set(k, extra[k]));
+                datCotThem(query, 'dcnb_reconcile');   // cột thêm đang hiện (việc 54) — dùng chung xem + đếm + xuất
                 return query;
             };
 
@@ -8510,6 +8565,7 @@ window.showConnectionLost = function() {
                 Object.keys(sp).forEach(k => { if (sp[k]) query.set(k, sp[k]); });
                 if (poSort.field) { query.set('order_by', poSort.field); query.set('order_dir', poSort.dir); }
                 Object.keys(extra).forEach(k => query.set(k, extra[k]));
+                datCotThem(query, 'po_list');   // cột thêm đang hiện (việc 54) — dùng chung xem + đếm + xuất
                 return query;
             };
 
@@ -8844,6 +8900,7 @@ window.showConnectionLost = function() {
                     q.set('format', format);
                     const boCot = anXuat(kind);   // cột đang ẩn trên màn hình ⇒ máy chủ bỏ khỏi file (_loc_cot_xuat)
                     if (boCot.length) q.set('an_cot', boCot.join(','));
+                    const ctXuat = cotThemDangHien(kind); if (ctXuat.length) q.set('cot_them', ctXuat.join(','));   // cột thêm đang hiện (việc 54)
                     const r = await fetch(`/api/${kind}/stream_csv?${q.toString()}`, { method: 'POST' });
                     const res = await r.json();
                     if (res.status !== 'ok' || !res.job_id) {
@@ -8909,6 +8966,7 @@ window.showConnectionLost = function() {
                 try {
                     // ===== BƯỚC 1: Lấy số dòng trước =====
                     const countQuery = buildExportQuery(kind);
+                    const ctXuat = cotThemDangHien(kind); if (ctXuat.length) countQuery.set('cot_them', ctXuat.join(','));   // cột thêm (việc 54)
                     const countRes = await fetch(`/api/${kind}/count?${countQuery.toString()}`).then(r => r.json()).catch(() => null);
                     const totalRows = countRes && countRes.status === 'ok' ? countRes.total : 0;
 
@@ -8967,7 +9025,7 @@ window.showConnectionLost = function() {
                                : WAREHOUSE_EXPORT_COLS;
                     // Bỏ cột đang ẩn trên màn hình (Đại Ca chốt 25/09: Excel xuất đúng các cột đang hiện).
                     const boXuat = new Set(anXuat(kind));
-                    const cols = colsGoc.filter(([k]) => !boXuat.has(k));
+                    const cols = colsGoc.concat((COT_THEM_DS[kind] || []).map(([k, nhan]) => [k, nhan])).filter(([k]) => !boXuat.has(k));
                     const extractor = kind === 'ledger' ? (r) => extractLedgerRow(r, cols) : (r) => extractRowGeneric(cols, r);
 
                     const prefix = kind === 'ledger' ? 'ChungTuTongHop_' : (kind === 'purchase' ? 'PhieuNhapKho_' : (kind === 'sale' ? 'ChungTuBanHang_' : (kind === 'voucher' ? 'ChungTuTien_' : (kind === 'warehouse_balance' ? 'TonKhoThucTe_' : (kind === 'btp_reconcile' ? 'DoiChieuXuatSX_NhapTP_' : (kind === 'dcnb_reconcile' ? 'DoiChieuDieuChuyenNoiBo_' : (kind === 'po_list' ? 'DanhSachPO_' : 'ChungTuKho_')))))));
@@ -9353,7 +9411,7 @@ window.showConnectionLost = function() {
                         const v = JSON.parse(localStorage.getItem('lr_cot_' + tab) || 'null');
                         if (v) o[tab] = { an: Array.isArray(v.an) ? v.an : [], rong: (v.rong && typeof v.rong === 'object') ? v.rong : {},
                             ghim: { trai: (v.ghim && Array.isArray(v.ghim.trai)) ? v.ghim.trai : [], phai: (v.ghim && Array.isArray(v.ghim.phai)) ? v.ghim.phai : [] },
-                            vua: Array.isArray(v.vua) ? v.vua : [] };
+                            vua: Array.isArray(v.vua) ? v.vua : [], them: Array.isArray(v.them) ? v.them : [] };
                     } catch (e) { /* ẩn danh / hỏng: về mặc định */ }
                 });
                 return o;
@@ -9388,7 +9446,43 @@ window.showConnectionLost = function() {
             const ctxCotBangRef = useRef(ctxCotBang);
             ctxCotBangRef.current = ctxCotBang;
             const thuTuCot = (tab) => (ctxCotBang[tab] ? ctxCotBang[tab].thuTu : (COT_BANG[tab] || []).map((_, i) => i));
-            const anCot = (tab) => new Set(((cauHinhCot[tab] || {}).an || []).filter(k => k !== '_stt'));   // cột # không bao giờ ẩn
+            // Cột đang ẩn = `an` (cột gốc, cột # không bao giờ ẩn) + mọi cột thêm KHÔNG nằm trong `them` (việc 54: cột thêm mặc định ẩn).
+            const anCot = (tab) => {
+                const c = cauHinhCot[tab] || {};
+                const s = new Set((c.an || []).filter(k => k !== '_stt' && !laCotThem(tab, k)));
+                const hien = new Set(c.them || []);
+                (COT_THEM_DS[tab] || []).forEach(([k]) => { if (!hien.has(k)) s.add(k); });
+                return s;
+            };
+            // Cột thêm đang hiện — đọc qua REF (gọi từ loadData / hẹn giờ, closure có thể cũ). Gửi máy chủ qua tham số cot_them.
+            const cotThemDangHien = (tab) => {
+                const hien = new Set((cauHinhCotRef.current[tab] || {}).them || []);
+                return (COT_THEM_DS[tab] || []).map(c => c[0]).filter(k => hien.has(k));
+            };
+            const datCotThem = (q, tab) => { const ct = cotThemDangHien(tab); if (ct.length) q.set('cot_them', ct.join(',')); return q; };
+            // Danh sách cho hộp Cấu hình cột: chèn dòng tiêu đề nhóm '#them' trước cột thêm đầu tiên (CauHinhCot vẽ khoá '#…' thành tiêu đề).
+            const dsCauHinhCot = (tab) => {
+                const goc = COT_BANG[tab], n = (COT_THEM_DS[tab] || []).length;
+                return n ? [...goc.slice(0, goc.length - n), ['#them', 'Cột thêm (mặc định ẩn)'], ...goc.slice(goc.length - n)] : goc;
+            };
+            // Tick / bỏ tick trong hộp Cấu hình cột: cột gốc → `an`, cột thêm → `them`. Bật một cột thêm CHƯA có trong số liệu đang có
+            // ⇒ tải lại sau 0,7s kể từ lần tick cuối (khuôn henTaiCotRef của báo cáo — máy chủ chạy tuần tự, đừng bắn nhiều câu).
+            // Bỏ tick cột thêm ⇒ KHÔNG gọi máy chủ (chỉ CSS ẩn).
+            const henTaiCotDsRef = useRef(null);
+            const doiCotDs = (tab, an) => {
+                const c = cauHinhCot[tab] || { rong: {} };
+                const them = (COT_THEM_DS[tab] || []).map(x => x[0]).filter(k => !an.includes(k));
+                luuCot(tab, { ...c, an: an.filter(k => !laCotThem(tab, k)), them });
+                const dong0 = (duLieuBangRef.current[tab] || []).find(r => r && !r.isGroup);
+                if (dong0 && them.some(k => !(k in dong0))) {
+                    clearTimeout(henTaiCotDsRef.current);
+                    const tai = { ledger: () => loadData(filters.page || 1, filters.page_size), sale: () => loadSaleData(salePagination.page || 1),
+                        voucher: () => loadVoucherData(voucherPagination.page || 1), purchase: () => loadPurchaseData(purchasePagination.page || 1),
+                        warehouse: () => loadWarehouseData(warehousePagination.page || 1), po_list: () => loadPoData(poPagination.page || 1),
+                        btp_reconcile: () => loadBtpData(btpPagination.page || 1), dcnb_reconcile: () => loadDcnbData(dcnbPagination.page || 1) }[tab];
+                    if (tai) henTaiCotDsRef.current = setTimeout(tai, 700);
+                }
+            };
             const hienCot = (tab, i) => { const c = COT_BANG[tab]; return !c || !c[i] || !anCot(tab).has(c[i][0]); };
             const nhipCot = (tab, a, b) => { let n = 0; for (let i = a; i <= b; i++) if (hienCot(tab, i)) n++; return n; };
             const cotCua = (tab) => {
@@ -9399,16 +9493,27 @@ window.showConnectionLost = function() {
             // Khoá cột FILE XUẤT tương ứng các cột đang ẩn (một cột màn hình có thể = 2 cột file: mã + tên).
             const anXuat = (tab) => { const s = anCot(tab); return (COT_BANG[tab] || []).filter(c => s.has(c[0])).flatMap(c => c[3]); };
             const cssCot = Object.keys(COT_BANG).map(tab => {
-                const c = cauHinhCot[tab]; if (!c) return '';
-                const an = new Set(c.an || []), rong = c.rong || {}, vua = new Set(c.vua || []), b = `table[data-bang="${tab}"]`;
+                const c = cauHinhCot[tab];
+                if (!c && !COT_THEM_DS[tab]) return '';   // màn không có cột thêm + chưa cấu hình ⇒ y như trước
+                const cc = c || {};
+                const an = anCot(tab), rong = cc.rong || {}, vua = new Set(cc.vua || []), b = `table[data-bang="${tab}"]`;
                 const tt = thuTuCot(tab);
-                return tt.map((i, vt0) => {
+                let cuoi = 0;
+                const css = tt.map((i, vt0) => {
                     const k = COT_BANG[tab][i][0], n = vt0 + 1;
                     if (an.has(k) && k !== '_stt') return `${b}>thead>tr>:nth-child(${n}),${b}>tbody>tr:not(.dong-nhom)>:nth-child(${n}){display:none}`;
+                    cuoi = n;
                     // Cột đã "vừa khít": bỏ trần max-width của ô (Diễn giải đang cắt ở 250px) để hiện đủ chữ.
                     return (rong[k] ? `${b}>thead>tr:first-child>:nth-child(${n}){width:${rong[k]}px;min-width:${rong[k]}px}` : '')
                         + (vua.has(k) ? `${b}>tbody>tr:not(.dong-nhom)>:nth-child(${n}){max-width:none!important}` : '');
                 }).join('');
+                // Tay kéo của cột cuối ĐANG HIỆN phải nằm gọn trong ô (như luật th:last-child ở <style>, việc 50 — lệch 4px). Cột thêm ẩn
+                // đứng sau nên :last-child không còn bắt đúng cột đó.
+                return css + (cuoi > 1 && cuoi < tt.length
+                    // ⚠️ Phải có `th` + :not(:first-child): thiếu là độ ưu tiên (0,3,4) THUA luật gốc right:-4px (0,3,5) ⇒ vẫn lệch (đo 02/11/2026).
+                    ? `${b}>thead>tr:first-child>th:nth-child(${cuoi}):not(:first-child)::after{right:0}`
+                      + `${b}>thead>tr:first-child>th:nth-child(${cuoi}):not(:first-child):hover::after{background:linear-gradient(to right,transparent 5px,#60a5fa 5px,#60a5fa 7px,transparent 7px)}`
+                    : '');
             }).join('');
 
             // ── GHIM CỘT: độ lệch sticky đo từ độ rộng THẬT của cột sau mỗi lần vẽ ──
@@ -9712,12 +9817,15 @@ window.showConnectionLost = function() {
                                 {dangTai && <Icon name="loader" size={12} className="animate-spin" />}Lọc
                             </button>
                             {/* Ghim + vừa khít (05/10/2026, việc 50): "Về mặc định" xoá cả cột ẩn, độ rộng, ghim, vừa khít. */}
-                            <CauHinhCot ds={COT_BANG[tab]} an={anCot(tab)}
+                            <CauHinhCot ds={dsCauHinhCot(tab)} an={anCot(tab)}
                                 coDoiRong={Object.keys((cauHinhCot[tab] || {}).rong || {}).length > 0 || !!ctxCotBang[tab]}
                                 ghim={(cauHinhCot[tab] || {}).ghim} onGhim={(k, ben) => ghimCot(tab, k, ben)}
                                 onVuaKhit={() => vuaKhitCot(tab, COT_BANG[tab].map((_, i) => i).filter(i => i > 0 && hienCot(tab, i)))}
                                 ghiChu={false}
-                                onDoi={an => luuCot(tab, { ...(cauHinhCot[tab] || { rong: {} }), an })} onMacDinh={() => luuCot(tab, { an: [], rong: {}, ghim: { trai: [], phai: [] }, vua: [] })} />
+                                demAn={[...anCot(tab)].filter(k => !laCotThem(tab, k)).length}
+                                laMacDinh={!(((cauHinhCot[tab] || {}).an || []).length || ((cauHinhCot[tab] || {}).them || []).length
+                                    || Object.keys((cauHinhCot[tab] || {}).rong || {}).length || ctxCotBang[tab])}
+                                onDoi={an => doiCotDs(tab, an)} onMacDinh={() => luuCot(tab, { an: [], rong: {}, ghim: { trai: [], phai: [] }, vua: [], them: [] })} />
                             <ExportButton kind={tab} />
                         </div>
                     </div>
@@ -10159,7 +10267,8 @@ window.showConnectionLost = function() {
                                                     <SortableHeader field="BANK_ID"           sort={ledgerSort} onSort={f => setLedgerSort(s => cycleSort(s, f))} className="border-r w-24">Mã NH</SortableHeader>
                                                     <SortableHeader field="BANK_ID"           sort={ledgerSort} onSort={f => setLedgerSort(s => cycleSort(s, f))} className="border-r w-44 px-4" align="left">Ngân hàng</SortableHeader>
                                                     <SortableHeader field="BANK_ID_CONTRA"    sort={ledgerSort} onSort={f => setLedgerSort(s => cycleSort(s, f))} className="border-r w-24">Mã NH ĐƯ</SortableHeader>
-                                                    <SortableHeader field="BANK_ID_CONTRA"    sort={ledgerSort} onSort={f => setLedgerSort(s => cycleSort(s, f))} className="w-44 px-4" align="left">NH đối ứng</SortableHeader>
+                                                    <SortableHeader field="BANK_ID_CONTRA"    sort={ledgerSort} onSort={f => setLedgerSort(s => cycleSort(s, f))} className="border-r w-44 px-4" align="left">NH đối ứng</SortableHeader>
+                                                    {veThCotThem('ledger')}
                                                 </HangCot>
                                                 <HangCot bang="ledger" className="bg-indigo-50/60 border-b-2 border-indigo-200">
                                                     {['','TRAN_DATE','TRAN_NO','TRAN_ID','TRAN_NAME','ACCOUNT_ID','ACCOUNT_ID_CONTRA','DESCRIPTION','','','PR_DETAIL_ID','PR_DETAIL_NAME','PR_DETAIL_ID_CONTRA','PR_DETAIL_NAME_CONTRA','EXPENSE_ID','EXPENSE_NAME','EXPENSE_ID_CONTRA','EXPENSE_NAME_CONTRA','ORGANIZATION_ID','ORGANIZATION_NAME','ITEM_ID','ITEM_NAME','ITEM_ID_CONTRA','ITEM_NAME_CONTRA','JOB_ID','JOB_NAME','JOB_ID_CONTRA','JOB_NAME_CONTRA','PRODUCT_ID','PRODUCT_NAME','BANK_ID','BANK_NAME','BANK_ID_CONTRA','BANK_NAME_CONTRA'].map((key, idx) => (
@@ -10172,6 +10281,7 @@ window.showConnectionLost = function() {
                                                             /> : null}
                                                         </th>
                                                     ))}
+                                                    {veThTimCotThem('ledger')}
                                                 </HangCot>
                                             </thead>
                                             <tbody className="text-[11px] font-medium text-slate-700">
@@ -10322,7 +10432,8 @@ window.showConnectionLost = function() {
                                                     <th className="border-r w-36 px-3 text-left">Nguồn đơn</th>
                                                     <th className="border-r w-32 px-2 text-right">Doanh thu</th>
                                                     <th className="border-r w-28 px-2 text-right">Thuế DT</th>
-                                                    <th className="w-56 px-3 text-left">Ghi chú</th>
+                                                    <th className="border-r w-56 px-3 text-left">Ghi chú</th>
+                                                    {veThCotThem('sale')}
                                                 </HangCot>
                                                 <HangCot bang="sale" className="bg-indigo-50/60 border-b-2 border-indigo-200">
                                                     {['','ORGANIZATION_ID','ORGANIZATION_NAME','TRAN_ID','TRAN_NAME','TRAN_NO','TRAN_DATE','VAT_TRAN_NO','VAT_TRAN_DATE','VAT_TRAN_SERIE','PR_DETAIL_ID','PR_DETAIL_NAME','WAREHOUSE_ID','WAREHOUSE_NAME','ITEM_ID','ITEM_NAME','DESCRIPTION','UNIT_ID','UNIT_NAME','','','','','','','','','ACCOUNT_ID','ACCOUNT_ID_PR','ACCOUNT_ID_COST','ACCOUNT_ID_INCOME','ACCOUNT_ID_VAT','EXPENSE_ID','EXPENSE_NAME','JOB_ID','JOB_NAME','','','','','','','',''].map((key, idx) => (
@@ -10335,6 +10446,7 @@ window.showConnectionLost = function() {
                                                             /> : null}
                                                         </th>
                                                     ))}
+                                                    {veThTimCotThem('sale')}
                                                 </HangCot>
                                             </thead>
                                             <tbody className="text-[11px] font-medium text-slate-700">
@@ -10467,7 +10579,8 @@ window.showConnectionLost = function() {
                                                     <SortableHeader field="REFERENCE_NO"         sort={voucherSort} onSort={f => setVoucherSort(s => cycleSort(s, f))} className="border-r w-28 px-2">Tham chiếu</SortableHeader>
                                                     <SortableHeader field="EMPLOYEE_ID"          sort={voucherSort} onSort={f => setVoucherSort(s => cycleSort(s, f))} className="border-r w-20">Mã NV</SortableHeader>
                                                     <SortableHeader field="CURRENCY_ID"          sort={voucherSort} onSort={f => setVoucherSort(s => cycleSort(s, f))} className="border-r w-16">Tiền</SortableHeader>
-                                                    <SortableHeader field="STATUS"               sort={voucherSort} onSort={f => setVoucherSort(s => cycleSort(s, f))} className="w-20">Trạng thái</SortableHeader>
+                                                    <SortableHeader field="STATUS"               sort={voucherSort} onSort={f => setVoucherSort(s => cycleSort(s, f))} className="border-r w-20">Trạng thái</SortableHeader>
+                                                    {veThCotThem('voucher')}
                                                 </HangCot>
                                                 <HangCot bang="voucher" className="bg-indigo-50/60 border-b-2 border-indigo-200">
                                                     {['','ORGANIZATION_ID','ORGANIZATION_NAME','TRAN_ID','TRAN_NAME','TRAN_NO','TRAN_DATE','ACCOUNT_ID_DEBIT','ACCOUNT_ID_CREDIT','AMOUNT','DESCRIPTION','PR_DETAIL_ID_DEBIT','PR_DETAIL_NAME_DEBIT','PR_DETAIL_ID_CREDIT','PR_DETAIL_NAME_CREDIT','EXPENSE_ID_DEBIT','EXPENSE_ID_CREDIT','JOB_ID_DEBIT','JOB_ID_CREDIT','BANK_NAME_DEBIT','BANK_ACCOUNT_DEBIT','BANK_NAME_CREDIT','BANK_ACCOUNT_CREDIT','CONTACT_PERSON','ADDRESS','REFERENCE_NO','EMPLOYEE_ID','CURRENCY_ID','STATUS'].map((key, idx) => (
@@ -10480,6 +10593,7 @@ window.showConnectionLost = function() {
                                                             /> : null}
                                                         </th>
                                                     ))}
+                                                    {veThTimCotThem('voucher')}
                                                 </HangCot>
                                             </thead>
                                             <tbody className="text-[11px] font-medium text-slate-700">
@@ -10618,7 +10732,8 @@ window.showConnectionLost = function() {
                                                     <SortableHeader field="EXPENSE_ID"        sort={purchaseSort} onSort={f => setPurchaseSort(s => cycleSort(s, f))} className="border-r w-24">Mã MCP</SortableHeader>
                                                     <SortableHeader field="EXPENSE_NAME"      sort={purchaseSort} onSort={f => setPurchaseSort(s => cycleSort(s, f))} className="border-r w-36 px-3" align="left">Tên MCP</SortableHeader>
                                                     <SortableHeader field="JOB_ID"            sort={purchaseSort} onSort={f => setPurchaseSort(s => cycleSort(s, f))} className="border-r w-24">Mã CV</SortableHeader>
-                                                    <SortableHeader field="JOB_NAME"          sort={purchaseSort} onSort={f => setPurchaseSort(s => cycleSort(s, f))} className="w-36 px-3" align="left">Tên công việc</SortableHeader>
+                                                    <SortableHeader field="JOB_NAME"          sort={purchaseSort} onSort={f => setPurchaseSort(s => cycleSort(s, f))} className="border-r w-36 px-3" align="left">Tên công việc</SortableHeader>
+                                                    {veThCotThem('purchase')}
                                                 </HangCot>
                                                 <HangCot bang="purchase" className="bg-indigo-50/60 border-b-2 border-indigo-200">
                                                     {['','ORGANIZATION_ID','ORGANIZATION_NAME','TRAN_ID','TRAN_NAME','TRAN_NO','TRAN_DATE','VAT_TRAN_NO','VAT_TRAN_DATE','PO_TRAN_NO','WAREHOUSE_ID','WAREHOUSE_NAME','ITEM_ID','DESCRIPTION','UNIT_ID','','UNIT_ID_WH','','','','','','','','ACCOUNT_ID_COST','PR_DETAIL_ID','PR_DETAIL_NAME','EXPENSE_ID','EXPENSE_NAME','JOB_ID','JOB_NAME'].map((key, idx) => (
@@ -10631,6 +10746,7 @@ window.showConnectionLost = function() {
                                                             /> : null}
                                                         </th>
                                                     ))}
+                                                    {veThTimCotThem('purchase')}
                                                 </HangCot>
                                             </thead>
                                             <tbody className="text-[11px] font-medium text-slate-700">
@@ -10772,7 +10888,8 @@ window.showConnectionLost = function() {
                                                     <SortableHeader field="EXPENSE_ID"           sort={warehouseSort} onSort={f => setWarehouseSort(s => cycleSort(s, f))} className="border-r w-24">Mã MCP</SortableHeader>
                                                     <SortableHeader field="EXPENSE_NAME"         sort={warehouseSort} onSort={f => setWarehouseSort(s => cycleSort(s, f))} className="border-r w-36 px-3" align="left">Tên MCP</SortableHeader>
                                                     <SortableHeader field="JOB_ID"               sort={warehouseSort} onSort={f => setWarehouseSort(s => cycleSort(s, f))} className="border-r w-24">Mã CV</SortableHeader>
-                                                    <SortableHeader field="JOB_NAME"             sort={warehouseSort} onSort={f => setWarehouseSort(s => cycleSort(s, f))} className="w-36 px-3" align="left">Tên công việc</SortableHeader>
+                                                    <SortableHeader field="JOB_NAME"             sort={warehouseSort} onSort={f => setWarehouseSort(s => cycleSort(s, f))} className="border-r w-36 px-3" align="left">Tên công việc</SortableHeader>
+                                                    {veThCotThem('warehouse')}
                                                 </HangCot>
                                                 <HangCot bang="warehouse" className="bg-indigo-50/60 border-b-2 border-indigo-200">
                                                     {['','','ORGANIZATION_ID','ORGANIZATION_NAME','TRAN_ID','TRAN_NAME','TRAN_NO','TRAN_DATE','WAREHOUSE_ID','WAREHOUSE_NAME','WAREHOUSE_ID_ISSUE','WAREHOUSE_NAME_ISSUE','ITEM_ID','ITEM_NAME','UNIT_ID_WH','','UNIT_ID_EXTRA','','','','ACCOUNT_ID','ACCOUNT_ID_CONTRA','PR_DETAIL_ID','PR_DETAIL_NAME','EXPENSE_ID','EXPENSE_NAME','JOB_ID','JOB_NAME'].map((key, idx) => (
@@ -10785,6 +10902,7 @@ window.showConnectionLost = function() {
                                                             /> : null}
                                                         </th>
                                                     ))}
+                                                    {veThTimCotThem('warehouse')}
                                                 </HangCot>
                                             </thead>
                                             <tbody className="text-[11px] font-medium text-slate-700">
@@ -10980,7 +11098,8 @@ window.showConnectionLost = function() {
                                                     <SortableHeader field="SL_NHAP"       sort={btpSort} onSort={f => setBtpSort(s => cycleSort(s, f))} className="border-r w-24 px-2 bg-emerald-50/40" align="right">SL nhập</SortableHeader>
                                                     <SortableHeader field="CHENH_SL"      sort={btpSort} onSort={f => setBtpSort(s => cycleSort(s, f))} className="border-r w-24 px-2 bg-emerald-50/40" align="right">Chênh SL</SortableHeader>
                                                     <SortableHeader field="TRANG_THAI"    sort={btpSort} onSort={f => setBtpSort(s => cycleSort(s, f))} className="border-r w-44 px-2" align="left">Trạng thái</SortableHeader>
-                                                    <SortableHeader field="GHI_CHU"       sort={btpSort} onSort={f => setBtpSort(s => cycleSort(s, f))} className="w-96 px-3" align="left">Ghi chú</SortableHeader>
+                                                    <SortableHeader field="GHI_CHU"       sort={btpSort} onSort={f => setBtpSort(s => cycleSort(s, f))} className="border-r w-96 px-3" align="left">Ghi chú</SortableHeader>
+                                                    {veThCotThem('btp_reconcile')}
                                                 </HangCot>
                                                 <HangCot bang="btp_reconcile" className="bg-indigo-50/60 border-b-2 border-indigo-200">
                                                     {['','DON_VI','','SO_PHIEU_XUAT','KHO_XUAT','BTP','TEN_BTP','','','NVL','TEN_NVL','','','','SO_PHIEU_NHAP','','','','','',''].map((key, idx) => (
@@ -10993,6 +11112,7 @@ window.showConnectionLost = function() {
                                                             /> : null}
                                                         </th>
                                                     ))}
+                                                    {veThTimCotThem('btp_reconcile')}
                                                 </HangCot>
                                             </thead>
                                             <tbody className="text-[11px] font-medium text-slate-700">
@@ -11030,7 +11150,8 @@ window.showConnectionLost = function() {
                                                             <td className="border-r px-2 text-right font-mono">{num(row.SL_NHAP)}</td>
                                                             <td className={`border-r px-2 text-right font-mono ${row.CHENH_SL != null && Number(row.CHENH_SL) !== 0 ? 'font-black text-rose-600' : 'text-slate-300'}`}>{num(row.CHENH_SL)}</td>
                                                             <td className={`px-2 text-left font-black ${bad ? 'text-rose-600' : warn ? 'text-amber-600' : nogoc ? 'text-violet-600' : nnhap ? 'text-sky-600' : xnhap ? 'text-orange-600' : 'text-emerald-600'}`}>{row.TRANG_THAI}</td>
-                                                            <td className="px-3 text-left text-slate-500">{row.GHI_CHU || ''}</td>
+                                                            <td className="border-r px-3 text-left text-slate-500">{row.GHI_CHU || ''}</td>
+                                                            {veTdCotThem('btp_reconcile', row)}
                                                         </HangCot>
                                                     );
                                                 })}
@@ -11122,7 +11243,8 @@ window.showConnectionLost = function() {
                                                     <SortableHeader field="SL_NHAN"       sort={dcnbSort} onSort={f => setDcnbSort(s => cycleSort(s, f))} className="border-r w-28 px-2 bg-emerald-50/40" align="right">SL nhận</SortableHeader>
                                                     <SortableHeader field="CHENH_SL"      sort={dcnbSort} onSort={f => setDcnbSort(s => cycleSort(s, f))} className="border-r w-24 px-2 bg-emerald-50/40" align="right">Chênh SL</SortableHeader>
                                                     <SortableHeader field="TRANG_THAI"    sort={dcnbSort} onSort={f => setDcnbSort(s => cycleSort(s, f))} className="border-r w-44 px-2" align="left">Trạng thái</SortableHeader>
-                                                    <SortableHeader field="GHI_CHU"       sort={dcnbSort} onSort={f => setDcnbSort(s => cycleSort(s, f))} className="w-96 px-3" align="left">Ghi chú</SortableHeader>
+                                                    <SortableHeader field="GHI_CHU"       sort={dcnbSort} onSort={f => setDcnbSort(s => cycleSort(s, f))} className="border-r w-96 px-3" align="left">Ghi chú</SortableHeader>
+                                                    {veThCotThem('dcnb_reconcile')}
                                                 </HangCot>
                                                 <HangCot bang="dcnb_reconcile" className="bg-indigo-50/60 border-b-2 border-indigo-200">
                                                     {['','DON_VI_XUAT','','SO_PHIEU_XUAT','KHO_XUAT','MA_HANG','TEN_HANG','DVT','SL_XUAT','','DON_VI_NHAP','TEN_DV_NHAP','SO_PHIEU_NHAP','','KHO_NHAP','','','',''].map((key, idx) => (
@@ -11135,6 +11257,7 @@ window.showConnectionLost = function() {
                                                             /> : null}
                                                         </th>
                                                     ))}
+                                                    {veThTimCotThem('dcnb_reconcile')}
                                                 </HangCot>
                                             </thead>
                                             <tbody className="text-[11px] font-medium text-slate-700">
@@ -11170,7 +11293,8 @@ window.showConnectionLost = function() {
                                                             <td className="border-r px-2 text-right font-mono">{num(row.SL_NHAN)}</td>
                                                             <td className={`border-r px-2 text-right font-mono ${row.CHENH_SL != null && Number(row.CHENH_SL) !== 0 ? 'font-black text-rose-600' : 'text-slate-300'}`}>{num(row.CHENH_SL)}</td>
                                                             <td className={`px-2 text-left font-black ${bad ? 'text-rose-600' : warn ? 'text-amber-600' : nogoc ? 'text-violet-600' : nnhap ? 'text-sky-600' : xnhap ? 'text-orange-600' : 'text-emerald-600'}`}>{row.TRANG_THAI}</td>
-                                                            <td className="px-3 text-left text-slate-500">{row.GHI_CHU || ''}</td>
+                                                            <td className="border-r px-3 text-left text-slate-500">{row.GHI_CHU || ''}</td>
+                                                            {veTdCotThem('dcnb_reconcile', row)}
                                                         </HangCot>
                                                     );
                                                 })}
@@ -11262,7 +11386,8 @@ window.showConnectionLost = function() {
                                                     <SortableHeader field="THANH_TIEN" sort={poSort} onSort={f => setPoSort(s => cycleSort(s, f))} className="border-r w-32 px-2" align="right">Thành tiền</SortableHeader>
                                                     <SortableHeader field="TONG_TIEN"  sort={poSort} onSort={f => setPoSort(s => cycleSort(s, f))} className="border-r w-32 px-2" align="right">Tổng tiền</SortableHeader>
                                                     <SortableHeader field="TRANG_THAI" sort={poSort} onSort={f => setPoSort(s => cycleSort(s, f))} className="border-r w-32 px-2" align="left">Trạng thái</SortableHeader>
-                                                    <SortableHeader field="GHI_CHU"    sort={poSort} onSort={f => setPoSort(s => cycleSort(s, f))} className="w-80 px-3" align="left">Ghi chú</SortableHeader>
+                                                    <SortableHeader field="GHI_CHU"    sort={poSort} onSort={f => setPoSort(s => cycleSort(s, f))} className="border-r w-80 px-3" align="left">Ghi chú</SortableHeader>
+                                                    {veThCotThem('po_list')}
                                                 </HangCot>
                                                 <HangCot bang="po_list" className="bg-indigo-50/60 border-b-2 border-indigo-200">
                                                     {['','DON_VI','TEN_DON_VI','LOAI_PO','SO_PHIEU','','','KHO','MA_HANG','TEN_HANG','','','','','','',''].map((key, idx) => (
@@ -11275,6 +11400,7 @@ window.showConnectionLost = function() {
                                                             /> : null}
                                                         </th>
                                                     ))}
+                                                    {veThTimCotThem('po_list')}
                                                 </HangCot>
                                             </thead>
                                             <tbody className="text-[11px] font-medium text-slate-700">
@@ -11305,7 +11431,8 @@ window.showConnectionLost = function() {
                                                             <td className="border-r px-2 text-right font-mono">{num(row.THANH_TIEN, 0)}</td>
                                                             <td className="border-r px-2 text-right font-mono font-bold">{num(row.TONG_TIEN, 0)}</td>
                                                             <td className={`border-r px-2 text-left font-black ${huy ? 'text-rose-600' : cho ? 'text-amber-600' : nhan ? 'text-sky-600' : 'text-emerald-600'}`}>{row.TRANG_THAI}</td>
-                                                            <td className="px-3 text-left text-slate-500">{row.GHI_CHU || ''}</td>
+                                                            <td className="border-r px-3 text-left text-slate-500">{row.GHI_CHU || ''}</td>
+                                                            {veTdCotThem('po_list', row)}
                                                         </HangCot>
                                                     );
                                                 })}

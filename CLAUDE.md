@@ -2,6 +2,8 @@
 
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
+> 🆕 **02/11/2026 — Việc 54: "chọn thêm cột" ở 8 màn danh sách** (35 cột Đại Ca tick, mặc định ẩn trong hộp Cấu hình cột, máy chủ chỉ lấy cột
+> đang tick) — 🚀 **`v2.1.10` phát hành 02/11/2026** (Đại Ca chốt), đã kiểm DB thật + giao diện. Xem § 1.1 *Cột thêm* + `THAO_LUAN.md` + nhật ký 02/11.
 > 🆕 **22/10/2026 — Trang chủ: khối "Thao tác nhanh" (ghim màn hình) + hộp tìm màn hình Ctrl+F** (Ctrl+F lần 2 = tìm chữ của Chrome) ·
 > **Báo cáo TC: ô Đơn vị lọc danh sách theo tài khoản** (chỉ quản trị) — ✅ **`v2.1.9` ĐÃ PHÁT HÀNH 22/10/2026, `Latest`, EXE máy Đại Ca =
 > file CI** (thay trực tiếp). Xem § 1.1 *Trang chủ* + *Hàng điều kiện báo cáo* + nhật ký 22/10.
@@ -25,7 +27,7 @@
 > § 1.1 *Cột của 9 bảng* + nhật ký việc 50.
 > ✅ **v2.1.2 — ĐÃ PHÁT HÀNH 06/10/2026, `Latest`, EXE máy Đại Ca = file CI** (cột ghim phải hụt 4px khi cuộn chạm cuối). Mục nhật ký *06/10/2026 — Phát hành v2.1.2*.
 > ✅ **v2.1.1 — 05/10/2026** (BC017 + việc 50). Mục nhật ký *05/10/2026 (khuya) — Phát hành v2.1.1*.
-> Cập nhật gần nhất: **22/10/2026** · **Bản mới nhất: `v2.1.9`** · `v2.1.0` (= code `v2.0.9`, Đại Ca chốt lên 2.1 — xem dòng ✅ v2.0.9 ngay dưới) · v2.0.6: **việc 41** đồng hồ đếm ngược khi xuất Excel Nhật ký chung
+> Cập nhật gần nhất: **02/11/2026** · **Bản mới nhất: `v2.1.10`** · `v2.1.0` (= code `v2.0.9`, Đại Ca chốt lên 2.1 — xem dòng ✅ v2.0.9 ngay dưới) · v2.0.6: **việc 41** đồng hồ đếm ngược khi xuất Excel Nhật ký chung
 > (đo + thử giao diện trên DB thật; bắt được lỗi làm hỏng hẳn xuất Excel chi tiết — **Bẫy 31**) + **việc 42** đăng nhập nhanh không
 > còn đá người ra khi Google chỉ là chưa trả lời được. Mục nhật ký *29/09/2026 — Phát hành v2.0.6*. EXE trên máy Đại Ca = đúng file CI.
 > Mục *28/09/2026 (khuya)*: **Đại Ca giữ Google Sheet, không chuyển Supabase** — đọc lý do trước khi đề xuất lại.
@@ -346,6 +348,32 @@ là ô nào cũng bị ép xuống mức sàn 120px dù hàng còn thừa chỗ 
 Tiêu đề cột **không gãy dòng**. Nhớ `lr_cot_<tab>` = `{ an, rong, ghim: { trai, phai }, vua }`. **Excel xuất đúng cột đang hiện**: xuất 1 file đi
 qua máy chủ (tham số `an_cot` ⇒ `_loc_cot_xuat` trong `server.py`), chia sheet theo đơn vị lọc ở trình
 duyệt. Cột chỉ có trong file (Địa chỉ, MST… của Bán hàng) không ẩn được ⇒ luôn xuất.
+
+**Cột thêm — "chọn thêm cột" ở 8 màn danh sách** *(việc 54, Đại Ca chốt 02/11/2026 — bộ cột Đại Ca tick trên trang đo DB thật; Tồn kho thực tế
+không có)*: khai ở **`COT_THEM_DS`** — ⛔ **hai nơi phải khớp khoá + thứ tự**: `server.py` `(khoá, nhãn file, biểu thức SQL, kiểu, ten_tu)` ⇔
+`index.html` `[khoá, nhãn, độ rộng, kiểu]`. Khoá luôn **`CT_…`** (không đè trường có sẵn — ledger đã có `COMMENTS`).
+- Cột thêm **nối vào CUỐI `COT_BANG`** (`Object.keys(COT_THEM_DS).forEach…` ngay sau `COT_BANG`) ⇒ ẩn / ghim / vừa khít / kéo giãn / dòng tổng tự chạy.
+  Ô luôn vẽ đủ ở mọi hàng (`veThCotThem` / `veThTimCotThem` / `veTdCotThem`), ẩn bằng CSS. Thêm cột vào bảng gốc ⇒ đặt **trước** các lời gọi đó.
+- **Mặc định ẩn**, cột đang hiện lưu ở khoá MỚI **`them`** của `lr_cot_<tab>`. ⛔ **Đừng đưa cột thêm vào `an`** — máy đã lưu `an` cũ (không chứa
+  cột thêm) sẽ tự hiện hết. `anCot(tab)` = `an` ∪ (cột thêm ∉ `them`). Hộp Cấu hình cột: dòng nhóm `#them`, số trên nút chỉ đếm cột gốc bị ẩn.
+- Máy chủ **chỉ SELECT cột được xin** (tham số **`cot_them`**; `_cot_them` → `_cot_them_sql` nối `, biểu thức AS CT_…` vào cuối SELECT).
+  ⛔ **Không xin ⇒ câu SQL Y HỆT bản cũ** (đã so trùng khít cả 8 màn). Tên danh mục map ở Python (`_ban_do_cot_them`: nguồn đơn `DM_EXTRA_2`,
+  bộ phận `DM_EXTRA_1`, nhà cung cấp `DM_PR_DETAIL`), không JOIN thêm. File xuất: `_noi_cot_them_xuat` nối cột thêm vào CUỐI, chạy **trước**
+  `_loc_cot_xuat` — transform cũ nhận đúng phần raw gốc (transform ledger unpack cố định 34 phần tử).
+- Trình duyệt gắn `cot_them` qua **`datCotThem(query, tab)`** trong `buildXxxQuery` (dùng chung xem + đếm + 2 đường xuất). ⚠️ `loadPurchaseData`,
+  `loadWarehouseData` và `loadData` (ledger) **tự dựng tham số** ⇒ có lời gọi riêng — thêm màn mới thì kiểm hàm tải có qua `buildXxxQuery` không.
+- Tick cột thêm chưa có trong số liệu ⇒ tải lại sau 0,7s (`doiCotDs`, `henTaiCotDsRef`); bỏ tick ⇒ không gọi máy chủ.
+- Riêng: Chứng từ tiền dùng `VSEL` cục bộ (3 câu SQL, đừng sửa hằng `VOUCHER_SELECT`); PO chèn vào CTE `POL` sau `GHI_CHU` (`_po_cte_them`).
+- 2 màn đối chiếu: câu SQL đối chiếu **giữ y cũ**; cột thêm lấy từ đầu phiếu xuất bằng 1 câu nhẹ riêng (`_dau_phieu_xuat`: `SALE` theo loại phiếu
+  + kỳ — bộ lọc ngày của 2 màn này là NGÀY PHIẾU XUẤT) rồi ghép ở Python theo `PR_KEY_XUAT` (`_khoa_pk`); khoá thiếu tra theo khoá chính.
+  Giữ SQL y cũ là cố ý (đối chứng trùng khít được). ⚠️ **Đính chính 02/11 khuya:** lúc đầu em đổ cho truy vấn con làm câu xuất điều chuyển chậm
+  221s — **SAI**: câu xuất điều chuyển **KHÔNG có cột thêm** cũng mất **257,6s** cho 1 tuần (4.268 dòng, đo 02/11 23:20, SQL trùng khít bản cũ).
+- ⚠️ **Có từ trước, chưa sửa:** **Xuất Excel "Đối chiếu điều chuyển" rất chậm** — 1 tuần ~4 phút 15s (`stream_csv` / `export_all` chạy thẳng CTE
+  `DC`, KHÔNG qua bảng tạm `#dc` như màn danh sách). Danh sách cùng kỳ chỉ 6–9s. Muốn nhanh thì xuất cũng phải đổ `#dc` trước — chưa làm, chưa đo.
+- ⛔ Luật CSS tay kéo "cột cuối ĐANG HIỆN" (`cssCot`) phải viết `>th:nth-child(n):not(:first-child)::after` — thiếu `th` là thua độ ưu tiên luật
+  gốc, khung cuộn lại dư ~4px (đo 02/11/2026). Cột thêm ẩn đứng sau nên `:last-child` ở `<style>` không bắt được cột cuối đang hiện.
+- ⚠️ Có từ trước, không do cột thêm: `ORDER BY ngày, số phiếu` của các màn **không duy nhất** ⇒ thứ tự các dòng cùng phiếu có thể khác giữa 2
+  lần gọi (đo 02/11: Chứng từ kho bản cũ gọi 2 lần đã khác). Đối chứng trước/sau thì so **tập dòng**, đừng so thứ tự.
 
 ⚠️ Hàng lọc của 9 màn danh sách: cụm nút phải là **`shrink-0`** — bỏ đi là trên màn 1366px nút
 **Xuất Excel bị cắt 56–62px** (đo trên hàng lọc cũ; thanh lọc mới 25/09 đo lại: 9/9 màn một hàng ở 1366 và 1280px). Ô lọc ngoài của báo cáo có **mức sàn `min-w`** — bỏ đi là ô
@@ -695,6 +723,9 @@ Luật: **chép file `.bak` sang ổ vật lý khác hoặc cloud** — để c�
    cuối file. Trên cùng mọi file nhật ký luôn là **việc tồn đọng + nguyên tắc**, rồi mới tới các
    mục theo ngày xếp **mới → cũ**. Áp cho **mọi** file nhật ký của project, không riêng
    `NHAT_KY_CONG_VIEC.md`.
+10. **Việc Đại Ca giao cho Hades** (Antigravity): Claude Code viết đặc tả + duyệt + kiểm lại độc lập, Hades code. Đặc tả, kế hoạch,
+    lệnh duyệt ghi ở **[THAO_LUAN.md](THAO_LUAN.md)** (Append-Only, mới nhất ở trên). Việc 54 (02/11/2026) mở đầu theo cách này nhưng
+    Đại Ca đổi giữa chừng (gấp) ⇒ **Claude Code tự code** — Hades chỉ đọc đặc tả, không sửa file nào.
 
 ---
 

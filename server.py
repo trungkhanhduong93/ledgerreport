@@ -2049,6 +2049,235 @@ def _build_where(request_args):
 
     return " AND ".join(clauses), params, join_clauses, join_params
 
+# ===== CỘT THÊM 9 MÀN DANH SÁCH (việc 54 — Đại Ca chốt 02/11/2026) =====
+# Cột lấy THÊM từ iPOS, mặc định ẩn ở trình duyệt; trình duyệt xin qua tham số `cot_them` (khoá cách dấu phẩy) CHỈ những cột đang hiện.
+# ⛔ Không xin gì ⇒ câu SQL Y HỆT trước. Khoá = tên trường JSON / khoá cột file xuất, luôn 'CT_…'.
+# ⛔ Khoá + thứ tự phải khớp COT_THEM_DS trong index.html.
+# Mỗi cột: (khoá, nhãn file xuất, biểu thức SQL theo bí danh bảng chính của endpoint | None, kiểu 'chu'|'so', ten_tu)
+#   ten_tu = (khoá cột mã, tên bản đồ) ⇒ cột TÊN điền ở Python từ danh mục; cột mã được SELECT kèm dù không ai xin.
+COT_THEM_DS = {
+    'ledger': [
+        ('CT_COMMENTS',     'Ghi chú',       'L.COMMENTS',   'chu', None),
+        ('CT_QUANTITY',     'Số lượng',      'L.QUANTITY',   'so',  None),
+        ('CT_EXTRA_ID_2',   'Mã nguồn đơn',  'L.EXTRA_ID_2', 'chu', None),
+        ('CT_EXTRA_NAME_2', 'Tên nguồn đơn', None,           'chu', ('CT_EXTRA_ID_2', 'extra2')),
+    ],
+    # Chứng từ tiền: đầu phiếu VOUCHER (H) — mọi dòng chi tiết của một phiếu mang cùng giá trị.
+    'voucher': [
+        ('CT_COMMENTS',     'Ghi chú',             'H.COMMENTS',     'chu', None),
+        ('CT_USER_ID',      'Tài khoản lập phiếu', 'H.USER_ID',      'chu', None),
+        ('CT_ORIG_TRAN_ID', 'Nguồn nhập phiếu',    'H.ORIG_TRAN_ID', 'chu', None),
+        ('CT_ORIG_TRAN_NO', 'Số chứng từ gốc',     'H.ORIG_TRAN_NO', 'chu', None),
+        ('CT_EXTRA_ID_1',   'Mã bộ phận',          'H.EXTRA_ID_1',   'chu', None),
+        ('CT_EXTRA_NAME_1', 'Tên bộ phận',         None,             'chu', ('CT_EXTRA_ID_1', 'extra1')),
+        ('CT_EXTRA_ID_2',   'Mã nguồn đơn',        'H.EXTRA_ID_2',   'chu', None),
+        ('CT_EXTRA_NAME_2', 'Tên nguồn đơn',       None,             'chu', ('CT_EXTRA_ID_2', 'extra2')),
+    ],
+    # Bán hàng: SALE_VIEW (S). Nhóm / Loại hàng cùng tên cột BC017; Chiết khấu / Hoa hồng / Voucher cùng cột tiền BC015.
+    'sale': [
+        ('CT_PRODUCT_ID',            'Mã sản phẩm',    'S.PRODUCT_ID',            'chu',  None),
+        ('CT_PRODUCT_NAME',          'Tên sản phẩm',   'S.PRODUCT_NAME',          'chu',  None),
+        ('CT_ITEM_CLASS_ID',         'Nhóm hàng',      'S.ITEM_CLASS_ID',         'chu',  None),
+        ('CT_ITEM_CLASS1_ID',        'Loại hàng',      'S.ITEM_CLASS1_ID',        'chu',  None),
+        ('CT_JOB_CLASS_ID',          'Nhóm công việc', 'S.JOB_CLASS_ID',          'chu',  None),
+        ('CT_REAL_DISCOUNT2_AMOUNT', 'Chiết khấu',     'S.REAL_DISCOUNT2_AMOUNT', 'tien', None),
+        ('CT_EXPORT_TAX_AMOUNT',     'Hoa hồng',       'S.EXPORT_TAX_AMOUNT',     'tien', None),
+        ('CT_LUX_TAX_AMOUNT',        'Voucher',        'S.LUX_TAX_AMOUNT',        'tien', None),
+        ('CT_WORKSTATION_ID',        'Mã POS',         'S.WORKSTATION_ID',        'chu',  None),
+    ],
+    # Mua hàng: PURCHASE_VIEW (P).
+    'purchase': [
+        ('CT_AMOUNT',        'Thành tiền',       'P.AMOUNT',        'tien', None),
+        ('CT_COMMENTS',      'Ghi chú',          'P.COMMENTS',      'chu',  None),
+        ('CT_ACCOUNT_ID',    'TK công nợ',       'P.ACCOUNT_ID',    'chu',  None),
+        ('CT_ITEM_CLASS_ID', 'Nhóm hàng',        'P.ITEM_CLASS_ID', 'chu',  None),
+        ('CT_ORIG_TRAN_NO',  'Số chứng từ gốc',  'P.ORIG_TRAN_NO',  'chu',  None),
+        ('CT_COG_AMOUNT',    'Giá trị nhập kho', 'P.COG_AMOUNT',    'tien', None),
+    ],
+    # Danh sách PO: biểu thức theo PO (đầu phiếu) / D (PO_DETAIL) BÊN TRONG CTE POL — xem _po_cte_them.
+    'po_list': [
+        ('CT_PR_DETAIL_ID',   'Mã nhà cung cấp',     'D.PR_DETAIL_ID',    'chu',  None),
+        ('CT_PR_DETAIL_NAME', 'Tên nhà cung cấp',    None,                'chu',  ('CT_PR_DETAIL_ID', 'pr_detail')),
+        ('CT_VAT_TAX_RATE',   'Thuế suất',           'D.VAT_TAX_RATE',    'so',   None),
+        ('CT_VAT_TAX_AMOUNT', 'Tiền thuế',           'D.VAT_TAX_AMOUNT',  'tien', None),
+        ('CT_USER_ID',        'Tài khoản lập phiếu', 'PO.USER_ID',        'chu',  None),
+        ('CT_CONTACT_PERSON', 'Người liên hệ',       'PO.CONTACT_PERSON', 'chu',  None),
+    ],
+    # Chứng từ kho: WAREHOUSE_VIEW (W). JOB_QTY lấy thẳng trên dòng kho (Đại Ca chốt 02/11: không nối về phiếu bán).
+    'warehouse': [
+        ('CT_PRODUCT_ID',    'Mã sản phẩm',       'W.PRODUCT_ID',    'chu', None),
+        ('CT_PRODUCT_NAME',  'Tên sản phẩm',      'W.PRODUCT_NAME',  'chu', None),
+        ('CT_COMMENTS',      'Ghi chú',           'W.COMMENTS',      'chu', None),
+        ('CT_ITEM_CLASS_ID', 'Nhóm hàng',         'W.ITEM_CLASS_ID', 'chu', None),
+        ('CT_JOB_QTY',       'Số lượng sản phẩm', 'W.JOB_QTY',       'so',  None),
+    ],
+    # 2 màn đối chiếu: lấy từ ĐẦU PHIẾU XUẤT (dbo.SALE) theo PR_KEY_XUAT (= SALE.PR_KEY, cột gốc của DC). ⛔ KHÔNG nối truy vấn con vào
+    # câu SQL đối chiếu: đo 02/11/2026 câu xuất điều chuyển 1 tuần có truy vấn con chạy 221s CPU / 17 triệu lượt đọc (kế hoạch đổi hẳn).
+    # Nay SQL chính y cũ; đầu phiếu đọc riêng 1 câu nhẹ (_dau_phieu_xuat) rồi ghép ở Python. Dòng mồ côi (không có phiếu xuất) ⇒ trống.
+    'btp_reconcile': [
+        ('CT_USER_ID_XUAT', 'Tài khoản lập phiếu xuất', None, 'chu', ('PR_KEY_XUAT', 'xuat:USER_ID')),
+    ],
+    'dcnb_reconcile': [
+        ('CT_SO_TRAN_NO',    'Số đơn đặt hàng',    None, 'chu', ('PR_KEY_XUAT', 'xuat:SO_TRAN_NO')),
+        ('CT_COMMENTS_XUAT', 'Ghi chú phiếu xuất', None, 'chu', ('PR_KEY_XUAT', 'xuat:COMMENTS')),
+    ],
+}
+
+
+def _cot_them(tab, args):
+    """Các cột thêm được xin, theo thứ tự khai báo. Khoá lạ bị bỏ qua."""
+    xin = {k.strip() for k in (args.get('cot_them') or '').split(',') if k.strip()}
+    return [c for c in COT_THEM_DS.get(tab, []) if c[0] in xin]
+
+
+def _cot_them_sql(tab, ds):
+    """(đoạn ', biểu thức AS khoá, …' nối vào cuối danh sách SELECT, [khoá theo đúng thứ tự đó]).
+    ds rỗng ⇒ ('', []) ⇒ câu SQL không đổi."""
+    chon, khoa = [], set()
+    for k, _n, bt, _kieu, ten_tu in ds:
+        if bt and k not in khoa:
+            chon.append((k, bt)); khoa.add(k)
+        if ten_tu and ten_tu[0] not in khoa:
+            goc = next((c for c in COT_THEM_DS[tab] if c[0] == ten_tu[0]), None)
+            if goc:   # None ⇒ cột nguồn là cột gốc có sẵn trong SELECT (vd PR_KEY_XUAT của 2 màn đối chiếu)
+                chon.append((goc[0], goc[2])); khoa.add(goc[0])
+    return ''.join(f', {bt} AS {k}' for k, bt in chon), [k for k, _ in chon]
+
+
+def _ban_do_cot_them(ds, tab=None, args=None):
+    """{tên bản đồ: {mã: tên}} — chỉ nạp bản đồ mà ds cần (gọi MỘT lần mỗi request, không gọi trong vòng lặp).
+    Bản đồ 'xuat:CỘT' (2 màn đối chiếu) = {PR_KEY phiếu xuất: giá trị} đọc từ đầu phiếu SALE trong kỳ (cần tab + args)."""
+    can = {c[4][1] for c in ds if c[4]}
+    bd = {}
+    cot_xuat = [x.split(':', 1)[1] for x in can if x.startswith('xuat:')]
+    if cot_xuat and tab and args is not None:
+        bd.update(_dau_phieu_xuat(tab, args, cot_xuat))
+    if 'extra2' in can:
+        bd['extra2'] = _sale_dim_info().get('extra2', {})
+    if 'extra1' in can:
+        bd['extra1'] = _dm_ten_cot_them("SELECT CAST(EXTRA_ID_1 AS NVARCHAR(100)), EXTRA_NAME_1 FROM dbo.DM_EXTRA_1 WITH (NOLOCK)")
+    if 'pr_detail' in can:
+        bd['pr_detail'] = _dm_ten_cot_them("SELECT CAST(PR_DETAIL_ID AS NVARCHAR(100)), PR_DETAIL_NAME FROM dbo.DM_PR_DETAIL WITH (NOLOCK)")
+    return bd
+
+
+def _dm_ten_cot_them(sql):
+    """{mã: tên} của một danh mục (gọi lúc đã đọc xong kết quả chính). Lỗi ⇒ {} — cột tên để trống, không làm hỏng danh sách."""
+    try:
+        cur = get_connection().cursor()
+        cur.execute(sql)
+        return {(str(a) if a is not None else '').strip(): (b or '').strip() for a, b in cur.fetchall()}
+    except Exception:
+        return {}
+
+
+def _gan_cot_them_ds(rows, ds, tab=None, args=None):
+    """_gan_cot_them cho cả danh sách dòng dict; ds rỗng ⇒ trả nguyên. Khoá phiếu xuất không thấy trong kỳ ⇒ tra thêm theo PR_KEY."""
+    if ds:
+        bd = _ban_do_cot_them(ds, tab, args)
+        cot_xuat = [k.split(':', 1)[1] for k in bd if k.startswith('xuat:')]
+        if cot_xuat:
+            thieu = {_khoa_pk(r.get('PR_KEY_XUAT')) for r in rows} - set(bd['xuat:' + cot_xuat[0]]) - {''}
+            if thieu:
+                for k, v in _dau_phieu_theo_khoa(thieu, cot_xuat).items():
+                    bd.setdefault(k, {}).update(v)
+        for r in rows:
+            _gan_cot_them(r, ds, bd)
+    return rows
+
+
+# PR_KEY phiếu xuất về chuỗi số nguyên — dòng đã định dạng giữ str(Decimal) ('2835516.0000'), dòng xuất file giữ Decimal.
+def _khoa_pk(v):
+    if v is None or v == '':
+        return ''
+    try:
+        return str(int(float(v)))
+    except (TypeError, ValueError):
+        return str(v).strip()
+
+
+_LOAI_PHIEU_XUAT = {'btp_reconcile': 'XKHOSXBTP', 'dcnb_reconcile': 'XDCNB'}
+
+
+def _dau_phieu_xuat(tab, args, cot):
+    """{'xuat:CỘT': {PR_KEY: giá trị}} — đầu phiếu xuất của màn đối chiếu trong kỳ (lọc theo NGÀY PHIẾU XUẤT như _build_*_where).
+    Một câu nhẹ (chỉ mục TRAN_ID / TRAN_DATE), không đụng câu đối chiếu. Lỗi ⇒ {} (cột thêm để trống, danh sách vẫn chạy)."""
+    try:
+        tu = datetime.strptime(args.get('from_date', '01/01/2026'), '%d/%m/%Y').strftime('%Y%m%d')
+        den = datetime.strptime(args.get('to_date', '31/12/2026'), '%d/%m/%Y').strftime('%Y%m%d')
+        cur = get_connection().cursor()
+        cur.execute(f"SELECT PR_KEY, {', '.join(cot)} FROM dbo.SALE WITH (NOLOCK) WHERE TRAN_ID = ? AND TRAN_DATE >= ? AND TRAN_DATE <= ?",
+                    [_LOAI_PHIEU_XUAT[tab], tu, den])
+        bd = {'xuat:' + c: {} for c in cot}
+        for row in cur.fetchall():
+            k = _khoa_pk(row[0])
+            for i, c in enumerate(cot):
+                bd['xuat:' + c][k] = row[i + 1]
+        return bd
+    except Exception:
+        return {}
+
+
+def _dau_phieu_theo_khoa(khoa, cot):
+    """Như _dau_phieu_xuat nhưng tra thẳng theo PR_KEY (khoá chính cụm của SALE), mỗi lô 500 khoá."""
+    bd = {'xuat:' + c: {} for c in cot}
+    try:
+        cur = get_connection().cursor()
+        ds = [int(k) for k in khoa if k.isdigit()]
+        for i in range(0, len(ds), 500):
+            lo = ds[i:i + 500]
+            cur.execute(f"SELECT PR_KEY, {', '.join(cot)} FROM dbo.SALE WITH (NOLOCK) WHERE PR_KEY IN ({', '.join('?' * len(lo))})", lo)
+            for row in cur.fetchall():
+                for j, c in enumerate(cot):
+                    bd['xuat:' + c][_khoa_pk(row[0])] = row[j + 1]
+    except Exception:
+        pass
+    return bd
+
+
+def _po_cte_them(cte, sql_them):
+    """Chèn cột thêm vào CTE POL của Danh sách PO (ngay sau GHI_CHU). sql_them rỗng ⇒ CTE y cũ."""
+    if not sql_them:
+        return cte
+    neo = '    GHI_CHU       = PO.COMMENTS\n'
+    assert cte.count(neo) == 1, 'CTE POL đổi cấu trúc — sửa _po_cte_them'
+    return cte.replace(neo, '    GHI_CHU       = PO.COMMENTS' + sql_them + '\n')
+
+
+def _gan_cot_them(row, ds, bd):
+    """Chuẩn hoá giá trị cột thêm trong một dòng dict (sửa tại chỗ): tên lấy từ bản đồ, số → float, chữ → strip, None → ''."""
+    for k, _n, _bt, kieu, ten_tu in ds:
+        if ten_tu:
+            goc = row.get(ten_tu[0])
+            khoa = _khoa_pk(goc) if ten_tu[1].startswith('xuat:') else str(goc or '').strip()
+            v = bd.get(ten_tu[1], {}).get(khoa, '')
+            row[k] = v.strip() if isinstance(v, str) else ('' if v is None else v)
+            continue
+        v = row.get(k)
+        if v is None:
+            row[k] = ''
+        elif kieu in ('so', 'tien'):
+            row[k] = float(v)
+        elif isinstance(v, str):
+            row[k] = v.strip()
+    return row
+
+
+def _noi_cot_them_xuat(cols, transform, ds, alias, tab=None, args=None):
+    """File xuất: nối các cột thêm được xin vào CUỐI (cols + [(khoá, nhãn)]). Cột thêm đứng cuối câu SELECT (alias)
+    ⇒ transform cũ nhận đúng phần raw gốc (transform cũ unpack cố định số phần tử). ds rỗng ⇒ trả nguyên."""
+    if not ds:
+        return cols, transform
+    n, bd = len(alias), _ban_do_cot_them(ds, tab, args)
+
+    def tf(raw, c):
+        raw = list(raw)
+        row = transform(raw[:len(raw) - n], c)
+        them = _gan_cot_them(dict(zip(c, raw)), ds, bd)   # theo tên cột SQL: cột thêm (cuối) + cột gốc (vd PR_KEY_XUAT)
+        return list(row) + [them[k] for k, *_ in ds]
+    return list(cols) + [(k, nhan) for k, nhan, *_ in ds], tf
+
+
 @app.route("/api/ledger")
 @with_db_lock
 def get_ledger():
@@ -2078,6 +2307,10 @@ def get_ledger():
             L.EXPENSE_ID, L.ORGANIZATION_ID, L.BANK_ID, L.BANK_ID_CONTRA,
             L.EXPENSE_ID_CONTRA, L.PR_DETAIL_ID_CONTRA, L.JOB_ID_CONTRA, L.ITEM_ID_CONTRA
         """
+        # Cột thêm (việc 54): chỉ cột được xin; không xin ⇒ BASE_COLS y cũ.
+        ds_them = _cot_them('ledger', request.args)
+        sql_them, _alias_them = _cot_them_sql('ledger', ds_them)
+        BASE_COLS += sql_them
 
         if join_clauses:
             # Có search trên cột tên → buộc phải JOIN các bảng dimension liên quan
@@ -2267,6 +2500,7 @@ def get_ledger():
         def _strip(v):
             return v.strip() if isinstance(v, str) else (v or '')
 
+        bd_them = _ban_do_cot_them(ds_them)
         rows = []
         rows_append = rows.append
         for raw in raw_rows:
@@ -2301,6 +2535,7 @@ def get_ledger():
                 r['BANK_NAME']         = bank_map.get(_strip(raw[idx_bank]), '')
             if not has_bank_name_contra and idx_bank_contra != -1:
                 r['BANK_NAME_CONTRA']  = bank_map.get(_strip(raw[idx_bank_contra]), '')
+            if ds_them: _gan_cot_them(r, ds_them, bd_them)
             rows_append(r)
 
         return jsonify({
@@ -2479,6 +2714,9 @@ def get_purchase():
             LEFT JOIN dbo.DM_EXPENSE      E WITH (NOLOCK) ON P.EXPENSE_ID      = E.EXPENSE_ID
         """
         SELECT_LIST = f"{col_list}, O.ORGANIZATION_NAME AS ORGANIZATION_NAME, E.EXPENSE_NAME AS EXPENSE_NAME"
+        ds_them = _cot_them('purchase', request.args)   # cột thêm (việc 54) — không xin ⇒ SQL y cũ
+        sql_them, alias_them = _cot_them_sql('purchase', ds_them)
+        SELECT_LIST += sql_them
 
         conn   = get_connection()
         cursor = conn.cursor()
@@ -2561,6 +2799,7 @@ def get_purchase():
                     try: r[nk] = float(v)
                     except: pass
             rows.append(r)
+        _gan_cot_them_ds(rows, ds_them)
 
         return jsonify({
             "status": "ok",
@@ -2690,6 +2929,9 @@ def get_warehouse():
         select_parts.append("O.ORGANIZATION_NAME AS ORGANIZATION_NAME")
         select_parts.append("WI.WAREHOUSE_NAME AS WAREHOUSE_NAME_ISSUE")
         SELECT_LIST = ", ".join(select_parts)
+        ds_them = _cot_them('warehouse', request.args)   # cột thêm (việc 54) — không xin ⇒ SQL y cũ
+        sql_them, alias_them = _cot_them_sql('warehouse', ds_them)
+        SELECT_LIST += sql_them
 
         JOIN_SQL = """
             FROM dbo.WAREHOUSE_VIEW W WITH (NOLOCK)
@@ -2766,6 +3008,7 @@ def get_warehouse():
                     try: r[nk] = float(v)
                     except: pass
             rows.append(r)
+        _gan_cot_them_ds(rows, ds_them)
 
         return jsonify({
             "status": "ok",
@@ -3489,6 +3732,9 @@ def get_ledger_stream_csv():
             L.BANK_ID, B.BANK_NAME,
             L.BANK_ID_CONTRA, B2.BANK_NAME AS BANK_NAME_CONTRA
         """
+        ds_them = _cot_them('ledger', args)   # cột thêm (việc 54) — đứng cuối SELECT, xem _noi_cot_them_xuat
+        sql_them, alias_them = _cot_them_sql('ledger', ds_them)
+        BASE_COLS += sql_them
         joins = [
             "FROM dbo.LEDGER L WITH (NOLOCK)",
             "LEFT JOIN dbo.SYS_TRAN       T   WITH (NOLOCK) ON L.TRAN_ID             = T.TRAN_ID",
@@ -3540,7 +3786,8 @@ def get_ledger_stream_csv():
                 bank_id_contra or '', bank_name_contra or '',
             ]
 
-        headers, transform = _loc_cot_xuat(LEDGER_CSV_COLS, transform, args)   # bỏ cột đang ẩn (25/09/2026)
+        cols_xuat, transform = _noi_cot_them_xuat(LEDGER_CSV_COLS, transform, ds_them, alias_them)
+        headers, transform = _loc_cot_xuat(cols_xuat, transform, args)   # bỏ cột đang ẩn (25/09/2026)
         fname   = f"ChungTuTongHop_{args.get('from_date','').replace('/','')}-{args.get('to_date','').replace('/','')}.{args.get('format', 'csv')}"
         job_id  = _start_export_job(fname, headers, sql, params + join_params, transform, total_estimate)
         return jsonify({"status": "ok", "job_id": job_id, "filename": fname})
@@ -3603,13 +3850,17 @@ def get_purchase_stream_csv():
             LEFT JOIN dbo.DM_EXPENSE      E WITH (NOLOCK) ON P.EXPENSE_ID      = E.EXPENSE_ID
         """
         SELECT_LIST = f"{col_list}, O.ORGANIZATION_NAME AS ORGANIZATION_NAME, E.EXPENSE_NAME AS EXPENSE_NAME"
+        ds_them = _cot_them('purchase', args)   # cột thêm (việc 54) — không xin ⇒ SQL y cũ
+        sql_them, alias_them = _cot_them_sql('purchase', ds_them)
+        SELECT_LIST += sql_them
         sql = f"SELECT {SELECT_LIST} {JOIN_SQL} WHERE {where_sql} ORDER BY {order_by_sql}"
 
         def transform(raw, sql_cols):
             d = dict(zip(sql_cols, raw))
             return [d.get(key) for key, _ in PURCHASE_CSV_COLS]
 
-        headers, transform = _loc_cot_xuat(PURCHASE_CSV_COLS, transform, args)   # bỏ cột đang ẩn (25/09/2026)
+        cols_xuat, transform = _noi_cot_them_xuat(PURCHASE_CSV_COLS, transform, ds_them, alias_them)
+        headers, transform = _loc_cot_xuat(cols_xuat, transform, args)   # bỏ cột đang ẩn (25/09/2026)
         fname   = f"PhieuNhapKho_{args.get('from_date','').replace('/','')}-{args.get('to_date','').replace('/','')}.{args.get('format', 'csv')}"
         job_id  = _start_export_job(fname, headers, sql, params, transform, total_estimate)
         return jsonify({"status": "ok", "job_id": job_id, "filename": fname})
@@ -3669,6 +3920,9 @@ def get_warehouse_stream_csv():
         select_parts.append("O.ORGANIZATION_NAME AS ORGANIZATION_NAME")
         select_parts.append("WI.WAREHOUSE_NAME AS WAREHOUSE_NAME_ISSUE")
         SELECT_LIST = ", ".join(select_parts)
+        ds_them = _cot_them('warehouse', args)   # cột thêm (việc 54) — không xin ⇒ SQL y cũ
+        sql_them, alias_them = _cot_them_sql('warehouse', ds_them)
+        SELECT_LIST += sql_them
         JOIN_SQL = """
             FROM dbo.WAREHOUSE_VIEW W WITH (NOLOCK)
             LEFT JOIN dbo.DM_ORGANIZATION O  WITH (NOLOCK) ON W.ORGANIZATION_ID    = O.ORGANIZATION_ID
@@ -3680,7 +3934,8 @@ def get_warehouse_stream_csv():
             d = dict(zip(sql_cols, raw))
             return [d.get(key) for key, _ in WAREHOUSE_CSV_COLS]
 
-        headers, transform = _loc_cot_xuat(WAREHOUSE_CSV_COLS, transform, args)   # bỏ cột đang ẩn (25/09/2026)
+        cols_xuat, transform = _noi_cot_them_xuat(WAREHOUSE_CSV_COLS, transform, ds_them, alias_them)
+        headers, transform = _loc_cot_xuat(cols_xuat, transform, args)   # bỏ cột đang ẩn (25/09/2026)
         fname   = f"ChungTuKho_{args.get('from_date','').replace('/','')}-{args.get('to_date','').replace('/','')}.{args.get('format', 'csv')}"
         job_id  = _start_export_job(fname, headers, sql, params, transform, total_estimate)
         return jsonify({"status": "ok", "job_id": job_id, "filename": fname})
@@ -4354,6 +4609,8 @@ def get_btp_reconcile():
         skip_count  = page > 1 and known_total is not None and not export_all
 
         cte, where_sql, params = _build_btp_where(request.args)
+        ds_them = _cot_them('btp_reconcile', request.args)   # cột thêm (việc 54) — không xin ⇒ SQL y cũ
+        sql_them, alias_them = _cot_them_sql('btp_reconcile', ds_them)
         order_by_sql = _resolve_order_by(
             request.args, BTPDC_SORT_WHITELIST,
             "DON_VI, NGAY_XUAT, SO_PHIEU_XUAT, BTP, NVL"
@@ -4364,7 +4621,7 @@ def get_btp_reconcile():
 
         summary = None
         if export_all:
-            cursor.execute(f"{cte} SELECT {_BTPDC_SELECT} FROM DC WHERE {where_sql} ORDER BY {order_by_sql}", params)
+            cursor.execute(f"{cte} SELECT {_BTPDC_SELECT}{sql_them} FROM DC WHERE {where_sql} ORDER BY {order_by_sql}", params)
             columns  = [c[0] for c in cursor.description]
             raw_rows = cursor.fetchall()
             total_rows = len(raw_rows)
@@ -4381,7 +4638,7 @@ def get_btp_reconcile():
             cursor.execute(f"""
                 {cte}
                 SELECT * FROM (
-                    SELECT {_BTPDC_SELECT},
+                    SELECT {_BTPDC_SELECT}{sql_them},
                            ROW_NUMBER() OVER (ORDER BY {order_by_sql}) AS RowNum
                     FROM DC WHERE {where_sql}
                 ) AS T WHERE RowNum > ? AND RowNum <= ?
@@ -4391,7 +4648,7 @@ def get_btp_reconcile():
 
         return jsonify({
             "status": "ok",
-            "data": _btp_fmt_rows(columns, raw_rows),
+            "data": _gan_cot_them_ds(_btp_fmt_rows(columns, raw_rows), ds_them, 'btp_reconcile', request.args),
             "summary": summary,
             "pagination": {
                 "total_rows": total_rows,
@@ -4429,10 +4686,12 @@ def get_btp_reconcile_stream_csv():
         args = request.args
         total_estimate = int(args.get("total", 0) or 0)
         cte, where_sql, params = _build_btp_where(args)
+        ds_them = _cot_them('btp_reconcile', args)   # cột thêm (việc 54) — không xin ⇒ SQL y cũ
+        sql_them, alias_them = _cot_them_sql('btp_reconcile', ds_them)
         order_by_sql = _resolve_order_by(
             args, BTPDC_SORT_WHITELIST, "DON_VI, NGAY_XUAT, SO_PHIEU_XUAT, BTP, NVL"
         )
-        sql = f"{cte} SELECT {_BTPDC_SELECT} FROM DC WHERE {where_sql} ORDER BY {order_by_sql}"
+        sql = f"{cte} SELECT {_BTPDC_SELECT}{sql_them} FROM DC WHERE {where_sql} ORDER BY {order_by_sql}"
 
         def transform(raw, sql_cols):
             d = dict(zip(sql_cols, raw))
@@ -4444,7 +4703,8 @@ def get_btp_reconcile_stream_csv():
                 out.append(v)
             return out
 
-        headers, transform = _loc_cot_xuat(BTPDC_CSV_COLS, transform, args)   # bỏ cột đang ẩn (25/09/2026)
+        cols_xuat, transform = _noi_cot_them_xuat(BTPDC_CSV_COLS, transform, ds_them, alias_them, 'btp_reconcile', args)
+        headers, transform = _loc_cot_xuat(cols_xuat, transform, args)   # bỏ cột đang ẩn (25/09/2026)
         fname   = f"DoiChieuXuatSX_NhapTP_{args.get('from_date','').replace('/','')}-{args.get('to_date','').replace('/','')}.{args.get('format', 'csv')}"
         job_id  = _start_export_job(fname, headers, sql, params, transform, total_estimate)
         return jsonify({"status": "ok", "job_id": job_id, "filename": fname})
@@ -4997,6 +5257,8 @@ def get_dcnb_reconcile():
         skip_count  = page > 1 and known_total is not None and not export_all
 
         cte, where_sql, params = _build_dcnb_where(request.args)
+        ds_them = _cot_them('dcnb_reconcile', request.args)   # cột thêm (việc 54) — không xin ⇒ SQL y cũ
+        sql_them, alias_them = _cot_them_sql('dcnb_reconcile', ds_them)
         order_by_sql = _resolve_order_by(
             request.args, DCNB_SORT_WHITELIST,
             "DON_VI_XUAT, NGAY_XUAT, SO_PHIEU_XUAT, MA_HANG"
@@ -5007,7 +5269,7 @@ def get_dcnb_reconcile():
 
         summary = None
         if export_all:
-            cursor.execute(f"{cte} SELECT {_DCNB_SELECT} FROM DC WHERE {where_sql} ORDER BY {order_by_sql}", params)
+            cursor.execute(f"{cte} SELECT {_DCNB_SELECT}{sql_them} FROM DC WHERE {where_sql} ORDER BY {order_by_sql}", params)
             columns  = [c[0] for c in cursor.description]
             raw_rows = cursor.fetchall()
             total_rows = len(raw_rows)
@@ -5030,7 +5292,7 @@ def get_dcnb_reconcile():
             offset = (page - 1) * page_size
 
             # Các câu cách nhau bằng ";" nên nối bằng dấu cách là đủ.
-            phan = [f"{cte} SELECT {_DCNB_SELECT} INTO #dc FROM DC WHERE {w_tt};"]
+            phan = [f"{cte} SELECT {_DCNB_SELECT}{sql_them} INTO #dc FROM DC WHERE {w_tt};"]
             ps = list(p_tt)
             if not skip_count:
                 phan.append(f"{_DCNB_SUMMARY_COLS} FROM #dc GROUP BY TRANG_THAI;")
@@ -5052,7 +5314,7 @@ def get_dcnb_reconcile():
 
         return jsonify({
             "status": "ok",
-            "data": _dcnb_fmt_rows(columns, raw_rows),
+            "data": _gan_cot_them_ds(_dcnb_fmt_rows(columns, raw_rows), ds_them, 'dcnb_reconcile', request.args),
             "summary": summary,
             "pagination": {
                 "total_rows": total_rows,
@@ -5090,10 +5352,12 @@ def get_dcnb_reconcile_stream_csv():
         args = request.args
         total_estimate = int(args.get("total", 0) or 0)
         cte, where_sql, params = _build_dcnb_where(args)
+        ds_them = _cot_them('dcnb_reconcile', args)   # cột thêm (việc 54) — không xin ⇒ SQL y cũ
+        sql_them, alias_them = _cot_them_sql('dcnb_reconcile', ds_them)
         order_by_sql = _resolve_order_by(
             args, DCNB_SORT_WHITELIST, "DON_VI_XUAT, NGAY_XUAT, SO_PHIEU_XUAT, MA_HANG"
         )
-        sql = f"{cte} SELECT {_DCNB_SELECT} FROM DC WHERE {where_sql} ORDER BY {order_by_sql}"
+        sql = f"{cte} SELECT {_DCNB_SELECT}{sql_them} FROM DC WHERE {where_sql} ORDER BY {order_by_sql}"
 
         def transform(raw, sql_cols):
             d = dict(zip(sql_cols, raw))
@@ -5105,7 +5369,8 @@ def get_dcnb_reconcile_stream_csv():
                 out.append(v)
             return out
 
-        headers, transform = _loc_cot_xuat(DCNB_CSV_COLS, transform, args)   # bỏ cột đang ẩn (25/09/2026)
+        cols_xuat, transform = _noi_cot_them_xuat(DCNB_CSV_COLS, transform, ds_them, alias_them, 'dcnb_reconcile', args)
+        headers, transform = _loc_cot_xuat(cols_xuat, transform, args)   # bỏ cột đang ẩn (25/09/2026)
         fname   = f"DoiChieuDieuChuyenNoiBo_{args.get('from_date','').replace('/','')}-{args.get('to_date','').replace('/','')}.{args.get('format', 'csv')}"
         job_id  = _start_export_job(fname, headers, sql, params, transform, total_estimate)
         return jsonify({"status": "ok", "job_id": job_id, "filename": fname})
@@ -5322,6 +5587,10 @@ def get_po_list():
         skip_count  = page > 1 and known_total is not None and not export_all
 
         cte, params = _build_polist_where(request.args)
+        ds_them = _cot_them('po_list', request.args)   # cột thêm (việc 54) — không xin ⇒ SQL y cũ
+        sql_them, alias_them = _cot_them_sql('po_list', ds_them)
+        cte = _po_cte_them(cte, sql_them)
+        PSEL = _POLIST_SELECT + ''.join(f', {k}' for k in alias_them)
         order_by_sql = _resolve_order_by(
             request.args, POLIST_SORT_WHITELIST, "DON_VI, NGAY, SO_PHIEU, MA_HANG"
         )
@@ -5331,7 +5600,7 @@ def get_po_list():
 
         summary = None
         if export_all:
-            cursor.execute(f"{cte} SELECT {_POLIST_SELECT} FROM POL ORDER BY {order_by_sql}", params)
+            cursor.execute(f"{cte} SELECT {PSEL} FROM POL ORDER BY {order_by_sql}", params)
             columns  = [c[0] for c in cursor.description]
             raw_rows = cursor.fetchall()
             total_rows = len(raw_rows)
@@ -5348,7 +5617,7 @@ def get_po_list():
             cursor.execute(f"""
                 {cte}
                 SELECT * FROM (
-                    SELECT {_POLIST_SELECT},
+                    SELECT {PSEL},
                            RowNum = ROW_NUMBER() OVER (ORDER BY {order_by_sql})
                     FROM POL
                 ) AS T WHERE RowNum > ? AND RowNum <= ?
@@ -5358,7 +5627,7 @@ def get_po_list():
 
         return jsonify({
             "status": "ok",
-            "data": _polist_fmt_rows(columns, raw_rows),
+            "data": _gan_cot_them_ds(_polist_fmt_rows(columns, raw_rows), ds_them),
             "summary": summary,
             "pagination": {
                 "total_rows": total_rows,
@@ -5396,10 +5665,13 @@ def get_po_list_stream_csv():
         args = request.args
         total_estimate = int(args.get("total", 0) or 0)
         cte, params = _build_polist_where(args)
+        ds_them = _cot_them('po_list', args)   # cột thêm (việc 54) — không xin ⇒ SQL y cũ
+        sql_them, alias_them = _cot_them_sql('po_list', ds_them)
+        cte = _po_cte_them(cte, sql_them)
         order_by_sql = _resolve_order_by(
             args, POLIST_SORT_WHITELIST, "DON_VI, NGAY, SO_PHIEU, MA_HANG"
         )
-        sql = f"{cte} SELECT {_POLIST_SELECT} FROM POL ORDER BY {order_by_sql}"
+        sql = f"{cte} SELECT {_POLIST_SELECT}{''.join(f', {k}' for k in alias_them)} FROM POL ORDER BY {order_by_sql}"
 
         def transform(raw, sql_cols):
             d = dict(zip(sql_cols, raw))
@@ -5411,7 +5683,8 @@ def get_po_list_stream_csv():
                 out.append(v)
             return out
 
-        headers, transform = _loc_cot_xuat(POLIST_CSV_COLS, transform, args)   # bỏ cột đang ẩn (25/09/2026)
+        cols_xuat, transform = _noi_cot_them_xuat(POLIST_CSV_COLS, transform, ds_them, alias_them)
+        headers, transform = _loc_cot_xuat(cols_xuat, transform, args)   # bỏ cột đang ẩn (25/09/2026)
         fname   = f"DanhSachPO_{args.get('from_date','').replace('/','')}-{args.get('to_date','').replace('/','')}.{args.get('format', 'csv')}"
         job_id  = _start_export_job(fname, headers, sql, params, transform, total_estimate)
         return jsonify({"status": "ok", "job_id": job_id, "filename": fname})
@@ -5647,6 +5920,9 @@ def get_sale():
         dim         = _sale_dim_info()
         extra_cols  = _sale_extra_cols(dim)
         select_list = _sale_select_list(need_join, extra_cols)
+        ds_them = _cot_them('sale', request.args)   # cột thêm (việc 54) — không xin ⇒ SQL y cũ
+        sql_them, alias_them = _cot_them_sql('sale', ds_them)
+        select_list += sql_them
 
         conn   = get_connection()
         cursor = conn.cursor()
@@ -5738,6 +6014,7 @@ def get_sale():
                     try: r[nk] = float(v)
                     except: pass
             rows.append(r)
+        _gan_cot_them_ds(rows, ds_them)
 
         return jsonify({
             "status": "ok",
@@ -5810,7 +6087,9 @@ def get_sale_stream_csv():
         dim = _sale_dim_info()
         extra_cols = _sale_extra_cols(dim)
         join_from = SALE_JOIN_SQL if need_join else SALE_FROM_ONLY
-        sql = f"SELECT {_sale_select_list(need_join, extra_cols)} {join_from} WHERE {where_sql} ORDER BY {order_by_sql} OPTION (RECOMPILE)"
+        ds_them = _cot_them('sale', args)   # cột thêm (việc 54) — không xin ⇒ SQL y cũ
+        sql_them, alias_them = _cot_them_sql('sale', ds_them)
+        sql = f"SELECT {_sale_select_list(need_join, extra_cols)}{sql_them} {join_from} WHERE {where_sql} ORDER BY {order_by_sql} OPTION (RECOMPILE)"
 
         def transform(raw, sql_cols):
             d = dict(zip(sql_cols, raw))
@@ -5823,7 +6102,8 @@ def get_sale_stream_csv():
             d['EXTRA_NAME_2']        = dim["extra2"].get((str(d.get('EXTRA_ID_2') or '')).strip(), '')
             return [d.get(key) for key, _ in SALE_CSV_COLS]
 
-        headers, transform = _loc_cot_xuat(SALE_CSV_COLS, transform, args)   # bỏ cột đang ẩn (25/09/2026)
+        cols_xuat, transform = _noi_cot_them_xuat(SALE_CSV_COLS, transform, ds_them, alias_them)
+        headers, transform = _loc_cot_xuat(cols_xuat, transform, args)   # bỏ cột đang ẩn (25/09/2026)
         fname   = f"ChungTuBanHang_{args.get('from_date','').replace('/','')}-{args.get('to_date','').replace('/','')}.{args.get('format', 'csv')}"
         job_id  = _start_export_job(fname, headers, sql, params, transform, total_estimate)
         return jsonify({"status": "ok", "job_id": job_id, "filename": fname})
@@ -5970,11 +6250,14 @@ def get_voucher():
 
         where_sql, params = _build_voucher_where(request.args)
         order_by_sql = _resolve_order_by(request.args, VOUCHER_SORT_WHITELIST, "H.TRAN_DATE DESC, H.TRAN_NO")
+        ds_them = _cot_them('voucher', request.args)   # cột thêm (việc 54) — không xin ⇒ SQL y cũ
+        sql_them, alias_them = _cot_them_sql('voucher', ds_them)
+        VSEL = VOUCHER_SELECT + sql_them
 
         cursor = get_connection().cursor()
 
         if export_all:
-            cursor.execute(f"SELECT {VOUCHER_SELECT} {VOUCHER_FROM} WHERE {where_sql} ORDER BY {order_by_sql}", params)
+            cursor.execute(f"SELECT {VSEL} {VOUCHER_FROM} WHERE {where_sql} ORDER BY {order_by_sql}", params)
             columns  = [c[0] for c in cursor.description]
             raw_rows = cursor.fetchall()
             total_rows = len(raw_rows)
@@ -6007,7 +6290,7 @@ def get_voucher():
                         ORDER BY {order_by_sql}
                     )
                     SELECT * FROM (
-                        SELECT {VOUCHER_SELECT}, ROW_NUMBER() OVER (ORDER BY HP.HRN, D.PR_KEY) AS RN
+                        SELECT {VSEL}, ROW_NUMBER() OVER (ORDER BY HP.HRN, D.PR_KEY) AS RN
                         FROM HP
                         JOIN dbo.VOUCHER        H WITH (NOLOCK) ON H.PR_KEY = HP.PR_KEY
                         JOIN dbo.VOUCHER_DETAIL D WITH (NOLOCK) ON D.FR_KEY = HP.PR_KEY
@@ -6021,12 +6304,12 @@ def get_voucher():
                     columns, raw_rows = cand_cols, cand_rows
             if raw_rows is None:
                 cursor.execute(
-                    f"SELECT {VOUCHER_SELECT} {VOUCHER_FROM} WHERE {where_sql} ORDER BY {order_by_sql} "
+                    f"SELECT {VSEL} {VOUCHER_FROM} WHERE {where_sql} ORDER BY {order_by_sql} "
                     f"OFFSET ? ROWS FETCH NEXT ? ROWS ONLY", params + [offset, page_size])
                 columns  = [c[0] for c in cursor.description]
                 raw_rows = cursor.fetchall()
 
-        rows = _voucher_enrich([dict(zip(columns, raw)) for raw in raw_rows], cursor)
+        rows = _gan_cot_them_ds(_voucher_enrich([dict(zip(columns, raw)) for raw in raw_rows], cursor), ds_them)
 
         return jsonify({
             "status": "ok",
@@ -6084,7 +6367,9 @@ def get_voucher_stream_csv():
         total_estimate = int(args.get("total", 0) or 0)
         where_sql, params = _build_voucher_where(args)
         order_by_sql = _resolve_order_by(args, VOUCHER_SORT_WHITELIST, "H.TRAN_DATE DESC, H.TRAN_NO")
-        sql = f"SELECT {VOUCHER_SELECT} {VOUCHER_FROM} WHERE {where_sql} ORDER BY {order_by_sql}"
+        ds_them = _cot_them('voucher', args)   # cột thêm (việc 54) — không xin ⇒ SQL y cũ
+        sql_them, alias_them = _cot_them_sql('voucher', ds_them)
+        sql = f"SELECT {VOUCHER_SELECT}{sql_them} {VOUCHER_FROM} WHERE {where_sql} ORDER BY {order_by_sql}"
 
         # Map tên/bank chuẩn bị sẵn (chạy 1 lần) để transform per-row khỏi query DB
         db_name = (_db_cfg() or {}).get('database', 'N/A')
@@ -6103,7 +6388,8 @@ def get_voucher_stream_csv():
             d['PR_DETAIL_NAME_CREDIT'], d['BANK_NAME_CREDIT'], d['BANK_ACCOUNT_CREDIT'] = pc
             return [d.get(key) for key, _ in VOUCHER_CSV_COLS]
 
-        headers, transform = _loc_cot_xuat(VOUCHER_CSV_COLS, transform, args)   # bỏ cột đang ẩn (25/09/2026)
+        cols_xuat, transform = _noi_cot_them_xuat(VOUCHER_CSV_COLS, transform, ds_them, alias_them)
+        headers, transform = _loc_cot_xuat(cols_xuat, transform, args)   # bỏ cột đang ẩn (25/09/2026)
         fname   = f"ChungTuTien_{args.get('from_date','').replace('/','')}-{args.get('to_date','').replace('/','')}.{args.get('format', 'csv')}"
         job_id  = _start_export_job(fname, headers, sql, params, transform, total_estimate)
         return jsonify({"status": "ok", "job_id": job_id, "filename": fname})
@@ -6138,6 +6424,10 @@ def get_ledger_export():
             I.ITEM_NAME, I2.ITEM_NAME AS ITEM_NAME_CONTRA,
             P.ITEM_NAME AS PRODUCT_NAME, B.BANK_NAME, B2.BANK_NAME AS BANK_NAME_CONTRA
         """
+        ds_them = _cot_them('ledger', request.args)   # cột thêm (việc 54)
+        sql_them, _alias_them = _cot_them_sql('ledger', ds_them)
+        BASE_COLS += sql_them
+        bd_them = _ban_do_cot_them(ds_them)
         joins = [
             "FROM dbo.LEDGER L WITH (NOLOCK)",
             "LEFT JOIN dbo.DM_PR_DETAIL   PD  WITH (NOLOCK) ON L.PR_DETAIL_ID       = PD.PR_DETAIL_ID",
@@ -6175,6 +6465,7 @@ def get_ledger_export():
             if r.get('AMOUNT') is not None:
                 try: r['AMOUNT'] = float(r['AMOUNT'])
                 except: pass
+            if ds_them: _gan_cot_them(r, ds_them, bd_them)
             rows.append(r)
 
         return jsonify({"status": "ok", "data": rows, "total_rows": len(rows)})

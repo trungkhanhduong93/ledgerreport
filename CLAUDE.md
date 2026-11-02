@@ -3,7 +3,7 @@
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
 > 🆕 **02/11/2026 (khuya) — Việc 55: xuất Excel "Đối chiếu điều chuyển" 1 tuần từ ~4 phút còn ~9 giây** (qua bảng tạm `#dcx`) —
-> 🚀 **`v2.1.11` phát hành 02/11/2026** (Đại Ca chốt). Xem § 1.1 `dcnb_reconcile` *Xuất Excel … `#dcx`* + nhật ký 02/11 (khuya).
+> ✅ **`v2.1.11` ĐÃ PHÁT HÀNH 02/11/2026, `Latest`, EXE máy Đại Ca = file CI** (thay trực tiếp, chưa mở thử). Xem § 1.1 `dcnb_reconcile` *Xuất Excel … `#dcx`* + nhật ký 02/11 (khuya).
 > 🆕 **02/11/2026 — Việc 54: "chọn thêm cột" ở 8 màn danh sách** (35 cột Đại Ca tick, mặc định ẩn trong hộp Cấu hình cột, máy chủ chỉ lấy cột
 > đang tick) — ✅ **`v2.1.10` ĐÃ PHÁT HÀNH 02/11/2026, `Latest`, EXE máy Đại Ca = file CI** (thay trực tiếp, chưa mở thử), đã kiểm DB thật + giao diện. Xem § 1.1 *Cột thêm* + `THAO_LUAN.md` + nhật ký 02/11.
 > 🆕 **22/10/2026 — Trang chủ: khối "Thao tác nhanh" (ghim màn hình) + hộp tìm màn hình Ctrl+F** (Ctrl+F lần 2 = tìm chữ của Chrome) ·

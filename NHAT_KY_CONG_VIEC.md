@@ -192,6 +192,9 @@ Phát hiện lúc kiểm việc 54: câu xuất của màn Đối chiếu điề
 - Kiểm: file không / có cột thêm + chia sheet: **tập dòng VÀ thứ tự trùng khít** bản cũ · chip `chua` 2, `du` 4.166 khớp số dòng danh sách ·
   sắp xếp Tên hàng giảm dần: 50 dòng đầu = trang 1 danh sách, 0/156 cặp sai theo collation của SQL Server · tài khoản chỉ đơn vị 35:
   27 dòng (mọi dòng có một phía là 35), file xuất cũng 27.
+- 🚀 **Phát hành `v2.1.11`** (Đại Ca chốt *"Phát hành v2.1.11 luôn"*): commit `74d7149` → Actions run `41486185943` success → Release `Latest`.
+  EXE tải về khớp digest (`7fb114cf…`) ⇒ thay `dist\iPOS_Accounting_Report.exe` (FileVersion 2.1.11, chưa mở thử). Mật khẩu SQL trong
+  `config.json` đã xoá lại sau khi đo.
 
 ---
 

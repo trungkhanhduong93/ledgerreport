@@ -16,6 +16,9 @@
 >   một lần), hiện tối đa 8 dòng, dư thì ghi "… và N thay đổi khác".
 > - Dòng không bắt đầu bằng `- ` (như khối ghi chú này) app bỏ qua.
 
+## v2.1.11
+- Đối chiếu điều chuyển: xuất Excel nhanh hơn hẳn (1 tuần từ khoảng 4 phút còn khoảng 10 giây)
+
 ## v2.1.10
 - Danh sách chứng từ: nút Cấu hình cột có thêm nhóm "Cột thêm" — tick để hiện cột lấy thêm từ iPOS (Ghi chú, Số lượng, Nguồn đơn, Sản phẩm, Nhóm hàng, Nhà cung cấp…), mặc định ẩn
 - Xuất Excel danh sách chứng từ có luôn các cột thêm đang hiện

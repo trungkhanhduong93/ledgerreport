@@ -5037,6 +5037,15 @@ def _dcnb_cte(inner, inner_draft, inner_orph, inner_orph_wh):
     )
 
 
+def _dcnb_sql_xuat(cte, where_sql, sql_them, order_by_sql):
+    """Câu xuất TOÀN BỘ Đối chiếu điều chuyển (file Excel / CSV + xuất chia sheet): đổ DC vào bảng tạm #dcx MỘT lần rồi sắp xếp + đọc
+    từ đó — đúng cách màn danh sách đang làm với #dc. Đo 02/11/2026 (1 tuần, 4.268 dòng): chạy thẳng `CTE … ORDER BY` mất ~255s.
+    ⛔ Phải là MỘT batch (bảng tạm chết khi câu có tham số kết thúc — Bẫy 25). SET NOCOUNT ON ⇒ kết quả đầu tiên trả về chính là các
+    dòng xuất (không có dòng "N rows affected" của SELECT INTO chen trước). Tham số y như câu cũ (cùng thứ tự dấu ?)."""
+    return (f"SET NOCOUNT ON; {cte} SELECT {_DCNB_SELECT}{sql_them} INTO #dcx FROM DC WHERE {where_sql}; "
+            f"SELECT * FROM #dcx ORDER BY {order_by_sql};")
+
+
 def _build_dcnb_where(request_args, bo_trang_thai=False):
     """Trả (cte_sql, outer_where, params) — params đúng thứ tự dấu ? (Bẫy 5: inner trước outer).
 
@@ -5269,7 +5278,7 @@ def get_dcnb_reconcile():
 
         summary = None
         if export_all:
-            cursor.execute(f"{cte} SELECT {_DCNB_SELECT}{sql_them} FROM DC WHERE {where_sql} ORDER BY {order_by_sql}", params)
+            cursor.execute(_dcnb_sql_xuat(cte, where_sql, sql_them, order_by_sql), params)   # qua bảng tạm #dcx (02/11/2026)
             columns  = [c[0] for c in cursor.description]
             raw_rows = cursor.fetchall()
             total_rows = len(raw_rows)
@@ -5357,7 +5366,7 @@ def get_dcnb_reconcile_stream_csv():
         order_by_sql = _resolve_order_by(
             args, DCNB_SORT_WHITELIST, "DON_VI_XUAT, NGAY_XUAT, SO_PHIEU_XUAT, MA_HANG"
         )
-        sql = f"{cte} SELECT {_DCNB_SELECT}{sql_them} FROM DC WHERE {where_sql} ORDER BY {order_by_sql}"
+        sql = _dcnb_sql_xuat(cte, where_sql, sql_them, order_by_sql)   # qua bảng tạm #dcx (02/11/2026 — trước ~255s/tuần)
 
         def transform(raw, sql_cols):
             d = dict(zip(sql_cols, raw))

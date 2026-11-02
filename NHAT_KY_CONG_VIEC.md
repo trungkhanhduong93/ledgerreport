@@ -182,6 +182,19 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 
 ---
 
+## 02/11/2026 (khuya) — Việc 55: xuất Excel "Đối chiếu điều chuyển" từ ~4 phút còn ~9 giây · ✅ kiểm DB thật · 🚀 phát hành v2.1.11
+
+Phát hiện lúc kiểm việc 54: câu xuất của màn Đối chiếu điều chuyển (`stream_csv` + `export_all`) chạy thẳng `CTE … ORDER BY`, 1 tuần mất
+**257,6s** — có từ trước, không do cột thêm. Đại Ca: *"sửa luôn xuất Excel đối chiếu điều chuyển chậm đi m"*.
+- Sửa: `_dcnb_sql_xuat` — đổ `DC` vào `#dcx` MỘT lần rồi `SELECT * FROM #dcx ORDER BY …`, một batch + `SET NOCOUNT ON` (khuôn `#dc` của màn
+  danh sách). Dùng cho cả 2 đường xuất. Không đổi tham số, không thêm route. 218 hàm / 80 route.
+- Đo tuần 08–14/09/2026 (4.268 dòng): file **257,6s → 9,2s** · có cột thêm 254,3s → 8,0s · chia sheet 6,7s · danh sách (không sửa) 6,6s.
+- Kiểm: file không / có cột thêm + chia sheet: **tập dòng VÀ thứ tự trùng khít** bản cũ · chip `chua` 2, `du` 4.166 khớp số dòng danh sách ·
+  sắp xếp Tên hàng giảm dần: 50 dòng đầu = trang 1 danh sách, 0/156 cặp sai theo collation của SQL Server · tài khoản chỉ đơn vị 35:
+  27 dòng (mọi dòng có một phía là 35), file xuất cũng 27.
+
+---
+
 ## 02/11/2026 — Việc 54: "chọn thêm cột" ở 8 màn danh sách chứng từ · ✅ code + kiểm DB thật · ✅ phát hành v2.1.10
 
 Đại Ca 02/11: *"Trong các danh sách chứng từ t muốn có thêm điều kiện được chọn thêm cột…"*. Trước đó em **chưa** từng hỏi việc này (05/10 chỉ

@@ -2,6 +2,8 @@
 
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
+> 🆕 **02/11/2026 (khuya) — Việc 55: xuất Excel "Đối chiếu điều chuyển" 1 tuần từ ~4 phút còn ~9 giây** (qua bảng tạm `#dcx`) —
+> 🚀 **`v2.1.11` phát hành 02/11/2026** (Đại Ca chốt). Xem § 1.1 `dcnb_reconcile` *Xuất Excel … `#dcx`* + nhật ký 02/11 (khuya).
 > 🆕 **02/11/2026 — Việc 54: "chọn thêm cột" ở 8 màn danh sách** (35 cột Đại Ca tick, mặc định ẩn trong hộp Cấu hình cột, máy chủ chỉ lấy cột
 > đang tick) — ✅ **`v2.1.10` ĐÃ PHÁT HÀNH 02/11/2026, `Latest`, EXE máy Đại Ca = file CI** (thay trực tiếp, chưa mở thử), đã kiểm DB thật + giao diện. Xem § 1.1 *Cột thêm* + `THAO_LUAN.md` + nhật ký 02/11.
 > 🆕 **22/10/2026 — Trang chủ: khối "Thao tác nhanh" (ghim màn hình) + hộp tìm màn hình Ctrl+F** (Ctrl+F lần 2 = tìm chữ của Chrome) ·
@@ -27,7 +29,7 @@
 > § 1.1 *Cột của 9 bảng* + nhật ký việc 50.
 > ✅ **v2.1.2 — ĐÃ PHÁT HÀNH 06/10/2026, `Latest`, EXE máy Đại Ca = file CI** (cột ghim phải hụt 4px khi cuộn chạm cuối). Mục nhật ký *06/10/2026 — Phát hành v2.1.2*.
 > ✅ **v2.1.1 — 05/10/2026** (BC017 + việc 50). Mục nhật ký *05/10/2026 (khuya) — Phát hành v2.1.1*.
-> Cập nhật gần nhất: **02/11/2026** · **Bản mới nhất: `v2.1.10`** · `v2.1.0` (= code `v2.0.9`, Đại Ca chốt lên 2.1 — xem dòng ✅ v2.0.9 ngay dưới) · v2.0.6: **việc 41** đồng hồ đếm ngược khi xuất Excel Nhật ký chung
+> Cập nhật gần nhất: **02/11/2026** · **Bản mới nhất: `v2.1.11`** · `v2.1.0` (= code `v2.0.9`, Đại Ca chốt lên 2.1 — xem dòng ✅ v2.0.9 ngay dưới) · v2.0.6: **việc 41** đồng hồ đếm ngược khi xuất Excel Nhật ký chung
 > (đo + thử giao diện trên DB thật; bắt được lỗi làm hỏng hẳn xuất Excel chi tiết — **Bẫy 31**) + **việc 42** đăng nhập nhanh không
 > còn đá người ra khi Google chỉ là chưa trả lời được. Mục nhật ký *29/09/2026 — Phát hành v2.0.6*. EXE trên máy Đại Ca = đúng file CI.
 > Mục *28/09/2026 (khuya)*: **Đại Ca giữ Google Sheet, không chuyển Supabase** — đọc lý do trước khi đề xuất lại.
@@ -368,8 +370,8 @@ không có)*: khai ở **`COT_THEM_DS`** — ⛔ **hai nơi phải khớp khoá 
   + kỳ — bộ lọc ngày của 2 màn này là NGÀY PHIẾU XUẤT) rồi ghép ở Python theo `PR_KEY_XUAT` (`_khoa_pk`); khoá thiếu tra theo khoá chính.
   Giữ SQL y cũ là cố ý (đối chứng trùng khít được). ⚠️ **Đính chính 02/11 khuya:** lúc đầu em đổ cho truy vấn con làm câu xuất điều chuyển chậm
   221s — **SAI**: câu xuất điều chuyển **KHÔNG có cột thêm** cũng mất **257,6s** cho 1 tuần (4.268 dòng, đo 02/11 23:20, SQL trùng khít bản cũ).
-- ⚠️ **Có từ trước, chưa sửa:** **Xuất Excel "Đối chiếu điều chuyển" rất chậm** — 1 tuần ~4 phút 15s (`stream_csv` / `export_all` chạy thẳng CTE
-  `DC`, KHÔNG qua bảng tạm `#dc` như màn danh sách). Danh sách cùng kỳ chỉ 6–9s. Muốn nhanh thì xuất cũng phải đổ `#dc` trước — chưa làm, chưa đo.
+- ✅ **Đã sửa 02/11/2026 khuya (việc 55): Xuất Excel "Đối chiếu điều chuyển" từng rất chậm** — 1 tuần 257,6s vì `stream_csv` / `export_all` chạy
+  thẳng `CTE … ORDER BY`. Nay qua bảng tạm `#dcx` (`_dcnb_sql_xuat`, một batch + `SET NOCOUNT ON`) ⇒ **9,2s**; tập dòng + thứ tự trùng khít bản cũ.
 - ⛔ Luật CSS tay kéo "cột cuối ĐANG HIỆN" (`cssCot`) phải viết `>th:nth-child(n):not(:first-child)::after` — thiếu `th` là thua độ ưu tiên luật
   gốc, khung cuộn lại dư ~4px (đo 02/11/2026). Cột thêm ẩn đứng sau nên `:last-child` ở `<style>` không bắt được cột cuối đang hiện.
 - ⚠️ Có từ trước, không do cột thêm: `ORDER BY ngày, số phiếu` của các màn **không duy nhất** ⇒ thứ tự các dòng cùng phiếu có thể khác giữa 2
@@ -488,6 +490,12 @@ là lọc **cộng với** `ROW_NUMBER` + danh sách cột đầy đủ.
 
 ⚠️ **Chỉ `dcnb_reconcile` dùng `#dc`.** `btp_reconcile` không cần (bấm chip 7,5s, bằng lúc không
 bấm) và `po_list` chỉ 0,2s. Đừng bê sang khi chưa đo.
+
+⚡ **Xuất Excel (1 file + chia sheet) cũng qua bảng tạm — `#dcx`, hàm `_dcnb_sql_xuat`** *(việc 55, 02/11/2026)*. Đo tuần 08–14/09/2026
+(4.268 dòng): **257,6s → 9,2s** (file) · chia sheet 6,7s. Kiểm: tập dòng + thứ tự trùng khít bản cũ · chip `chua` 2 / `du` 4.166 khớp
+danh sách · sắp xếp Tên hàng giảm dần 0/156 cặp sai theo collation `SQL_Latin1_General_CP1_CI_AS` · tài khoản chỉ đơn vị 35 ⇒ 27 dòng, khớp.
+⛔ Một batch (Bẫy 25) + `SET NOCOUNT ON` (không thì kết quả đầu tiên là dòng "rows affected" của `SELECT INTO`, job xuất đọc
+`cursor.description` = None). BTP xuất vẫn chạy thẳng CTE — đo 5,8s/tuần, không cần.
 
 ✅ **ĐÃ ĐÓNG 24/09/2026 — phiếu `POSTED` mà 0 dòng `WAREHOUSE` bị tab giấu là ĐÚNG, không phải lỗi.**
 Nhánh `X` đọc `WAREHOUSE` nên phiếu kiểu đó không hiện ở nhóm nào. Đo **cả năm 2026** trước khi kết luận:

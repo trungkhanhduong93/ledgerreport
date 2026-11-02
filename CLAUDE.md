@@ -3,7 +3,7 @@
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
 > 🆕 **02/11/2026 — Việc 54: "chọn thêm cột" ở 8 màn danh sách** (35 cột Đại Ca tick, mặc định ẩn trong hộp Cấu hình cột, máy chủ chỉ lấy cột
-> đang tick) — 🚀 **`v2.1.10` phát hành 02/11/2026** (Đại Ca chốt), đã kiểm DB thật + giao diện. Xem § 1.1 *Cột thêm* + `THAO_LUAN.md` + nhật ký 02/11.
+> đang tick) — ✅ **`v2.1.10` ĐÃ PHÁT HÀNH 02/11/2026, `Latest`, EXE máy Đại Ca = file CI** (thay trực tiếp, chưa mở thử), đã kiểm DB thật + giao diện. Xem § 1.1 *Cột thêm* + `THAO_LUAN.md` + nhật ký 02/11.
 > 🆕 **22/10/2026 — Trang chủ: khối "Thao tác nhanh" (ghim màn hình) + hộp tìm màn hình Ctrl+F** (Ctrl+F lần 2 = tìm chữ của Chrome) ·
 > **Báo cáo TC: ô Đơn vị lọc danh sách theo tài khoản** (chỉ quản trị) — ✅ **`v2.1.9` ĐÃ PHÁT HÀNH 22/10/2026, `Latest`, EXE máy Đại Ca =
 > file CI** (thay trực tiếp). Xem § 1.1 *Trang chủ* + *Hàng điều kiện báo cáo* + nhật ký 22/10.

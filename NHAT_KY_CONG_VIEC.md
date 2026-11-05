@@ -188,6 +188,10 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 > 🚀 **~16:45 — Phát hành `v2.1.12`** (Đại Ca chốt *"ok phát hành đi"*, kèm câu "Có gì mới" dòng 3 sửa lại cho rõ "xem 1 tháng bấm 2 lần").
 > Trước commit: `ast.parse` OK · 219 hàm / 81 route, không hàm trùng · Bẫy 30 quét ra `[]` · quét chuỗi bí mật trên phần sửa: không có ·
 > `config.json` không nằm trong git. `version.txt` / `version_info.txt` tăng tay 2.1.11 → 2.1.12 (máy không có Node ⇒ không chạy `build_exe.py`).
+> Quét bắt được tên VPN + IP nội bộ VPN trong nhật ký (repo CÔNG KHAI, HEAD chưa từng có) ⇒ bỏ trước khi commit.
+> Commit `034742b` → Actions run `42006714689` **success** (~1,5 phút) → Release **`v2.1.12` `Latest`**. Tag có đúng mục `## v2.1.12` của
+> `CO_GI_MOI.md` + `version.txt` = 2.1.12. EXE tải về khớp digest (`e144820d…`, 13.822.871 B, FileVersion 2.1.12) ⇒ thay
+> `dist\iPOS_Accounting_Report.exe` (chưa mở thử). ⚠️ `gh` trên máy này chưa đăng nhập ⇒ theo dõi build bằng API công khai của GitHub.
 
 > ✅ **~16:30 — Đại Ca bấm thử trên 5051: OK.** Đại Ca hỏi ô Thời gian mới có áp hết không ⇒ kiểm thêm ngoài BC018 (Chrome ngầm 1366, server thử
 > 5052, `cdp_tg_khac.py`): **Nhật ký chung** T1→T6 gửi `01/01/2026`–`30/06/2026`, mở lại tô T1–T6, T3×2 gửi `01/03`–`31/03/2026` · **Chứng từ

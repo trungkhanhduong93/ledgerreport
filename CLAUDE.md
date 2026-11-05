@@ -4,7 +4,8 @@
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
 > 🆕 **05/11/2026 — Việc 56: BC018 Doanh thu thuần theo chi nhánh** (theo file Excel Đại Ca lập: chi nhánh × tháng, cộng theo khu vực = đơn vị
 > cha; nút bán nội bộ; ô Khu vực) + **ô Thời gian (mọi màn) chọn từ tháng → đến tháng, 2 khung độc lập** — 🚀 **phát hành `v2.1.12` 05/11/2026**
-> (Đại Ca chốt *"ok phát hành đi"*): M1 + giao diện + quyền + **M2/M4 DB thật đạt (khớp file 693/693 ô)** + Đại Ca bấm thử đạt.
+> (Đại Ca chốt *"ok phát hành đi"*) — ✅ **`Latest`, EXE máy Đại Ca = file CI** (thay trực tiếp, chưa mở thử): M1 + giao diện + quyền +
+> **M2/M4 DB thật đạt (khớp file 693/693 ô)** + Đại Ca bấm thử đạt.
 > Xem § 1.2 *BC018* + nhật ký 05/11.
 > 🆕 **02/11/2026 (khuya) — Việc 55: xuất Excel "Đối chiếu điều chuyển" 1 tuần từ ~4 phút còn ~9 giây** (qua bảng tạm `#dcx`) —
 > ✅ **`v2.1.11` ĐÃ PHÁT HÀNH 02/11/2026, `Latest`, EXE máy Đại Ca = file CI** (thay trực tiếp, chưa mở thử). Xem § 1.1 `dcnb_reconcile` *Xuất Excel … `#dcx`* + nhật ký 02/11 (khuya).

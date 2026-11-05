@@ -16,6 +16,11 @@
 >   một lần), hiện tối đa 8 dòng, dư thì ghi "… và N thay đổi khác".
 > - Dòng không bắt đầu bằng `- ` (như khối ghi chú này) app bỏ qua.
 
+## v2.1.12
+- Báo cáo tài chính: thêm báo cáo BC018 Doanh thu thuần theo chi nhánh — từng chi nhánh theo tháng, cộng theo khu vực, xuất Excel được
+- BC018: lọc theo Khu vực, và chọn "Bỏ bán nội bộ" để xem riêng doanh thu bán ra ngoài
+- Ô Thời gian (mọi báo cáo và danh sách chứng từ): chọn được từ tháng đến tháng — bấm tháng đầu rồi tháng cuối, xem 1 tháng thì bấm 2 lần vào tháng đó; hai khung lịch bấm qua lại riêng từng khung
+
 ## v2.1.11
 - Đối chiếu điều chuyển: xuất Excel nhanh hơn hẳn (1 tuần từ khoảng 4 phút còn khoảng 10 giây)
 

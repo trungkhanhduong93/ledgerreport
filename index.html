@@ -1544,6 +1544,7 @@ window.showConnectionLost = function() {
             { id: 'BC015', name: 'BÁO CÁO BÁN HÀNG THEO NGUỒN ĐƠN', ten: 'Bán hàng theo nguồn đơn', mo_ta: 'Doanh thu theo nguồn đơn và đơn vị, chỉ chứng từ đã ghi sổ' },
             { id: 'BC016', name: 'BÁO CÁO NHẬP XUẤT TỒN NHÀ HÀNG', ten: 'Nhập xuất tồn nhà hàng', mo_ta: 'Nhập, xuất, tồn từng mặt hàng, gom theo nhóm hàng hoặc kho' },
             { id: 'BC017', name: 'BÁO CÁO BÁN HÀNG', ten: 'Báo cáo bán hàng', mo_ta: 'Chi tiết từng dòng hàng theo ngày, đơn vị, phiếu; lọc theo kho, nhóm hàng, đối tượng, công việc' },
+            { id: 'BC018', name: 'BÁO CÁO DOANH THU THUẦN THEO CHI NHÁNH', ten: 'Doanh thu thuần theo chi nhánh', mo_ta: 'Doanh thu thuần từng chi nhánh theo tháng, cộng theo khu vực' },
         ];
 
         // Chỉ tiêu LCTT trực tiếp (BC009) — Mẫu B03-DN. id rỗng = dòng tiêu đề (không in giá trị).
@@ -1834,7 +1835,8 @@ window.showConnectionLost = function() {
         // ===== Ô "THỜI GIAN" — GĐ3 (Đại Ca chốt 25/09/2026, theo mẫu iPOS Inventory) =====
         // Một ô ghi khoảng ngày. Bấm vào: cột chế độ bên trái + 2 lịch cạnh nhau bên phải.
         // KHÔNG có phím tắt (Hôm nay, Tháng này…) — Đại Ca chốt 25/09: chỉ giữ 5 chế độ chọn.
-        // Chế độ: Chọn ngày (bấm 2 lần = từ ngày → đến ngày) · tuần · tháng · quý · năm.
+        // Chế độ: Chọn ngày (bấm 2 lần = từ ngày → đến ngày) · tuần · tháng (bấm 2 lần = từ tháng → đến tháng, Đại Ca chốt 05/11/2026)
+        // · quý · năm. Hai khung lịch / lưới năm bấm qua lại ĐỘC LẬP nhau (05/11/2026).
         // Chọn tháng / quý / năm thì đặt `period` ĐÚNG LOẠI (month / quarter / year): 9 màn danh sách
         // vẫn dùng PeriodDropdown và dùng CHUNG `period`, nên nhãn bên đó vẫn đúng. Còn lại là 'custom'.
         // "Chọn năm" không có trong hình mẫu — giữ lại vì bản cũ có "Cả năm", bỏ đi là mất tính năng.
@@ -1860,9 +1862,25 @@ window.showConnectionLost = function() {
         const OThoiGian = ({ period, fromDate, toDate, onChon, isActive, onToggle }) => {
             const ref = useRef(null);
             const tu = TG.doc(fromDate), den = TG.doc(toDate);
-            const cheDoTuKy = () => ({ month: 'thang', quarter: 'quy', year: 'nam' })[period.type] || 'ngay';
+            // Kỳ tự chọn mà TRÒN THÁNG (từ ngày 1 tới cuối tháng, > 1 tháng — vd T1–T6 chọn ở "Chọn tháng") ⇒ mở lại vào "Chọn tháng".
+            const cheDoTuKy = () => ({ month: 'thang', quarter: 'quy', year: 'nam' })[period.type]
+                || ((tu && den && tu.getDate() === 1 && den.getDate() === new Date(den.getFullYear(), den.getMonth() + 1, 0).getDate()
+                    && den.getFullYear() * 12 + den.getMonth() > tu.getFullYear() * 12 + tu.getMonth()) ? 'thang' : 'ngay');
             const [cheDo, setCheDo] = useState(cheDoTuKy());
-            const [xem, setXem] = useState(() => { const d = tu || new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
+            // 2 khung (trái / phải) bấm qua lại ĐỘC LẬP nhau (Đại Ca chốt 05/11/2026 — trước đó khung phải luôn = khung trái + 1, nên
+            // T1–T6/2026 không chọn được khi khung phải đã sang 2027). Mặc định: trái = tháng / năm của "từ ngày", phải = của "đến ngày"
+            // (trùng thì phải = trái + 1). Lịch ngày / tuần dùng THÁNG của khung, lưới tháng / quý dùng NĂM của khung.
+            const xemMacDinh = (che) => {
+                const a = tu || new Date(), b = den || a;
+                const lich = che === 'ngay' || che === 'tuan';
+                const trai = new Date(a.getFullYear(), a.getMonth(), 1);
+                let phai = lich ? new Date(b.getFullYear(), b.getMonth(), 1) : new Date(b.getFullYear(), 0, 1);
+                if (lich ? phai <= trai : b.getFullYear() <= a.getFullYear()) phai = lich ? new Date(a.getFullYear(), a.getMonth() + 1, 1) : new Date(a.getFullYear() + 1, 0, 1);
+                return [trai, phai];
+            };
+            const [xemTrai, setXemTrai] = useState(() => xemMacDinh(cheDoTuKy())[0]);
+            const [xemPhai, setXemPhai] = useState(() => xemMacDinh(cheDoTuKy())[1]);
+            const datXemMacDinh = (che) => { const [t0, p0] = xemMacDinh(che); setXemTrai(t0); setXemPhai(p0); };
             const [chonDau, setChonDau] = useState(null);   // Chọn ngày: đã bấm "từ ngày", chờ bấm "đến ngày"
             const [tro, setTro] = useState(null);           // ngày / tuần đang rê chuột qua
             const [viTri, setViTri] = useState({ top: 0, left: 0 });
@@ -1879,7 +1897,7 @@ window.showConnectionLost = function() {
             useEffect(() => {
                 if (!isActive) return;
                 setCheDo(cheDoTuKy()); setChonDau(null); setTro(null);
-                const d = tu || new Date(); setXem(new Date(d.getFullYear(), d.getMonth(), 1));
+                datXemMacDinh(cheDoTuKy());
                 datViTri();
                 const ngoai = (e) => { if (ref.current && !ref.current.contains(e.target) && !(e.target.closest && e.target.closest('[data-lop-noi]'))) onToggle(null); };
                 const esc = (e) => { if (e.key === 'Escape') onToggle(null); };
@@ -1902,17 +1920,18 @@ window.showConnectionLost = function() {
             if (cheDo === 'ngay' && chonDau) { const x = tro || chonDau; [ta, tb] = chonDau <= x ? [chonDau, x] : [x, chonDau]; }
             if (cheDo === 'tuan' && tro) { [ta, tb] = [tro, TG.cong(tro, 6)]; }
 
-            const veLichThang = (lech) => {
-                const t = new Date(xem.getFullYear(), xem.getMonth() + lech, 1);
+            // phai = false: khung trái, true: khung phải — mỗi khung có « ‹ › » RIÊNG (Đại Ca chốt 05/11/2026).
+            const veLichThang = (phai) => {
+                const t = phai ? xemPhai : xemTrai, datXem = phai ? setXemPhai : setXemTrai, ben = phai ? ' (khung phải)' : ' (khung trái)';
                 const dau = TG.thu2(t);
                 const tuanMode = cheDo === 'tuan';
                 const cot = tuanMode ? 'grid-cols-8' : 'grid-cols-7';
                 return (
                     <div className="w-[336px] px-4 py-3">
                         <div className="flex items-center h-8 mb-1">
-                            {lech === 0 ? <>{nutDieuHuong('«', () => setXem(new Date(xem.getFullYear() - 1, xem.getMonth(), 1)), 'Lùi 1 năm')}{nutDieuHuong('‹', () => setXem(new Date(xem.getFullYear(), xem.getMonth() - 1, 1)), 'Lùi 1 tháng')}</> : <span className="w-14"></span>}
+                            {nutDieuHuong('«', () => datXem(new Date(t.getFullYear() - 1, t.getMonth(), 1)), 'Lùi 1 năm' + ben)}{nutDieuHuong('‹', () => datXem(new Date(t.getFullYear(), t.getMonth() - 1, 1)), 'Lùi 1 tháng' + ben)}
                             <div className="flex-1 text-center text-[13px] font-bold text-slate-700 tabular-nums">{t.getFullYear()}&nbsp;&nbsp;T{t.getMonth() + 1}</div>
-                            {lech === 1 ? <>{nutDieuHuong('›', () => setXem(new Date(xem.getFullYear(), xem.getMonth() + 1, 1)), 'Tới 1 tháng')}{nutDieuHuong('»', () => setXem(new Date(xem.getFullYear() + 1, xem.getMonth(), 1)), 'Tới 1 năm')}</> : <span className="w-14"></span>}
+                            {nutDieuHuong('›', () => datXem(new Date(t.getFullYear(), t.getMonth() + 1, 1)), 'Tới 1 tháng' + ben)}{nutDieuHuong('»', () => datXem(new Date(t.getFullYear() + 1, t.getMonth(), 1)), 'Tới 1 năm' + ben)}
                         </div>
                         <div className={`grid ${cot} text-[11px] font-bold text-slate-500 border-b border-slate-100 pb-1.5 mb-1`}>
                             {tuanMode && <div></div>}
@@ -1955,27 +1974,47 @@ window.showConnectionLost = function() {
                 );
             };
 
-            // Lưới tháng / quý cho một năm
-            const veLuoiNam = (lech) => {
-                const y = xem.getFullYear() + lech;
+            // Chọn tháng = KHOẢNG "từ tháng → đến tháng" (Đại Ca chốt 05/11/2026): bấm tháng đầu, rồi bấm tháng cuối (2 khung hay cùng
+            // 1 khung đều được); bấm 2 lần cùng một tháng = xem 1 tháng ⇒ period 'month' như cũ. Khoảng > 1 tháng ⇒ 'custom'.
+            // Khoảng đang tô: đang chọn dở thì từ tháng đầu tới tháng đang rê; không thì khoảng hiện tại nếu nó tròn tháng.
+            let [thA, thB] = [null, null];
+            if (cheDo === 'thang') {
+                if (chonDau) { const h = tro || chonDau; [thA, thB] = chonDau <= h ? [chonDau, h] : [h, chonDau]; }
+                else if (tu && den && tu.getDate() === 1 && den.getDate() === new Date(den.getFullYear(), den.getMonth() + 1, 0).getDate()) {
+                    [thA, thB] = [new Date(tu.getFullYear(), tu.getMonth(), 1), new Date(den.getFullYear(), den.getMonth(), 1)];
+                }
+            }
+            const bamThang = (a) => {
+                if (!chonDau) { setChonDau(a); setTro(a); return; }
+                const [x, y] = chonDau <= a ? [chonDau, a] : [a, chonDau];
+                ap(x, new Date(y.getFullYear(), y.getMonth() + 1, 0), TG.bang(x, y) ? { type: 'month', year: x.getFullYear(), value: x.getMonth() + 1 } : null);
+            };
+
+            // Lưới tháng / quý cho một năm — phai = false: khung trái, true: khung phải (mỗi khung « » RIÊNG).
+            const veLuoiNam = (phai) => {
+                const xemK = phai ? xemPhai : xemTrai, datXem = phai ? setXemPhai : setXemTrai, ben = phai ? ' (khung phải)' : ' (khung trái)';
+                const y = xemK.getFullYear();
                 const laThang = cheDo === 'thang';
                 const o = laThang ? Array.from({ length: 12 }, (_, i) => ({ type: 'month', year: y, value: i + 1, nhan: 'T' + (i + 1) }))
                     : [1, 2, 3, 4].map(q => ({ type: 'quarter', year: y, value: q, nhan: 'Quý ' + q, phu: `T${q * 3 - 2} – T${q * 3}` }));
                 return (
                     <div className="w-[336px] px-4 py-3">
                         <div className="flex items-center h-8 mb-2">
-                            {lech === 0 ? nutDieuHuong('«', () => setXem(new Date(xem.getFullYear() - 1, xem.getMonth(), 1)), 'Lùi 1 năm') : <span className="w-7"></span>}
+                            {nutDieuHuong('«', () => datXem(new Date(y - 1, 0, 1)), 'Lùi 1 năm' + ben)}
                             <div className="flex-1 text-center text-[13px] font-bold text-slate-700 tabular-nums">{y}</div>
-                            {lech === 1 ? nutDieuHuong('»', () => setXem(new Date(xem.getFullYear() + 1, xem.getMonth(), 1)), 'Tới 1 năm') : <span className="w-7"></span>}
+                            {nutDieuHuong('»', () => datXem(new Date(y + 1, 0, 1)), 'Tới 1 năm' + ben)}
                         </div>
                         <div className={`grid ${laThang ? 'grid-cols-3' : 'grid-cols-2'} gap-1.5`}>
                             {o.map(k => {
                                 const [a, b] = TG.khoang(k);
-                                const on = TG.bang(a, tu) && TG.bang(b, den);
+                                const dauCuoi = laThang && thA && (TG.bang(a, thA) || TG.bang(a, thB));
+                                const giua = laThang && thA && a > thA && a < thB;
+                                const on = laThang ? !!dauCuoi : (TG.bang(a, tu) && TG.bang(b, den));
                                 const nay = laThang ? (y === nam && k.value === thang) : (y === nam && k.value === quy);
                                 return (
-                                    <button key={k.value} type="button" onClick={() => ap(a, b, k)} aria-pressed={on}
-                                        className={`${laThang ? 'h-[52px]' : 'h-[104px]'} rounded-lg flex flex-col items-center justify-center transition-colors ${on ? 'bg-indigo-700 text-white font-bold' : nay ? 'text-indigo-700 font-bold ring-1 ring-indigo-300 hover:bg-slate-50' : 'text-slate-700 hover:bg-slate-50'}`}>
+                                    <button key={k.value} type="button" onClick={() => (laThang ? bamThang(a) : ap(a, b, k))} aria-pressed={on || giua}
+                                        onMouseEnter={() => { if (laThang && chonDau && !TG.bang(tro, a)) setTro(a); }}
+                                        className={`${laThang ? 'h-[52px]' : 'h-[104px]'} rounded-lg flex flex-col items-center justify-center transition-colors ${on ? 'bg-indigo-700 text-white font-bold' : giua ? 'bg-indigo-50 text-indigo-700 font-bold' : nay ? 'text-indigo-700 font-bold ring-1 ring-indigo-300 hover:bg-slate-50' : 'text-slate-700 hover:bg-slate-50'}`}>
                                         <span className="text-[13px]">{k.nhan}</span>
                                         {k.phu && <span className={`text-[11px] mt-1 ${on ? 'text-indigo-100' : 'text-slate-500'}`}>{k.phu}</span>}
                                     </button>
@@ -1987,14 +2026,14 @@ window.showConnectionLost = function() {
             };
 
             const veLuoiCacNam = () => {
-                const dauKhoi = xem.getFullYear() - 5;
+                const dauKhoi = xemTrai.getFullYear() - 5;
                 const ds = Array.from({ length: 12 }, (_, i) => dauKhoi + i);
                 return (
                     <div className="w-[672px] px-4 py-3">
                         <div className="flex items-center h-8 mb-2">
-                            {nutDieuHuong('«', () => setXem(new Date(xem.getFullYear() - 12, xem.getMonth(), 1)), 'Lùi 12 năm')}
+                            {nutDieuHuong('«', () => setXemTrai(new Date(xemTrai.getFullYear() - 12, xemTrai.getMonth(), 1)), 'Lùi 12 năm')}
                             <div className="flex-1 text-center text-[13px] font-bold text-slate-700 tabular-nums">{ds[0]} – {ds[11]}</div>
-                            {nutDieuHuong('»', () => setXem(new Date(xem.getFullYear() + 12, xem.getMonth(), 1)), 'Tới 12 năm')}
+                            {nutDieuHuong('»', () => setXemTrai(new Date(xemTrai.getFullYear() + 12, xemTrai.getMonth(), 1)), 'Tới 12 năm')}
                         </div>
                         <div className="grid grid-cols-4 gap-1.5">
                             {ds.map(y => {
@@ -2024,19 +2063,20 @@ window.showConnectionLost = function() {
                             className="flex bg-white rounded-xl shadow-[0_20px_60px_rgba(15,23,42,0.25)] border border-slate-200">
                             <div className="w-[128px] shrink-0 border-r border-slate-100 p-2 flex flex-col gap-0.5">
                                 {CHE_DO_THOI_GIAN.map(c => (
-                                    <button key={c.id} type="button" onClick={() => { setCheDo(c.id); setChonDau(null); setTro(null); }} aria-pressed={cheDo === c.id} className={dong(cheDo === c.id)}>{c.ten}</button>
+                                    <button key={c.id} type="button" onClick={() => { setCheDo(c.id); setChonDau(null); setTro(null); datXemMacDinh(c.id); }} aria-pressed={cheDo === c.id} className={dong(cheDo === c.id)}>{c.ten}</button>
                                 ))}
                             </div>
                             <div className="flex-1 min-w-0 flex flex-col">
                             <div className="flex">
-                                {(cheDo === 'ngay' || cheDo === 'tuan') && <>{veLichThang(0)}<div className="border-l border-slate-100"></div>{veLichThang(1)}</>}
-                                {(cheDo === 'thang' || cheDo === 'quy') && <>{veLuoiNam(0)}<div className="border-l border-slate-100"></div>{veLuoiNam(1)}</>}
+                                {(cheDo === 'ngay' || cheDo === 'tuan') && <>{veLichThang(false)}<div className="border-l border-slate-100"></div>{veLichThang(true)}</>}
+                                {(cheDo === 'thang' || cheDo === 'quy') && <>{veLuoiNam(false)}<div className="border-l border-slate-100"></div>{veLuoiNam(true)}</>}
                                 {cheDo === 'nam' && veLuoiCacNam()}
                             </div>
                             <div className="mt-auto px-4 py-2 border-t border-slate-100 text-[11px] text-slate-500">
                                 {cheDo === 'ngay' ? (chonDau ? <>Từ <b className="text-slate-800 tabular-nums">{TG.dmy(chonDau)}</b> — bấm tiếp ngày kết thúc</> : 'Bấm ngày bắt đầu, rồi bấm ngày kết thúc (bấm 2 lần cùng một ngày = xem 1 ngày)')
                                     : cheDo === 'tuan' ? 'Bấm vào một hàng để chọn cả tuần (thứ Hai – Chủ nhật). Số bên trái là số tuần trong năm'
-                                    : cheDo === 'thang' ? 'Bấm một tháng' : cheDo === 'quy' ? 'Bấm một quý' : 'Bấm một năm'}
+                                    : cheDo === 'thang' ? (chonDau ? <>Từ <b className="text-slate-800 tabular-nums">T{chonDau.getMonth() + 1}/{chonDau.getFullYear()}</b> — bấm tiếp tháng kết thúc</> : 'Bấm tháng bắt đầu, rồi bấm tháng kết thúc (bấm 2 lần cùng một tháng = xem 1 tháng). Hai khung bấm qua lại riêng')
+                                    : cheDo === 'quy' ? 'Bấm một quý' : 'Bấm một năm'}
                             </div>
                             </div>
                         </div>, document.body
@@ -2188,11 +2228,14 @@ window.showConnectionLost = function() {
             { id: 'nhomdt',   ten: 'Nhóm đối tượng',  khoa: 'pr_class_ids',   co: (t) => t === 'BC017' },
             { id: 'nhomcv',   ten: 'Nhóm công việc',  khoa: 'job_class_ids',  co: (t) => t === 'BC017' },
             { id: 'loaict',   ten: 'Loại chứng từ',   khoa: 'bc_tran_ids',    co: (t) => t === 'BC017' },
+            // BC018 (05/11/2026): Khu vực = đơn vị CHA trong danh mục đơn vị (danh sách do /api/metadata trả — khu_vuc)
+            { id: 'khuvuc',   ten: 'Khu vực',         khoa: 'kv_ids',         co: (t) => t === 'BC018' },
         ];
         // Thứ tự mặc định RIÊNG của báo cáo (thiếu thì theo thứ tự O_LOC_BAO_CAO). BC017 theo đúng thứ tự hộp lọc iPOS:
         // Kho · Nhóm hàng hoá · Hàng hoá · Nhóm đối tượng · Đối tượng · Nhóm công việc · Công việc — 3 ô đầu đứng ngoài.
         const THU_TU_O_LOC = {
             BC017: ['donvi', 'kho', 'nhomhang', 'hanghoa', 'nhomdt', 'doituong', 'nhomcv', 'cv', 'loaict'],
+            BC018: ['khuvuc', 'donvi'],
         };
         // Tham số lọc BC017 — DÙNG CHUNG cho màn xem (/api/sale_detail) và xuất Excel (/api/sale_detail/export):
         // hai nơi tự dựng riêng là có ngày lọc lệch nhau, file xuất ra khác số trên màn.
@@ -2507,7 +2550,7 @@ window.showConnectionLost = function() {
             );
         };
 
-        const ReportTab = ({ filters, setFilters, period, setPeriod, meta, onToggleFilter, activeDropdown, setActiveDropdown, reportData: initialReportData, loadReportData, loading, monthList, monthlyData: initialMonthlyData, jobList, jobData: initialJobData, reportType, setReportType, setPendingReportType, setShowClearModal, trialBalanceData, trialBalanceTotal, cashBookData, vatSalesTotals, vatSalesMode, setVatSalesMode, saleSourceTotals, saleSourceMode, setSaleSourceMode, nxtData, nxtGroupBy, setNxtGroupBy, journalViewMode, setJournalViewMode, onExportSuccess, allowedReports = REPORT_TYPES, orgsLoc, bc17An0d, setBc17An0d, bc17Kieu, setBc17Kieu, bc17Xem, setBc17Xem, bc17AnCot = AN_MAC_DINH_BC017, setBc17AnCot, anCotBC = {}, setAnCotBC, laQuanTri = false, tkDonVi = null, napTkDonVi, tkLocDonVi = '', setTkLocDonVi }) => {
+        const ReportTab = ({ filters, setFilters, period, setPeriod, meta, onToggleFilter, activeDropdown, setActiveDropdown, reportData: initialReportData, loadReportData, loading, monthList, monthlyData: initialMonthlyData, jobList, jobData: initialJobData, reportType, setReportType, setPendingReportType, setShowClearModal, trialBalanceData, trialBalanceTotal, cashBookData, vatSalesTotals, vatSalesMode, setVatSalesMode, saleSourceTotals, saleSourceMode, setSaleSourceMode, bc18BoBnb = false, setBc18BoBnb, nxtData, nxtGroupBy, setNxtGroupBy, journalViewMode, setJournalViewMode, onExportSuccess, allowedReports = REPORT_TYPES, orgsLoc, bc17An0d, setBc17An0d, bc17Kieu, setBc17Kieu, bc17Xem, setBc17Xem, bc17AnCot = AN_MAC_DINH_BC017, setBc17AnCot, anCotBC = {}, setAnCotBC, laQuanTri = false, tkDonVi = null, napTkDonVi, tkLocDonVi = '', setTkLocDonVi }) => {
             const paperScrollRef = React.useRef(null);
             // Cấu hình cột 5 báo cáo (05/10/2026) — cột đang ẨN của từng báo cáo; chưa chỉnh ⇒ mặc định (đúng biểu mẫu cũ).
             const anBC = (bc) => anCotBC[bc] || AN_MAC_DINH_BC[bc] || [];
@@ -2550,7 +2593,7 @@ window.showConnectionLost = function() {
             const nguonOLoc = { donvi: orgsLoc || meta.orgs, tk: meta.accounts, cv: meta.jobs, doituong: meta.pr_details, tkdu: meta.accounts,
                 // BC017: danh mục nhóm do /api/metadata trả (máy chủ cũ không có ⇒ rỗng); Loại CT = đúng các mã của SALE_VIEW
                 kho: meta.warehouses, nhomhang: meta.item_classes || [], hanghoa: meta.items, nhomdt: meta.pr_detail_classes || [],
-                nhomcv: meta.job_classes || [], loaict: (meta.tran_ids_by_tab && meta.tran_ids_by_tab.sale) || meta.tran_ids || [] };
+                nhomcv: meta.job_classes || [], loaict: (meta.tran_ids_by_tab && meta.tran_ids_by_tab.sale) || meta.tran_ids || [], khuvuc: meta.khu_vuc || [] };
             // Một ô lọc — dùng chung cho hàng ngoài (có mức sàn) lẫn lưới trong Bộ lọc nâng cao.
             const veOLoc = (id, trongBang, canhPhai) => {
                 const o = O_LOC_BAO_CAO.find(x => x.id === id);
@@ -2819,7 +2862,8 @@ window.showConnectionLost = function() {
                 BC013: 'BC013_Bang_Tong_Hop_Phat_Sinh_Cong_No',
                 BC014: '6.2_Bang_Ke_Hoa_Don_Hang_Hoa_Dich_Vu_Ban_Ra',
                 BC015: 'BC015_Ban_Hang_Theo_Nguon_Don',
-                BC016: 'BC016_Nhap_Xuat_Ton_Nha_Hang'
+                BC016: 'BC016_Nhap_Xuat_Ton_Nha_Hang',
+                BC018: 'BC018_Doanh_Thu_Thuan_Chi_Nhanh'
             };
 
             // Xuất CSV chung: đọc bảng .report-table đang hiển thị -> CSV (UTF-8 BOM). Số âm "(x)" -> "-x".
@@ -2996,7 +3040,7 @@ window.showConnectionLost = function() {
                     BC007: 'Mẫu S03a - DN', BC008: 'Mẫu S38 - DN',
                     BC009: 'Mẫu B03 - DN', BC010: 'Mẫu B03 - DN', BC011: 'Mẫu B03 - DN',
                     BC012: 'Mẫu S07 - DN', BC013: 'Mẫu S05 - DN', BC014: 'Mẫu 01-1/GTGT',
-                    BC015: '', BC016: ''
+                    BC015: '', BC016: '', BC018: ''
                 };
                 const reportPattern = REPORT_PATTERNS[reportType] !== undefined ? REPORT_PATTERNS[reportType] : 'Mẫu B02 - DN';
 
@@ -3013,6 +3057,7 @@ window.showConnectionLost = function() {
                 else if (reportType === 'BC014') reportTitle = '6.2 - BẢNG KÊ HÓA ĐƠN, CHỨNG TỪ HÀNG HÓA, DỊCH VỤ BÁN RA';
                 else if (reportType === 'BC015') reportTitle = 'BÁO CÁO BÁN HÀNG THEO NGUỒN ĐƠN';
                 else if (reportType === 'BC016') reportTitle = 'BÁO CÁO NHẬP XUẤT TỒN NHÀ HÀNG';
+                else if (reportType === 'BC018') reportTitle = 'BÁO CÁO DOANH THU THUẦN THEO CHI NHÁNH';
                 else if (['BC002', 'BC004'].includes(reportType)) reportTitle = 'BÁO CÁO KẾT QUẢ KINH DOANH THEO CÔNG VIỆC';
                 else reportTitle = 'BÁO CÁO KẾT QUẢ KINH DOANH THEO THÁNG';
 
@@ -3044,6 +3089,12 @@ window.showConnectionLost = function() {
                     }).join(', '));
                 }
                 if (reportType === 'BC015') dongPhu.push('Nguồn đơn: Tất cả');
+                if (reportType === 'BC018') {
+                    const kvDs = meta.khu_vuc || [];
+                    dongPhu.push('Khu vực: ' + ((filters.kv_ids || []).length ? filters.kv_ids.map(id => { const k = kvDs.find(x => x.id === id); return k ? k.name : id; }).join(', ') : 'Tất cả'));
+                    dongPhu.push((initialReportData && initialReportData.bo_bnb) ? 'Không tính bán hàng nội bộ (BNB)' : 'Có tính bán hàng nội bộ (BNB)');
+                    dongPhu.push('Doanh thu thuần = PS Có TK 511 − PS Nợ TK 521, không tính bút toán kết chuyển');
+                }
                 dongPhu.push('Đơn vị: ' + (filters.org_ids && filters.org_ids.length > 0 ? filters.org_ids.map(id => {
                     const org = meta.orgs.find(o => o.id === id);
                     return org ? `${id} - ${org.name}` : id;
@@ -3085,8 +3136,8 @@ window.showConnectionLost = function() {
                 const fname = `${REPORT_FILE[reportType] || reportType}_${dateSuffix}.xlsx`;
                 const moHinh = {
                     filename: fname,
-                    landscape: reportType === 'BC015' || reportType === 'BC016',
-                    fit_width: reportType === 'BC016',     // BC016 rất nhiều cột: co vừa 1 trang bề ngang khi in
+                    landscape: reportType === 'BC015' || reportType === 'BC016' || reportType === 'BC018',
+                    fit_width: reportType === 'BC016' || reportType === 'BC018',     // BC016 rất nhiều cột: co vừa 1 trang bề ngang khi in
                     lap_dong: dauBang.length ? [khoiDau.length, khoiDau.length + dauBang.length - 1] : null,
                     col_widths: Array.from({ length: maxCols }, (_, i) => Math.round((rongCot[i] || 0) * PHONG)),
                     styles: kieu,
@@ -3574,6 +3625,14 @@ window.showConnectionLost = function() {
                                 <ChonKieuBC017 kieu={bc17Kieu} an0d={bc17An0d} xem={bc17Xem} dangTai={loading}
                                     onDoi={(k, an, x) => { setBc17Kieu(k); setBc17An0d(an); setBc17Xem(x); if (initialReportData && initialReportData.rows) loadReportData(1, { kieu: k, an0d: an, xem: x }); }} />
                             )}
+                            {reportType === 'BC018' && (
+                                // Bán hàng nội bộ (BNB) — Đại Ca chốt 05/11/2026: mặc định TÍNH như file mẫu; "Bỏ bán nội bộ" để xem doanh thu bán ra
+                                // ngoài. Có số liệu rồi thì đổi là tải lại luôn — giá trị MỚI đi qua modeArg (bẫy stale closure BC014/BC015).
+                                <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200 shrink-0 h-[32px] items-center">
+                                    <button disabled={loading} onClick={() => { if (!bc18BoBnb || loading) return; setBc18BoBnb(false); if (initialReportData && initialReportData.nhom) loadReportData(1, { boBnb: false }); }} className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${!bc18BoBnb ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'} disabled:opacity-50`}>Gồm bán nội bộ</button>
+                                    <button disabled={loading} onClick={() => { if (bc18BoBnb || loading) return; setBc18BoBnb(true); if (initialReportData && initialReportData.nhom) loadReportData(1, { boBnb: true }); }} className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${bc18BoBnb ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'} disabled:opacity-50`}>Bỏ bán nội bộ</button>
+                                </div>
+                            )}
                             {/* PHẢI: ô Thời gian + tối đa 3 ô lọc do người dùng chọn (Bộ lọc nâng cao, nhớ theo từng báo cáo).
                                 Mỗi ô có MỨC SÀN (min-w) — co tới sàn là thôi, không bóp chữ (đo 25/09: ô Kỳ cũ bị bóp còn
                                 106px ⇒ "2026 - Tháng 1" gãy 2 dòng). Chạm sàn mà vẫn thiếu chỗ thì cụm nút xuống dòng. */}
@@ -3658,13 +3717,13 @@ window.showConnectionLost = function() {
                                         onDoi={an => doiCot(an, false)} onMacDinh={() => doiCot(null, true)}
                                         ghiChu="Cột thêm (kho, đối tượng, công việc…) mặc định ẩn. Ngày CT luôn hiện. Nhớ trên máy này. Xuất Excel đúng các cột đang hiện; Tổng hợp chỉ dùng Số lượng + cột tiền." />;
                                 })()}
-                                <NutXuat khongCoSo={reportType === 'BC017' ? !(initialReportData && initialReportData.rows && initialReportData.rows.length) : reportType === 'BC016' ? !(nxtData && nxtData.groups && nxtData.groups.length) : reportType === 'BC012' ? cbRows.length === 0 : (reportType === 'BC006' || reportType === 'BC013') ? trialBalanceData.length === 0 : Object.keys(initialReportData || {}).length === 0} onExcel={exportToExcel} onPdf={exportToPDF} />
+                                <NutXuat khongCoSo={reportType === 'BC018' ? !(initialReportData && initialReportData.nhom && initialReportData.nhom.length) : reportType === 'BC017' ? !(initialReportData && initialReportData.rows && initialReportData.rows.length) : reportType === 'BC016' ? !(nxtData && nxtData.groups && nxtData.groups.length) : reportType === 'BC012' ? cbRows.length === 0 : (reportType === 'BC006' || reportType === 'BC013') ? trialBalanceData.length === 0 : Object.keys(initialReportData || {}).length === 0} onExcel={exportToExcel} onPdf={exportToPDF} />
                             </div>
                         </div>
                     </div>
 
                     <div className="flex-1 overflow-auto custom-scrollbar bg-slate-200 p-4 relative" ref={paperScrollRef}>
-                        <div className={`report-paper ${['BC001', 'BC002', 'BC003', 'BC004', 'BC006', 'BC007', 'BC011', 'BC012', 'BC013', 'BC014', 'BC015', 'BC016', 'BC017'].includes(reportType) ? 'paper-landscape' : 'paper-portrait'}`}>
+                        <div className={`report-paper ${['BC001', 'BC002', 'BC003', 'BC004', 'BC006', 'BC007', 'BC011', 'BC012', 'BC013', 'BC014', 'BC015', 'BC016', 'BC017', 'BC018'].includes(reportType) ? 'paper-landscape' : 'paper-portrait'}`}>
                             <div className="flex justify-between items-start mb-6">
                                 <div>
                                     <div className="font-black text-[11px] uppercase">{(meta.company && meta.company.name) || ''}</div>
@@ -3677,11 +3736,11 @@ window.showConnectionLost = function() {
                                         ) : 'Tất cả'}
                                     </div>
                                 </div>
-                                <div className="text-right font-black text-[10px] text-slate-400 uppercase tracking-widest italic underline">{reportType === 'BC005' ? 'Mẫu B01 - DN' : reportType === 'BC006' ? 'Mẫu B09 - DN' : reportType === 'BC007' ? 'Mẫu S03a - DN' : reportType === 'BC008' ? 'Mẫu S38 - DN' : (reportType === 'BC009' || reportType === 'BC010' || reportType === 'BC011') ? 'Mẫu B03 - DN' : reportType === 'BC012' ? 'Mẫu S07 - DN' : reportType === 'BC013' ? 'Mẫu S05 - DN' : reportType === 'BC014' ? 'Mẫu 01-1/GTGT' : (reportType === 'BC015' || reportType === 'BC016' || reportType === 'BC017') ? '' : 'Mẫu B02 - DN'}</div>
+                                <div className="text-right font-black text-[10px] text-slate-400 uppercase tracking-widest italic underline">{reportType === 'BC005' ? 'Mẫu B01 - DN' : reportType === 'BC006' ? 'Mẫu B09 - DN' : reportType === 'BC007' ? 'Mẫu S03a - DN' : reportType === 'BC008' ? 'Mẫu S38 - DN' : (reportType === 'BC009' || reportType === 'BC010' || reportType === 'BC011') ? 'Mẫu B03 - DN' : reportType === 'BC012' ? 'Mẫu S07 - DN' : reportType === 'BC013' ? 'Mẫu S05 - DN' : reportType === 'BC014' ? 'Mẫu 01-1/GTGT' : (reportType === 'BC015' || reportType === 'BC016' || reportType === 'BC017' || reportType === 'BC018') ? '' : 'Mẫu B02 - DN'}</div>
                             </div>
 
                             <div className="text-center space-y-1 mb-8">
-                                <h1 className="text-xl font-black text-slate-900 uppercase tracking-tight">{reportType === 'BC006' ? 'BẢNG CÂN ĐỐI PHÁT SINH' : reportType === 'BC005' ? 'BẢNG CÂN ĐỐI KẾ TOÁN' : (reportType === 'BC009' || reportType === 'BC010' || reportType === 'BC011') ? `BÁO CÁO LƯU CHUYỂN TIỀN TỆ (${reportType === 'BC009' ? 'Trực tiếp' : reportType === 'BC011' ? 'Gián tiếp - Chú Long' : 'Gián tiếp'})` : reportType === 'BC007' ? 'SỔ NHẬT KÝ CHUNG' : reportType === 'BC008' ? 'SỔ CHI TIẾT TÀI KHOẢN' : reportType === 'BC012' ? 'SỔ TIỀN MẶT VÀ TIỀN NGÂN HÀNG' : reportType === 'BC013' ? 'BẢNG TỔNG HỢP PHÁT SINH CÔNG NỢ' : reportType === 'BC014' ? '6.2 - BẢNG KÊ HÓA ĐƠN, CHỨNG TỪ HÀNG HÓA, DỊCH VỤ BÁN RA' : reportType === 'BC015' ? 'BÁO CÁO BÁN HÀNG THEO NGUỒN ĐƠN' : reportType === 'BC016' ? 'BÁO CÁO NHẬP XUẤT TỒN NHÀ HÀNG' : reportType === 'BC017' ? 'BÁO CÁO BÁN HÀNG' : ['BC002', 'BC004'].includes(reportType) ? 'BÁO CÁO KẾT QUẢ KINH DOANH THEO CÔNG VIỆC' : 'BÁO CÁO KẾT QUẢ KINH DOANH THEO THÁNG'}</h1>
+                                <h1 className="text-xl font-black text-slate-900 uppercase tracking-tight">{reportType === 'BC006' ? 'BẢNG CÂN ĐỐI PHÁT SINH' : reportType === 'BC005' ? 'BẢNG CÂN ĐỐI KẾ TOÁN' : (reportType === 'BC009' || reportType === 'BC010' || reportType === 'BC011') ? `BÁO CÁO LƯU CHUYỂN TIỀN TỆ (${reportType === 'BC009' ? 'Trực tiếp' : reportType === 'BC011' ? 'Gián tiếp - Chú Long' : 'Gián tiếp'})` : reportType === 'BC007' ? 'SỔ NHẬT KÝ CHUNG' : reportType === 'BC008' ? 'SỔ CHI TIẾT TÀI KHOẢN' : reportType === 'BC012' ? 'SỔ TIỀN MẶT VÀ TIỀN NGÂN HÀNG' : reportType === 'BC013' ? 'BẢNG TỔNG HỢP PHÁT SINH CÔNG NỢ' : reportType === 'BC014' ? '6.2 - BẢNG KÊ HÓA ĐƠN, CHỨNG TỪ HÀNG HÓA, DỊCH VỤ BÁN RA' : reportType === 'BC015' ? 'BÁO CÁO BÁN HÀNG THEO NGUỒN ĐƠN' : reportType === 'BC016' ? 'BÁO CÁO NHẬP XUẤT TỒN NHÀ HÀNG' : reportType === 'BC017' ? 'BÁO CÁO BÁN HÀNG' : reportType === 'BC018' ? 'BÁO CÁO DOANH THU THUẦN THEO CHI NHÁNH' : ['BC002', 'BC004'].includes(reportType) ? 'BÁO CÁO KẾT QUẢ KINH DOANH THEO CÔNG VIỆC' : 'BÁO CÁO KẾT QUẢ KINH DOANH THEO THÁNG'}</h1>
                                 {reportType === 'BC017' && (() => {
                                     // Như mẫu iPOS: in điều kiện lọc lên đầu báo cáo. Ô trống ⇒ "Tất cả" (Kho / Đối tượng / Nhóm hàng
                                     // hoá luôn in, như mẫu); các ô khác chỉ in khi có chọn — bản in phải nói rõ số liệu đã lọc theo gì.
@@ -3712,6 +3771,14 @@ window.showConnectionLost = function() {
                                 {reportType === 'BC015' && (
                                     <div className="text-[10px] font-bold text-slate-600 uppercase">Nguồn đơn: Tất cả</div>
                                 )}
+                                {reportType === 'BC018' && (<>
+                                    <div className="text-[10px] font-bold text-slate-600 uppercase">Khu vực: {(filters.kv_ids || []).length > 0 ? filters.kv_ids.map(id => {
+                                        const k = (meta.khu_vuc || []).find(x => x.id === id);
+                                        return k ? k.name : id;
+                                    }).join(', ') : 'Tất cả'}</div>
+                                    <div className="text-[10px] font-bold text-slate-600 uppercase">{(initialReportData && initialReportData.bo_bnb) ? 'Không tính bán hàng nội bộ (BNB)' : 'Có tính bán hàng nội bộ (BNB)'}</div>
+                                    <div className="text-[9px] text-slate-500 italic">Doanh thu thuần = PS Có TK 511 − PS Nợ TK 521, không tính bút toán kết chuyển</div>
+                                </>)}
                                 {reportType === 'BC012' && (
                                     <div className="text-[10px] font-bold text-slate-600 uppercase">Tài khoản: {filters.acc_ids.length > 0 ? filters.acc_ids.map(id => {
                                         const a = meta.accounts.find(x => x.id === id);
@@ -3750,6 +3817,16 @@ window.showConnectionLost = function() {
                             </div>
 
                             <div className={(reportType === 'BC014' || reportType === 'BC015') ? 'overflow-hidden' : 'overflow-x-auto'}>
+                                {reportType === 'BC018' && (
+                                    <style>{`
+                                        .bc018-table { border-collapse: collapse !important; }
+                                        .bc018-table th, .bc018-table td { border: 1px solid #cbd5e1 !important; font-size: 11px !important; padding: 4px 6px !important; white-space: nowrap !important; }
+                                        .bc018-table .col-value { width: auto !important; min-width: 92px !important; text-align: right !important; }
+                                        .bc018-table th.col-value { text-align: center !important; }
+                                        .bc018-table tr.dong-kv td { background-color: #DCE9F5 !important; }
+                                        .bc018-table tr.dong-tong td { background-color: #FFF2CC !important; }
+                                    `}</style>
+                                )}
                                 {reportType === 'BC015' && (
                                     <style>{`
                                         .bc015-table { width: 100% !important; min-width: 100% !important; max-width: 100% !important; table-layout: fixed !important; border-collapse: collapse !important; }
@@ -3882,7 +3959,7 @@ window.showConnectionLost = function() {
                                         .kqkd-table { border-left: 1px solid #000 !important; border-top: 1px solid #000 !important; }
                                     `}</style>
                                 )}
-                                <table className={`report-table min-w-full ${(reportType === 'BC006' || reportType === 'BC013') ? 'bc006-table' : ''} ${(reportType === 'BC007' || reportType === 'BC008') ? 'nklist-table' : ''} ${reportType === 'BC012' ? 'cashbook-table' : ''} ${['BC001', 'BC002', 'BC003', 'BC004'].includes(reportType) ? 'kqkd-table' : ''} ${reportType === 'BC014' ? 'bc013-table' : ''} ${reportType === 'BC015' ? 'bc015-table' : ''} ${reportType === 'BC016' ? 'bc016-table' : ''} ${reportType === 'BC017' ? 'bc017-table' : ''}`}>
+                                <table className={`report-table min-w-full ${(reportType === 'BC006' || reportType === 'BC013') ? 'bc006-table' : ''} ${(reportType === 'BC007' || reportType === 'BC008') ? 'nklist-table' : ''} ${reportType === 'BC012' ? 'cashbook-table' : ''} ${['BC001', 'BC002', 'BC003', 'BC004'].includes(reportType) ? 'kqkd-table' : ''} ${reportType === 'BC014' ? 'bc013-table' : ''} ${reportType === 'BC015' ? 'bc015-table' : ''} ${reportType === 'BC016' ? 'bc016-table' : ''} ${reportType === 'BC017' ? 'bc017-table' : ''} ${reportType === 'BC018' ? 'bc018-table' : ''}`}>
                                     {(reportType === 'BC006' || reportType === 'BC013') ? (
                                         <>
                                         <thead>
@@ -4242,7 +4319,54 @@ window.showConnectionLost = function() {
                                             )}
                                         </tbody>
                                         </>
-                                    ) : reportType === 'BC016' ? (
+                                    ) : reportType === 'BC018' ? (() => {
+                                        // BC018 (05/11/2026) — y file mẫu Đại Ca: STT · Mã ĐV · Tên chi nhánh · từng tháng · Tổng cộng; dòng khu vực tô
+                                        // xanh = cộng các chi nhánh bên dưới; TỔNG CỘNG tô vàng. Số âm trong ngoặc, 0 ⇒ "-" (formatNum — cùng định dạng file).
+                                        const d18 = initialReportData || {};
+                                        const th18 = d18.thang || [], nh18 = d18.nhom || [];
+                                        let stt = 0;
+                                        return (<>
+                                            <thead>
+                                                <tr>
+                                                    <th className="text-center">STT</th>
+                                                    <th className="text-center">Mã ĐV</th>
+                                                    <th className="text-center">Tên chi nhánh</th>
+                                                    {th18.map(t => <th key={`${t.nam}-${t.thang}`} className="col-value">{t.nhan}</th>)}
+                                                    <th className="col-value">Tổng cộng</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {nh18.map(n => (
+                                                    <React.Fragment key={'kv' + n.kv}>
+                                                        <tr className="dong-kv font-black">
+                                                            <td colSpan={3}>{n.ten}</td>
+                                                            {n.so.map((v, i) => <td key={i} className="col-value">{formatNum(v)}</td>)}
+                                                            <td className="col-value">{formatNum(n.tong)}</td>
+                                                        </tr>
+                                                        {n.dong.map(r => (
+                                                            <tr key={r.org_id} className="hover:bg-slate-50">
+                                                                <td className="text-center">{++stt}</td>
+                                                                <td className="text-center">{r.org_id}</td>
+                                                                <td>{r.org_name}</td>
+                                                                {r.so.map((v, i) => <td key={i} className="col-value">{formatNum(v)}</td>)}
+                                                                <td className="col-value font-bold">{formatNum(r.tong)}</td>
+                                                            </tr>
+                                                        ))}
+                                                    </React.Fragment>
+                                                ))}
+                                                {nh18.length === 0 && (
+                                                    <tr><td colSpan={4 + th18.length} className="text-center py-8 text-slate-400 text-xs italic">Không có doanh thu trong kỳ báo cáo đã chọn</td></tr>
+                                                )}
+                                                {nh18.length > 0 && d18.tong && (
+                                                    <tr className="dong-tong font-black">
+                                                        <td colSpan={3} className="text-center uppercase">Tổng cộng</td>
+                                                        {d18.tong.so.map((v, i) => <td key={i} className="col-value">{formatNum(v)}</td>)}
+                                                        <td className="col-value">{formatNum(d18.tong.tong)}</td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </>);
+                                    })() : reportType === 'BC016' ? (
                                     <>
                                         <thead>
                                             <tr>
@@ -7057,6 +7181,7 @@ window.showConnectionLost = function() {
         const [vatSalesMode, setVatSalesMode] = useState('detail');
         const [saleSourceTotals, setSaleSourceTotals] = useState(null);      // BC015: dòng tổng cộng
         const [saleSourceMode, setSaleSourceMode] = useState('summary');     // BC015: 'summary' | 'detail'
+        const [bc18BoBnb, setBc18BoBnb] = useState(false);              // BC018: true = bỏ bán hàng nội bộ (BNB)
         const [nxtData, setNxtData] = useState(null);                        // BC016: {columns, groups, grand, pagination}
         const [nxtGroupBy, setNxtGroupBy] = useState('class');               // BC016: 'class' (nhóm hàng) | 'warehouse' (kho)
         const [bc17An0d, setBc17An0d] = useState(false);                     // BC017: tick "Ẩn dòng 0 đồng" (mặc định hiện, như iPOS)
@@ -7114,7 +7239,9 @@ window.showConnectionLost = function() {
             const [period, setPeriod] = useState({ year: 2026, type: 'month', value: 1 });
             const [filters, setFilters] = useState({ from_date: '01/01/2026', to_date: '31/01/2026', tran_ids: [], org_ids: [], acc_ids: [], contra_acc_ids: [], job_ids: [], pr_detail_ids: [], item_ids: [], product_ids: [], expense_ids: [], tran_no: '', page: 1, page_size: 10000,
                 // BC017 (02/10/2026): ô lọc chỉ báo cáo bán hàng dùng — xem O_LOC_BAO_CAO
-                bc_wh_ids: [], item_class_ids: [], pr_class_ids: [], job_class_ids: [], bc_tran_ids: [] });
+                bc_wh_ids: [], item_class_ids: [], pr_class_ids: [], job_class_ids: [], bc_tran_ids: [],
+                // BC018 (05/11/2026): ô Khu vực
+                kv_ids: [] });
             const [pagination, setPagination] = useState({ total_rows: 0, total_pages: 1, page: 1 });
             const [summary, setSummary] = useState({ total_debit: 0, total_credit: 0 });
             const [colSearch, setColSearch] = useState({});
@@ -9242,6 +9369,18 @@ window.showConnectionLost = function() {
                             setVatSalesTotals(res.totals || { total_amount_item: 0, taxable_amount_item: 0, total_vat_amount: 0 });
                         } else {
                             alert('Lỗi xem bảng kê bán ra: ' + (res.message || 'không có dữ liệu'));
+                        }
+                    } else if (reportType === 'BC018') {
+                        // modeArg { boBnb } = giá trị MỚI của nút bán nội bộ (state vừa set chưa vào closure — bẫy stale closure BC014/BC015).
+                        const boBnb = (modeArg && typeof modeArg === 'object' && modeArg.boBnb !== undefined) ? modeArg.boBnb : bc18BoBnb;
+                        const q2 = new URLSearchParams({ from_date: filters.from_date, to_date: filters.to_date, org_ids: filters.org_ids.join(','), kv_ids: (filters.kv_ids || []).join(','), bo_bnb: boBnb ? '1' : '0' });
+                        const r = await fetch(`/api/dt_thuan_chi_nhanh?${q2.toString()}`, { signal: abortRef.current.signal });
+                        if (r.status === 401) { setIsLoggedIn(false); return; }
+                        const res = await r.json();
+                        if (res.status === 'ok') {
+                            setReportData(res);
+                        } else {
+                            alert('Lỗi xem báo cáo doanh thu thuần theo chi nhánh: ' + (res.message || 'không có dữ liệu'));
                         }
                     } else if (reportType === 'BC015') {
                         // modeArg phải truyền qua tham số: state vừa setSaleSourceMode chưa kịp cập nhật
@@ -11510,6 +11649,8 @@ window.showConnectionLost = function() {
                                 setBc17AnCot={setBc17AnCot}
                                 saleSourceMode={saleSourceMode}
                                 setSaleSourceMode={setSaleSourceMode}
+                                bc18BoBnb={bc18BoBnb}
+                                setBc18BoBnb={setBc18BoBnb}
                                 nxtData={nxtData}
                                 nxtGroupBy={nxtGroupBy}
                                 setNxtGroupBy={setNxtGroupBy}

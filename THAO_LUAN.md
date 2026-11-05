@@ -16,6 +16,402 @@
 
 ---
 
+## 05/11/2026 (~14:45) — Việc 56: ✅ M2/M4 DB thật ĐẠT toàn bộ ca nghiệm thu N1–N7
+
+Đại Ca bật VPN ⇒ `kiem_m2_bc018.py` (test_client, DB thật): N1 khớp file 693/693 ô + thứ tự dòng + 8 khu vực + 310.058.331.121 (8,3s) · N2
+288.305.680.519 (10,3s) · N3 53.997.961.628 · N4 58.311.193.092 · N5 34.821.910.549 (1,3s) · N6 nhãn qua năm · 2 ca lỗi 400 · N7 quyền đạt ·
+metadata `khu_vuc` thật đạt. Lần chạy đầu rớt VPN giữa chừng (N2 lỗi kết nối 08001) — chạy lại đạt hết. **Không ca nào lỗi.**
+
+---
+
+## 05/11/2026 (~14:40) — Việc 56: KẾT QUẢ Claude Code làm theo đặc tả · ✅ M1 + giao diện + quyền · ⏳ M2 DB thật chờ VPN
+
+- Áp đủ S1–S4 + F1–F22 bằng script khớp chuỗi (`ap_bc018.py`, mỗi neo `count == 1`); `git diff` chỉ thay đúng 14 dòng đã nêu trong đặc tả.
+- **Khác đặc tả:** K4 thêm `width: auto !important` cho `.bc018-table .col-value` — luật chung `.col-value { width: 130px; }` (`index.html:178`)
+  ép mọi cột tháng 130px ⇒ cả năm rộng 2.052px; nay 92px / 1.558px. Đặc tả cũ chỉ đặt `min-width` nên không thắng được luật chung.
+- Kiểm: M1 đạt · endpoint thật chạy trên số thật (DB giả) N1–N6 + 2 ca lỗi đạt · N7 quyền đạt · giao diện 1366px + Excel đạt (chi tiết trong
+  `NHAT_KY_CONG_VIEC.md` mục 05/11). **M2 trên DB thật chưa chạy** — máy mất VPN (TCP 9001 hết giờ chờ).
+
+---
+
+## 05/11/2026 (~14:00) — Việc 56: Đại Ca đổi — **Claude Code tự code** theo đặc tả bên dưới, Hades KHÔNG sửa file nào
+
+- 11:50 giao BƯỚC 1 bằng `agy -p --mode plan` chạy ngầm ⇒ Đại Ca không thấy cửa sổ, hỏi *"Hades có đang làm không"* ⇒ Đại Ca bảo *"mở trong
+  tab orca đi"* ⇒ Claude Code tắt lượt chạy ngầm (chưa ra gì), mở tab Orca "Hades — BC018" (`agy -i … --mode plan`), chọn "trust folder".
+- Hades đọc 10 file, nghĩ 8 phút 50 giây rồi **dừng lượt KHÔNG trả lời gì** (13:55 tab đứng ở dấu nhắc trống; tab bị Orca nạp lại, mất chế độ
+  plan). Không file nào bị sửa (`git status`: chỉ `THAO_LUAN.md`).
+- Đại Ca 05/11: *"m làm luôn đi"* ⇒ Claude Code đóng tab Hades, tự làm S1–S4 + F1–F22 đúng đặc tả mục dưới (khác đặc tả chỗ nào sẽ ghi ở mục
+  kết quả).
+
+---
+
+## 05/11/2026 — Việc 56: BC018 · Doanh thu thuần theo chi nhánh — ĐẶC TẢ cho Hades · ⏳ BƯỚC 1 (chỉ trình kế hoạch + diff)
+
+**Đại Ca yêu cầu (05/11/2026):** *"ngoài desktop t có 1 file BC_Doanh_Thu_Thuan_Chi_Nhanh_T1-T10_2026 — t muốn cụ thể hoá nó thành 1 cái
+báo cáo trong ledger report"*. File mẫu: `C:\Users\quang.tran\Desktop\BC_Doanh_Thu_Thuan_Chi_Nhanh_T1-T10_2026.xlsx` (1 sheet: STT · Mã ĐV ·
+Tên chi nhánh · Tháng 1…10 · Tổng cộng; dòng khu vực in đậm nền `#DCE9F5` = SUBTOTAL; TỔNG CỘNG nền `#FFF2CC`; số `#,##0;(#,##0);"-"`;
+A4 ngang; ghi chú cách tính ở cuối).
+
+**Đại Ca chốt (05/11/2026, qua câu hỏi):** ① **Hades code** · ② **Bán hàng nội bộ (BNB): có nút bật/tắt — mặc định TÍNH như file**, chọn
+"Bỏ bán nội bộ" thì trừ ra · ③ **có ô lọc Khu vực** cạnh ô Đơn vị.
+
+### Số đo DB thật (Claude Code, `IACC_CHULONG`, chỉ đọc, 05/11/2026) — đã chốt cách tính
+- **Doanh thu thuần = PS Có 511 − PS Nợ 521, không tính kết chuyển** (Có 511 đối ứng 911 · Nợ 521 đối ứng 511/911). Khớp file **693/693 ô
+  T1–T9** (77 đơn vị × 9 tháng, từng đồng) + đúng thứ tự dòng. Cùng công thức dòng *Doanh thu thuần* (mã 03) của BC001 (đã thử 4 công thức —
+  ra y nhau). Đối chiếu chéo: tổng T1–T9 = **310.058.331.121** = đúng số bút toán KC Nợ 511 / Có 911 cùng kỳ.
+- T10 lệch 26/78 đơn vị (đơn vị `83` mới có 27,5 triệu, `76` −1,27 triệu, `42` +1,42 triệu…) — số T10 trên DB đổi sau ngày lập file 03/11
+  (chưa kiểm chứng nguyên nhân). **Ca nghiệm thu dùng T1–T9.**
+- **Khu vực = đơn vị CHA trong `DM_ORGANIZATION`** (8/8 nhóm của file khớp `PARENT_ORGANIZATION_ID`: 001 HCM · 003 Đà Nẵng · 004 Hà Nội ·
+  005 Kiên Giang · 006 Quảng Ngãi · 007 Huế · 009 Các quán ngoài · `00` ⇒ "Trực thuộc công ty"). Thứ tự nhóm = mã cha, `00` cuối; trong
+  nhóm = mã đơn vị (chuỗi). Chỉ hiện đơn vị có doanh thu trong kỳ (T1–T9 thì `82` ẩn — đúng như file "chỉ liệt kê đơn vị có doanh thu").
+- BNB (`SYS_TRAN`: "Bán hàng nội bộ") T1–T9 = **21.752.650.602** (đơn vị `01` + 150.000 ở `48`).
+- ⛔ **Tốc độ — chỉ mục quyết định:** `IX_LEDGER_ACC_DATE` (khoá `ACCOUNT_ID, TRAN_DATE`; INCLUDE `DEBIT_CREDIT, ORGANIZATION_ID,
+  ACCOUNT_ID_CONTRA, AMOUNT`…) **phủ đủ câu chính nhưng KHÔNG có `TRAN_ID`**. Câu chính T1–T9 **5,7s** (1 tháng 1,2–1,8s). Nhắc tới `TRAN_ID`
+  trong câu chính (WHERE hay CASE) ⇒ **27–40s**. Bỏ BNB = **câu riêng** `WHERE L.TRAN_ID = 'BNB'` (đi `IX_LEDGER_TRAN_ID_DATE`, 17.692 dòng)
+  **2,2s** rồi trừ ở Python ⇒ 288.305.680.519, trùng khít cách lọc WHERE.
+
+### Máy chủ — `server.py` (4 điểm; khớp chuỗi, `count == 1`, KHÔNG dò số dòng — Bẫy 26)
+
+**S1 — dòng 171** (mã quyền mới; app tự gửi mã mới lên Google — Bẫy 22, không sửa `Code.gs`):
+```python
+PERM_REPORTS = ['BC%03d' % i for i in range(1, 18)]          # BC001..BC017
+```
+→
+```python
+PERM_REPORTS = ['BC%03d' % i for i in range(1, 19)]          # BC001..BC018
+```
+
+**S2 — dòng 254** (khai quyền route — thiếu là nhân viên 403, ADMIN không thấy lỗi — Bẫy 30): ngay SAU dòng
+`    '/api/sale_detail': 'BC017', '/api/sale_detail/export': 'BC017',` thêm:
+```python
+    '/api/dt_thuan_chi_nhanh': 'BC018',          # BC018 Doanh thu thuần theo chi nhánh (05/11/2026)
+```
+
+**S3 — `/api/metadata`: danh sách Khu vực.** (a) Ngay SAU 2 dòng (1794–1795):
+```python
+            logger.warning('Metadata: khong doc duoc danh muc nhom (BC017): %s', e)
+            cursor = conn.cursor()
+```
+thêm:
+```python
+
+        # Khu vực cho ô lọc BC018 (05/11/2026) = đơn vị CHA của các đơn vị đang dùng; '00' (công ty) ⇒ "Trực thuộc công ty".
+        # Câu riêng, hỏng thì danh sách rỗng — đừng kéo chết cả màn hình vì 1 ô lọc.
+        khu_vuc = []
+        try:
+            cursor.execute("""
+                SELECT DISTINCT ISNULL(O.PARENT_ORGANIZATION_ID, ''), P.ORGANIZATION_NAME
+                FROM dbo.DM_ORGANIZATION O WITH (NOLOCK)
+                LEFT JOIN dbo.DM_ORGANIZATION P WITH (NOLOCK) ON P.ORGANIZATION_ID = O.PARENT_ORGANIZATION_ID
+                WHERE O.ACTIVE = 1 AND ISNULL(O.PARENT_ORGANIZATION_ID, '') <> ''
+            """)
+            for cha, ten in cursor.fetchall():
+                cha = (cha or '').strip()
+                khu_vuc.append({"id": cha, "name": 'Trực thuộc công ty' if cha == '00' else ((ten or '').strip() or cha)})
+            khu_vuc.sort(key=lambda k: (k["id"] == '00', k["id"]))
+        except Exception as e:
+            logger.warning('Metadata: khong doc duoc danh sach khu vuc (BC018): %s', e)
+            cursor = conn.cursor()
+```
+(b) dòng 1834 `            "job_classes": lop_nhom['job_class'],` → thêm ngay sau: `            "khu_vuc": khu_vuc,`
+
+**S4 — endpoint mới.** Ngay SAU 2 dòng cuối của `get_sale_by_source` (khớp chuỗi):
+```python
+        logger.error(f"Error in BC015 get_sale_by_source: {msg}")
+        return jsonify({"status": "error", "message": msg}), 401 if "đăng nhập" in msg else 500
+```
+thêm (giữ 2 dòng trống trước khối `# BC017 …` phía dưới):
+```python
+
+
+# =====================================================================
+# BC018 — DOANH THU THUẦN THEO CHI NHÁNH (Đại Ca chốt 05/11/2026, theo file BC_Doanh_Thu_Thuan_Chi_Nhanh_T1-T10_2026.xlsx)
+# =====================================================================
+# Doanh thu thuần = PS Có 511 − PS Nợ 521, KHÔNG tính kết chuyển (Có 511 đối ứng 911 · Nợ 521 đối ứng 511/911) — cùng số dòng
+# "Doanh thu thuần" (mã 03) của BC001. Đo 05/11/2026: khớp file 693/693 ô T1–T9; tổng T1–T9 = đúng bút toán KC 511→911.
+# Khu vực = đơn vị CHA trong DM_ORGANIZATION ('00' ⇒ "Trực thuộc công ty") ⇒ mở chi nhánh mới tự vào đúng nhóm.
+# ⛔ Câu chính KHÔNG được nhắc tới TRAN_ID: IX_LEDGER_ACC_DATE phủ đủ cột của nó nhưng không có TRAN_ID — nhắc tới là SQL phải tra
+#    từng dòng (đo T1–T9: 5,7s → 27–40s). Bỏ bán nội bộ = câu RIÊNG theo IX_LEDGER_TRAN_ID_DATE (2,2s) rồi trừ ở Python.
+BC018_DT_SQL = """CASE WHEN L.ACCOUNT_ID LIKE '511%' AND L.DEBIT_CREDIT = 'CRD'
+                       AND ISNULL(L.ACCOUNT_ID_CONTRA, '') NOT LIKE '911%' THEN L.AMOUNT
+                  WHEN L.ACCOUNT_ID LIKE '521%' AND L.DEBIT_CREDIT = 'DEB'
+                       AND ISNULL(L.ACCOUNT_ID_CONTRA, '') NOT LIKE '511%'
+                       AND ISNULL(L.ACCOUNT_ID_CONTRA, '') NOT LIKE '911%' THEN -L.AMOUNT
+                  ELSE 0 END"""
+BC018_TRAN_NOI_BO = 'BNB'      # SYS_TRAN "Bán hàng nội bộ" — gần như chỉ Kho Tổng 01
+BC018_TOI_DA_THANG = 36
+
+
+@app.route("/api/dt_thuan_chi_nhanh")
+@with_db_lock
+def get_dt_thuan_chi_nhanh():
+    """BC018 — dòng = đơn vị (nhóm theo khu vực = đơn vị cha), cột = từng tháng trong kỳ. bo_bnb=1 ⇒ trừ bán hàng nội bộ."""
+    try:
+        f_date = request.args.get("from_date")
+        t_date = request.args.get("to_date")
+        if not f_date or not t_date:
+            return jsonify({"status": "error", "message": "Thiếu từ ngày / đến ngày"}), 400
+        org_ids = [v for v in request.args.get("org_ids", "").split(",") if v]
+        kv_ids = {v.strip() for v in request.args.get("kv_ids", "").split(",") if v.strip()}
+        bo_bnb = request.args.get("bo_bnb") == "1"
+        tu = datetime.strptime(f_date, "%d/%m/%Y")
+        den = datetime.strptime(t_date, "%d/%m/%Y")
+        if den < tu:
+            return jsonify({"status": "error", "message": "Đến ngày phải sau Từ ngày"}), 400
+
+        # Cột = MỌI tháng trong kỳ, kể cả tháng chưa có số (như file mẫu).
+        thang = []
+        y, m = tu.year, tu.month
+        while (y, m) <= (den.year, den.month):
+            thang.append((y, m))
+            y, m = (y + 1, 1) if m == 12 else (y, m + 1)
+        if len(thang) > BC018_TOI_DA_THANG:
+            return jsonify({"status": "error", "message": f"Kỳ báo cáo tối đa {BC018_TOI_DA_THANG} tháng"}), 400
+        mot_nam = len({a for a, _ in thang}) == 1
+        cot = {k: i for i, k in enumerate(thang)}
+
+        f_dt = tu.strftime("%Y%m%d")
+        t_dt = (den + timedelta(days=1)).strftime("%Y%m%d")      # TRAN_DATE là smalldatetime: "< ngày kế tiếp"
+        _oc, _op = _org_filter_sql(org_ids, "L.ORGANIZATION_ID")   # quyền đơn vị + loại đơn vị ngoài cây
+        org_where = (" AND " + _oc) if _oc else ""
+        dk = "L.TRAN_DATE >= ? AND L.TRAN_DATE < ? AND (L.ACCOUNT_ID LIKE '511%' OR L.ACCOUNT_ID LIKE '521%')"
+        gom = " GROUP BY L.ORGANIZATION_ID, YEAR(L.TRAN_DATE), MONTH(L.TRAN_DATE)"
+        params = [f_dt, t_dt] + list(_op)                         # đúng thứ tự dấu ? (Bẫy 5)
+
+        so = {}   # đơn vị -> [số từng tháng]
+
+        def cong(rows, dau):
+            for org, yy, mm, v in rows:
+                i = cot.get((int(yy), int(mm)))
+                if i is None:
+                    continue
+                o = (str(org) if org is not None else "").strip()
+                so.setdefault(o, [0.0] * len(thang))[i] += dau * float(v or 0)
+
+        cur = get_connection().cursor()
+        cur.execute(f"SELECT L.ORGANIZATION_ID, YEAR(L.TRAN_DATE), MONTH(L.TRAN_DATE), SUM({BC018_DT_SQL}) "
+                    f"FROM dbo.LEDGER L WITH (NOLOCK) WHERE {dk}{org_where}{gom}", params)
+        cong(cur.fetchall(), 1)
+        if bo_bnb:
+            cur.execute(f"SELECT L.ORGANIZATION_ID, YEAR(L.TRAN_DATE), MONTH(L.TRAN_DATE), SUM({BC018_DT_SQL}) "
+                        f"FROM dbo.LEDGER L WITH (NOLOCK) WHERE L.TRAN_ID = ? AND {dk}{org_where}{gom}",
+                        [BC018_TRAN_NOI_BO] + params)
+            cong(cur.fetchall(), -1)
+
+        cur.execute("SELECT ORGANIZATION_ID, ORGANIZATION_NAME, ISNULL(PARENT_ORGANIZATION_ID, '') FROM dbo.DM_ORGANIZATION WITH (NOLOCK)")
+        dm = {(r[0] or '').strip(): ((r[1] or '').strip(), (r[2] or '').strip()) for r in cur.fetchall()}
+
+        nhom = {}
+        for o, ds in so.items():
+            if all(round(x, 2) == 0 for x in ds):
+                continue                                          # chỉ đơn vị có doanh thu trong kỳ (như file)
+            cha = dm.get(o, ('', ''))[1]
+            if kv_ids and cha not in kv_ids:
+                continue                                          # ô Khu vực: lọc ở Python, KHÔNG thêm vào SQL
+            nhom.setdefault(cha, []).append(o)
+
+        tong = [0.0] * len(thang)
+        ket = []
+        for cha in sorted(nhom, key=lambda c: (c == '', c == '00', c)):   # mã cha tăng dần, "Trực thuộc công ty" rồi "ngoài cây" cuối
+            cong_kv = [0.0] * len(thang)
+            dong = []
+            for o in sorted(nhom[cha]):
+                ds = so[o]
+                for i, x in enumerate(ds):
+                    cong_kv[i] += x
+                dong.append({"org_id": o, "org_name": dm.get(o, ('', ''))[0] or o,
+                             "so": [round(x, 2) for x in ds], "tong": round(sum(ds), 2)})
+            for i, x in enumerate(cong_kv):
+                tong[i] += x
+            ten = 'Trực thuộc công ty' if cha == '00' else (dm.get(cha, ('', ''))[0] or 'Ngoài cây đơn vị')
+            ket.append({"kv": cha, "ten": ten, "so": [round(x, 2) for x in cong_kv], "tong": round(sum(cong_kv), 2), "dong": dong})
+
+        return jsonify({
+            "status": "ok",
+            "bo_bnb": bo_bnb,
+            "thang": [{"nam": a, "thang": b, "nhan": f"Tháng {b}" if mot_nam else f"T{b}/{a}"} for a, b in thang],
+            "nhom": ket,
+            "tong": {"so": [round(x, 2) for x in tong], "tong": round(sum(tong), 2)},
+        })
+    except Exception as e:
+        msg = str(e)
+        if "đăng nhập" not in msg:
+            invalidate_pool()
+        logger.error(f"Error in BC018 get_dt_thuan_chi_nhanh: {msg}")
+        return jsonify({"status": "error", "message": msg}), 401 if "đăng nhập" in msg else 500
+```
+
+### Giao diện — `index.html` (22 điểm, theo thứ tự dòng; mọi chuỗi neo đã kiểm: xuất hiện ĐÚNG 1 lần)
+
+⚠️ Trong bảng dưới, `\|\|` là **`||`** (dấu `|` phải thoát cho bảng Markdown) — trong code viết `||`, KHÔNG có dấu `\`. Số dòng là của file
+TRƯỚC khi sửa; sửa xong điểm trên là điểm dưới lệch dòng ⇒ **luôn tìm theo chuỗi neo**.
+
+| # | Dòng | Neo (code cũ) | Sửa |
+|---|---|---|---|
+| F1 | 1546 | dòng `{ id: 'BC017', name: 'BÁO CÁO BÁN HÀNG', …` | thêm NGAY SAU: `{ id: 'BC018', name: 'BÁO CÁO DOANH THU THUẦN THEO CHI NHÁNH', ten: 'Doanh thu thuần theo chi nhánh', mo_ta: 'Doanh thu thuần từng chi nhánh theo tháng, cộng theo khu vực' },` |
+| F2 | 2190 | dòng `{ id: 'loaict',   ten: 'Loại chứng từ', …co: (t) => t === 'BC017' },` | thêm NGAY SAU: `// BC018 (05/11/2026): Khu vực = đơn vị CHA trong danh mục đơn vị (danh sách do /api/metadata trả — khu_vuc)` + `{ id: 'khuvuc',   ten: 'Khu vực',         khoa: 'kv_ids',         co: (t) => t === 'BC018' },` |
+| F3 | 2195 | `BC017: ['donvi', 'kho', …, 'loaict'],` (trong `THU_TU_O_LOC`) | thêm NGAY SAU: `BC018: ['khuvuc', 'donvi'],` |
+| F4 | 2510 | trong chữ ký `ReportTab`: `saleSourceMode, setSaleSourceMode, nxtData, nxtGroupBy` | → `saleSourceMode, setSaleSourceMode, bc18BoBnb = false, setBc18BoBnb, nxtData, nxtGroupBy` |
+| F5 | 2553 | `nhomcv: meta.job_classes \|\| [], loaict: (meta.tran_ids_by_tab && meta.tran_ids_by_tab.sale) \|\| meta.tran_ids \|\| [] };` | → giữ nguyên, thay `[] };` cuối bằng `[], khuvuc: meta.khu_vuc \|\| [] };` |
+| F6 | 2822 | `BC016: 'BC016_Nhap_Xuat_Ton_Nha_Hang'` (trong `REPORT_FILE`) | → `BC016: 'BC016_Nhap_Xuat_Ton_Nha_Hang',` + dòng mới `BC018: 'BC018_Doanh_Thu_Thuan_Chi_Nhanh'` |
+| F7 | 2999 | `BC015: '', BC016: ''` (trong `REPORT_PATTERNS`) | → `BC015: '', BC016: '', BC018: ''` (không có thì xuất ra chữ "Mẫu B02 - DN") |
+| F8 | 3015 | `else if (reportType === 'BC016') reportTitle = 'BÁO CÁO NHẬP XUẤT TỒN NHÀ HÀNG';` | thêm NGAY SAU: `else if (reportType === 'BC018') reportTitle = 'BÁO CÁO DOANH THU THUẦN THEO CHI NHÁNH';` |
+| F9 | 3046 | `if (reportType === 'BC015') dongPhu.push('Nguồn đơn: Tất cả');` | thêm NGAY SAU khối **K1** (dưới bảng) |
+| F10 | 3088–3089 | `landscape: reportType === 'BC015' \|\| reportType === 'BC016',` · `fit_width: reportType === 'BC016',` | → `landscape: reportType === 'BC015' \|\| reportType === 'BC016' \|\| reportType === 'BC018',` · `fit_width: reportType === 'BC016' \|\| reportType === 'BC018',` (giữ chú thích cuối dòng) |
+| F11 | 3575–3576 | `onDoi={(k, an, x) => { setBc17Kieu(k); … }} />` + dòng kế `)}` | thêm NGAY SAU `)}` đó khối **K2** (nút bán nội bộ) |
+| F12 | 3661 | `<NutXuat khongCoSo={reportType === 'BC017' ? ` | → `<NutXuat khongCoSo={reportType === 'BC018' ? !(initialReportData && initialReportData.nhom && initialReportData.nhom.length) : reportType === 'BC017' ? ` |
+| F13 | 3667 | `'BC014', 'BC015', 'BC016', 'BC017'].includes(reportType) ? 'paper-landscape'` | → `'BC014', 'BC015', 'BC016', 'BC017', 'BC018'].includes(reportType) ? 'paper-landscape'` |
+| F14 | 3680 | `(reportType === 'BC015' \|\| reportType === 'BC016' \|\| reportType === 'BC017') ? ''` | → `(reportType === 'BC015' \|\| reportType === 'BC016' \|\| reportType === 'BC017' \|\| reportType === 'BC018') ? ''` |
+| F15 | 3684 | `reportType === 'BC017' ? 'BÁO CÁO BÁN HÀNG' :` | → `reportType === 'BC017' ? 'BÁO CÁO BÁN HÀNG' : reportType === 'BC018' ? 'BÁO CÁO DOANH THU THUẦN THEO CHI NHÁNH' :` |
+| F16 | 3712–3714 | `{reportType === 'BC015' && (` + `<div …>Nguồn đơn: Tất cả</div>` + `)}` | thêm NGAY SAU khối **K3** (dòng phụ trên giấy) |
+| F17 | 3753 | `{reportType === 'BC015' && (` + dòng kế `<style>{\`` + `.bc015-table { width: 100% …` | chèn NGAY TRƯỚC khối **K4** (style) |
+| F18 | 3885 | `${reportType === 'BC017' ? 'bc017-table' : ''}` | → `${reportType === 'BC017' ? 'bc017-table' : ''} ${reportType === 'BC018' ? 'bc018-table' : ''}` |
+| F19 | 4245 | `) : reportType === 'BC016' ? (` | → khối **K5** rồi mới tới `) : reportType === 'BC016' ? (` |
+| F20 | 7059 | `const [saleSourceMode, setSaleSourceMode] = useState('summary');     // BC015: …` | thêm NGAY SAU: `const [bc18BoBnb, setBc18BoBnb] = useState(false);              // BC018: true = bỏ bán hàng nội bộ (BNB)` |
+| F21 | 7117 | `bc_wh_ids: [], item_class_ids: [], pr_class_ids: [], job_class_ids: [], bc_tran_ids: [] });` | → `… bc_tran_ids: [],` + dòng `// BC018 (05/11/2026): ô Khu vực` + `kv_ids: [] });` (thiếu là `toggleFilter` gọi `.includes` trên undefined ⇒ văng) |
+| F22 | 9246 | `} else if (reportType === 'BC015') {` (trong `loadReportData`) | chèn NGAY TRƯỚC khối **K6** · và dòng 11512 `setSaleSourceMode={setSaleSourceMode}` thêm ngay sau: `bc18BoBnb={bc18BoBnb}` + `setBc18BoBnb={setBc18BoBnb}` |
+
+**K1 — dòng phụ file Excel (F9):**
+```jsx
+                if (reportType === 'BC018') {
+                    const kvDs = meta.khu_vuc || [];
+                    dongPhu.push('Khu vực: ' + ((filters.kv_ids || []).length ? filters.kv_ids.map(id => { const k = kvDs.find(x => x.id === id); return k ? k.name : id; }).join(', ') : 'Tất cả'));
+                    dongPhu.push((initialReportData && initialReportData.bo_bnb) ? 'Không tính bán hàng nội bộ (BNB)' : 'Có tính bán hàng nội bộ (BNB)');
+                    dongPhu.push('Doanh thu thuần = PS Có TK 511 − PS Nợ TK 521, không tính bút toán kết chuyển');
+                }
+```
+**K2 — nút bán nội bộ (F11):**
+```jsx
+                            {reportType === 'BC018' && (
+                                // Bán hàng nội bộ (BNB) — Đại Ca chốt 05/11/2026: mặc định TÍNH như file mẫu; "Bỏ bán nội bộ" để xem doanh thu bán ra
+                                // ngoài. Có số liệu rồi thì đổi là tải lại luôn — giá trị MỚI đi qua modeArg (bẫy stale closure BC014/BC015).
+                                <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200 shrink-0 h-[32px] items-center">
+                                    <button disabled={loading} onClick={() => { if (!bc18BoBnb || loading) return; setBc18BoBnb(false); if (initialReportData && initialReportData.nhom) loadReportData(1, { boBnb: false }); }} className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${!bc18BoBnb ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'} disabled:opacity-50`}>Gồm bán nội bộ</button>
+                                    <button disabled={loading} onClick={() => { if (bc18BoBnb || loading) return; setBc18BoBnb(true); if (initialReportData && initialReportData.nhom) loadReportData(1, { boBnb: true }); }} className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${bc18BoBnb ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'} disabled:opacity-50`}>Bỏ bán nội bộ</button>
+                                </div>
+                            )}
+```
+**K3 — dòng phụ trên giấy (F16):**
+```jsx
+                                {reportType === 'BC018' && (<>
+                                    <div className="text-[10px] font-bold text-slate-600 uppercase">Khu vực: {(filters.kv_ids || []).length > 0 ? filters.kv_ids.map(id => {
+                                        const k = (meta.khu_vuc || []).find(x => x.id === id);
+                                        return k ? k.name : id;
+                                    }).join(', ') : 'Tất cả'}</div>
+                                    <div className="text-[10px] font-bold text-slate-600 uppercase">{(initialReportData && initialReportData.bo_bnb) ? 'Không tính bán hàng nội bộ (BNB)' : 'Có tính bán hàng nội bộ (BNB)'}</div>
+                                    <div className="text-[9px] text-slate-500 italic">Doanh thu thuần = PS Có TK 511 − PS Nợ TK 521, không tính bút toán kết chuyển</div>
+                                </>)}
+```
+**K4 — style (F17):**
+```jsx
+                                {reportType === 'BC018' && (
+                                    <style>{`
+                                        .bc018-table { border-collapse: collapse !important; }
+                                        .bc018-table th, .bc018-table td { border: 1px solid #cbd5e1 !important; font-size: 11px !important; padding: 4px 6px !important; white-space: nowrap !important; }
+                                        .bc018-table .col-value { min-width: 92px !important; text-align: right !important; }
+                                        .bc018-table th.col-value { text-align: center !important; }
+                                        .bc018-table tr.dong-kv td { background-color: #DCE9F5 !important; }
+                                        .bc018-table tr.dong-tong td { background-color: #FFF2CC !important; }
+                                    `}</style>
+                                )}
+```
+**K5 — thân bảng (F19)** — chèn trước `) : reportType === 'BC016' ? (`, nối chuỗi ba ngôi y như nhánh BC017 (`})() : …`):
+```jsx
+                                    ) : reportType === 'BC018' ? (() => {
+                                        // BC018 (05/11/2026) — y file mẫu Đại Ca: STT · Mã ĐV · Tên chi nhánh · từng tháng · Tổng cộng; dòng khu vực tô
+                                        // xanh = cộng các chi nhánh bên dưới; TỔNG CỘNG tô vàng. Số âm trong ngoặc, 0 ⇒ "-" (formatNum — cùng định dạng file).
+                                        const d18 = initialReportData || {};
+                                        const th18 = d18.thang || [], nh18 = d18.nhom || [];
+                                        let stt = 0;
+                                        return (<>
+                                            <thead>
+                                                <tr>
+                                                    <th className="text-center">STT</th>
+                                                    <th className="text-center">Mã ĐV</th>
+                                                    <th className="text-center">Tên chi nhánh</th>
+                                                    {th18.map(t => <th key={`${t.nam}-${t.thang}`} className="col-value">{t.nhan}</th>)}
+                                                    <th className="col-value">Tổng cộng</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {nh18.map(n => (
+                                                    <React.Fragment key={'kv' + n.kv}>
+                                                        <tr className="dong-kv font-black">
+                                                            <td colSpan={3}>{n.ten}</td>
+                                                            {n.so.map((v, i) => <td key={i} className="col-value">{formatNum(v)}</td>)}
+                                                            <td className="col-value">{formatNum(n.tong)}</td>
+                                                        </tr>
+                                                        {n.dong.map(r => (
+                                                            <tr key={r.org_id} className="hover:bg-slate-50">
+                                                                <td className="text-center">{++stt}</td>
+                                                                <td className="text-center">{r.org_id}</td>
+                                                                <td>{r.org_name}</td>
+                                                                {r.so.map((v, i) => <td key={i} className="col-value">{formatNum(v)}</td>)}
+                                                                <td className="col-value font-bold">{formatNum(r.tong)}</td>
+                                                            </tr>
+                                                        ))}
+                                                    </React.Fragment>
+                                                ))}
+                                                {nh18.length === 0 && (
+                                                    <tr><td colSpan={4 + th18.length} className="text-center py-8 text-slate-400 text-xs italic">Không có doanh thu trong kỳ báo cáo đã chọn</td></tr>
+                                                )}
+                                                {nh18.length > 0 && d18.tong && (
+                                                    <tr className="dong-tong font-black">
+                                                        <td colSpan={3} className="text-center uppercase">Tổng cộng</td>
+                                                        {d18.tong.so.map((v, i) => <td key={i} className="col-value">{formatNum(v)}</td>)}
+                                                        <td className="col-value">{formatNum(d18.tong.tong)}</td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </>);
+                                    })() : reportType === 'BC016' ? (
+```
+**K6 — tải số liệu (F22, trong `loadReportData` ở App):**
+```jsx
+                    } else if (reportType === 'BC018') {
+                        // modeArg { boBnb } = giá trị MỚI của nút bán nội bộ (state vừa set chưa vào closure — bẫy stale closure BC014/BC015).
+                        const boBnb = (modeArg && typeof modeArg === 'object' && modeArg.boBnb !== undefined) ? modeArg.boBnb : bc18BoBnb;
+                        const q2 = new URLSearchParams({ from_date: filters.from_date, to_date: filters.to_date, org_ids: filters.org_ids.join(','), kv_ids: (filters.kv_ids || []).join(','), bo_bnb: boBnb ? '1' : '0' });
+                        const r = await fetch(`/api/dt_thuan_chi_nhanh?${q2.toString()}`, { signal: abortRef.current.signal });
+                        if (r.status === 401) { setIsLoggedIn(false); return; }
+                        const res = await r.json();
+                        if (res.status === 'ok') {
+                            setReportData(res);
+                        } else {
+                            alert('Lỗi xem báo cáo doanh thu thuần theo chi nhánh: ' + (res.message || 'không có dữ liệu'));
+                        }
+```
+(khối K6 kết thúc ở đây; dòng `} else if (reportType === 'BC015') {` cũ đứng ngay sau, giữ nguyên.)
+
+### Bẫy phải né
+1. ⛔ **Không nhắc `TRAN_ID` trong câu chính** (kể cả `CASE`) — tụt 5,7s → 27–40s (đo 05/11). BNB chỉ ở câu riêng khi `bo_bnb=1`.
+2. ⛔ Ô Khu vực lọc **ở Python** sau khi gom, đừng thêm `IN (SELECT … DM_ORGANIZATION)` vào SQL (đo: 7,7–13,4s, không lợi, rủi ro kế hoạch).
+3. Quyền đơn vị đi **duy nhất** qua `_org_filter_sql` — áp cho CẢ câu BNB (cùng `org_where` + `params`). Đừng tự lọc `app_orgs`.
+4. Thứ tự params = thứ tự dấu `?` (Bẫy 5): câu BNB là `[BC018_TRAN_NOI_BO] + params` vì `L.TRAN_ID = ?` đứng ĐẦU WHERE.
+5. `kv_ids: []` phải có trong state `filters` mặc định (F21) — thiếu là bấm ô Khu vực văng (`toggleFilter` gọi `p[key].includes`).
+6. K5 là nhánh ba ngôi giữa chuỗi `reportType === …` — sai một ngoặc là trắng cả màn Báo cáo TC. Đừng thêm `{x && <td>}` có điều kiện trong hàng.
+7. `server.py` **không import `Decimal`** — giữ `float` như đặc tả (số tới 9 triệu tỷ vẫn chính xác từng đồng; trả `round(…, 2)`).
+8. Không đụng `CO_GI_MOI.md`, `version.txt`, `build_exe.py`, `release.yml`, `Code.gs` — Claude Code lo phần phát hành.
+
+### Ca nghiệm thu (Claude Code chạy — M1 `ast` + Babel · M2 `test_client` DB thật · M4 so file mẫu)
+| Ca | Gọi | Phải ra |
+|---|---|---|
+| N1 | `from_date=01/01/2026&to_date=30/09/2026` | 9 cột "Tháng 1…9" · 8 nhóm `001,003,004,005,006,007,009,00` (53·3·7·1·1·3·6·2 đơn vị) · **TỔNG 310.058.331.121** · khớp file 693/693 ô, đúng thứ tự dòng |
+| N2 | N1 + `bo_bnb=1` | **288.305.680.519** · đơn vị `01` giảm đúng phần BNB · thời gian ≤ câu N1 + ~3s |
+| N3 | N1 + `kv_ids=004` | 1 nhóm Hà Nội 7 đơn vị · **53.997.961.628** |
+| N4 | N1 + `kv_ids=009,00` | 2 nhóm (6 + 2 đơn vị) · **58.311.193.092** |
+| N5 | `01/09/2026–30/09/2026` | 1 cột "Tháng 9" · **34.821.910.549** |
+| N6 | `01/12/2025–31/01/2026` | cột "T12/2025", "T1/2026" |
+| N7 | tài khoản giới hạn đơn vị `02` (gieo phiên, KHÔNG phải ADMIN) | 200 · chỉ 1 nhóm, 1 đơn vị `02` · không có quyền BC018 ⇒ **403** |
+| N8 | quét route chưa khai quyền (Bẫy 30) | `[]` |
+| N9 | giao diện 1366px (Chrome ngầm) | BC018 có trong trang liệt kê + Ctrl+F · hàng điều kiện 1 dòng · nút bán nội bộ tải lại 1 lần · xuất Excel: tiêu đề + 3 dòng phụ, nền xanh/vàng, số âm âm thật |
+
+### ➡️ BƯỚC 1 cho Hades (chỉ ĐỌC — chưa sửa file nào)
+Đọc `CLAUDE.md` + mục này, mở đúng các dòng nêu trên, rồi trình: (a) xác nhận từng neo S1–S4, F1–F22 khớp file thật (neo nào lệch thì ghi
+rõ); (b) diff dự kiến cho từng điểm; (c) rủi ro / chỗ nghi đặc tả sai. **Chưa sửa file.** Claude Code soát xong mới ghi lệnh duyệt BƯỚC 2.
+
+---
+
 ## 02/11/2026 (tiếp 5, ~23:30) — Việc 54 đợt C: ✅ M2 DB thật ĐẠT · ⚠️ ĐÍNH CHÍNH kết luận "truy vấn con làm chậm 221s"
 
 Đại Ca bật VPN, chạy lại `kiem_m2_dc2.py` (tuần 08–14/09/2026), so `m2c_ban_cu.json`:

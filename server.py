@@ -168,7 +168,7 @@ def _xoa_db_cfg():
 # ===================================================================
 PERM_TABS    = ['ledger', 'sale', 'voucher', 'purchase', 'warehouse', 'warehouse_balance',
                 'btp_reconcile', 'dcnb_reconcile', 'po_list']
-PERM_REPORTS = ['BC%03d' % i for i in range(1, 18)]          # BC001..BC017
+PERM_REPORTS = ['BC%03d' % i for i in range(1, 19)]          # BC001..BC018
 PERM_EXTRA   = ['perm_admin',                                # tab "Phân quyền" — CHỈ ADMIN
                 'diem_su_dung']                              # màn "Điểm sử dụng" (việc 51) — mặc định chỉ ADMIN
 PERM_ALL_ITEMS = PERM_TABS + PERM_REPORTS + PERM_EXTRA
@@ -252,6 +252,7 @@ PERM_ROUTE_STATIC = {
     '/api/debt_summary': 'BC013', '/api/vat_sales_report': 'BC014',
     '/api/sale_by_source': 'BC015', '/api/nxt': 'BC016',
     '/api/sale_detail': 'BC017', '/api/sale_detail/export': 'BC017',
+    '/api/dt_thuan_chi_nhanh': 'BC018',          # BC018 Doanh thu thuần theo chi nhánh (05/11/2026)
     # Tab Phân quyền — CHỈ ADMIN (ADMIN bypass guard; nhóm khác thiếu 'perm_admin' → 403).
     '/api/perm/config': 'perm_admin', '/api/perm/user': 'perm_admin',
     '/api/perm/user/delete': 'perm_admin',
@@ -1794,6 +1795,24 @@ def get_metadata():
             logger.warning('Metadata: khong doc duoc danh muc nhom (BC017): %s', e)
             cursor = conn.cursor()
 
+        # Khu vực cho ô lọc BC018 (05/11/2026) = đơn vị CHA của các đơn vị đang dùng; '00' (công ty) ⇒ "Trực thuộc công ty".
+        # Câu riêng, hỏng thì danh sách rỗng — đừng kéo chết cả màn hình vì 1 ô lọc.
+        khu_vuc = []
+        try:
+            cursor.execute("""
+                SELECT DISTINCT ISNULL(O.PARENT_ORGANIZATION_ID, ''), P.ORGANIZATION_NAME
+                FROM dbo.DM_ORGANIZATION O WITH (NOLOCK)
+                LEFT JOIN dbo.DM_ORGANIZATION P WITH (NOLOCK) ON P.ORGANIZATION_ID = O.PARENT_ORGANIZATION_ID
+                WHERE O.ACTIVE = 1 AND ISNULL(O.PARENT_ORGANIZATION_ID, '') <> ''
+            """)
+            for cha, ten in cursor.fetchall():
+                cha = (cha or '').strip()
+                khu_vuc.append({"id": cha, "name": 'Trực thuộc công ty' if cha == '00' else ((ten or '').strip() or cha)})
+            khu_vuc.sort(key=lambda k: (k["id"] == '00', k["id"]))
+        except Exception as e:
+            logger.warning('Metadata: khong doc duoc danh sach khu vuc (BC018): %s', e)
+            cursor = conn.cursor()
+
 
         # Thông tin công ty cho tiêu đề báo cáo — lấy từ dbo.SYS_SYSTEMVAR (key-value)
         company = {"name": "", "address": "", "tax_code": ""}
@@ -1832,6 +1851,7 @@ def get_metadata():
             "units": units, "banks": banks,
             "item_classes": lop_nhom['item_class'], "pr_detail_classes": lop_nhom['pr_detail_class'],
             "job_classes": lop_nhom['job_class'],
+            "khu_vuc": khu_vuc,
         }
         _meta_cache[db_name] = result
         return jsonify(result)
@@ -9080,6 +9100,123 @@ def get_sale_by_source():
         if "đăng nhập" not in msg:
             invalidate_pool()
         logger.error(f"Error in BC015 get_sale_by_source: {msg}")
+        return jsonify({"status": "error", "message": msg}), 401 if "đăng nhập" in msg else 500
+
+
+# =====================================================================
+# BC018 — DOANH THU THUẦN THEO CHI NHÁNH (Đại Ca chốt 05/11/2026, theo file BC_Doanh_Thu_Thuan_Chi_Nhanh_T1-T10_2026.xlsx)
+# =====================================================================
+# Doanh thu thuần = PS Có 511 − PS Nợ 521, KHÔNG tính kết chuyển (Có 511 đối ứng 911 · Nợ 521 đối ứng 511/911) — cùng số dòng
+# "Doanh thu thuần" (mã 03) của BC001. Đo 05/11/2026: khớp file 693/693 ô T1–T9; tổng T1–T9 = đúng bút toán KC 511→911.
+# Khu vực = đơn vị CHA trong DM_ORGANIZATION ('00' ⇒ "Trực thuộc công ty") ⇒ mở chi nhánh mới tự vào đúng nhóm.
+# ⛔ Câu chính KHÔNG được nhắc tới TRAN_ID: IX_LEDGER_ACC_DATE phủ đủ cột của nó nhưng không có TRAN_ID — nhắc tới là SQL phải tra
+#    từng dòng (đo T1–T9: 5,7s → 27–40s). Bỏ bán nội bộ = câu RIÊNG theo IX_LEDGER_TRAN_ID_DATE (2,2s) rồi trừ ở Python.
+BC018_DT_SQL = """CASE WHEN L.ACCOUNT_ID LIKE '511%' AND L.DEBIT_CREDIT = 'CRD'
+                       AND ISNULL(L.ACCOUNT_ID_CONTRA, '') NOT LIKE '911%' THEN L.AMOUNT
+                  WHEN L.ACCOUNT_ID LIKE '521%' AND L.DEBIT_CREDIT = 'DEB'
+                       AND ISNULL(L.ACCOUNT_ID_CONTRA, '') NOT LIKE '511%'
+                       AND ISNULL(L.ACCOUNT_ID_CONTRA, '') NOT LIKE '911%' THEN -L.AMOUNT
+                  ELSE 0 END"""
+BC018_TRAN_NOI_BO = 'BNB'      # SYS_TRAN "Bán hàng nội bộ" — gần như chỉ Kho Tổng 01
+BC018_TOI_DA_THANG = 36
+
+
+@app.route("/api/dt_thuan_chi_nhanh")
+@with_db_lock
+def get_dt_thuan_chi_nhanh():
+    """BC018 — dòng = đơn vị (nhóm theo khu vực = đơn vị cha), cột = từng tháng trong kỳ. bo_bnb=1 ⇒ trừ bán hàng nội bộ."""
+    try:
+        f_date = request.args.get("from_date")
+        t_date = request.args.get("to_date")
+        if not f_date or not t_date:
+            return jsonify({"status": "error", "message": "Thiếu từ ngày / đến ngày"}), 400
+        org_ids = [v for v in request.args.get("org_ids", "").split(",") if v]
+        kv_ids = {v.strip() for v in request.args.get("kv_ids", "").split(",") if v.strip()}
+        bo_bnb = request.args.get("bo_bnb") == "1"
+        tu = datetime.strptime(f_date, "%d/%m/%Y")
+        den = datetime.strptime(t_date, "%d/%m/%Y")
+        if den < tu:
+            return jsonify({"status": "error", "message": "Đến ngày phải sau Từ ngày"}), 400
+
+        # Cột = MỌI tháng trong kỳ, kể cả tháng chưa có số (như file mẫu).
+        thang = []
+        y, m = tu.year, tu.month
+        while (y, m) <= (den.year, den.month):
+            thang.append((y, m))
+            y, m = (y + 1, 1) if m == 12 else (y, m + 1)
+        if len(thang) > BC018_TOI_DA_THANG:
+            return jsonify({"status": "error", "message": f"Kỳ báo cáo tối đa {BC018_TOI_DA_THANG} tháng"}), 400
+        mot_nam = len({a for a, _ in thang}) == 1
+        cot = {k: i for i, k in enumerate(thang)}
+
+        f_dt = tu.strftime("%Y%m%d")
+        t_dt = (den + timedelta(days=1)).strftime("%Y%m%d")      # TRAN_DATE là smalldatetime: "< ngày kế tiếp"
+        _oc, _op = _org_filter_sql(org_ids, "L.ORGANIZATION_ID")   # quyền đơn vị + loại đơn vị ngoài cây
+        org_where = (" AND " + _oc) if _oc else ""
+        dk = "L.TRAN_DATE >= ? AND L.TRAN_DATE < ? AND (L.ACCOUNT_ID LIKE '511%' OR L.ACCOUNT_ID LIKE '521%')"
+        gom = " GROUP BY L.ORGANIZATION_ID, YEAR(L.TRAN_DATE), MONTH(L.TRAN_DATE)"
+        params = [f_dt, t_dt] + list(_op)                         # đúng thứ tự dấu ? (Bẫy 5)
+
+        so = {}   # đơn vị -> [số từng tháng]
+
+        def cong(rows, dau):
+            for org, yy, mm, v in rows:
+                i = cot.get((int(yy), int(mm)))
+                if i is None:
+                    continue
+                o = (str(org) if org is not None else "").strip()
+                so.setdefault(o, [0.0] * len(thang))[i] += dau * float(v or 0)
+
+        cur = get_connection().cursor()
+        cur.execute(f"SELECT L.ORGANIZATION_ID, YEAR(L.TRAN_DATE), MONTH(L.TRAN_DATE), SUM({BC018_DT_SQL}) "
+                    f"FROM dbo.LEDGER L WITH (NOLOCK) WHERE {dk}{org_where}{gom}", params)
+        cong(cur.fetchall(), 1)
+        if bo_bnb:
+            cur.execute(f"SELECT L.ORGANIZATION_ID, YEAR(L.TRAN_DATE), MONTH(L.TRAN_DATE), SUM({BC018_DT_SQL}) "
+                        f"FROM dbo.LEDGER L WITH (NOLOCK) WHERE L.TRAN_ID = ? AND {dk}{org_where}{gom}",
+                        [BC018_TRAN_NOI_BO] + params)
+            cong(cur.fetchall(), -1)
+
+        cur.execute("SELECT ORGANIZATION_ID, ORGANIZATION_NAME, ISNULL(PARENT_ORGANIZATION_ID, '') FROM dbo.DM_ORGANIZATION WITH (NOLOCK)")
+        dm = {(r[0] or '').strip(): ((r[1] or '').strip(), (r[2] or '').strip()) for r in cur.fetchall()}
+
+        nhom = {}
+        for o, ds in so.items():
+            if all(round(x, 2) == 0 for x in ds):
+                continue                                          # chỉ đơn vị có doanh thu trong kỳ (như file)
+            cha = dm.get(o, ('', ''))[1]
+            if kv_ids and cha not in kv_ids:
+                continue                                          # ô Khu vực: lọc ở Python, KHÔNG thêm vào SQL
+            nhom.setdefault(cha, []).append(o)
+
+        tong = [0.0] * len(thang)
+        ket = []
+        for cha in sorted(nhom, key=lambda c: (c == '', c == '00', c)):   # mã cha tăng dần, "Trực thuộc công ty" rồi "ngoài cây" cuối
+            cong_kv = [0.0] * len(thang)
+            dong = []
+            for o in sorted(nhom[cha]):
+                ds = so[o]
+                for i, x in enumerate(ds):
+                    cong_kv[i] += x
+                dong.append({"org_id": o, "org_name": dm.get(o, ('', ''))[0] or o,
+                             "so": [round(x, 2) for x in ds], "tong": round(sum(ds), 2)})
+            for i, x in enumerate(cong_kv):
+                tong[i] += x
+            ten = 'Trực thuộc công ty' if cha == '00' else (dm.get(cha, ('', ''))[0] or 'Ngoài cây đơn vị')
+            ket.append({"kv": cha, "ten": ten, "so": [round(x, 2) for x in cong_kv], "tong": round(sum(cong_kv), 2), "dong": dong})
+
+        return jsonify({
+            "status": "ok",
+            "bo_bnb": bo_bnb,
+            "thang": [{"nam": a, "thang": b, "nhan": f"Tháng {b}" if mot_nam else f"T{b}/{a}"} for a, b in thang],
+            "nhom": ket,
+            "tong": {"so": [round(x, 2) for x in tong], "tong": round(sum(tong), 2)},
+        })
+    except Exception as e:
+        msg = str(e)
+        if "đăng nhập" not in msg:
+            invalidate_pool()
+        logger.error(f"Error in BC018 get_dt_thuan_chi_nhanh: {msg}")
         return jsonify({"status": "error", "message": msg}), 401 if "đăng nhập" in msg else 500
 
 

@@ -102,6 +102,7 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | 17 | ~~Nút `TRUY VẤN` đang chuyển màu navy → tím~~ ✅ **XONG 25/09** | Đại Ca chốt: chữ **"Lọc"**, navy đặc, như mẫu iPOS. Nằm trong thanh lọc mới của 9 màn danh sách |
 | 18 | ~~Chốt mốc commit phần đăng nhập nhanh + sửa font~~ ✅ **commit `c64540a`** | Phát hành v2.0.0 |
 | 19 | ~~Đại Ca xem GĐ3 rồi chốt commit~~ ✅ **Đại Ca chốt OK sáng 25/09** (*"cái đó thì ok rồi"*) ⇒ đã commit GĐ3 | ⚠️ Đại Ca chốt chung, **không nói rõ đã thử từng mục dưới đây chưa** — lần đầu dùng số liệu thật thì để ý. Danh sách cần xem ở mục *"Việc Đại Ca xem sáng 25/09"* trong nhật ký 25/09 (tiếp 3), ngay dưới § này. Ba việc tôi **không** tự thử được: hộp *"Chuyển mẫu báo cáo?"* khi có số liệu thật · menu **Xuất Excel / Xuất PDF** khi có số liệu (chưa có số liệu thì nút tắt) · kéo thả thứ tự ô lọc bằng chuột thật. Và **đọc lại mô tả 16 thẻ** — tôi tự viết |
+| 56 | ⏳ **BC018 Doanh thu thuần theo chi nhánh** (Đại Ca yêu cầu 05/11/2026, theo file Excel Đại Ca lập) — chi nhánh × tháng, cộng theo khu vực, nút bán nội bộ, ô Khu vực | ✅ Code xong (Claude Code — Hades dừng không trả lời) · M1 + giao diện + quyền + Excel đạt · ✅ **M2/M4 DB thật đạt** (693/693 ô file). ✅ Đại Ca bấm thử đạt 05/11 ~16:30 (server xem 5051, kèm ô Thời gian mới) · 🚀 phát hành v2.1.12 (05/11) (hỏi trước) · Đại Ca tick quyền BC018 cho nhân viên · xoá mật khẩu `config.json` khi xong. Mục nhật ký *05/11/2026 — Việc 56* |
 | 54 | ⏳ **"Chọn thêm cột" cho 9 màn danh sách chứng từ** (Đại Ca yêu cầu 02/11/2026) — cột mới lấy thêm từ iPOS trong hộp Cấu hình cột, khuôn BC017 (mặc định ẩn, máy chủ chỉ lấy cột đang tick) | Đại Ca chốt: **cả 4 phân hệ** · em **đo DB thật rồi đưa danh sách để Đại Ca tick** · **Hades code** (lần đầu project dùng Hades — trao đổi ở [THAO_LUAN.md](THAO_LUAN.md)). Đang chờ Đại Ca điền lại mật khẩu SQL vào `config.json` để đo. → **Cập nhật 02/11 tối:** đã đo, Đại Ca tick 35 cột / 8 màn; Đại Ca đổi: **Claude Code tự code** (gấp) — ✅ **code xong cả 8 màn, kiểm DB thật + giao diện** · ✅ **PHÁT HÀNH `v2.1.10` 02/11/2026**, EXE máy Đại Ca = file CI. Còn: Đại Ca mở app bấm thử · xoá mật khẩu `config.json` khi xong. Mục nhật ký *02/11/2026 — Việc 54* |
 | 53 | ✅ **Nhóm "Hệ thống" (Điểm sử dụng + Phân quyền) sát đáy cột + khối "Bảo trì điểm sử dụng" 5 ô trên Trang chủ** (Đại Ca yêu cầu 10/10/2026) | ✅ **Phát hành v2.1.6 10/10/2026** — Đại Ca xem thật (Google thật 86 điểm) + chỉnh 2 lần, thử giao diện 29/29, EXE máy Đại Ca = file CI. Còn: thử bằng tài khoản không phải ADMIN trên Google thật (đã thử bằng dữ liệu giả). Mục nhật ký *10/10/2026 — Việc 53* |
 | 51 | ✅ **Màn "Điểm sử dụng"** — danh sách điểm dùng phần mềm kế toán + thời hạn bảo trì (Đại Ca yêu cầu 08/10/2026). **Phát hành v2.1.3 (+ v2.1.4 sửa "Có gì mới") 08/10/2026**, Apps Script Version 6, Google thật đã đồng bộ 86 dòng + điền kỳ 79 dòng | ✅ Code.gs `2026-10-08a` **đã triển khai Version 6** (08/10 22:25). ✅ Google thật (ADMIN): đồng bộ 86 dòng + gia hạn 72 dòng + lưu 7 dòng, đọc lại 86/86 đúng (08/10 23:00). Còn: thử tài khoản **không phải ADMIN** · CO_GI_MOI + build + phát hành (hỏi trước khi push) · gia hạn kỳ BTKT mới cho 72 dòng (hết hạn 09/10/2026). Mục nhật ký *08/10/2026 — Việc 51* |
@@ -179,6 +180,73 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 05/11/2026 — Việc 56: BC018 Doanh thu thuần theo chi nhánh · ✅ code + M1 + giao diện + quyền + M2/M4 DB thật · 🚀 phát hành v2.1.12
+
+> 🚀 **~16:45 — Phát hành `v2.1.12`** (Đại Ca chốt *"ok phát hành đi"*, kèm câu "Có gì mới" dòng 3 sửa lại cho rõ "xem 1 tháng bấm 2 lần").
+> Trước commit: `ast.parse` OK · 219 hàm / 81 route, không hàm trùng · Bẫy 30 quét ra `[]` · quét chuỗi bí mật trên phần sửa: không có ·
+> `config.json` không nằm trong git. `version.txt` / `version_info.txt` tăng tay 2.1.11 → 2.1.12 (máy không có Node ⇒ không chạy `build_exe.py`).
+
+> ✅ **~16:30 — Đại Ca bấm thử trên 5051: OK.** Đại Ca hỏi ô Thời gian mới có áp hết không ⇒ kiểm thêm ngoài BC018 (Chrome ngầm 1366, server thử
+> 5052, `cdp_tg_khac.py`): **Nhật ký chung** T1→T6 gửi `01/01/2026`–`30/06/2026`, mở lại tô T1–T6, T3×2 gửi `01/03`–`31/03/2026` · **Chứng từ
+> tiền** vắt 2 khung T11/2025 → T2/2027 gửi đúng · **BC001** T1→T6 gửi đúng, giấy in "Từ ngày 01/01/2026 Đến ngày 30/06/2026". Ô Thời gian
+> luôn hiện dạng ngày–ngày (y bản cũ; "Tháng 3 Năm 2026" là dòng kỳ trên giấy báo cáo). ⚠️ Đổi thói quen: chọn **1 tháng nay phải bấm 2 lần**.
+> (5051 bị Claude Code tắt lúc máy thiếu RAM ~16:20, bật lại bằng PowerShell — Git Bash lỗi khởi động `add_item … errno 1`.)
+
+> 🆕 **~15:20 — Đại Ca bấm thử trên 5051, góp ý ô Thời gian** (gửi ảnh): *"cái thời gian này phải chọn từ tháng đến tháng chứ m, để vậy thì
+> nếu là từ tháng 1 đến tháng 6 năm 2026 thì không chọn được vì bên kia là 2027 rồi, chổ chọn năm mỗi khung độc lập nhau đi, nếu là ngày thì
+> ô trên đó là tháng tới tháng, bấm qua lại độc lập nhau"*. Đã sửa `OThoiGian` (dùng chung Báo cáo TC + 9 màn danh sách): 2 khung có trạng thái
+> riêng `xemTrai` / `xemPhai` + « ‹ › » riêng (ngày, tuần, tháng, quý) · **Chọn tháng = khoảng** (bấm đầu → cuối, 2 lần cùng tháng = 1 tháng ⇒
+> `period` month; > 1 tháng ⇒ custom) · kỳ custom tròn tháng mở lại vào "Chọn tháng" tô sẵn. Quý / năm vẫn 1 lần bấm. Kiểm (Chrome ngầm 1366,
+> server thử): 2 khung độc lập ở tháng + ngày · T1→T6 ⇒ 01/01–30/06/2026, BC018 6 cột · T3×2 ⇒ "Tháng 3 Năm 2026" · vắt khung T11/2025→T2/2027 ·
+> mở lại tô T1–T6 · quý 1 lần bấm · Babel OK. `CO_GI_MOI` thêm 1 dòng.
+
+> ✅ **Cập nhật ~14:40 — M2/M4 DB THẬT ĐẠT** (Đại Ca bật VPN — chập chờn, lần chạy đầu rớt giữa chừng ở N2, chạy lại đạt
+> hết): N1 khớp file **693/693 ô**, đúng thứ tự dòng, 8 khu vực, 310.058.331.121 (8,3s) · N2 bỏ BNB 288.305.680.519 (10,3s) · N3 53.997.961.628
+> (6,4s) · N4 58.311.193.092 (6,8s) · N5 T09 34.821.910.549 (1,3s) · N6 `T12/2025, T1/2026` · 2 ca lỗi ⇒ 400 · N7 NV chỉ đơn vị 02 / không quyền
+> ⇒ 403 · `/api/metadata` `khu_vuc` thật đủ khu vực, `00` cuối. Server xem cho Đại Ca bấm thử: `http://127.0.0.1:5051` (mã nguồn, DB thật).
+
+**Đại Ca yêu cầu:** *"ngoài desktop t có 1 file BC_Doanh_Thu_Thuan_Chi_Nhanh_T1-T10_2026 — t muốn cụ thể hoá nó thành 1 cái báo cáo trong
+ledger report, cho t kế hoạch nhé"*. **Chốt qua câu hỏi:** Hades code (sau đổi: Claude Code làm) · **nút bán nội bộ** (mặc định tính như file) ·
+**có ô Khu vực**.
+
+### Đo trước khi làm (DB thật, chỉ đọc)
+- Dựng lại cách tính từ ghi chú cuối file: **PS Có 511 − PS Nợ 521, bỏ kết chuyển** ⇒ khớp **693/693 ô T1–T9** + đúng thứ tự dòng; 4 công thức
+  thử (gồm công thức BC001 mã 03) ra y nhau; tổng T1–T9 = 310.058.331.121 = đúng bút toán KC 511→911. T10 lệch 26 đơn vị (số T10 trên DB đổi
+  sau 03/11 — chưa kiểm chứng nguyên nhân). Khu vực trong file = đơn vị cha `DM_ORGANIZATION` (8/8 nhóm).
+- Tốc độ: câu chính T1–T9 5,7s; nhắc `TRAN_ID` 27–40s vì `IX_LEDGER_ACC_DATE` không có cột đó ⇒ BNB tách câu riêng (2,2s, `IX_LEDGER_TRAN_ID_DATE`).
+
+### Hades (lần 2 dùng Hades) — không ra được gì
+- 11:50 `agy -p --mode plan` chạy ngầm (không cửa sổ ⇒ Đại Ca hỏi *"Hades có đang làm không"*) ⇒ mở tab Orca theo lệnh Đại Ca ⇒ Hades đọc 10 file,
+  nghĩ 8'50" rồi dừng lượt không trả lời (13:55). Đại Ca: *"m làm luôn đi"*. Chi tiết: `THAO_LUAN.md` mục 05/11.
+
+### Đã làm (Claude Code, đúng đặc tả `THAO_LUAN.md` S1–S4 + F1–F22, khớp chuỗi `count == 1`)
+- `server.py`: `PERM_REPORTS` tới BC018 · khai quyền `/api/dt_thuan_chi_nhanh` · `/api/metadata` thêm `khu_vuc` · endpoint `get_dt_thuan_chi_nhanh`
+  (218 → 219 hàm, 80 → 81 route, không mất hàm/route, không trùng tên, quét route chưa khai quyền = `[]`).
+- `index.html`: BC018 vào `REPORT_TYPES` (trang liệt kê + Ctrl+F + checklist quyền tự có) · ô Khu vực (`O_LOC_BAO_CAO`, `kv_ids`) · nút
+  *Gồm / Bỏ bán nội bộ* (state `bc18BoBnb` ở App, đổi khi có số liệu ⇒ tải lại qua `modeArg`) · bảng · tiêu đề + 3 dòng phụ (màn + Excel) · khổ ngang.
+- **Khác đặc tả 1 chỗ:** thêm `width: auto` cho `.bc018-table .col-value` — luật chung `.col-value { width: 130px }` (`index.html:178`) làm cả
+  năm rộng 2.052px; nay 1.558px (cột tháng 92px).
+- `CO_GI_MOI.md`: mục `## v2.1.12` (2 dòng).
+
+### 🧪 Verify
+- **M1:** `ast` OK · Babel (Chrome ngầm) `BABEL_OK` sau mỗi lần sửa.
+- **Endpoint thật trên số thật** (server thử 5052, kết nối DB giả trả số đã đo): N1 310.058.331.121 · N2 bỏ BNB 288.305.680.519 · N3 Hà Nội
+  53.997.961.628 · N4 Các quán ngoài + Trực thuộc 58.311.193.092 · N5 T09 34.821.910.549 · N6 nhãn `T12/2025, T1/2026` · lỗi ngày ngược / quá
+  36 tháng ⇒ 400 · câu chính KHÔNG có `TRAN_ID`, câu BNB chỉ khi bấm bỏ (params `['BNB', từ, đến]`).
+- **Quyền (N7):** NV có BC018 + chỉ đơn vị 02 ⇒ chỉ 02 (chọn thêm 03 ngoài quyền vẫn chỉ 02; bỏ BNB cũng vậy) · NV không có BC018 ⇒ **403** ·
+  NV không giới hạn đơn vị ⇒ 76 đơn vị.
+- **Giao diện (Chrome ngầm 1366×768):** BC018 trong trang liệt kê ("Báo cáo tài chính · 18 báo cáo") · năm 2026 ⇒ 16 cột, 8 khu vực, 76 đơn vị,
+  STT liền 1–76, 0 dòng lệch số ô, nền khu vực `rgb(220,233,245)` / tổng `rgb(255,242,204)` · bấm *Bỏ bán nội bộ* ⇒ đúng **1** lần tải `bo_bnb=1`,
+  tổng 288.305.680.519, dòng phụ đổi · ô Khu vực = Hà Nội ⇒ `kv_ids=004`, 1 nhóm 7 đơn vị. Hàng điều kiện ở 1366px cột mở rộng rớt cụm nút xuống
+  dòng 2 — **BC017 cũng vậy** (đo cùng lúc), thu gọn cột thì 1 dòng.
+- **Excel:** tiêu đề + 3 dòng phụ, dòng khu vực tô `DCE9F5`, tổng `FFF2CC`, số là số `#,##0`, khổ ngang co vừa trang. Ô 0 ghi `-` (như BC015).
+  ⚠️ Có từ trước, mọi báo cáo: chọn kỳ **năm** thì tên file ra `…_2026_Thang1.xlsx` (`dateSuffix` không tính kiểu năm/quý) — chưa sửa.
+- ⏳ **M2 DB thật CHƯA chạy được:** 14:10 máy ở Wi-Fi `192.168.1.17`, TCP tới SQL (cổng 9001) hết giờ chờ — cần VPN. Script sẵn:
+  `kiem_m2_bc018.py` (N1–N7 + so file 693 ô + metadata `khu_vuc` thật).
+- ⏳ Chưa: Đại Ca bấm thử · build / push v2.1.12 (hỏi trước) · Đại Ca tick quyền BC018 cho chức vụ nhân viên.
 
 ---
 

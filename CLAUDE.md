@@ -2,6 +2,10 @@
 
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
+> 🆕 **05/11/2026 — Việc 56: BC018 Doanh thu thuần theo chi nhánh** (theo file Excel Đại Ca lập: chi nhánh × tháng, cộng theo khu vực = đơn vị
+> cha; nút bán nội bộ; ô Khu vực) + **ô Thời gian (mọi màn) chọn từ tháng → đến tháng, 2 khung độc lập** — 🚀 **phát hành `v2.1.12` 05/11/2026**
+> (Đại Ca chốt *"ok phát hành đi"*): M1 + giao diện + quyền + **M2/M4 DB thật đạt (khớp file 693/693 ô)** + Đại Ca bấm thử đạt.
+> Xem § 1.2 *BC018* + nhật ký 05/11.
 > 🆕 **02/11/2026 (khuya) — Việc 55: xuất Excel "Đối chiếu điều chuyển" 1 tuần từ ~4 phút còn ~9 giây** (qua bảng tạm `#dcx`) —
 > ✅ **`v2.1.11` ĐÃ PHÁT HÀNH 02/11/2026, `Latest`, EXE máy Đại Ca = file CI** (thay trực tiếp, chưa mở thử). Xem § 1.1 `dcnb_reconcile` *Xuất Excel … `#dcx`* + nhật ký 02/11 (khuya).
 > 🆕 **02/11/2026 — Việc 54: "chọn thêm cột" ở 8 màn danh sách** (35 cột Đại Ca tick, mặc định ẩn trong hộp Cấu hình cột, máy chủ chỉ lấy cột
@@ -29,7 +33,7 @@
 > § 1.1 *Cột của 9 bảng* + nhật ký việc 50.
 > ✅ **v2.1.2 — ĐÃ PHÁT HÀNH 06/10/2026, `Latest`, EXE máy Đại Ca = file CI** (cột ghim phải hụt 4px khi cuộn chạm cuối). Mục nhật ký *06/10/2026 — Phát hành v2.1.2*.
 > ✅ **v2.1.1 — 05/10/2026** (BC017 + việc 50). Mục nhật ký *05/10/2026 (khuya) — Phát hành v2.1.1*.
-> Cập nhật gần nhất: **02/11/2026** · **Bản mới nhất: `v2.1.11`** · `v2.1.0` (= code `v2.0.9`, Đại Ca chốt lên 2.1 — xem dòng ✅ v2.0.9 ngay dưới) · v2.0.6: **việc 41** đồng hồ đếm ngược khi xuất Excel Nhật ký chung
+> Cập nhật gần nhất: **05/11/2026** · **Bản mới nhất: `v2.1.12`** · `v2.1.0` (= code `v2.0.9`, Đại Ca chốt lên 2.1 — xem dòng ✅ v2.0.9 ngay dưới) · v2.0.6: **việc 41** đồng hồ đếm ngược khi xuất Excel Nhật ký chung
 > (đo + thử giao diện trên DB thật; bắt được lỗi làm hỏng hẳn xuất Excel chi tiết — **Bẫy 31**) + **việc 42** đăng nhập nhanh không
 > còn đá người ra khi Google chỉ là chưa trả lời được. Mục nhật ký *29/09/2026 — Phát hành v2.0.6*. EXE trên máy Đại Ca = đúng file CI.
 > Mục *28/09/2026 (khuya)*: **Đại Ca giữ Google Sheet, không chuyển Supabase** — đọc lý do trước khi đề xuất lại.
@@ -302,7 +306,10 @@ không mạng, không phải sửa `release.yml`.
 **Hàng điều kiện báo cáo = ô "Thời gian" gộp + tối đa 3 ô lọc + nút phễu "Bộ lọc nâng cao" + nút
 tải xuống** (Đại Ca chốt 25/09/2026). Ô **Thời gian** (`OThoiGian`) gộp Kỳ + Từ ngày + Đến ngày, luôn
 ở ngoài. Bấm vào: cột trái **chỉ 5 chế độ** Chọn ngày · tuần · tháng · quý · năm (**không có phím tắt**
-kiểu "Hôm nay", "Tháng này" — Đại Ca đã bỏ), bên phải 2 lịch cạnh nhau. Chọn tháng/quý/năm thì
+kiểu "Hôm nay", "Tháng này" — Đại Ca đã bỏ), bên phải 2 lịch cạnh nhau. **Hai khung bấm qua lại ĐỘC LẬP** (mỗi khung « ‹ › »
+riêng — Đại Ca chốt 05/11/2026; trước đó khung phải luôn = trái + 1 nên T1–T6/2026 không chọn được). **Chọn tháng = khoảng**: bấm tháng
+đầu rồi tháng cuối (2 khung hay 1 khung), bấm 2 lần cùng tháng = 1 tháng (`period` `month` như cũ); khoảng > 1 tháng ⇒ `custom`, mở lại
+tự vào "Chọn tháng" và tô sẵn khoảng (`cheDoTuKy`). Chọn quý / năm vẫn 1 lần bấm. Chọn tháng/quý/năm thì
 `period` được đặt **đúng loại** vì 9 màn danh sách dùng chung `period`; còn lại là `custom`. Số tuần
 theo **ISO 8601** (`TG.tuan`). Bảng nổi là portal `position:fixed`, đặt sát dưới ô nhưng **không đè
 cột phân hệ**. Hai nút Excel + PDF gộp thành **`NutXuat`** (icon tải xuống, xổ ra chọn kiểu).
@@ -553,7 +560,7 @@ Nguồn `dbo.PO` + `dbo.PO_DETAIL` (**không có view**). 2026: 4.217 phiếu / 
 
 ⛔ **CỐ Ý KHÔNG có cột "đã có phiếu mua hàng chưa"** — xem **Bẫy 20**.
 
-### 1.2 Ma trận báo cáo — **BC001 → BC017**
+### 1.2 Ma trận báo cáo — **BC001 → BC018**
 
 | Mã | Tên | Endpoint | Nguồn |
 |---|---|---|---|
@@ -574,6 +581,22 @@ Nguồn `dbo.PO` + `dbo.PO_DETAIL` (**không có view**). 2026: 4.217 phiếu / 
 | BC015 | Bán hàng theo nguồn đơn | `/api/sale_by_source` | SALE_VIEW (`STATUS='POSTED'`) ⋈ DM_EXTRA_2 (nguồn đơn = `EXTRA_ID_2`) ⋈ DM_ORGANIZATION; `mode=summary`/`detail` (thêm dòng theo ngày) |
 | BC016 | Nhập xuất tồn nhà hàng | `/api/nxt` | WAREHOUSE_VIEW + DM_ITEM / DM_WAREHOUSE / DM_ITEM_CLASS / SYS_TRAN; nhập–xuất trong kỳ là **cột động theo `TRAN_ID`**; `group_by=class`/`warehouse` |
 | BC017 | **Báo cáo bán hàng** (mẫu iPOS "3.1", để **đối chiếu doanh thu**) | `/api/sale_detail` (+ `/export`) | SALE_VIEW (`POSTED`, mặc định **`TRAN_ID IN ('BHVAT','BHK')`**); 3 kiểu xem (Đơn vị · Đơn vị→Ngày · Đơn vị→Nguồn đơn) × Chi tiết / Tổng hợp; **8 cột tiền = đúng bộ BC015**; cột cấu hình được |
+| BC018 | **Doanh thu thuần theo chi nhánh** (theo file Excel Đại Ca lập 03/11/2026) | `/api/dt_thuan_chi_nhanh` | LEDGER (PS Có 511 − PS Nợ 521, bỏ kết chuyển) × tháng; nhóm = đơn vị cha `DM_ORGANIZATION`; `bo_bnb=1` trừ bán hàng nội bộ (câu riêng) |
+
+#### BC018 — Doanh thu thuần theo chi nhánh *(việc 56, Đại Ca chốt 05/11/2026 — chi tiết + số đo: `THAO_LUAN.md` mục 05/11)*
+
+- **Doanh thu thuần = PS Có 511 − PS Nợ 521, không tính kết chuyển** (Có 511 đối ứng 911 · Nợ 521 đối ứng 511/911) — **cùng số dòng
+  "Doanh thu thuần" (mã 03) của BC001**. Đo DB thật 05/11: khớp file mẫu của Đại Ca **693/693 ô T1–T9/2026**; tổng T1–T9 = **310.058.331.121**
+  = đúng bút toán KC Nợ 511 / Có 911 cùng kỳ. (T10 file lệch 26 đơn vị — số T10 trên DB đổi sau ngày lập file 03/11.)
+- Dòng = đơn vị có doanh thu trong kỳ (mọi tháng = 0 ⇒ ẩn); **nhóm = đơn vị CHA** (`PARENT_ORGANIZATION_ID`; `'00'` ⇒ "Trực thuộc công ty",
+  đứng cuối) ⇒ chi nhánh mới tự vào đúng khu vực. Cột = **mọi tháng trong kỳ** (qua năm ⇒ nhãn `T12/2025`), tối đa 36 tháng.
+- ⛔ **Câu chính KHÔNG được nhắc `TRAN_ID`**: `IX_LEDGER_ACC_DATE` phủ đủ cột câu chính nhưng không có `TRAN_ID` ⇒ nhắc tới (WHERE hay CASE) là
+  tra từng dòng, T1–T9 **5,7s → 27–40s**. Nút **"Bỏ bán nội bộ"** (Đại Ca chốt: mặc định TÍNH như file) = **câu riêng** `WHERE L.TRAN_ID = 'BNB'`
+  (đi `IX_LEDGER_TRAN_ID_DATE`, 2,2s) rồi trừ ở Python. BNB T1–T9 = 21.752.650.602 (gần như chỉ Kho Tổng `01`).
+- Ô **Khu vực** (`kv_ids`, danh sách = `khu_vuc` của `/api/metadata`): lọc **ở Python** sau khi gom — đừng thêm truy vấn con vào SQL.
+  Quyền đơn vị đi qua `_org_filter_sql` cho **cả** câu BNB.
+- Giao diện: bảng `bc018-table` (dòng khu vực `#DCE9F5`, tổng `#FFF2CC` — y file mẫu, xuất Excel giữ màu); ⚠️ phải đè `.col-value { width: 130px }`
+  chung (`width: auto`) không là cả năm rộng 2.052px. Ở 1366px cột trái mở rộng, cụm nút rớt dòng 2 — **y BC017**, thu gọn cột thì 1 dòng.
 
 #### BC017 — Báo cáo bán hàng *(thêm 02–04/10/2026, Đại Ca chốt theo ảnh mẫu iPOS — chi tiết: nhật ký việc 49)*
 
@@ -734,6 +757,8 @@ Luật: **chép file `.bak` sang ổ vật lý khác hoặc cloud** — để c�
 10. **Việc Đại Ca giao cho Hades** (Antigravity): Claude Code viết đặc tả + duyệt + kiểm lại độc lập, Hades code. Đặc tả, kế hoạch,
     lệnh duyệt ghi ở **[THAO_LUAN.md](THAO_LUAN.md)** (Append-Only, mới nhất ở trên). Việc 54 (02/11/2026) mở đầu theo cách này nhưng
     Đại Ca đổi giữa chừng (gấp) ⇒ **Claude Code tự code** — Hades chỉ đọc đặc tả, không sửa file nào.
+    Việc 56 (05/11/2026) cũng vậy: Hades `--mode plan` chạy ~2 tiếng (cả chạy ngầm lẫn tab Orca) rồi **dừng lượt không trả lời gì** ⇒ Đại Ca
+    bảo Claude Code làm. ⚠️ `agy -p` chạy ngầm **không có cửa sổ** — Đại Ca muốn nhìn thì mở bằng tab Orca (`orca terminal create … --focus`).
 
 ---
 

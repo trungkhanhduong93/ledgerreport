@@ -4,7 +4,8 @@
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
 > 🆕 **06/11/2026 — Việc 57: BC015 ô lọc Nguồn đơn** (kèm mục "Không có nguồn đơn") + **BC015 bỏ phiếu `XDCNB`** (điều chuyển nội bộ — từ T10/2026
 > mang tiền, lọt vào tổng) + **BC016 ô lọc Kho + Hàng hoá** — Hades code (6 phần A–F, nhiều tab Orca song song), ✅ M1 + giao diện + **M2 DB thật đạt**;
-> 🚀 **phát hành `v2.1.13` 06/11/2026** (Đại Ca chốt *"ok rồi chơi đi"*). Xem § 1.2 *BC015* + `THAO_LUAN.md` mục 06/11.
+> 🚀 **phát hành `v2.1.13` 06/11/2026** (Đại Ca chốt *"ok rồi chơi đi"*) — ✅ **`Latest`, EXE máy Đại Ca = file CI** (thay trực tiếp, chưa mở thử).
+> Xem § 1.2 *BC015* + `THAO_LUAN.md` mục 06/11.
 > 🆕 **05/11/2026 — Việc 56: BC018 Doanh thu thuần theo chi nhánh** (theo file Excel Đại Ca lập: chi nhánh × tháng, cộng theo khu vực = đơn vị
 > cha; nút bán nội bộ; ô Khu vực) + **ô Thời gian (mọi màn) chọn từ tháng → đến tháng, 2 khung độc lập** — 🚀 **phát hành `v2.1.12` 05/11/2026**
 > (Đại Ca chốt *"ok phát hành đi"*) — ✅ **`Latest`, EXE máy Đại Ca = file CI** (thay trực tiếp, chưa mở thử): M1 + giao diện + quyền +

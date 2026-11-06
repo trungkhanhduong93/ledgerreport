@@ -2,6 +2,9 @@
 
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
+> 🆕 **06/11/2026 — Việc 57: BC015 ô lọc Nguồn đơn** (kèm mục "Không có nguồn đơn") + **BC015 bỏ phiếu `XDCNB`** (điều chuyển nội bộ — từ T10/2026
+> mang tiền, lọt vào tổng) + **BC016 ô lọc Kho + Hàng hoá** — Hades code (6 phần A–F, nhiều tab Orca song song), ✅ M1 + giao diện + **M2 DB thật đạt**;
+> 🚀 **phát hành `v2.1.13` 06/11/2026** (Đại Ca chốt *"ok rồi chơi đi"*). Xem § 1.2 *BC015* + `THAO_LUAN.md` mục 06/11.
 > 🆕 **05/11/2026 — Việc 56: BC018 Doanh thu thuần theo chi nhánh** (theo file Excel Đại Ca lập: chi nhánh × tháng, cộng theo khu vực = đơn vị
 > cha; nút bán nội bộ; ô Khu vực) + **ô Thời gian (mọi màn) chọn từ tháng → đến tháng, 2 khung độc lập** — 🚀 **phát hành `v2.1.12` 05/11/2026**
 > (Đại Ca chốt *"ok phát hành đi"*) — ✅ **`Latest`, EXE máy Đại Ca = file CI** (thay trực tiếp, chưa mở thử): M1 + giao diện + quyền +
@@ -34,7 +37,7 @@
 > § 1.1 *Cột của 9 bảng* + nhật ký việc 50.
 > ✅ **v2.1.2 — ĐÃ PHÁT HÀNH 06/10/2026, `Latest`, EXE máy Đại Ca = file CI** (cột ghim phải hụt 4px khi cuộn chạm cuối). Mục nhật ký *06/10/2026 — Phát hành v2.1.2*.
 > ✅ **v2.1.1 — 05/10/2026** (BC017 + việc 50). Mục nhật ký *05/10/2026 (khuya) — Phát hành v2.1.1*.
-> Cập nhật gần nhất: **05/11/2026** · **Bản mới nhất: `v2.1.12`** · `v2.1.0` (= code `v2.0.9`, Đại Ca chốt lên 2.1 — xem dòng ✅ v2.0.9 ngay dưới) · v2.0.6: **việc 41** đồng hồ đếm ngược khi xuất Excel Nhật ký chung
+> Cập nhật gần nhất: **06/11/2026** · **Bản mới nhất: `v2.1.13`** · `v2.1.0` (= code `v2.0.9`, Đại Ca chốt lên 2.1 — xem dòng ✅ v2.0.9 ngay dưới) · v2.0.6: **việc 41** đồng hồ đếm ngược khi xuất Excel Nhật ký chung
 > (đo + thử giao diện trên DB thật; bắt được lỗi làm hỏng hẳn xuất Excel chi tiết — **Bẫy 31**) + **việc 42** đăng nhập nhanh không
 > còn đá người ra khi Google chỉ là chưa trả lời được. Mục nhật ký *29/09/2026 — Phát hành v2.0.6*. EXE trên máy Đại Ca = đúng file CI.
 > Mục *28/09/2026 (khuya)*: **Đại Ca giữ Google Sheet, không chuyển Supabase** — đọc lý do trước khi đề xuất lại.
@@ -579,8 +582,8 @@ Nguồn `dbo.PO` + `dbo.PO_DETAIL` (**không có view**). 2026: 4.217 phiếu / 
 | BC012 | Sổ tiền mặt & tiền ngân hàng | `/api/cash_book` | VOUCHER_VIEW |
 | BC013 | **Tổng hợp phát sinh công nợ** | `/api/debt_summary` | BALANCE_VIEW + LEDGER |
 | BC014 | 6.2 — Bảng kê hoá đơn bán ra | `/api/vat_sales_report` | VAT_TRANSACTION_VIEW (`DEBIT_CREDIT='CRD'`) |
-| BC015 | Bán hàng theo nguồn đơn | `/api/sale_by_source` | SALE_VIEW (`STATUS='POSTED'`) ⋈ DM_EXTRA_2 (nguồn đơn = `EXTRA_ID_2`) ⋈ DM_ORGANIZATION; `mode=summary`/`detail` (thêm dòng theo ngày) |
-| BC016 | Nhập xuất tồn nhà hàng | `/api/nxt` | WAREHOUSE_VIEW + DM_ITEM / DM_WAREHOUSE / DM_ITEM_CLASS / SYS_TRAN; nhập–xuất trong kỳ là **cột động theo `TRAN_ID`**; `group_by=class`/`warehouse` |
+| BC015 | Bán hàng theo nguồn đơn | `/api/sale_by_source` | SALE_VIEW (`STATUS='POSTED'`, **bỏ `TRAN_ID='XDCNB'`** từ 06/11/2026) ⋈ DM_EXTRA_2 (nguồn đơn = `EXTRA_ID_2`) ⋈ DM_ORGANIZATION; `mode=summary`/`detail` (thêm dòng theo ngày); ô **Nguồn đơn** `source_ids` (mã giả `(TRONG)` = nguồn trống) |
+| BC016 | Nhập xuất tồn nhà hàng | `/api/nxt` | WAREHOUSE_VIEW + DM_ITEM / DM_WAREHOUSE / DM_ITEM_CLASS / SYS_TRAN; nhập–xuất trong kỳ là **cột động theo `TRAN_ID`**; `group_by=class`/`warehouse`; ô **Kho** `wh_ids` + **Hàng hoá** `item_ids` (06/11/2026) |
 | BC017 | **Báo cáo bán hàng** (mẫu iPOS "3.1", để **đối chiếu doanh thu**) | `/api/sale_detail` (+ `/export`) | SALE_VIEW (`POSTED`, mặc định **`TRAN_ID IN ('BHVAT','BHK')`**); 3 kiểu xem (Đơn vị · Đơn vị→Ngày · Đơn vị→Nguồn đơn) × Chi tiết / Tổng hợp; **8 cột tiền = đúng bộ BC015**; cột cấu hình được |
 | BC018 | **Doanh thu thuần theo chi nhánh** (theo file Excel Đại Ca lập 03/11/2026) | `/api/dt_thuan_chi_nhanh` | LEDGER (PS Có 511 − PS Nợ 521, bỏ kết chuyển) × tháng; nhóm = đơn vị cha `DM_ORGANIZATION`; `bo_bnb=1` trừ bán hàng nội bộ (câu riêng) |
 
@@ -607,8 +610,19 @@ Nguồn `dbo.PO` + `dbo.PO_DETAIL` (**không có view**). 2026: 4.217 phiếu / 
 - **Chi tiết / Tổng hợp** (`xem=tonghop`): tổng hợp chỉ dòng nhóm, **tầng nhóm cuối KHÔNG in đậm** (kiểu Đơn vị ⇒ dòng đơn vị chữ thường).
   File Excel tổng hợp do SQL **cộng sẵn** (vài trăm dòng). Kiểu xem + cách xem + "Ẩn dòng 0 đồng" gộp trong MỘT nút `ChonKieuBC017`.
 - **Loại CT mặc định `BC017_LOAI_MAC_DINH` = ('BHVAT','BHK')** — Đại Ca chốt 03/10: báo cáo để đối chiếu doanh thu. ⚠️ Vì vậy tổng
-  BC017 mặc định **KHÔNG bằng BC015** (BC015 tính mọi mã của SALE_VIEW: T09 còn BNB ~2,25 tỷ, HDDC, BH). Chọn đủ 5 mã ở ô Loại CT
+  BC017 mặc định **KHÔNG bằng BC015** (BC015 tính mọi mã của SALE_VIEW **trừ `XDCNB`** — từ 06/11/2026: T09 còn BNB ~2,25 tỷ, HDDC, BH). Chọn đủ 5 mã ở ô Loại CT
   thì bằng BC015 8/8 (đã kiểm). Đổi bộ mã thì đổi cả `LOAI_MAC_DINH_BC017` trong `index.html`.
+
+#### BC015 — ô Nguồn đơn + bỏ `XDCNB` · BC016 — ô Kho + Hàng hoá *(việc 57, Đại Ca chốt 06/11/2026 — chi tiết + số đo: `THAO_LUAN.md` mục 06/11)*
+
+- **Ô Nguồn đơn** (`nguondon`, khoá `source_ids`): danh sách = `nguon_don` của `/api/metadata` = **DM_EXTRA_2 không lọc ACTIVE** (Bẫy 16) + mục đầu mã giả
+  **`(TRONG)` "Không có nguồn đơn"** (`BC015_NGUON_TRONG`) ⇒ máy chủ nối `OR ISNULL(S.EXTRA_ID_2,'') = ''`. Nhóm trống 2026 ≈ toàn chứng từ nội bộ (BNB
+  của Kho tổng ~2,3–2,6 tỷ/tháng), **không phải** doanh thu bán cho khách. 4 mã có trên chứng từ mà không có trong DM (`1000169`, `RYO`, `SOURCE-145`,
+  `SOURRCE-M145`, ≈ −2,5 triệu) không chọn được — bỏ qua.
+- ⛔ **BC015 bỏ `XDCNB`** (`BC015_BO_LOAI_CT`, Đại Ca: *"bắt buộc loại phiếu XDCNB ra"*): T1–T9/2026 phiếu điều chuyển toàn 0 đồng, **từ T10/2026 mang tiền**
+  (T10 1.606.989.769) ⇒ từng lọt vào tổng ở nhóm trống. Đo trước/sau: T09 y hệt, T10 giảm đúng số XDCNB, nguồn có tên y hệt.
+- **BC016 ô Kho + Hàng hoá** dùng **chung ô + khoá với BC017** (`bc_wh_ids` / `item_ids`) ⇒ chọn ở BC017 sang BC016 vẫn giữ. Lọc thì bảng **bớt cột loại CT
+  toàn 0** (cột động) — đúng thiết kế; so số thì bỏ cột toàn 0. Giấy / Excel thêm dòng "Kho: …" / "Hàng hoá: …" chỉ khi có chọn.
 - **Lọc + gom theo NGÀY CHỨNG TỪ** (Đại Ca chốt 04/10). ⚠️ Ngày hoá đơn (`VAT_TRAN_DATE`) **khác ngày CT trên 70% dòng** (T09/2026:
   180.027/257.570) — chỉ là cột thêm, không lọc theo nó.
 - ⛔ **Không dùng `VAT_INCOME_AMOUNT`** (có trong mẫu iPOS): = 0 trên **toàn bộ** `BHVAT` của Chú Long. Doanh thu = `INCOME_AMOUNT`.

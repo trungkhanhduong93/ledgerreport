@@ -16,6 +16,360 @@
 
 ---
 
+## 06/11/2026 — Việc 57: BC015 thêm ô lọc "Nguồn đơn" (DM_EXTRA_2) — ĐẶC TẢ cho Hades · 3 TAB SONG SONG · ⏳ BƯỚC 1
+
+**Đại Ca 06/11/2026:** *"Chổ báo cáo BC015 t muốn có thêm bộ lọc theo danh mục DM_EXTRA_2 … việc lần này giao cho hades làm, với t thấy
+tốc độ nó làm chậm quá, m làm sao cho nó làm nhanh hơn xem"* + *"chia nhỏ các mục đó ra, cho phép m mở nhiều tab hades … mỗi tab chạy 1 phần
+xong ráp lại"*. Chốt qua câu hỏi: **giữ 2 bước** (BƯỚC 1 trình diff, CHƯA sửa → Claude Code duyệt → BƯỚC 2 sửa) · việc này chạy
+**`gemini-3.8-flash-medium`** (đặc tả có sẵn code, không cần nghĩ nhiều; việc khó vẫn High).
+
+**Vì sao lần trước chậm (Claude Code rút ra):** đặc tả việc 56 dài ~360 dòng / 26 điểm, Hades đọc cả `CLAUDE.md` + `index.html` (~1 MB) +
+`server.py` (~10.000 dòng) rồi phải viết diff cho 26 điểm trong 1 lượt ⇒ nghĩ 9 phút rồi dừng không trả lời. Lần này: mỗi tab **2–4 điểm**,
+code mới viết sẵn, ⛔ **KHÔNG đọc nguyên file lớn** — tìm chuỗi neo rồi chỉ xem ±20 dòng quanh đó; KHÔNG đọc `CLAUDE.md` / phần dưới của file
+này (mọi luật cần biết ghi ngay ở đây).
+
+**Nền:** máy chủ BC015 (`get_sale_by_source`, `server.py`) **đã nhận sẵn `source_ids`** (`AND S.EXTRA_ID_2 IN (?,…)`, params đúng thứ tự) —
+chỉ thiếu danh mục cho ô chọn + ô lọc trên giao diện. Khuôn y ô **Khu vực** của BC018 (việc 56).
+
+**Luật chung cho cả 3 tab:**
+- Mỗi neo "CŨ" dưới đây đã kiểm **xuất hiện đúng 1 lần** (06/11). Sửa = **thay đúng chuỗi CŨ bằng chuỗi MỚI**, giữ nguyên thụt lề. Không dò theo
+  số dòng (số dòng chỉ để tham khảo — 2 tab cùng sửa `index.html` nên số dòng sẽ trôi).
+- Chỉ sửa điểm của **phần mình**. Không sửa file nào khác. ⛔ Không chạy lệnh shell, không `git`, không đụng `config.json`.
+- Tiếng Việt trong code / chú thích giữ nguyên dấu (file UTF-8).
+
+### PHẦN A — `server.py` (tab "Hades A") · 2 điểm
+
+**A1** — `/api/metadata`: thêm danh mục nguồn đơn ngay SAU khối khu vực (~dòng 1811–1814).
+CŨ:
+```python
+        except Exception as e:
+            logger.warning('Metadata: khong doc duoc danh sach khu vuc (BC018): %s', e)
+            cursor = conn.cursor()
+```
+MỚI:
+```python
+        except Exception as e:
+            logger.warning('Metadata: khong doc duoc danh sach khu vuc (BC018): %s', e)
+            cursor = conn.cursor()
+
+        # Nguồn đơn cho ô lọc BC015 (06/11/2026) = danh mục DM_EXTRA_2, CAST y BC015 (SALE_VIEW.EXTRA_ID_2 là chuỗi).
+        # KHÔNG lọc ACTIVE (Bẫy 16: mã ngưng dùng vẫn còn chứng từ cũ). Câu riêng, hỏng thì danh sách rỗng.
+        nguon_don = []
+        try:
+            cursor.execute("SELECT CAST(EXTRA_ID_2 AS NVARCHAR(100)), EXTRA_NAME_2 FROM dbo.DM_EXTRA_2 WITH (NOLOCK)")
+            for ma, ten in cursor.fetchall():
+                ma = (ma or '').strip()
+                if ma:
+                    nguon_don.append({"id": ma, "name": (ten or '').strip() or ma})
+            nguon_don.sort(key=lambda k: k["id"])
+        except Exception as e:
+            logger.warning('Metadata: khong doc duoc danh muc nguon don DM_EXTRA_2 (BC015): %s', e)
+            cursor = conn.cursor()
+```
+
+**A2** — kết quả trả về (~dòng 1854). CŨ: `            "khu_vuc": khu_vuc,` → MỚI: `            "khu_vuc": khu_vuc, "nguon_don": nguon_don,`
+
+### PHẦN B — `index.html`, khai báo ô lọc (tab "Hades B") · 4 điểm
+
+**B1** — `O_LOC_BAO_CAO` (~dòng 2232). CŨ:
+```js
+            { id: 'khuvuc',   ten: 'Khu vực',         khoa: 'kv_ids',         co: (t) => t === 'BC018' },
+```
+MỚI:
+```js
+            { id: 'khuvuc',   ten: 'Khu vực',         khoa: 'kv_ids',         co: (t) => t === 'BC018' },
+            // BC015 (06/11/2026): Nguồn đơn = danh mục DM_EXTRA_2 (/api/metadata trả nguon_don); máy chủ nhận source_ids từ trước
+            { id: 'nguondon', ten: 'Nguồn đơn',       khoa: 'source_ids',     co: (t) => t === 'BC015' },
+```
+
+**B2** — `THU_TU_O_LOC` (~dòng 2236). CŨ: `        const THU_TU_O_LOC = {` → MỚI (thêm 1 dòng ngay dưới):
+```js
+        const THU_TU_O_LOC = {
+            BC015: ['nguondon', 'donvi'],
+```
+
+**B3** — `nguonOLoc` trong `ReportTab` (~dòng 2596). CŨ: `khuvuc: meta.khu_vuc || [] };` → MỚI: `khuvuc: meta.khu_vuc || [], nguondon: meta.nguon_don || [] };`
+
+**B4** — state `filters` mặc định trong `App` (~dòng 7244). CŨ: `                kv_ids: [] });` → MỚI:
+```js
+                kv_ids: [],
+                // BC015 (06/11/2026): ô Nguồn đơn
+                source_ids: [] });
+```
+
+### PHẦN C — `index.html`, gửi tham số + dòng phụ trên giấy (tab "Hades C") · 4 điểm
+
+**C1** — dòng phụ (tiêu đề file Excel) (~dòng 3091). CŨ: `                if (reportType === 'BC015') dongPhu.push('Nguồn đơn: Tất cả');` → MỚI:
+```js
+                if (reportType === 'BC015') {
+                    const ndDs = meta.nguon_don || [];
+                    dongPhu.push('Nguồn đơn: ' + ((filters.source_ids || []).length ? filters.source_ids.map(id => { const n = ndDs.find(x => x.id === id); return n ? n.name : id; }).join(', ') : 'Tất cả'));
+                }
+```
+
+**C2** — xuất Excel đủ dòng, `buildFullExportReq` (~dòng 3465). CŨ:
+`                    const q = new URLSearchParams({ ...base, mode: modeArg || saleSourceMode || 'summary', page: 1, page_size: 0 });` → MỚI:
+`                    const q = new URLSearchParams({ ...base, source_ids: (filters.source_ids || []).join(','), mode: modeArg || saleSourceMode || 'summary', page: 1, page_size: 0 });`
+
+**C3** — dòng phụ trên giấy (~dòng 3772). CŨ:
+```jsx
+                                    <div className="text-[10px] font-bold text-slate-600 uppercase">Nguồn đơn: Tất cả</div>
+```
+MỚI:
+```jsx
+                                    <div className="text-[10px] font-bold text-slate-600 uppercase">Nguồn đơn: {(filters.source_ids || []).length > 0 ? filters.source_ids.map(id => {
+                                        const n = (meta.nguon_don || []).find(x => x.id === id);
+                                        return n ? n.name : id;
+                                    }).join(', ') : 'Tất cả'}</div>
+```
+
+**C4** — màn xem, `loadReportData` nhánh BC015 (~dòng 9389). CŨ:
+`org_ids: filters.org_ids.join(','), mode: activeMode, page: _page, page_size: rptPageSize });` → MỚI:
+`org_ids: filters.org_ids.join(','), source_ids: (filters.source_ids || []).join(','), mode: activeMode, page: _page, page_size: rptPageSize });`
+
+**Ghi chú cố ý:** dòng không có nguồn đơn (EXTRA_ID_2 trống — nhóm cuối của BC015) **không chọn riêng được**; để trống ô = tất cả, như cũ.
+`(filters.source_ids || [])` ở mọi chỗ để máy cũ / state thiếu khoá không vỡ.
+
+### PHẦN D — BC016 thêm ô lọc Kho + Hàng hoá, `index.html` (tab "Hades D") · 7 điểm *(Đại Ca 06/11 ~15:30, gửi ảnh: "Với cái báo cáo BC016, cho thông tin lọc theo kho và lọc theo hàng hóa nữa m")*
+
+**Nền:** `/api/nxt` (BC016) **đã nhận sẵn** `wh_ids` + `item_ids` (`server.py` ~dòng 9811, `W.WAREHOUSE_ID IN` / `W.ITEM_ID IN`). Ô **Kho**
+(`bc_wh_ids`) + **Hàng hoá** (`item_ids`) đã có cho BC017, `nguonOLoc` đã có `kho` / `hanghoa` ⇒ chỉ bật cho BC016 + gửi tham số + in lên giấy.
+⚠️ PHẦN D sửa **cùng file** với B, C ⇒ BƯỚC 2 của D chạy **SAU** C (Claude Code điều phối). Neo của D không trùng neo của B/C.
+
+**D1** (~dòng 2225). CŨ:
+```js
+            { id: 'kho',      ten: 'Kho',             khoa: 'bc_wh_ids',      co: (t) => t === 'BC017' },
+```
+MỚI:
+```js
+            // BC016 (06/11/2026): Kho + Hàng hoá dùng chung ô của BC017 — /api/nxt nhận wh_ids / item_ids từ trước
+            { id: 'kho',      ten: 'Kho',             khoa: 'bc_wh_ids',      co: (t) => t === 'BC017' || t === 'BC016' },
+```
+
+**D2** (~dòng 2227). CŨ:
+```js
+            { id: 'hanghoa',  ten: 'Hàng hoá',        khoa: 'item_ids',       co: (t) => t === 'BC017' },
+```
+MỚI:
+```js
+            { id: 'hanghoa',  ten: 'Hàng hoá',        khoa: 'item_ids',       co: (t) => t === 'BC017' || t === 'BC016' },
+```
+
+**D3** (~dòng 2238). CŨ:
+```js
+            BC018: ['khuvuc', 'donvi'],
+```
+MỚI:
+```js
+            BC018: ['khuvuc', 'donvi'],
+            BC016: ['donvi', 'kho', 'hanghoa'],
+```
+
+**D4** — màn xem, `loadReportData` nhánh BC016 (~dòng 9420). CŨ:
+`org_ids: filters.org_ids.join(','), group_by: gb, page: _page, page_size: 1000 });` → MỚI:
+`org_ids: filters.org_ids.join(','), wh_ids: (filters.bc_wh_ids || []).join(','), item_ids: (filters.item_ids || []).join(','), group_by: gb, page: _page, page_size: 1000 });`
+
+**D5** — xuất Excel, `buildFullExportReq` (~dòng 3470). CŨ:
+`const q = new URLSearchParams({ ...base, group_by: modeArg || nxtGroupBy || 'class', page: 1, page_size: 0 });` → MỚI:
+`const q = new URLSearchParams({ ...base, wh_ids: (filters.bc_wh_ids || []).join(','), item_ids: (filters.item_ids || []).join(','), group_by: modeArg || nxtGroupBy || 'class', page: 1, page_size: 0 });`
+
+**D6** — dòng phụ tiêu đề file Excel (~dòng 3092, chèn TRƯỚC khối BC018). CŨ:
+```js
+                if (reportType === 'BC018') {
+```
+MỚI:
+```js
+                if (reportType === 'BC016') {
+                    // Ô Kho / Hàng hoá (06/11/2026): chỉ in khi có chọn — để trống thì giấy y như cũ
+                    if ((filters.bc_wh_ids || []).length) dongPhu.push('Kho: ' + filters.bc_wh_ids.map(id => { const w = (meta.warehouses || []).find(x => x.id === id); return w ? w.name : id; }).join(', '));
+                    if ((filters.item_ids || []).length) dongPhu.push('Hàng hoá: ' + filters.item_ids.map(id => { const h = (meta.items || []).find(x => x.id === id); return h ? `${id} - ${h.name}` : id; }).join(', '));
+                }
+                if (reportType === 'BC018') {
+```
+
+**D7** — dòng phụ trên giấy (~dòng 3774, chèn TRƯỚC khối BC018). CŨ:
+```jsx
+                                {reportType === 'BC018' && (<>
+```
+MỚI:
+```jsx
+                                {reportType === 'BC016' && (filters.bc_wh_ids || []).length > 0 && (
+                                    <div className="text-[10px] font-bold text-slate-600 uppercase">Kho: {filters.bc_wh_ids.map(id => { const w = (meta.warehouses || []).find(x => x.id === id); return w ? w.name : id; }).join(', ')}</div>
+                                )}
+                                {reportType === 'BC016' && (filters.item_ids || []).length > 0 && (
+                                    <div className="text-[10px] font-bold text-slate-600 uppercase">Hàng hoá: {filters.item_ids.map(id => { const h = (meta.items || []).find(x => x.id === id); return h ? `${id} - ${h.name}` : id; }).join(', ')}</div>
+                                )}
+                                {reportType === 'BC018' && (<>
+```
+
+**Ca nghiệm thu D (Claude Code chạy):** M1 Babel · D-N1 BC016 chọn 1 kho ⇒ chỉ dòng của kho đó, số = đúng các dòng kho đó ở bản không lọc (gom
+theo Kho) · D-N2 chọn vài hàng hoá ⇒ chỉ các mã đó · D-N3 để trống ⇒ JSON y bản cũ · D-N4 Excel có lọc = số trên màn + dòng "Kho: …" · D-N5 giao
+diện 1366: Đơn vị · Kho · Hàng hoá đứng ngoài (cùng Thời gian = 4 ô, tối đa). ⚠️ Ô Kho / Hàng hoá **dùng chung giá trị với BC017** (cùng khoá
+`bc_wh_ids` / `item_ids` — như ô Đơn vị dùng chung mọi báo cáo): chọn ở BC017 rồi sang BC016 thì ô vẫn giữ lựa chọn.
+
+### PHẦN E — BC015 mục "Không có nguồn đơn" trong ô Nguồn đơn, `server.py` (tab "Hades E") · 3 điểm *(Đại Ca chốt 06/11 ~16:45: "Thêm mục, giao Hades")*
+
+**Vì sao:** M2 DB thật — chứng từ 2026 để trống nguồn đơn **25.514 phiếu, 25 tỷ = 7,26% doanh thu, 81 đơn vị**; ô Nguồn đơn chưa chọn riêng được nhóm này.
+**Cách làm:** chỉ sửa máy chủ. `/api/metadata` trả thêm mục đầu danh sách mã giả `(TRONG)` tên "Không có nguồn đơn" ⇒ ô chọn + dòng phụ trên giấy
+tự có (map tên theo `meta.nguon_don`), **`index.html` không sửa gì**. BC015 gặp mã giả ⇒ thêm nhánh `ISNULL(S.EXTRA_ID_2, '') = ''` nối `OR` với
+`IN (…)` của các mã thật; dấu `?` của `IN` vẫn đứng sau tham số đơn vị ⇒ thứ tự params không đổi (Bẫy 5). Mã có dấu ngoặc ⇒ không trùng mã thật.
+
+**E1** — hằng mới, ngay TRƯỚC `SALE_SOURCE_MONEY_COLS` (~dòng 8974). CŨ:
+```python
+SALE_SOURCE_MONEY_COLS = [
+```
+MỚI:
+```python
+# Mã giả của mục "Không có nguồn đơn" trong ô lọc Nguồn đơn (Đại Ca chốt 06/11/2026): chứng từ để trống EXTRA_ID_2
+# (2026: 25.514 phiếu = 7,26% doanh thu). Có dấu ngoặc ⇒ không trùng mã thật của DM_EXTRA_2.
+BC015_NGUON_TRONG = '(TRONG)'
+SALE_SOURCE_MONEY_COLS = [
+```
+
+**E2** — `/api/metadata`, khối nguồn đơn (~dòng 1825). CŨ:
+```python
+            nguon_don.sort(key=lambda k: k["id"])
+```
+MỚI:
+```python
+            nguon_don.sort(key=lambda k: k["id"])
+            nguon_don.insert(0, {"id": BC015_NGUON_TRONG, "name": "Không có nguồn đơn"})
+```
+
+**E3** — `get_sale_by_source`, lọc nguồn (~dòng 9013–9015). CŨ:
+```python
+        if source_ids:
+            src_where = " AND S.EXTRA_ID_2 IN (" + ",".join(["?"] * len(source_ids)) + ")"
+            src_params = list(source_ids)
+```
+MỚI:
+```python
+        if source_ids:
+            # BC015_NGUON_TRONG = mục "Không có nguồn đơn" (06/11/2026) ⇒ thêm nhánh EXTRA_ID_2 trống, nối OR với danh sách mã.
+            ma_nguon = [v for v in source_ids if v != BC015_NGUON_TRONG]
+            dk_nguon = []
+            if ma_nguon:
+                dk_nguon.append("S.EXTRA_ID_2 IN (" + ",".join(["?"] * len(ma_nguon)) + ")")
+                src_params = ma_nguon
+            if BC015_NGUON_TRONG in source_ids:
+                dk_nguon.append("ISNULL(S.EXTRA_ID_2, '') = ''")
+            src_where = " AND (" + " OR ".join(dk_nguon) + ")"
+```
+
+**Ca nghiệm thu E (Claude Code chạy, DB thật T09/2026):** E-N1 metadata: mục đầu = `(TRONG)` · E-N2 chỉ `(TRONG)` ⇒ đúng khối nhóm trống của bản không
+lọc · E-N3 `(TRONG)` + 1 nguồn thật ⇒ đúng 2 khối · E-N4 chi tiết (đường xuất Excel) chỉ `(TRONG)` = đúng khối · chạy lại N2–N5 (không hồi quy).
+
+### PHẦN F — BC015 bỏ phiếu XDCNB (xuất điều chuyển nội bộ), `server.py` (tab "Hades E" dùng tiếp) · 2 điểm *(Đại Ca chốt 06/11 ~16:55: "PHần này bắt buộc loại phiếu XDCNB ra á")*
+
+**Vì sao:** `SALE_VIEW` có cả `XDCNB` (điều chuyển nội bộ — không phải bán hàng). T1–T9/2026 phiếu này toàn 0 đồng nên không thấy; **từ T10/2026 mang tiền**
+(T10 1.606.989.769 · T11 tới 06/11 495.988.059) ⇒ lọt vào tổng BC015, nằm trong nhóm "Không có nguồn đơn". Bỏ bằng 1 điều kiện **hằng** trong WHERE
+(không phải tham số ⇒ thứ tự `?` không đổi — Bẫy 5). Kèm sửa câu chú thích E1 ("7,26% doanh thu" là sai cách gọi — xem đính chính ở Nhật ký chạy).
+
+**F1** — hằng (~dòng 8974–8976). CŨ:
+```python
+# Mã giả của mục "Không có nguồn đơn" trong ô lọc Nguồn đơn (Đại Ca chốt 06/11/2026): chứng từ để trống EXTRA_ID_2
+# (2026: 25.514 phiếu = 7,26% doanh thu). Có dấu ngoặc ⇒ không trùng mã thật của DM_EXTRA_2.
+BC015_NGUON_TRONG = '(TRONG)'
+```
+MỚI:
+```python
+# Mã giả của mục "Không có nguồn đơn" trong ô lọc Nguồn đơn (Đại Ca chốt 06/11/2026): chứng từ để trống EXTRA_ID_2
+# (2026: gần như toàn chứng từ nội bộ — BNB bán nội bộ của Kho tổng). Có dấu ngoặc ⇒ không trùng mã thật của DM_EXTRA_2.
+BC015_NGUON_TRONG = '(TRONG)'
+# BC015 KHÔNG tính phiếu xuất điều chuyển nội bộ (Đại Ca chốt 06/11/2026: "bắt buộc loại phiếu XDCNB ra") — điều chuyển không phải bán hàng.
+# T1–T9/2026 phiếu XDCNB toàn 0 đồng; từ T10/2026 mang tiền (T10 ~1,6 tỷ) nên từng lọt vào tổng BC015 ở nhóm "Không có nguồn đơn".
+BC015_BO_LOAI_CT = 'XDCNB'
+```
+
+**F2** — `get_sale_by_source`, WHERE (~dòng 9043). CŨ:
+```python
+            WHERE S.STATUS = ? AND S.TRAN_DATE >= ? AND S.TRAN_DATE < ?{org_where}{src_where}
+```
+MỚI:
+```python
+            WHERE S.STATUS = ? AND S.TRAN_DATE >= ? AND S.TRAN_DATE < ? AND S.TRAN_ID <> '{BC015_BO_LOAI_CT}'{org_where}{src_where}
+```
+
+**Ca nghiệm thu F (Claude Code chạy, DB thật — so với JSON chụp TRƯỚC khi sửa `lr_viec57\bc015_truoc_F.json`):** F-N1 T09 (XDCNB 0 đồng) ⇒ JSON
+**y hệt** trước · F-N2 T10: tổng mới = tổng cũ − tổng XDCNB T10 (tra thẳng SQL) · mọi nguồn có tên **y hệt** · nhóm trống mới = cũ − XDCNB · F-N3 T10 chi tiết
+cùng luật · F-N4 T1–T10 cùng luật · hồi quy lọc nguồn / `(TRONG)`.
+
+### ➡️ BƯỚC 1 cho mỗi tab (chỉ ĐỌC — CHƯA sửa file)
+Tìm từng chuỗi CŨ của phần mình, xem ±20 dòng xung quanh, rồi trả lời **ngắn, tối đa 25 dòng**: với mỗi điểm — tìm thấy đúng 1 lần không (dòng
+hiện tại), sẽ thay đúng như MỚI hay cần chỉnh gì (chép phần chỉnh), rủi ro thấy được. **Không sửa file.** Claude Code soát xong ghi lệnh duyệt BƯỚC 2.
+
+### Ca nghiệm thu (Claude Code chạy)
+M1 `ast.parse` + Babel · N1 `/api/metadata` có `nguon_don` (mỗi mục `{id, name}`, khớp DM_EXTRA_2) · N2 BC015 chọn 1 nguồn ⇒ chỉ còn nhóm đó, số
+= đúng nhóm đó ở bản không lọc · N3 chọn 2 nguồn · N4 để trống ⇒ JSON y bản cũ · N5 Excel có lọc = số trên màn, dòng "Nguồn đơn: …" đúng tên ·
+N6 giao diện 1366: ô Nguồn đơn đứng ngoài cạnh Đơn vị · N7 tài khoản giới hạn đơn vị vẫn chỉ thấy đơn vị của mình. N1–N5, N7 cần DB thật (VPN).
+
+### Nhật ký chạy (mới nhất ở dưới cùng của mục này)
+- **~15:10** mở 3 tab Orca "Hades A/B/C - viec 57" (`gemini-3.8-flash-medium`, `--mode plan`, lệnh qua `lr_viec57\hades_X.cmd` vì PowerShell làm
+  vỡ dấu ngoặc kép lồng nhau). Không tab nào hỏi "trust folder".
+- **~15:18 Hades A trình BƯỚC 1** (nghĩ 3m28s + 34s): A1 neo đúng 1 lần dòng 1812–1814, A2 đúng 1 lần dòng 1854, thay đúng như MỚI, không rủi ro.
+  ✅ **Claude Code duyệt BƯỚC 2 PHẦN A theo quyền Đại Ca trao** — lý do: 2 neo khớp đúng đặc tả, khối MỚI đã áp thử lên bản sao + `ast.parse` đạt;
+  PHẦN A chỉ sửa `server.py`, không đụng `index.html` của tab B/C ⇒ cho chạy ngay, không chờ B/C.
+- **~15:21 A BƯỚC 2 XONG** (chế độ thường — Hades hỏi từng lần sửa, Claude Code chọn "Yes" từng lần, KHÔNG bật tự duyệt). Claude Code kiểm độc lập:
+  `server.py` bỏ khác biệt xuống dòng thì **trùng khít bản áp thử** (0 dòng khác) · `ast.parse` OK.
+- **~15:25 B, C quá 15 phút vẫn "Reading file…"** (công cụ tìm của Hades đọc cả `index.html` ~1 MB) ⇒ Claude Code ngắt (Esc), giao lại BƯỚC 1 kèm
+  **đúng dải dòng** cần mở, cấm tìm kiếm.
+- **~15:30 Đại Ca thêm việc BC016 (Kho + Hàng hoá)** ⇒ PHẦN D (đặc tả trên, áp thử lên bản sao + Babel OK) ⇒ mở tab "Hades D".
+- **~15:31 B trình BƯỚC 1** (nghĩ 40s sau khi có dải dòng): B1–B4 khớp đúng 1 lần, thay y hệt MỚI, không rủi ro.
+  ✅ **Claude Code duyệt BƯỚC 2 PHẦN B theo quyền Đại Ca trao** — 4 neo khớp, khối MỚI đã áp thử + Babel đạt. Thứ tự sửa `index.html`: B → C → D
+  (cùng file, không cho 2 tab sửa cùng lúc).
+- **~15:33 C trình BƯỚC 1**: C1–C4 khớp đúng 1 lần, thay y hệt MỚI. ✅ **Claude Code duyệt BƯỚC 2 PHẦN C theo quyền Đại Ca trao** (chạy sau B).
+- **~15:44 B BƯỚC 2 XONG** (4 lần hỏi, Claude Code soát diff từng lần rồi "Yes"; `git diff` +7/−2, dòng `khuvuc` không đổi) ⇒ giao C.
+- **~15:44 D trình BƯỚC 1** (nghĩ 6m13s + 1m38s): D1–D7 khớp đúng 1 lần, thay y hệt MOI. ✅ **Claude Code duyệt BƯỚC 2 PHẦN D theo quyền Đại Ca
+  trao** — 7 neo khớp, khối MỚI đã áp thử + Babel đạt; chạy sau C.
+- **~15:51 C BƯỚC 2 XONG** (4 lần hỏi, soát từng lần) ⇒ giao D. Mỗi lần sửa `index.html` Hades mất ~1–2 phút (file ~1 MB).
+- **~15:53–16:00 D đọc lại cả `index.html` ~6 phút không sửa** ⇒ Claude Code ngắt, gửi **số dòng HIỆN TẠI** của 7 neo ⇒ D hỏi duyệt ngay.
+  **~16:07 D BƯỚC 2 XONG** (6 lần hỏi — D1+D2 gộp 1 lần, thứ tự D1/2 → D3 → D6 → D5 → D7 → D4; soát từng lần rồi "Yes").
+- **Claude Code kiểm độc lập (~16:10):** `index.html` + `server.py` **trùng khít bản áp thử** A+B+C+D (bỏ khác biệt xuống dòng: 0 dòng khác) ·
+  `ast` OK · Babel OK · không hàm trùng · 219 hàm / 81 route (không thêm route ⇒ Bẫy 30 không đổi).
+  Giao diện (Chrome ngầm 1366, server thử 5052 = code thật + DB giả, `lr_viec57\cdp_viec57*.py`): `/api/metadata` THẬT trả `nguon_don` · BC015 ô
+  ngoài Thời gian · Nguồn đơn · Đơn vị 1 hàng · để trống ⇒ `source_ids=` rỗng, SQL không có `EXTRA_ID_2 IN` · chọn 2 nguồn ⇒ `source_ids=GRAB,SHOPEE`,
+  SQL `EXTRA_ID_2 IN (?,?)`, tham số đúng thứ tự (`POSTED, từ, đến, 66, GRAB, SHOPEE`), giấy "Nguồn đơn: GrabFood, ShopeeFood" · xuất Excel mang
+  `source_ids` · BC016 ô ngoài Thời gian · Đơn vị · Kho · Hàng hoá · chọn ⇒ `wh_ids=KTONG&item_ids=SUA-DAC`, SQL `W.WAREHOUSE_ID IN` + `W.ITEM_ID IN`,
+  giấy "Kho: Kho tổng" / "Hàng hoá: SUA-DAC - Sữa đặc" · BC017 ô ngoài y cũ. Hàng điều kiện BC016: **1 hàng ở 1536 / 1920 / 1366 thu gọn cột**;
+  1366 cột mở rộng ⇒ cụm nút rớt hàng 2 (y BC017/BC018 — đã ghi CLAUDE.md).
+- ⏳ **Còn M2 DB thật** (`lr_viec57\kiem_m2_viec57.py`, so "có lọc" với đúng phần tương ứng của "không lọc", T09/2026) — cần VPN + mật khẩu `config.json`.
+  4 tab Hades đã đóng.
+- ✅ **~16:40 M2 DB THẬT ĐẠT** (Đại Ca điền mật khẩu, VPN có; T09/2026):
+  - BC015 8/8: metadata `nguon_don` 23 mục = đúng 23 mã DM_EXTRA_2 (12,4s cả metadata) · lọc 1 nguồn (`10000171`, 72 dòng) = đúng khối của nguồn đó + tổng
+    = dòng nguồn · lọc 2 nguồn = đúng 2 khối · `source_ids=` rỗng = y không lọc · chi tiết theo ngày (đường xuất Excel, 2.049 dòng) = đúng khối · nhân viên
+    giới hạn đơn vị `02` + lọc nguồn ⇒ chỉ `02`.
+  - BC016 6/6 (`kiem_bc016_chuan.py`): lọc kho `CH.2.36QT` (82 mã) / `KTONG` (266) / kho nhỏ nhất (7) = đúng nhóm kho (dòng + tổng nhóm) · lọc 2 và 3 hàng
+    hoá = đúng các dòng · kho + hàng = đúng 1 dòng · tham số rỗng = y không lọc. ⚠️ Lần chạy đầu báo 3 LỖI — **do cách so của kịch bản**, không phải code:
+    BC016 có **cột động theo loại CT có phát sinh** ⇒ lọc thì bớt cột toàn 0 (7 nhập / 12 xuất → 2 / 1 khi lọc 2 mã). So lại bỏ cột toàn 0: 0 chỗ lệch.
+  - **Phát hiện dữ liệu:** chứng từ 2026 có 4 mã nguồn KHÔNG có trong DM_EXTRA_2 (`1000169`, `RYO`, `SOURCE-145`, `SOURRCE-M145` — ~50 phiếu, tổng
+    ≈ −2,5 triệu, không đáng kể) và **nguồn TRỐNG: 25.514 phiếu, 25.027.727.503 = 7,26% doanh thu 2026, 81 đơn vị** — ô Nguồn đơn hiện chưa chọn riêng
+    được nhóm trống (đặc tả ghi "cố ý") ⇒ hỏi Đại Ca.
+- **~16:45 Đại Ca chốt thêm mục "Không có nguồn đơn", giao Hades** ⇒ PHẦN E (áp thử lên bản sao + `ast` OK) ⇒ mở tab "Hades E - viec 57" (`--focus`,
+  để mở cho Đại Ca theo dõi — Đại Ca hỏi *"hades nó vẫn đang làm không, t thấy các tab đóng nên t không theo dõi được"*).
+- **~16:33 E trình BƯỚC 1** (đã đưa sẵn số dòng ⇒ ~5 phút): E1–E3 khớp đúng 1 lần, thay y hệt MỚI. ✅ **Claude Code duyệt BƯỚC 2 PHẦN E theo quyền
+  Đại Ca trao** — 3 neo khớp, khối MỚI áp thử + `ast` đạt.
+- **~16:36 E BƯỚC 2 XONG** (3 lần hỏi, soát từng lần): `server.py` trùng khít bản áp thử A+E · `ast` OK. **M2 DB thật E đạt 6/6** (`kiem_m2_E.py`, T09):
+  metadata mục đầu `(TRONG)` "Không có nguồn đơn" (24 mục) · chỉ `(TRONG)` = đúng khối nhóm trống (2.318.162.779) · `(TRONG)` + `10000171` = đúng 2 khối ·
+  chi tiết = đúng khối · hồi quy N2, N4 đạt.
+- ⚠️ **ĐÍNH CHÍNH cách gọi ở mục trên:** "25 tỷ = 7,26% doanh thu" là 7,26% **tổng của BC015**, KHÔNG phải doanh thu bán cho khách. Tách theo loại CT
+  (SALE_VIEW, POSTED, 2026, nguồn trống): **BNB** bán nội bộ ~2,3–2,6 tỷ/tháng (1 đơn vị — Kho tổng) · **BH** ~40 triệu/tháng (1 đơn vị) · **XDCNB** điều
+  chuyển nội bộ ~2.000–2.700 phiếu/tháng ở 50–65 đơn vị, **T1–T9 tiền = 0 nhưng từ T10/2026 có tiền: T10 1.606.989.769, T11 (tới 06/11) 495.988.059**
+  (cùng lúc BNB T10 tụt còn 750 triệu) · BHVAT/BHK ≈ 0 (39,8 triệu BHVAT T1 bị HDDC trừ đúng −39,78 triệu). ⇒ Từ T10 tổng BC015 đang cộng cả điều
+  chuyển nội bộ — hỏi Đại Ca. Chú thích E1 trong `server.py` còn ghi "7,26% doanh thu" ⇒ sẽ sửa câu chữ.
+- **~16:40 Đại Ca chốt: "PHần này bắt buộc loại phiếu XDCNB ra á"** ⇒ PHẦN F (áp thử + `ast` OK). Chụp JSON BC015 bản hiện tại trên DB thật TRƯỚC khi sửa
+  (`lr_viec57\bc015_truoc_F.json`: T09 tổng 33.711.229.223 · T10 36.360.789.074 · T10 nhóm trống 2.401.788.545 · T1–T10 338.917.669.482).
+- **~16:44 Hades E (dùng tiếp tab, chuyển lại plan) trình BƯỚC 1 PHẦN F** (~1,5 phút): F1, F2 khớp đúng 1 lần, thay y hệt MỚI.
+  ✅ **Claude Code duyệt BƯỚC 2 PHẦN F theo quyền Đại Ca trao** — 2 neo khớp, khối MỚI áp thử + `ast` đạt; điều kiện là hằng, không thêm tham số.
+- **~16:46 F BƯỚC 2 XONG** (2 lần hỏi, soát từng lần): `server.py` trùng khít bản áp thử A+E+F · `ast` OK.
+  **M2 DB thật F đạt 13/13** (`kiem_m2_F.py`, so JSON chụp trước): T09 y hệt trước · T10 tổng 36.360.789.074 − XDCNB 1.606.989.769 (tra thẳng SQL)
+  = 34.753.799.305 cả 8 cột tiền · 15 nguồn có tên y hệt · nhóm trống 2.401.788.545 → 794.798.776 · chi tiết T10 cùng luật · T1–T10 338.917.669.482 −
+  1.607.137.769 = 337.310.531.713, 25 nguồn y hệt · mục `(TRONG)` cùng luật.
+- ⚠️ Claude Code sơ suất: 2 file kết quả (`bc015_truoc_F.json`, `kq_m2_E.json`) bị ghi vào THƯ MỤC REPO (kịch bản `os.chdir(REPO)` rồi ghi theo đường
+  dẫn tương đối) — chưa vào git (chưa `git add`), đã chuyển ra `lr_viec57\`. Kịch bản sau dùng đường dẫn tuyệt đối.
+- **~17:00 Đại Ca bấm thử trên server xem 5051 (code mới, DB thật) ⇒ "ok rồi chơi đi"** ⇒ phát hành `v2.1.13` (ghi kết quả ở `NHAT_KY_CONG_VIEC.md`).
+
+---
+
 ## 05/11/2026 (~14:45) — Việc 56: ✅ M2/M4 DB thật ĐẠT toàn bộ ca nghiệm thu N1–N7
 
 Đại Ca bật VPN ⇒ `kiem_m2_bc018.py` (test_client, DB thật): N1 khớp file 693/693 ô + thứ tự dòng + 8 khu vực + 310.058.331.121 (8,3s) · N2

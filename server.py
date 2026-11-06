@@ -1813,6 +1813,21 @@ def get_metadata():
             logger.warning('Metadata: khong doc duoc danh sach khu vuc (BC018): %s', e)
             cursor = conn.cursor()
 
+        # Nguồn đơn cho ô lọc BC015 (06/11/2026) = danh mục DM_EXTRA_2, CAST y BC015 (SALE_VIEW.EXTRA_ID_2 là chuỗi).
+        # KHÔNG lọc ACTIVE (Bẫy 16: mã ngưng dùng vẫn còn chứng từ cũ). Câu riêng, hỏng thì danh sách rỗng.
+        nguon_don = []
+        try:
+            cursor.execute("SELECT CAST(EXTRA_ID_2 AS NVARCHAR(100)), EXTRA_NAME_2 FROM dbo.DM_EXTRA_2 WITH (NOLOCK)")
+            for ma, ten in cursor.fetchall():
+                ma = (ma or '').strip()
+                if ma:
+                    nguon_don.append({"id": ma, "name": (ten or '').strip() or ma})
+            nguon_don.sort(key=lambda k: k["id"])
+            nguon_don.insert(0, {"id": BC015_NGUON_TRONG, "name": "Không có nguồn đơn"})
+        except Exception as e:
+            logger.warning('Metadata: khong doc duoc danh muc nguon don DM_EXTRA_2 (BC015): %s', e)
+            cursor = conn.cursor()
+
 
         # Thông tin công ty cho tiêu đề báo cáo — lấy từ dbo.SYS_SYSTEMVAR (key-value)
         company = {"name": "", "address": "", "tax_code": ""}
@@ -1851,7 +1866,7 @@ def get_metadata():
             "units": units, "banks": banks,
             "item_classes": lop_nhom['item_class'], "pr_detail_classes": lop_nhom['pr_detail_class'],
             "job_classes": lop_nhom['job_class'],
-            "khu_vuc": khu_vuc,
+            "khu_vuc": khu_vuc, "nguon_don": nguon_don,
         }
         _meta_cache[db_name] = result
         return jsonify(result)
@@ -8957,6 +8972,12 @@ def get_vat_sales_report():
 # Ánh xạ cột: đã SUM đối chiếu form gốc T1/2026 (dòng ShopeeFood + 4 đơn vị, khớp 8/8).
 # ⚠️ ĐỪNG tin tên cột "nghe hợp lý": chiết khấu KHÔNG phải DISCOUNT2_AMOUNT và giảm giá
 #    KHÔNG phải DISCOUNT_AMOUNT — hai cột đó lệch so với form gốc. Cột đúng là bản REAL_*.
+# Mã giả của mục "Không có nguồn đơn" trong ô lọc Nguồn đơn (Đại Ca chốt 06/11/2026): chứng từ để trống EXTRA_ID_2
+# (2026: gần như toàn chứng từ nội bộ — BNB bán nội bộ của Kho tổng). Có dấu ngoặc ⇒ không trùng mã thật của DM_EXTRA_2.
+BC015_NGUON_TRONG = '(TRONG)'
+# BC015 KHÔNG tính phiếu xuất điều chuyển nội bộ (Đại Ca chốt 06/11/2026: "bắt buộc loại phiếu XDCNB ra") — điều chuyển không phải bán hàng.
+# T1–T9/2026 phiếu XDCNB toàn 0 đồng; từ T10/2026 mang tiền (T10 ~1,6 tỷ) nên từng lọt vào tổng BC015 ở nhóm "Không có nguồn đơn".
+BC015_BO_LOAI_CT = 'XDCNB'
 SALE_SOURCE_MONEY_COLS = [
     ("amount",     "AMOUNT"),                    # Tiền hàng
     ("discount2",  "REAL_DISCOUNT2_AMOUNT"),     # Chiết khấu
@@ -8997,8 +9018,15 @@ def get_sale_by_source():
 
         src_where, src_params = "", []
         if source_ids:
-            src_where = " AND S.EXTRA_ID_2 IN (" + ",".join(["?"] * len(source_ids)) + ")"
-            src_params = list(source_ids)
+            # BC015_NGUON_TRONG = mục "Không có nguồn đơn" (06/11/2026) ⇒ thêm nhánh EXTRA_ID_2 trống, nối OR với danh sách mã.
+            ma_nguon = [v for v in source_ids if v != BC015_NGUON_TRONG]
+            dk_nguon = []
+            if ma_nguon:
+                dk_nguon.append("S.EXTRA_ID_2 IN (" + ",".join(["?"] * len(ma_nguon)) + ")")
+                src_params = ma_nguon
+            if BC015_NGUON_TRONG in source_ids:
+                dk_nguon.append("ISNULL(S.EXTRA_ID_2, '') = ''")
+            src_where = " AND (" + " OR ".join(dk_nguon) + ")"
 
         # Thứ tự params phải ĐÚNG thứ tự dấu ? trong chuỗi SQL: status, from, to, org, source.
         params = ["POSTED", f_dt, t_dt] + list(_op) + src_params
@@ -9015,7 +9043,7 @@ def get_sale_by_source():
                    ON CAST(E.EXTRA_ID_2 AS NVARCHAR(100)) = S.EXTRA_ID_2
             LEFT JOIN dbo.DM_ORGANIZATION O WITH (NOLOCK)
                    ON O.ORGANIZATION_ID = S.ORGANIZATION_ID
-            WHERE S.STATUS = ? AND S.TRAN_DATE >= ? AND S.TRAN_DATE < ?{org_where}{src_where}
+            WHERE S.STATUS = ? AND S.TRAN_DATE >= ? AND S.TRAN_DATE < ? AND S.TRAN_ID <> '{BC015_BO_LOAI_CT}'{org_where}{src_where}
             GROUP BY S.EXTRA_ID_2, E.EXTRA_NAME_2, S.ORGANIZATION_ID, O.ORGANIZATION_NAME{day_col}
             ORDER BY CASE WHEN ISNULL(S.EXTRA_ID_2, '') = '' THEN 1 ELSE 0 END,
                      S.EXTRA_ID_2, S.ORGANIZATION_ID{day_col}

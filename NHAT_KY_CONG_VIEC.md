@@ -102,6 +102,7 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | 17 | ~~Nút `TRUY VẤN` đang chuyển màu navy → tím~~ ✅ **XONG 25/09** | Đại Ca chốt: chữ **"Lọc"**, navy đặc, như mẫu iPOS. Nằm trong thanh lọc mới của 9 màn danh sách |
 | 18 | ~~Chốt mốc commit phần đăng nhập nhanh + sửa font~~ ✅ **commit `c64540a`** | Phát hành v2.0.0 |
 | 19 | ~~Đại Ca xem GĐ3 rồi chốt commit~~ ✅ **Đại Ca chốt OK sáng 25/09** (*"cái đó thì ok rồi"*) ⇒ đã commit GĐ3 | ⚠️ Đại Ca chốt chung, **không nói rõ đã thử từng mục dưới đây chưa** — lần đầu dùng số liệu thật thì để ý. Danh sách cần xem ở mục *"Việc Đại Ca xem sáng 25/09"* trong nhật ký 25/09 (tiếp 3), ngay dưới § này. Ba việc tôi **không** tự thử được: hộp *"Chuyển mẫu báo cáo?"* khi có số liệu thật · menu **Xuất Excel / Xuất PDF** khi có số liệu (chưa có số liệu thì nút tắt) · kéo thả thứ tự ô lọc bằng chuột thật. Và **đọc lại mô tả 16 thẻ** — tôi tự viết |
+| 57 | ⏳ **BC015 ô Nguồn đơn (+ "Không có nguồn đơn") + bỏ XDCNB · BC016 ô Kho + Hàng hoá** (Đại Ca yêu cầu 06/11/2026) | ✅ Hades code (6 phần A–F, tab Orca song song, Flash Medium) · Claude Code kiểm: code trùng khít bản áp thử · M1 · giao diện 1366/1536 · ✅ **M2 DB thật đạt** (BC015 8/8 + E 6/6 + F 13/13 · BC016 6/6). ✅ Đại Ca bấm thử OK (server xem 5051) · 🚀 phát hành v2.1.13 (06/11, Đại Ca *"ok rồi chơi đi"*) · xoá mật khẩu `config.json` khi xong. Mục nhật ký *06/11/2026 — Việc 57* |
 | 56 | ⏳ **BC018 Doanh thu thuần theo chi nhánh** (Đại Ca yêu cầu 05/11/2026, theo file Excel Đại Ca lập) — chi nhánh × tháng, cộng theo khu vực, nút bán nội bộ, ô Khu vực | ✅ Code xong (Claude Code — Hades dừng không trả lời) · M1 + giao diện + quyền + Excel đạt · ✅ **M2/M4 DB thật đạt** (693/693 ô file). ✅ Đại Ca bấm thử đạt 05/11 ~16:30 (server xem 5051, kèm ô Thời gian mới) · 🚀 phát hành v2.1.12 (05/11) (hỏi trước) · Đại Ca tick quyền BC018 cho nhân viên · xoá mật khẩu `config.json` khi xong. Mục nhật ký *05/11/2026 — Việc 56* |
 | 54 | ⏳ **"Chọn thêm cột" cho 9 màn danh sách chứng từ** (Đại Ca yêu cầu 02/11/2026) — cột mới lấy thêm từ iPOS trong hộp Cấu hình cột, khuôn BC017 (mặc định ẩn, máy chủ chỉ lấy cột đang tick) | Đại Ca chốt: **cả 4 phân hệ** · em **đo DB thật rồi đưa danh sách để Đại Ca tick** · **Hades code** (lần đầu project dùng Hades — trao đổi ở [THAO_LUAN.md](THAO_LUAN.md)). Đang chờ Đại Ca điền lại mật khẩu SQL vào `config.json` để đo. → **Cập nhật 02/11 tối:** đã đo, Đại Ca tick 35 cột / 8 màn; Đại Ca đổi: **Claude Code tự code** (gấp) — ✅ **code xong cả 8 màn, kiểm DB thật + giao diện** · ✅ **PHÁT HÀNH `v2.1.10` 02/11/2026**, EXE máy Đại Ca = file CI. Còn: Đại Ca mở app bấm thử · xoá mật khẩu `config.json` khi xong. Mục nhật ký *02/11/2026 — Việc 54* |
 | 53 | ✅ **Nhóm "Hệ thống" (Điểm sử dụng + Phân quyền) sát đáy cột + khối "Bảo trì điểm sử dụng" 5 ô trên Trang chủ** (Đại Ca yêu cầu 10/10/2026) | ✅ **Phát hành v2.1.6 10/10/2026** — Đại Ca xem thật (Google thật 86 điểm) + chỉnh 2 lần, thử giao diện 29/29, EXE máy Đại Ca = file CI. Còn: thử bằng tài khoản không phải ADMIN trên Google thật (đã thử bằng dữ liệu giả). Mục nhật ký *10/10/2026 — Việc 53* |
@@ -180,6 +181,26 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 | Đăng nhập nhanh **chỉ áp cho người đã đăng nhập thành công trên CHÍNH máy đó trong 7 ngày** | Lần đầu, quá hạn, gõ sai hoặc vừa đổi mật khẩu ở máy khác ⇒ **vẫn chờ Google như cũ**. Cố ý: nhờ vậy đường nhanh không né được giới hạn gõ sai |
 
 ---
+
+---
+
+## 06/11/2026 — Việc 57: BC015 ô Nguồn đơn + bỏ XDCNB · BC016 ô Kho + Hàng hoá · ✅ Hades code + M2 DB thật · 🚀 phát hành v2.1.13
+
+> 🚀 **Phát hành `v2.1.13`** — Đại Ca bấm thử trên 5051 rồi chốt *"ok rồi chơi đi"*. Trước commit: `ast` OK · 219 hàm / 81 route, không hàm trùng · Bẫy 30
+> `[]` · quét chuỗi bí mật trên phần sửa: không có · không file nhạy cảm trong git. `version.txt` / `version_info.txt` tăng tay 2.1.12 → 2.1.13.
+
+Đại Ca: *"Chổ báo cáo BC015 t muốn có thêm bộ lọc theo danh mục DM_EXTRA_2 … giao cho hades làm … m làm sao cho nó làm nhanh hơn"* + *"chia nhỏ …
+mở nhiều tab hades"* + (gửi ảnh) *"Với cái báo cáo BC016, cho thông tin lọc theo kho và lọc theo hàng hóa nữa m"* + *"PHần này bắt buộc loại phiếu XDCNB ra á"*.
+- **Nền:** máy chủ BC015 (`source_ids`) và BC016 (`wh_ids`, `item_ids`) **đã nhận tham số lọc từ trước** — chỉ thiếu danh mục + ô trên giao diện.
+- **Hades:** 6 phần (A `server.py` metadata · B khai báo ô · C gửi tham số + dòng phụ · D BC016 · E mục "Không có nguồn đơn" · F bỏ XDCNB), giữ 2 bước (Đại Ca
+  chốt), `gemini-3.8-flash-medium`, 4 tab Orca song song (A–D) + 1 tab E (dùng lại cho F). Đặc tả có sẵn code, áp thử lên bản sao trước khi giao. Chậm nhất ở
+  bước Hades tự tìm trong `index.html` ~1 MB (6–15 phút) ⇒ đưa số dòng hiện tại thì vài chục giây. Mỗi lần sửa `index.html` ~1–2 phút. Toàn bộ ~1,5 tiếng.
+- **Kiểm (Claude Code):** 2 file trùng khít bản áp thử · `ast` + Babel · 219 hàm / 81 route · giao diện Chrome ngầm (server thử 5052 chạy metadata THẬT):
+  ô ngoài 1 hàng (BC016 1 hàng ở 1536/1920/1366 thu gọn; 1366 mở rộng rớt hàng 2 y BC017) · tham số + mệnh đề SQL + dòng phụ đúng.
+  **M2 DB thật:** BC015 8/8 (lọc 1 / 2 nguồn = đúng khối, rỗng = y cũ, chi tiết, nhân viên giới hạn đơn vị) · mục "Không có nguồn đơn" 6/6 · bỏ XDCNB 13/13
+  (T09 y hệt; T10 giảm đúng 1.606.989.769 = XDCNB tra thẳng SQL; T1–T10 giảm 1.607.137.769) · BC016 6/6 (bỏ cột loại CT toàn 0 khi so — cột động).
+- **Phát hiện:** nhóm nguồn trống ≈ toàn chứng từ nội bộ (BNB Kho tổng) — em từng gọi nhầm là "7,26% doanh thu", đã đính chính · từ T10/2026 XDCNB mang tiền.
+- ⚠️ Sơ suất: 2 file kết quả kiểm bị ghi vào thư mục repo (chưa `git add`), đã chuyển ra `C:\Users\quang.tran\AppData\Local\Temp\lr_viec57\`.
 
 ---
 

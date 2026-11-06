@@ -16,6 +16,11 @@
 >   một lần), hiện tối đa 8 dòng, dư thì ghi "… và N thay đổi khác".
 > - Dòng không bắt đầu bằng `- ` (như khối ghi chú này) app bỏ qua.
 
+## v2.1.13
+- Bán hàng theo nguồn đơn (BC015): lọc theo Nguồn đơn — chọn một hay nhiều nguồn (GrabFood, ShopeeFood…), có mục "Không có nguồn đơn"
+- Bán hàng theo nguồn đơn (BC015): không còn cộng phiếu xuất điều chuyển nội bộ vào số bán hàng
+- Nhập xuất tồn nhà hàng (BC016): lọc theo Kho và theo Hàng hoá
+
 ## v2.1.12
 - Báo cáo tài chính: thêm báo cáo BC018 Doanh thu thuần theo chi nhánh — từng chi nhánh theo tháng, cộng theo khu vực, xuất Excel được
 - BC018: lọc theo Khu vực, và chọn "Bỏ bán nội bộ" để xem riêng doanh thu bán ra ngoài

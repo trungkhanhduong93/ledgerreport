@@ -188,6 +188,9 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 
 > 🚀 **Phát hành `v2.1.14`** — Đại Ca chốt *"Phát hành v2.1.14 luôn"* (13/11/2026). `version.txt` / `version_info.txt` tăng tay 2.1.13 → 2.1.14.
 > ⏳ Kết quả Actions + EXE: ghi ở dòng bổ sung bên dưới.
+> ✅ **Kết quả (13/11 ~13:00):** trước commit `ast` OK · 220 hàm / 81 route, không hàm trùng · Bẫy 30 `[]` · quét chuỗi bí mật trên phần sửa: không có ·
+> không file nhạy cảm trong git · "Có gì mới" đọc ra đúng 3 dòng. Commit `ca73078` → Actions run `43375310289` **success** → Release **`v2.1.14` `Latest`**,
+> tag có `version.txt` = 2.1.14 + mục `## v2.1.14`. EXE tải về khớp digest (`c01a8dc3…`, FileVersion 2.1.14) ⇒ thay `dist\iPOS_Accounting_Report.exe` (chưa mở thử).
 
 Đại Ca 06/11/2026: *"Chổ bộ lọc cho t thêm cái chọn tất cả, với lại 1 ô loại ra đi, ví dụ thay vì t tích chọn xong t bỏ thì t sễ cùng ô loại trừ các kho
 không muốn xuất"*. Chốt: ô RIÊNG "Loại trừ đơn vị" (mọi báo cáo) + "Loại trừ kho" (BC016 + BC017), mặc định trong Bộ lọc nâng cao; "Chọn tất cả" mọi ô chọn

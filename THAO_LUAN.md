@@ -541,6 +541,8 @@ có chọn (bắt yêu cầu trên Chrome ngầm).
 - **~12:52 J1 trên DB thật** (server thử 5052 nối DB thật, Chrome ngầm): BC016 T01/2026 loại trừ đơn vị 35 + kho KTONGHN ⇒ 297 dòng, 9,6s · file `.xlsx` thật dòng 7
   *"Loại trừ đơn vị: 35 - CPMCL-KG-446 …"*, dòng 8 *"Loại trừ kho: Kho tổng Hà Nội"* · ô Loại trừ đơn vị "Chọn tất cả 96 mục", Loại trừ kho "Chọn tất cả 91 mục".
   ✅ **Việc 58: M1 + giao diện + M2 DB thật ĐẠT.** Server thử đã tắt; mật khẩu `config.json` **đã xoá lại**. Chưa commit · chưa phát hành (chờ Đại Ca).
+- **~12:57 Đại Ca chốt "Phát hành v2.1.14 luôn"** ⇒ commit `ca73078` → Actions `43375310289` success → Release **`v2.1.14` `Latest`** · EXE máy Đại Ca = file CI
+  (SHA khớp digest `c01a8dc3…`, chưa mở thử). ✅ **Việc 58 XONG.** Không còn tab Hades nào của việc này.
 
 ---
 

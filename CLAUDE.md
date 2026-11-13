@@ -4,7 +4,7 @@
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
 > 🆕 **13/11/2026 — Việc 58: ô "Loại trừ đơn vị" (mọi báo cáo) + "Loại trừ kho" (BC016, BC017) + "Chọn tất cả" mọi ô của Báo cáo TC** — Hades G + 9/12 H (06/11),
 > Claude Code áp nốt 21 điểm (13/11, Đại Ca chọn) + sửa khoá 2 bộ nhớ đệm M2 bắt được; ✅ M1 + giao diện + **M2 DB thật đạt** · 🚀 **phát hành `v2.1.14` 13/11/2026**
-> (Đại Ca chốt). Xem § 1.1 *Ô "Loại trừ đơn vị"…* + `THAO_LUAN.md` mục 06/11 chiều.
+> (Đại Ca chốt) — ✅ **`Latest`, EXE máy Đại Ca = file CI** (thay trực tiếp, chưa mở thử). Xem § 1.1 *Ô "Loại trừ đơn vị"…* + `THAO_LUAN.md` mục 06/11 chiều.
 > 🆕 **06/11/2026 — Việc 57: BC015 ô lọc Nguồn đơn** (kèm mục "Không có nguồn đơn") + **BC015 bỏ phiếu `XDCNB`** (điều chuyển nội bộ — từ T10/2026
 > mang tiền, lọt vào tổng) + **BC016 ô lọc Kho + Hàng hoá** — Hades code (6 phần A–F, nhiều tab Orca song song), ✅ M1 + giao diện + **M2 DB thật đạt**;
 > 🚀 **phát hành `v2.1.13` 06/11/2026** (Đại Ca chốt *"ok rồi chơi đi"*) — ✅ **`Latest`, EXE máy Đại Ca = file CI** (thay trực tiếp, chưa mở thử).

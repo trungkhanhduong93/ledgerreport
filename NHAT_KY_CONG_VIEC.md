@@ -184,6 +184,27 @@ kiểu 06C, thu gọn được) · **có trang chủ** theo mẫu iACC Portal.
 
 ---
 
+## 13/11/2026 — Việc 58: ô "Loại trừ đơn vị" (mọi báo cáo) + "Loại trừ kho" (BC016, BC017) + "Chọn tất cả" mọi ô · ✅ M1 + giao diện + M2 DB thật · 🚀 phát hành v2.1.14
+
+> 🚀 **Phát hành `v2.1.14`** — Đại Ca chốt *"Phát hành v2.1.14 luôn"* (13/11/2026). `version.txt` / `version_info.txt` tăng tay 2.1.13 → 2.1.14.
+> ⏳ Kết quả Actions + EXE: ghi ở dòng bổ sung bên dưới.
+
+Đại Ca 06/11/2026: *"Chổ bộ lọc cho t thêm cái chọn tất cả, với lại 1 ô loại ra đi, ví dụ thay vì t tích chọn xong t bỏ thì t sễ cùng ô loại trừ các kho
+không muốn xuất"*. Chốt: ô RIÊNG "Loại trừ đơn vị" (mọi báo cáo) + "Loại trừ kho" (BC016 + BC017), mặc định trong Bộ lọc nâng cao; "Chọn tất cả" mọi ô chọn
+nhiều của Báo cáo TC (trần 300 mục). Đặc tả + nhật ký chạy: `THAO_LUAN.md` mục *06/11/2026 (chiều) — Việc 58*.
+- **06/11:** Hades (4 tab Orca G/H/I/J) — G (`server.py`) xong, H áp 9/12 điểm thì Đại Ca bảo tạm dừng.
+- **13/11:** Đại Ca *"bữa đang làm gì dang dỡ làm tiếp đi m"* ⇒ bộ lọc an toàn chặn mở tab Orca ⇒ Đại Ca chọn **Claude Code tự áp** 21 điểm còn lại
+  (H7–H7c, I1–I16, J1–J2) ⇒ `index.html` + `server.py` trùng khít bản áp thử · Babel + `ast` OK.
+- **Giao diện** (DB giả, 1366px): ô ngoài BC016/BC017 không đổi, 2 ô loại trừ trong Bộ lọc nâng cao (xếp cuối), phễu đếm đúng, giấy in dòng "Loại trừ …", mọi
+  yêu cầu báo cáo mang `org_ids_bo` / `wh_ids_bo`, màn danh sách không mang, "Chọn tất cả" + dòng nhắc khi > 300 mục.
+- 🔴 **M2 DB thật bắt lỗi đặc tả của Claude Code:** 2 bộ nhớ đệm kết quả (`_ledger_cum_cache` BC005/BC011 · `_cashbook_cache` BC012) khoá thiếu ô loại trừ ⇒
+  bấm loại trừ ngay sau khi xem trả **y số cũ**. Đã sửa khoá ⇒ chạy lại **ĐẠT HẾT**: 15 báo cáo loại trừ {01,35} = chọn tường minh 93 đơn vị · không loại trừ
+  MỚI = CŨ · tài khoản giới hạn {02,35} + loại trừ 35 = {02} · loại trừ kho = chọn tường minh 89 kho (BC016/BC017) · CSV BC007 trùng từng byte · file Excel BC016
+  thật có dòng "Loại trừ đơn vị / kho". (Lệch thứ tự màn Tổng hợp khi cắt trang 10.000 dòng = có từ trước — tập dòng trùng khít.)
+- Mật khẩu SQL trong `config.json` **đã xoá** sau khi kiểm.
+
+---
+
 ## 06/11/2026 — Việc 57: BC015 ô Nguồn đơn + bỏ XDCNB · BC016 ô Kho + Hàng hoá · ✅ Hades code + M2 DB thật · 🚀 phát hành v2.1.13
 
 > 🚀 **Phát hành `v2.1.13`** — Đại Ca bấm thử trên 5051 rồi chốt *"ok rồi chơi đi"*. Trước commit: `ast` OK · 219 hàm / 81 route, không hàm trùng · Bẫy 30

@@ -16,6 +16,534 @@
 
 ---
 
+## 06/11/2026 (chiều) — Việc 58: ô "Loại trừ đơn vị" (mọi báo cáo) + "Loại trừ kho" (BC016, BC017) + "Chọn tất cả" mọi ô — ĐẶC TẢ cho Hades · 4 TAB · ⏳ BƯỚC 1
+
+**Đại Ca 06/11/2026:** *"Chổ bộ lọc cho t thêm cái chọn tất cả, với lại 1 ô loại ra đi, ví dụ thay vì t tích chọn xong t bỏ thì t sễ cùng ô loại trừ các kho
+không muốn xuất"*. Chốt qua câu hỏi: ô loại trừ cho **Kho (BC016 + BC017)** và **Đơn vị (mọi báo cáo)** · kiểu **ô riêng** ("Loại trừ kho" / "Loại trừ
+đơn vị"), **mặc định nằm trong Bộ lọc nâng cao** · **"Chọn tất cả" ở mọi ô chọn nhiều của Báo cáo TC**. Hades code, giữ 2 bước, `gemini-3.8-flash-medium`.
+
+**Thiết kế (Claude Code đo trước):**
+- Máy chủ: mọi báo cáo (18) + mọi đường xuất đều lọc đơn vị qua **một hàm `_org_filter_sql`** (40 chỗ gọi), và mọi đường xuất dựng SQL **trong** yêu cầu rồi mới
+  giao luồng nền ⇒ chỉ sửa hàm đó: đọc tham số `org_ids_bo` của yêu cầu đang chạy, bớt các đơn vị đó ở mọi nhánh. **Không gửi ⇒ SQL y hệt bản cũ.**
+  Kho: `/api/nxt` (BC016) + `_bc017_where` (BC017 xem + xuất) thêm `NOT IN` theo `wh_ids_bo`.
+- ⛔ **Bẫy: 9 màn danh sách dựng yêu cầu bằng `{ ...filters }`** (dòng ~7889/8000/8128/8288 — chung state `filters` với Báo cáo TC) ⇒ **khoá state phải là
+  `bc_org_ids_bo` / `bc_wh_ids_bo`** (khác tên tham số), tham số `org_ids_bo` / `wh_ids_bo` CHỈ gửi qua hàm `thamSoLoaiTru` ở các yêu cầu của báo cáo.
+  Đặt state tên `org_ids_bo` là 9 màn danh sách tự nhận ô loại trừ của báo cáo (cùng lý do BC017 dùng `bc_wh_ids`).
+- ⛔ **Bẫy thứ tự ô:** `oLocCo` sắp theo `THU_TU_O_LOC` bằng `indexOf` ⇒ ô mới không có trong danh sách ra **−1 ⇒ nhảy lên ĐẦU**, chiếm chỗ ô ngoài (BC016 sẽ đẩy
+  Hàng hoá vào trong). ⇒ cờ `macDinhTrong` + xếp cuối + `docCauHinhLoc` thêm tham số `trong`.
+- "Chọn tất cả": `PremiumDropdown` đã có (`coChonTatCa`, chỉ ô Đơn vị của quản trị dùng) ⇒ bật cho mọi ô. ⛔ **Trần 300 mục**: mỗi mục = 1 tham số SQL (SQL
+  Server tối đa 2.100 / câu, nhiều câu dùng lại danh sách 2–3 lần) + URL quá dài ⇒ quá 300 thì hiện dòng nhắc "gõ để thu hẹp" thay cho nút.
+
+### PHẦN G — `server.py` (tab "Hades G") · 4 điểm
+
+**G1** — import (dòng 48). CŨ:
+```python
+from flask import Flask, jsonify, request, session, send_from_directory
+```
+MỚI:
+```python
+from flask import Flask, jsonify, request, session, send_from_directory, has_request_context
+```
+
+**G2** — `_org_filter_sql` (~dòng 7980–7998, thay CẢ hàm). CŨ:
+```python
+def _org_filter_sql(org_ids, col="ORGANIZATION_ID"):
+    """Trả (clause, params) cho bộ lọc đơn vị.
+    - Có chọn đơn vị  -> col IN (...)  (tôn trọng đúng lựa chọn, kể cả đơn vị ngoài)
+    - Không chọn      -> mặc định loại đơn vị ngoài cây 00 (col NOT IN externals)
+    """
+    # ÉP QUYỀN ĐƠN VỊ theo tài khoản (row-level). Điểm DUY NHẤT — mọi danh sách/báo cáo đi qua đây.
+    allowed = _current_allowed_orgs()
+    if allowed is not None:
+        base = [str(o) for o in org_ids] if org_ids else None
+        eff = [o for o in base if o in allowed] if base else sorted(allowed)
+        if not eff:
+            return "1=0", []                 # chọn toàn đơn vị ngoài quyền → không trả dòng nào
+        return f"{col} IN ({','.join(['?'] * len(eff))})", list(eff)
+    if org_ids:
+        return f"{col} IN ({','.join(['?'] * len(org_ids))})", list(org_ids)
+    ext = _get_external_org_ids()
+    if ext:
+        return f"{col} NOT IN ({','.join(['?'] * len(ext))})", list(ext)
+    return "", []
+```
+MỚI:
+```python
+def _org_loai_tru():
+    """Đơn vị LOẠI TRỪ của yêu cầu đang chạy — ô "Loại trừ đơn vị" của Báo cáo TC (Đại Ca chốt 06/11/2026), tham số `org_ids_bo`.
+    CHỈ yêu cầu của Báo cáo TC gửi tham số này (trình duyệt: thamSoLoaiTru; state tên bc_org_ids_bo) ⇒ 9 màn danh sách không bị ảnh hưởng.
+    Ngoài ngữ cảnh yêu cầu (luồng nền) ⇒ rỗng — mọi đường xuất đều dựng SQL TRONG yêu cầu rồi mới giao luồng nền (đã kiểm 06/11/2026)."""
+    if not has_request_context():
+        return set()
+    return {v.strip() for v in (request.args.get("org_ids_bo") or "").split(",") if v.strip()}
+
+
+def _org_filter_sql(org_ids, col="ORGANIZATION_ID"):
+    """Trả (clause, params) cho bộ lọc đơn vị.
+    - Có chọn đơn vị  -> col IN (...)  (tôn trọng đúng lựa chọn, kể cả đơn vị ngoài)
+    - Không chọn      -> mặc định loại đơn vị ngoài cây 00 (col NOT IN externals)
+    - Ô "Loại trừ đơn vị" (org_ids_bo, 06/11/2026) -> bớt các đơn vị đó ở MỌI nhánh. Không gửi ⇒ clause + params y hệt bản cũ.
+    """
+    bo = _org_loai_tru()
+    # ÉP QUYỀN ĐƠN VỊ theo tài khoản (row-level). Điểm DUY NHẤT — mọi danh sách/báo cáo đi qua đây.
+    allowed = _current_allowed_orgs()
+    if allowed is not None:
+        base = [str(o) for o in org_ids] if org_ids else None
+        eff = [o for o in base if o in allowed] if base else sorted(allowed)
+        eff = [o for o in eff if o not in bo]
+        if not eff:
+            return "1=0", []                 # chọn toàn đơn vị ngoài quyền (hoặc loại trừ hết) → không trả dòng nào
+        return f"{col} IN ({','.join(['?'] * len(eff))})", list(eff)
+    if org_ids:
+        chon = [o for o in org_ids if str(o).strip() not in bo]
+        if not chon:
+            return "1=0", []                 # loại trừ hết các đơn vị đã chọn → không trả dòng nào
+        return f"{col} IN ({','.join(['?'] * len(chon))})", list(chon)
+    ext = _get_external_org_ids()
+    loai = list(ext) + sorted(b for b in bo if b not in {str(x) for x in ext})
+    if loai:
+        return f"{col} NOT IN ({','.join(['?'] * len(loai))})", loai
+    return "", []
+```
+
+**G3** — `/api/nxt` (BC016), sau vòng lọc kho / hàng / nhóm (~dòng 9830–9834). CŨ:
+```python
+                wparams.extend(vals)
+
+        gkey_sql = "W.WAREHOUSE_ID" if group_by == "warehouse" else "W.ITEM_CLASS_ID"
+```
+MỚI:
+```python
+                wparams.extend(vals)
+        # Ô "Loại trừ kho" (06/11/2026): NOT IN, đứng sau các IN ⇒ dấu ? vẫn đúng thứ tự wparams (Bẫy 5)
+        bo_kho = [v for v in request.args.get("wh_ids_bo", "").split(",") if v]
+        if bo_kho:
+            where.append(f"W.WAREHOUSE_ID NOT IN ({','.join(['?'] * len(bo_kho))})")
+            wparams.extend(bo_kho)
+
+        gkey_sql = "W.WAREHOUSE_ID" if group_by == "warehouse" else "W.ITEM_CLASS_ID"
+```
+
+**G4** — `_bc017_where` (BC017 xem + xuất), sau vòng lọc (~dòng 9418–9421). CŨ:
+```python
+            clauses.append(f"{cot} IN ({','.join(['?'] * len(vals))})")
+            params.extend(vals)
+    if args.get("an_0d") == "1":
+```
+MỚI:
+```python
+            clauses.append(f"{cot} IN ({','.join(['?'] * len(vals))})")
+            params.extend(vals)
+    # Ô "Loại trừ kho" (06/11/2026): NOT IN sau các IN ⇒ thứ tự dấu ? = thứ tự params
+    bo_kho = lay("wh_ids_bo")
+    if bo_kho:
+        clauses.append(f"S.WAREHOUSE_ID NOT IN ({','.join(['?'] * len(bo_kho))})")
+        params.extend(bo_kho)
+    if args.get("an_0d") == "1":
+```
+
+### PHẦN H — `index.html`, khai báo ô + "Chọn tất cả" (tab "Hades H") · 8 điểm
+
+**H1** — `O_LOC_BAO_CAO`, ngay sau ô Nguồn đơn (~dòng 2235). CŨ:
+```js
+            { id: 'nguondon', ten: 'Nguồn đơn',       khoa: 'source_ids',     co: (t) => t === 'BC015' },
+```
+MỚI:
+```js
+            { id: 'nguondon', ten: 'Nguồn đơn',       khoa: 'source_ids',     co: (t) => t === 'BC015' },
+            // Ô LOẠI TRỪ (06/11/2026, Đại Ca chốt: ô riêng, mặc định trong Bộ lọc nâng cao). ⛔ Khoá state RIÊNG bc_…_bo: 9 màn danh sách dựng yêu cầu
+            // bằng { ...filters } ⇒ đặt trùng tên tham số là danh sách tự lọc theo ô của báo cáo. Gửi máy chủ CHỈ qua thamSoLoaiTru.
+            { id: 'donvi_bo', ten: 'Loại trừ đơn vị', khoa: 'bc_org_ids_bo',  co: () => true, macDinhTrong: true },
+            { id: 'kho_bo',   ten: 'Loại trừ kho',    khoa: 'bc_wh_ids_bo',   co: (t) => t === 'BC016' || t === 'BC017', macDinhTrong: true },
+```
+
+**H2** — `docCauHinhLoc` nhận danh sách ô mặc định nằm trong (~dòng 2335). CŨ:
+```js
+        const docCauHinhLoc = (bc, dsId, toiDa = TOI_DA_O_NGOAI, macDinh = toiDa) => {
+```
+MỚI:
+```js
+        const docCauHinhLoc = (bc, dsId, toiDa = TOI_DA_O_NGOAI, macDinh = toiDa, trong = []) => {
+```
+
+**H3** — cùng hàm (~dòng 2340). CŨ:
+```js
+            const batSan = (luu && Array.isArray(luu.ngoai)) ? luu.ngoai : dsId.slice(0, Math.min(macDinh, toiDa) - 1);
+```
+MỚI:
+```js
+            const batSan = (luu && Array.isArray(luu.ngoai)) ? luu.ngoai : dsId.filter(id => !trong.includes(id)).slice(0, Math.min(macDinh, toiDa) - 1);
+```
+
+**H4** — `ReportTab`, thứ tự ô (~dòng 2590–2592). CŨ:
+```js
+            const oLocCo = O_LOC_BAO_CAO.filter(o => o.co(reportType))
+                .sort((a, b) => thuTuRieng ? thuTuRieng.indexOf(a.id) - thuTuRieng.indexOf(b.id) : 0);
+            const cfgLoc = cauHinhLoc[reportType] || docCauHinhLoc(reportType, oLocCo.map(o => o.id));
+```
+MỚI:
+```js
+            // Ô macDinhTrong (ô loại trừ) luôn xếp CUỐI + mặc định trong Bộ lọc nâng cao — không thì indexOf = −1 đưa nó lên ĐẦU, chiếm chỗ ô ngoài.
+            const viTriO = (o) => o.macDinhTrong ? 999 : (thuTuRieng ? thuTuRieng.indexOf(o.id) : 0);
+            const oLocCo = O_LOC_BAO_CAO.filter(o => o.co(reportType))
+                .sort((a, b) => viTriO(a) - viTriO(b));
+            const cfgLoc = cauHinhLoc[reportType] || docCauHinhLoc(reportType, oLocCo.map(o => o.id), TOI_DA_O_NGOAI, TOI_DA_O_NGOAI, oLocCo.filter(o => o.macDinhTrong).map(o => o.id));
+```
+
+**H5** — `nguonOLoc` (~dòng 2601). CŨ:
+```js
+khuvuc: meta.khu_vuc || [], nguondon: meta.nguon_don || [] };
+```
+MỚI:
+```js
+khuvuc: meta.khu_vuc || [], nguondon: meta.nguon_don || [], donvi_bo: orgsLoc || meta.orgs, kho_bo: meta.warehouses };
+```
+
+**H6** — `veOLoc`: bật "Chọn tất cả" cho MỌI ô — (a) ô Đơn vị (~dòng 2626). CŨ:
+```js
+coChonTatCa={!!dvCuaTk}
+```
+MỚI:
+```js
+coChonTatCa
+```
+
+**H6b** — (b) ô chung (~dòng 2635). CŨ:
+```js
+onSelect={v => onToggleFilter(o.khoa, v)} isActive={activeDropdown === o.ten} onToggle={setActiveDropdown} align={trongBang && !canhPhai ? 'left' : 'right'} />
+```
+MỚI:
+```js
+onSelect={v => onToggleFilter(o.khoa, v)} isActive={activeDropdown === o.ten} onToggle={setActiveDropdown} align={trongBang && !canhPhai ? 'left' : 'right'} coChonTatCa />
+```
+
+**H7** — `PremiumDropdown` (~dòng 1074): hằng trần. CŨ:
+```js
+        // dauKhung / coChonTatCa (22/10/2026): chỉ ô Đơn vị của Báo cáo TC dùng, khi người xem là quản trị — dòng "Theo tài khoản"
+```
+MỚI:
+```js
+        // "Chọn tất cả" (06/11/2026, Đại Ca chốt: mọi ô chọn nhiều của Báo cáo TC) — tối đa CHON_TAT_CA_TOI_DA mục: mỗi mục là 1 tham số SQL
+        // (SQL Server tối đa 2.100 / câu, nhiều câu dùng lại danh sách 2–3 lần) + URL quá dài ⇒ quá trần thì nhắc gõ để thu hẹp.
+        const CHON_TAT_CA_TOI_DA = 300;
+        // dauKhung / coChonTatCa (22/10/2026): chỉ ô Đơn vị của Báo cáo TC dùng, khi người xem là quản trị — dòng "Theo tài khoản"
+```
+
+**H7b** — `PremiumDropdown` (~dòng 1104): dòng nhắc khi quá trần. CŨ:
+```js
+                                {coChonTatCa && filtered.length > 0 && (() => {
+```
+MỚI:
+```js
+                                {coChonTatCa && filtered.length > CHON_TAT_CA_TOI_DA && (
+                                    <div className="px-3 py-2.5 rounded-xl border border-dashed border-slate-200 text-[10px] font-bold text-slate-400 italic">
+                                        Chọn tất cả: tối đa {CHON_TAT_CA_TOI_DA} mục — đang có {filtered.length.toLocaleString()}, gõ để thu hẹp
+                                    </div>
+                                )}
+                                {coChonTatCa && filtered.length > 0 && filtered.length <= CHON_TAT_CA_TOI_DA && (() => {
+```
+
+**H7c** — `PremiumDropdown` (~dòng 1111): chữ "mục" (ô loại trừ không ghép được "Chọn tất cả 80 loại trừ kho"). CŨ:
+```js
+<span className="text-[11px] font-bold leading-none">Chọn tất cả {filtered.length} {label.toLowerCase()} đang hiện</span>
+```
+MỚI:
+```js
+<span className="text-[11px] font-bold leading-none">Chọn tất cả {filtered.length} mục đang hiện</span>
+```
+
+**H8** — state `filters` mặc định (~dòng 7266). CŨ:
+```js
+                source_ids: [] });
+```
+MỚI:
+```js
+                source_ids: [],
+                // Ô loại trừ (06/11/2026) — khoá RIÊNG bc_…_bo, xem O_LOC_BAO_CAO
+                bc_org_ids_bo: [], bc_wh_ids_bo: [] });
+```
+
+**H8b** — `toggleFilter` chịu được khoá thiếu (~dòng 9536). CŨ:
+```js
+                    setFilters(p => ({ ...p, [key]: p[key].includes(id) ? p[key].filter(x => x!==id) : [...p[key], id] }));
+```
+MỚI:
+```js
+                    setFilters(p => { const cu = p[key] || []; return { ...p, [key]: cu.includes(id) ? cu.filter(x => x!==id) : [...cu, id] }; });
+```
+
+### PHẦN I — `index.html`, gắn tham số loại trừ vào MỌI yêu cầu của Báo cáo TC (tab "Hades I") · 16 điểm
+
+**Luật:** I3–I16 chỉ CHÈN `...thamSoLoaiTru(filters),` ngay sau dấu `{` đầu tiên của `URLSearchParams({` / `const base = {` — không đổi gì khác.
+`thamSoLoaiTru` trả `{}` khi không chọn ⇒ **URL y hệt bản cũ**. `base` (5 đường xuất đủ dòng) + `thamSoBC017` (BC017 xem + xuất) phủ nhiều chỗ qua 1 điểm.
+
+**I1** — hàm mới, ngay TRƯỚC `thamSoBC017` (~dòng 2247). CŨ:
+```js
+        const thamSoBC017 = (f, an0d, kieu, xem, anCot) => ({
+```
+MỚI:
+```js
+        // Ô "Loại trừ đơn vị" / "Loại trừ kho" (Đại Ca chốt 06/11/2026) — gắn vào MỌI yêu cầu xem + xuất của Báo cáo TC. Khoá state RIÊNG bc_…_bo
+        // (9 màn danh sách dựng yêu cầu bằng { ...filters }) ⇒ tham số org_ids_bo / wh_ids_bo chỉ đi qua đây. Không chọn ⇒ {} ⇒ URL y cũ.
+        const thamSoLoaiTru = (f) => {
+            const m = {};
+            if ((f.bc_org_ids_bo || []).length) m.org_ids_bo = f.bc_org_ids_bo.join(',');
+            if ((f.bc_wh_ids_bo || []).length) m.wh_ids_bo = f.bc_wh_ids_bo.join(',');
+            return m;
+        };
+        const thamSoBC017 = (f, an0d, kieu, xem, anCot) => ({
+```
+
+**I2** — `thamSoBC017` (~dòng 2253). CŨ:
+```js
+            job_ids: (f.job_ids || []).join(','), tran_ids: (f.bc_tran_ids || []).join(','), an_0d: an0d ? '1' : '0',
+```
+MỚI:
+```js
+            job_ids: (f.job_ids || []).join(','), tran_ids: (f.bc_tran_ids || []).join(','), an_0d: an0d ? '1' : '0',
+            ...thamSoLoaiTru(f),
+```
+
+**I3** — ~dòng 2849. CŨ:
+```js
+                const query = new URLSearchParams({ 
+                    report_type:
+```
+MỚI:
+```js
+                const query = new URLSearchParams({ ...thamSoLoaiTru(filters), 
+                    report_type:
+```
+
+**I4** — ~dòng 3252. CŨ:
+```js
+                const q = new URLSearchParams({ report_type: 'BC007', mode, journal_view_mode: journalViewMode, 
+```
+MỚI:
+```js
+                const q = new URLSearchParams({ ...thamSoLoaiTru(filters), report_type: 'BC007', mode, journal_view_mode: journalViewMode, 
+```
+
+**I5** — ~dòng 3268. CŨ:
+```js
+                const q = new URLSearchParams({ report_type: 'BC007', mode, journal_view_mode: journalViewMode,
+                    from_date:
+```
+MỚI:
+```js
+                const q = new URLSearchParams({ ...thamSoLoaiTru(filters), report_type: 'BC007', mode, journal_view_mode: journalViewMode,
+                    from_date:
+```
+
+**I6** — ~dòng 3466. CŨ:
+```js
+                const base = { from_date: filters.from_
+```
+MỚI:
+```js
+                const base = { ...thamSoLoaiTru(filters), from_date: filters.from_
+```
+
+**I7** — ~dòng 3495. CŨ:
+```js
+                    const q = new URLSearchParams({ report_type: 'BC008', fr
+```
+MỚI:
+```js
+                    const q = new URLSearchParams({ ...thamSoLoaiTru(filters), report_type: 'BC008', fr
+```
+
+**I8** — ~dòng 3500. CŨ:
+```js
+                    const q = new URLSearchParams({ from_date: filters.from_
+```
+MỚI:
+```js
+                    const q = new URLSearchParams({ ...thamSoLoaiTru(filters), from_date: filters.from_
+```
+
+**I9** — ~dòng 5117. CŨ:
+```js
+                                                const q = new URLSearchParams({ report_type: 'BC014', mo
+```
+MỚI:
+```js
+                                                const q = new URLSearchParams({ ...thamSoLoaiTru(filters), report_type: 'BC014', mo
+```
+
+**I10** — ~dòng 9319. CŨ:
+```js
+                const query = new URLSearchParams({ from_date: filters.from_
+```
+MỚI:
+```js
+                const query = new URLSearchParams({ ...thamSoLoaiTru(filters), from_date: filters.from_
+```
+
+**I11** — ~dòng 9375. CŨ:
+```js
+                        const q2 = new URLSearchParams({ from_date: filters.from_date, to_date: filters.to_date, org_ids: filters.org_ids.join(','), acc_ids: filters.acc_ids.join(','), p
+```
+MỚI:
+```js
+                        const q2 = new URLSearchParams({ ...thamSoLoaiTru(filters), from_date: filters.from_date, to_date: filters.to_date, org_ids: filters.org_ids.join(','), acc_ids: filters.acc_ids.join(','), p
+```
+
+**I12** — ~dòng 9387. CŨ:
+```js
+                        const q2 = new URLSearchParams({ from_date: filters.from_date, to_date: filters.to_date, org_ids: filters.org_ids.join(','), acc_ids: filters.acc_ids.join(','), m
+```
+MỚI:
+```js
+                        const q2 = new URLSearchParams({ ...thamSoLoaiTru(filters), from_date: filters.from_date, to_date: filters.to_date, org_ids: filters.org_ids.join(','), acc_ids: filters.acc_ids.join(','), m
+```
+
+**I13** — ~dòng 9400. CŨ:
+```js
+                        const q2 = new URLSearchParams({ from_date: filters.from_date, to_date: filters.to_date, org_ids: filters.org_ids.join(','), kv
+```
+MỚI:
+```js
+                        const q2 = new URLSearchParams({ ...thamSoLoaiTru(filters), from_date: filters.from_date, to_date: filters.to_date, org_ids: filters.org_ids.join(','), kv
+```
+
+**I14** — ~dòng 9413. CŨ:
+```js
+                        const q2 = new URLSearchParams({ from_date: filters.from_date, to_date: filters.to_date, org_ids: filters.org_ids.join(','), so
+```
+MỚI:
+```js
+                        const q2 = new URLSearchParams({ ...thamSoLoaiTru(filters), from_date: filters.from_date, to_date: filters.to_date, org_ids: filters.org_ids.join(','), so
+```
+
+**I15** — ~dòng 9444. CŨ:
+```js
+                        const q2 = new URLSearchParams({ from_date: filters.from_date, to_date: filters.to_date, org_ids: filters.org_ids.join(','), wh
+```
+MỚI:
+```js
+                        const q2 = new URLSearchParams({ ...thamSoLoaiTru(filters), from_date: filters.from_date, to_date: filters.to_date, org_ids: filters.org_ids.join(','), wh
+```
+
+**I16** — ~dòng 9459. CŨ:
+```js
+                        const q2 = new URLSearchParams({ from_date: filters.from_date, to_date: filters.to_date, org_ids: filters.org_ids.join(','), acc_ids: filters.acc_ids.join(','), c
+```
+MỚI:
+```js
+                        const q2 = new URLSearchParams({ ...thamSoLoaiTru(filters), from_date: filters.from_date, to_date: filters.to_date, org_ids: filters.org_ids.join(','), acc_ids: filters.acc_ids.join(','), c
+```
+
+### PHẦN J — `index.html`, dòng "Loại trừ …" trên giấy + tiêu đề file Excel (tab "Hades J") · 2 điểm
+
+**J1** — dòng phụ tiêu đề Excel (~dòng 3111–3114). CŨ:
+```js
+                dongPhu.push('Đơn vị: ' + (filters.org_ids && filters.org_ids.length > 0 ? filters.org_ids.map(id => {
+                    const org = meta.orgs.find(o => o.id === id);
+                    return org ? `${id} - ${org.name}` : id;
+                }).join(', ') : 'Tất cả'));
+```
+MỚI:
+```js
+                dongPhu.push('Đơn vị: ' + (filters.org_ids && filters.org_ids.length > 0 ? filters.org_ids.map(id => {
+                    const org = meta.orgs.find(o => o.id === id);
+                    return org ? `${id} - ${org.name}` : id;
+                }).join(', ') : 'Tất cả'));
+                // Ô loại trừ (06/11/2026): chỉ in khi có chọn — để trống thì file y như cũ
+                if ((filters.bc_org_ids_bo || []).length) dongPhu.push('Loại trừ đơn vị: ' + filters.bc_org_ids_bo.map(id => { const org = (meta.orgs || []).find(o => o.id === id); return org ? `${id} - ${org.name}` : id; }).join(', '));
+                if (['BC016', 'BC017'].includes(reportType) && (filters.bc_wh_ids_bo || []).length) dongPhu.push('Loại trừ kho: ' + filters.bc_wh_ids_bo.map(id => { const w = (meta.warehouses || []).find(x => x.id === id); return w ? w.name : id; }).join(', '));
+```
+
+**J2** — dòng phụ trên giấy (~dòng 3828–3831). CŨ:
+```jsx
+                                <div className="text-[10px] font-bold text-slate-600 uppercase">Đơn vị: {filters.org_ids.length > 0 ? filters.org_ids.map(id => {
+                                    const org = meta.orgs.find(o => o.id === id);
+                                    return org ? `${id} - ${org.name}` : id;
+                                }).join(', ') : 'Tất cả'}</div>
+```
+MỚI:
+```jsx
+                                <div className="text-[10px] font-bold text-slate-600 uppercase">Đơn vị: {filters.org_ids.length > 0 ? filters.org_ids.map(id => {
+                                    const org = meta.orgs.find(o => o.id === id);
+                                    return org ? `${id} - ${org.name}` : id;
+                                }).join(', ') : 'Tất cả'}</div>
+                                {(filters.bc_org_ids_bo || []).length > 0 && (
+                                    <div className="text-[10px] font-bold text-slate-600 uppercase">Loại trừ đơn vị: {filters.bc_org_ids_bo.map(id => { const org = (meta.orgs || []).find(o => o.id === id); return org ? `${id} - ${org.name}` : id; }).join(', ')}</div>
+                                )}
+                                {['BC016', 'BC017'].includes(reportType) && (filters.bc_wh_ids_bo || []).length > 0 && (
+                                    <div className="text-[10px] font-bold text-slate-600 uppercase">Loại trừ kho: {filters.bc_wh_ids_bo.map(id => { const w = (meta.warehouses || []).find(x => x.id === id); return w ? w.name : id; }).join(', ')}</div>
+                                )}
+```
+
+### ➡️ BƯỚC 1 cho mỗi tab (chỉ ĐỌC — CHƯA sửa file)
+Mở `index.html` / `server.py` theo đúng dải dòng Claude Code đưa trong lệnh (KHÔNG dùng công cụ tìm kiếm, KHÔNG đọc nguyên file), so từng chuỗi CŨ của phần mình,
+trả lời tối đa 15 dòng: mỗi điểm khớp đúng 1 lần không, thay y hệt MỚI hay cần chỉnh gì. **Không sửa file.** Thứ tự BƯỚC 2: G ∥ H → I → J (3 tab cùng sửa `index.html`).
+
+### Ca nghiệm thu (Claude Code chạy)
+M1 `ast` + Babel · code trùng khít bản áp thử · **không chọn loại trừ ⇒ JSON y hệt bản cũ** ở các endpoint báo cáo (chạy code cũ từ git cùng lúc) · **có loại trừ X ⇒
+= chọn tường minh "mọi đơn vị trừ ngoài cây và X"** (DB thật) · tài khoản giới hạn {A, B} + loại trừ B ⇒ chỉ A · loại trừ kho BC016 / BC017 = chọn tường minh các
+kho còn lại · 9 màn danh sách: có `bc_org_ids_bo` trong state vẫn trả y cũ · giao diện: 2 ô loại trừ nằm trong Bộ lọc nâng cao (ô ngoài BC016 không đổi), số trên nút
+phễu đếm ô loại trừ đang có giá trị, dòng "Loại trừ …" trên giấy, "Chọn tất cả" ở mọi ô + dòng nhắc khi > 300 · mọi yêu cầu xem (18 báo cáo) mang `org_ids_bo` khi
+có chọn (bắt yêu cầu trên Chrome ngầm).
+
+### Nhật ký chạy (mới nhất ở dưới cùng của mục này)
+- **~18:10** Claude Code áp thử đặc tả lên bản sao `lr_viec57\v58\` (34/34 neo khớp 1 lần, `ast` + Babel OK) + thử riêng `_org_filter_sql` mới 8 trường hợp
+  (không chọn / loại trừ / chọn + loại trừ / loại trừ hết ⇒ `1=0` / tài khoản giới hạn / ngoài yêu cầu ⇒ rỗng) đúng hết. Mở 4 tab Orca "Hades G/H/I/J - viec 58"
+  (`--mode plan`, số dòng đưa sẵn). Tab để mở tới khi báo Đại Ca xong.
+- **~18:23 cả 4 tab trình BƯỚC 1**: G 4/4 · H 12/12 · I 16/16 · J 2/2 khớp đúng 1 lần, thay y hệt MỚI, không đề nghị chỉnh.
+  ✅ **Claude Code duyệt BƯỚC 2 cả 4 phần theo quyền Đại Ca trao** — mọi neo khớp, đặc tả đã áp thử + kiểm cú pháp đạt. Thứ tự: G ∥ H → I → J; chế độ thường
+  (Hades hỏi từng lần sửa, Claude Code soát rồi "Yes").
+- **~18:27 G BƯỚC 2 XONG** (G3, G4, G2, G1 — soát từng lần; G2 dài, 9 dòng cuối khuất ⇒ soát bằng so file): `server.py` **trùng khít** bản áp thử `v58\server.py`
+  (0 dòng khác) · `ast` OK.
+- ⏸️ **~18:31 Đại Ca: "tạm ngưng đi, tối làm tiếp giờ về m"** ⇒ dừng giữa PHẦN H. Đã áp H: **H8b, H8, H6b, H6, H5, H4, H3, H2, H1** (H2 phải duyệt trước khi dừng —
+  H3 đã dùng biến `trong` của H2). Ngắt tab H (Esc lúc Hades đang soạn điểm kế, sau khi đã "Yes" H1). **CÒN: H7, H7b, H7c** (trần "Chọn tất cả") → **I1–I16** → **J1–J2**.
+  Trạng thái dừng an toàn: Babel + `ast` OK, không tham chiếu treo (`CHON_TAT_CA_TOI_DA`, `thamSoLoaiTru` chưa ai gọi). Chưa commit. Tab G đã đóng (xong);
+  tab H, I, J để mở (I, J đã duyệt BƯỚC 2 nhưng CHƯA gửi lệnh sửa).
+  **Làm tiếp:** tab H gửi lệnh áp H7c, H7b, H7 (số dòng hiện tại: tính lại bằng `dong_58.json` cách cũ) → so `index.html` với bản áp thử từng phần → tab I → tab J →
+  so trùng khít `v58\index.html` → Babel → giao diện (server thử 5052) → M2 DB thật `kiem_m2_v58.py` (cần VPN + mật khẩu `config.json`).
+- **~18:35 Đại Ca: "coi hades còn tab nào đang chạy xem nó chạy xong rồi dừng lun"** ⇒ kiểm: tab H, I, J đều RẢNH (không chạy) ⇒ **đóng cả 3**. Không còn tab
+  Hades nào của LedgerReport. Tối làm tiếp: mở tab mới cho H (H7, H7b, H7c), I, J — đưa số dòng hiện tại.
+- **13/11/2026 ~11:56 Đại Ca: "bữa đang làm gì dang dỡ làm tiếp đi m"** ⇒ kiểm hiện trạng: `server.py` **trùng khít** bản áp thử `v58\server.py` (chỉ khác
+  CRLF/LF) · `index.html` còn đúng 21 điểm chưa áp = H7, H7b, H7c, I1–I16, J1–J2 (diff với `v58\index.html`, không lệch gì khác). BƯỚC 1 của H/I/J đã duyệt
+  06/11 ⇒ mở tab Orca MỚI giao thẳng BƯỚC 2, lần lượt H → I → J (cùng sửa `index.html`), chế độ thường (Hades hỏi từng lần sửa, Claude Code soát rồi "Yes").
+  Số dòng hiện tại: H7 1074 · H7b 1104 · H7c 1111 (sửa từ dưới lên). Sau H (+8 dòng): I1 2259 · I2 2265 · I3 2863 · I4 3266 · I5 3282 · I6 3480 · I7 3509 ·
+  I8 3514 · I9 5131 · I10 9335 · I11 9391 · I12 9403 · I13 9416 · I14 9429 · I15 9460 · I16 9475. Sau H + I (+17): J1 3134–3137 · J2 3851–3854.
+- **~11:58** ⛔ Bộ lọc an toàn của Claude Code **chặn `orca terminal create`** (đúng luật chung: không thêm quyền sẵn cho lệnh mở Hades) ⇒ hỏi Đại Ca: *"Em tự áp
+  luôn"* hay *"Đại Ca tự mở tab Hades"* ⇒ **Đại Ca chọn "Em tự áp luôn"** ⇒ **Claude Code tự áp 21 điểm còn lại** (Hades không sửa gì thêm ở phần này):
+  script đọc CŨ/MỚI thẳng từ mục này, mỗi neo khớp đúng 1 lần, ghi CRLF. Kết quả: `index.html` **trùng khít** `v58\index.html` (bỏ CR) · CRLF 11.874/11.874 ·
+  Babel OK · `ast` OK · `thamSoLoaiTru(` 15 lần (thamSoBC017 + I3–I16).
+- **~12:10 Giao diện (server thử 5052, DB giả, Chrome ngầm 1366×768) — ĐẠT:** BC016 ô ngoài **không đổi** (Thời gian · Đơn vị · Kho · Hàng hoá), 2 ô loại trừ
+  nằm trong Bộ lọc nâng cao · chọn đơn vị 35 + kho KTONG ⇒ phễu *"2 ô đang áp dụng"* · `/api/nxt` mang `org_ids_bo=35&wh_ids_bo=KTONG`, SQL có
+  `ORGANIZATION_ID NOT IN` (có 35) + `W.WAREHOUSE_ID NOT IN` (KTONG) · giấy in *"Loại trừ đơn vị: 35 - …"* + *"Loại trừ kho: Kho tổng"* · "Chọn tất cả 94 /
+  3 mục đang hiện" ở ô loại trừ · ô Hàng hoá 353 mục ⇒ dòng nhắc *"tối đa 300 mục — đang có 353"*, gõ thu hẹp ⇒ "Chọn tất cả 10 mục" · BC017 ô ngoài không đổi,
+  loại trừ xếp CUỐI trong bảng, `/api/sale_detail` mang 2 tham số · BC001 chỉ có ô Loại trừ đơn vị, phễu *"1 ô"*, giấy chỉ in dòng đơn vị · BC007 / BC012 /
+  BC018 mang `org_ids_bo` · màn Chứng từ bán hàng chỉ mang `bc_org_ids_bo` / `bc_wh_ids_bo` (tên state, máy chủ bỏ qua), **không** mang `org_ids_bo` · không tràn
+  ngang. ⚠️ 2 hộp lỗi *"tuple index out of range"* (BC012, Chứng từ bán hàng) = **do DB giả** — gọi y câu đó KHÔNG có tham số loại trừ cũng ra 500 y hệt.
+  ⏳ **Chưa thử:** J1 (dòng "Loại trừ…" ở tiêu đề file Excel) — nút xuất khoá khi báo cáo 0 dòng (DB giả) ⇒ thử trên DB thật. ⏳ **M2 DB thật**
+  (`lr_viec57\kiem_m2_v58.py`) chờ Đại Ca bật VPN + điền mật khẩu `config.json`.
+- **~12:30 Đại Ca điền mật khẩu + VPN ⇒ M2 DB thật lần 1 (`kiem_m2_v58.py`, kỳ T09/2026, loại trừ {01, 35}): ĐẠT 31 · LỖI 4.**
+  ĐẠT: R (không loại trừ MỚI = CŨ) BC006/012/015/016/018 · E (loại trừ = chọn tường minh 93 đơn vị) BC001/002/006/007/008/009/013/014/015/016/017/018 ·
+  P (giới hạn {02,35} + loại trừ 35 = giới hạn {02}) BC012/015/018 · K (loại trừ kho = chọn tường minh 89 kho) BC016/017 · L sale · X CSV BC007 (10.055.695 B
+  trùng từng byte) + BC012.
+  🔴 **LỖI THẬT — đặc tả của Claude Code SÓT 2 bộ nhớ đệm kết quả** (không phải lỗi Hades): `_ledger_cum_cache` (số dư luỹ kế BC005 + BC011, giữ 180s) và
+  `_cashbook_cache` (BC012) — khoá nhớ chỉ có `org_ids`, không có `org_ids_bo` ⇒ bấm loại trừ ngay sau khi xem không loại trừ là **trả lại số cũ** (đo: loại trừ
+  0,0–0,3s, JSON y hệt không loại trừ). Lúc thiết kế em chỉ rà `_org_filter_sql` (40 chỗ gọi) mà không rà bộ nhớ đệm.
+  **Sửa (Claude Code, nối tiếp quyền "em tự áp" Đại Ca chọn ~11:58):** khoá `_ledger_cum_cache` thêm `_lc, tuple(_lp)` (mệnh đề đơn vị THẬT — gồm loại trừ +
+  quyền tài khoản); khoá `_cashbook_cache` thêm `tuple(sorted(_org_loai_tru()))`. Không gửi loại trừ ⇒ kết quả y cũ (chỉ khoá nhớ dài thêm). Chỉ 2 bộ nhớ đệm
+  kết quả trong `server.py` (đã rà mọi `_…cache` cấp module). `ast` OK, không hàm trùng, CRLF giữ nguyên.
+  ⚠️ LỖI L ledger (dòng đầu khác) — nghi thứ tự `ORDER BY` không duy nhất (có từ trước) ⇒ chạy lại so TẬP dòng.
+- **~12:45 M2 chạy lại sau khi sửa (`kiem_m2_v58_lai.py`, cùng thứ tự gọi: KHÔNG loại trừ trước để nạp bộ nhớ đệm) — ĐẠT HẾT:** BC005 · BC011 · BC012 đều:
+  R không loại trừ MỚI = CŨ · E loại trừ {01,35} = chọn tường minh · D có loại trừ ⇒ KHÁC không loại trừ · E2 gọi lại lần 2 vẫn = tường minh; P BC012 giới hạn
+  {02,35} + loại trừ 35 (sau khi nạp đệm) = giới hạn {02}.
+  **Ledger** (`kiem_ledger_v58.py`): `/api/ledger/count` có / không `bc_…` = 89.628 / 89.628 · đơn vị 35 (906 dòng) và 02 (1.878 dòng) — đủ dòng trong 1 trang —
+  có / không `bc_…` **trùng khít tập dòng** · `_build_where` chỉ đọc danh sách tham số cố định (không có `bc_…`). ⇒ lần 1 lệch là do cắt trang 10.000 / 89.628 dòng
+  trên `ORDER BY TRAN_DATE DESC, TRAN_NO` không duy nhất — **có từ trước, không do việc 58**.
+- **~12:52 J1 trên DB thật** (server thử 5052 nối DB thật, Chrome ngầm): BC016 T01/2026 loại trừ đơn vị 35 + kho KTONGHN ⇒ 297 dòng, 9,6s · file `.xlsx` thật dòng 7
+  *"Loại trừ đơn vị: 35 - CPMCL-KG-446 …"*, dòng 8 *"Loại trừ kho: Kho tổng Hà Nội"* · ô Loại trừ đơn vị "Chọn tất cả 96 mục", Loại trừ kho "Chọn tất cả 91 mục".
+  ✅ **Việc 58: M1 + giao diện + M2 DB thật ĐẠT.** Server thử đã tắt; mật khẩu `config.json` **đã xoá lại**. Chưa commit · chưa phát hành (chờ Đại Ca).
+
+---
+
 ## 06/11/2026 — Việc 57: BC015 thêm ô lọc "Nguồn đơn" (DM_EXTRA_2) — ĐẶC TẢ cho Hades · 3 TAB SONG SONG · ⏳ BƯỚC 1
 
 **Đại Ca 06/11/2026:** *"Chổ báo cáo BC015 t muốn có thêm bộ lọc theo danh mục DM_EXTRA_2 … việc lần này giao cho hades làm, với t thấy

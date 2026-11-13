@@ -45,7 +45,7 @@ def with_db_lock(f):
             return resp
     return decorated_function
 
-from flask import Flask, jsonify, request, session, send_from_directory
+from flask import Flask, jsonify, request, session, send_from_directory, has_request_context
 from flask_cors import CORS
 from datetime import datetime, date, timedelta
 import os
@@ -6741,8 +6741,10 @@ def _ledger_cum_by_cutoffs(cur, first_day_of_year, cutoffs, org_ids):
     # '< d' chặt hơn '<= d' nên phải đứng trước khi trùng ngày, để các lát luôn lồng nhau
     uniq = sorted(set(cutoffs), key=lambda c: (c[1], 0 if c[0] == '<' else 1))
 
+    # Khoá nhớ kèm mệnh đề đơn vị THẬT (_lc, _lp): gồm ô "Loại trừ đơn vị" (org_ids_bo, việc 58) + quyền đơn vị của tài khoản.
+    # Thiếu là bấm loại trừ trong 180s vẫn trả số cũ (đo DB thật 13/11/2026: BC005 / BC011 trả y số không loại trừ).
     ck = ((_db_cfg() or {}).get('database', ''),
-          first_day_of_year, tuple(uniq), tuple(org_ids or ()))
+          first_day_of_year, tuple(uniq), tuple(org_ids or ()), _lc, tuple(_lp))
     hit = _ledger_cum_cache.get(ck)
     if hit is not None and (time.time() - hit[0]) < _LEDGER_CUM_TTL_SEC:
         return hit[1]
@@ -7977,24 +7979,40 @@ def _acc_like_sql(account_id, col="ACCOUNT_ID"):
     return clause, [a + "%" for a in accs]
 
 
+def _org_loai_tru():
+    """Đơn vị LOẠI TRỪ của yêu cầu đang chạy — ô "Loại trừ đơn vị" của Báo cáo TC (Đại Ca chốt 06/11/2026), tham số `org_ids_bo`.
+    CHỈ yêu cầu của Báo cáo TC gửi tham số này (trình duyệt: thamSoLoaiTru; state tên bc_org_ids_bo) ⇒ 9 màn danh sách không bị ảnh hưởng.
+    Ngoài ngữ cảnh yêu cầu (luồng nền) ⇒ rỗng — mọi đường xuất đều dựng SQL TRONG yêu cầu rồi mới giao luồng nền (đã kiểm 06/11/2026)."""
+    if not has_request_context():
+        return set()
+    return {v.strip() for v in (request.args.get("org_ids_bo") or "").split(",") if v.strip()}
+
+
 def _org_filter_sql(org_ids, col="ORGANIZATION_ID"):
     """Trả (clause, params) cho bộ lọc đơn vị.
     - Có chọn đơn vị  -> col IN (...)  (tôn trọng đúng lựa chọn, kể cả đơn vị ngoài)
     - Không chọn      -> mặc định loại đơn vị ngoài cây 00 (col NOT IN externals)
+    - Ô "Loại trừ đơn vị" (org_ids_bo, 06/11/2026) -> bớt các đơn vị đó ở MỌI nhánh. Không gửi ⇒ clause + params y hệt bản cũ.
     """
+    bo = _org_loai_tru()
     # ÉP QUYỀN ĐƠN VỊ theo tài khoản (row-level). Điểm DUY NHẤT — mọi danh sách/báo cáo đi qua đây.
     allowed = _current_allowed_orgs()
     if allowed is not None:
         base = [str(o) for o in org_ids] if org_ids else None
         eff = [o for o in base if o in allowed] if base else sorted(allowed)
+        eff = [o for o in eff if o not in bo]
         if not eff:
-            return "1=0", []                 # chọn toàn đơn vị ngoài quyền → không trả dòng nào
+            return "1=0", []                 # chọn toàn đơn vị ngoài quyền (hoặc loại trừ hết) → không trả dòng nào
         return f"{col} IN ({','.join(['?'] * len(eff))})", list(eff)
     if org_ids:
-        return f"{col} IN ({','.join(['?'] * len(org_ids))})", list(org_ids)
+        chon = [o for o in org_ids if str(o).strip() not in bo]
+        if not chon:
+            return "1=0", []                 # loại trừ hết các đơn vị đã chọn → không trả dòng nào
+        return f"{col} IN ({','.join(['?'] * len(chon))})", list(chon)
     ext = _get_external_org_ids()
-    if ext:
-        return f"{col} NOT IN ({','.join(['?'] * len(ext))})", list(ext)
+    loai = list(ext) + sorted(b for b in bo if b not in {str(x) for x in ext})
+    if loai:
+        return f"{col} NOT IN ({','.join(['?'] * len(loai))})", loai
     return "", []
 
 
@@ -8732,7 +8750,8 @@ def _cashbook_flat_cached(f_date, t_date, acc_ids, contra_ids, tran_no, org_ids,
     # nếu dùng chung key sẽ trả nhầm dữ liệu của nhau (lỗ bảo mật do cache).
     _allowed = _current_allowed_orgs()
     _akey = tuple(sorted(_allowed)) if _allowed is not None else None
-    key = (_cashbook_key(f_date, t_date, acc_ids, contra_ids, tran_no, org_ids, cot_them), _akey)
+    # + ô "Loại trừ đơn vị" (org_ids_bo, việc 58) — thiếu là bấm loại trừ vẫn trả bản nhớ cũ (đo DB thật 13/11/2026).
+    key = (_cashbook_key(f_date, t_date, acc_ids, contra_ids, tran_no, org_ids, cot_them), _akey, tuple(sorted(_org_loai_tru())))
     flat = _cashbook_cache.get(key)
     if flat is None:
         flat = _build_cashbook_flat(from_dt, to_dt, acc_ids, contra_ids, tran_no, org_ids, cot_them)
@@ -9329,6 +9348,11 @@ def _bc017_where(args):
         if vals:
             clauses.append(f"{cot} IN ({','.join(['?'] * len(vals))})")
             params.extend(vals)
+    # Ô "Loại trừ kho" (06/11/2026): NOT IN sau các IN ⇒ thứ tự dấu ? = thứ tự params
+    bo_kho = lay("wh_ids_bo")
+    if bo_kho:
+        clauses.append(f"S.WAREHOUSE_ID NOT IN ({','.join(['?'] * len(bo_kho))})")
+        params.extend(bo_kho)
     if args.get("an_0d") == "1":
         clauses.append("NOT (" + " AND ".join(f"ISNULL(S.{c}, 0) = 0" for _, c in BC017_COT_TIEN) + ")")
     return " AND ".join(clauses), params
@@ -9829,6 +9853,11 @@ def get_nxt():
             if vals:
                 where.append(f"{field} IN ({','.join(['?'] * len(vals))})")
                 wparams.extend(vals)
+        # Ô "Loại trừ kho" (06/11/2026): NOT IN, đứng sau các IN ⇒ dấu ? vẫn đúng thứ tự wparams (Bẫy 5)
+        bo_kho = [v for v in request.args.get("wh_ids_bo", "").split(",") if v]
+        if bo_kho:
+            where.append(f"W.WAREHOUSE_ID NOT IN ({','.join(['?'] * len(bo_kho))})")
+            wparams.extend(bo_kho)
 
         gkey_sql = "W.WAREHOUSE_ID" if group_by == "warehouse" else "W.ITEM_CLASS_ID"
 

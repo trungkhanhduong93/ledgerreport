@@ -2,6 +2,9 @@
 
 > Mọi agent AI (Claude Code, Gemini, Cursor, Copilot, Antigravity…) và mọi dev mới **đọc file này trước**.
 > `GEMINI.md` và `AGENTS.md` chỉ là con trỏ về đây — đừng viết nội dung khác vào đó.
+> 🆕 **13/11/2026 — Việc 58: ô "Loại trừ đơn vị" (mọi báo cáo) + "Loại trừ kho" (BC016, BC017) + "Chọn tất cả" mọi ô của Báo cáo TC** — Hades G + 9/12 H (06/11),
+> Claude Code áp nốt 21 điểm (13/11, Đại Ca chọn) + sửa khoá 2 bộ nhớ đệm M2 bắt được; ✅ M1 + giao diện + **M2 DB thật đạt** · 🚀 **phát hành `v2.1.14` 13/11/2026**
+> (Đại Ca chốt). Xem § 1.1 *Ô "Loại trừ đơn vị"…* + `THAO_LUAN.md` mục 06/11 chiều.
 > 🆕 **06/11/2026 — Việc 57: BC015 ô lọc Nguồn đơn** (kèm mục "Không có nguồn đơn") + **BC015 bỏ phiếu `XDCNB`** (điều chuyển nội bộ — từ T10/2026
 > mang tiền, lọt vào tổng) + **BC016 ô lọc Kho + Hàng hoá** — Hades code (6 phần A–F, nhiều tab Orca song song), ✅ M1 + giao diện + **M2 DB thật đạt**;
 > 🚀 **phát hành `v2.1.13` 06/11/2026** (Đại Ca chốt *"ok rồi chơi đi"*) — ✅ **`Latest`, EXE máy Đại Ca = file CI** (thay trực tiếp, chưa mở thử).
@@ -38,7 +41,7 @@
 > § 1.1 *Cột của 9 bảng* + nhật ký việc 50.
 > ✅ **v2.1.2 — ĐÃ PHÁT HÀNH 06/10/2026, `Latest`, EXE máy Đại Ca = file CI** (cột ghim phải hụt 4px khi cuộn chạm cuối). Mục nhật ký *06/10/2026 — Phát hành v2.1.2*.
 > ✅ **v2.1.1 — 05/10/2026** (BC017 + việc 50). Mục nhật ký *05/10/2026 (khuya) — Phát hành v2.1.1*.
-> Cập nhật gần nhất: **06/11/2026** · **Bản mới nhất: `v2.1.13`** · `v2.1.0` (= code `v2.0.9`, Đại Ca chốt lên 2.1 — xem dòng ✅ v2.0.9 ngay dưới) · v2.0.6: **việc 41** đồng hồ đếm ngược khi xuất Excel Nhật ký chung
+> Cập nhật gần nhất: **13/11/2026** · **Bản mới nhất: `v2.1.14`** · `v2.1.0` (= code `v2.0.9`, Đại Ca chốt lên 2.1 — xem dòng ✅ v2.0.9 ngay dưới) · v2.0.6: **việc 41** đồng hồ đếm ngược khi xuất Excel Nhật ký chung
 > (đo + thử giao diện trên DB thật; bắt được lỗi làm hỏng hẳn xuất Excel chi tiết — **Bẫy 31**) + **việc 42** đăng nhập nhanh không
 > còn đá người ra khi Google chỉ là chưa trả lời được. Mục nhật ký *29/09/2026 — Phát hành v2.0.6*. EXE trên máy Đại Ca = đúng file CI.
 > Mục *28/09/2026 (khuya)*: **Đại Ca giữ Google Sheet, không chuyển Supabase** — đọc lý do trước khi đề xuất lại.
@@ -329,6 +332,17 @@ tài khoản DATA REPORT ⇒ danh sách chỉ còn các đơn vị đã tick cho
 tick / "Chọn tất cả N đang hiện" để chốt; tick cũ ngoài danh sách **giữ lại nhưng phải báo** (dòng vàng + nút Bỏ). Nguồn `/api/perm/config`
 (Google, mật khẩu quản trị) — nạp một lần mỗi lần mở app, **không giữ mật khẩu**, đăng xuất là xoá. Quản trị = `allowedItems` có
 `perm_admin` (⛔ không dùng `canSee`). Prop `dauKhung` / `coChonTatCa` / `khoaDs` của `PremiumDropdown` không truyền ⇒ ô y cũ.
+*(Từ việc 58 — 13/11/2026: `coChonTatCa` bật cho MỌI ô của Báo cáo TC, xem đoạn dưới.)*
+**Ô "Loại trừ đơn vị" (mọi báo cáo) + "Loại trừ kho" (BC016, BC017) + "Chọn tất cả" mọi ô** *(việc 58, Đại Ca chốt 06/11/2026 — chi tiết + số đo:
+`THAO_LUAN.md` mục 06/11 chiều)*: 2 ô riêng, cờ `macDinhTrong` ⇒ mặc định nằm trong Bộ lọc nâng cao + luôn xếp CUỐI (⛔ không có cờ thì `indexOf` −1 đưa ô lên
+ĐẦU, chiếm chỗ ô ngoài). Máy chủ: chỉ `_org_filter_sql` đọc `org_ids_bo` của yêu cầu (`_org_loai_tru`, ngoài ngữ cảnh yêu cầu ⇒ rỗng); kho: `/api/nxt` +
+`_bc017_where` thêm `NOT IN` theo `wh_ids_bo`. Không gửi ⇒ SQL y cũ.
+- ⛔ State tên **`bc_org_ids_bo` / `bc_wh_ids_bo`** (khác tên tham số): 9 màn danh sách dựng yêu cầu bằng `{ ...filters }` ⇒ đặt trùng tên là danh sách tự lọc theo
+  ô của báo cáo. Tham số chỉ đi qua **`thamSoLoaiTru(filters)`** — thêm yêu cầu xem / xuất mới cho báo cáo thì nhớ rải nó vào.
+- ⛔ **Bộ nhớ đệm kết quả phải tính cả bộ lọc mới**: `_ledger_cum_cache` (BC005 + BC011, khoá kèm `_lc, _lp` = mệnh đề đơn vị THẬT) và `_cashbook_cache` (BC012,
+  khoá kèm `_org_loai_tru()`). Bản đầu sót ⇒ bấm loại trừ ngay sau khi xem trả **y số cũ** (bắt được ở M2 DB thật 13/11/2026). Thêm bộ lọc đơn vị / kho kiểu mới
+  thì rà mọi `_…cache` cấp module.
+- "Chọn tất cả" **tối đa 300 mục** (`CHON_TAT_CA_TOI_DA`: mỗi mục 1 tham số SQL, trần 2.100 / câu + URL dài) — quá trần hiện dòng nhắc gõ để thu hẹp.
 ⚠️ Lớp nổi gắn vào `body` bằng portal (lịch của `IOSDatePicker`) phải mang **`data-lop-noi`** — không
 thì bấm vào nó bị tính là "bấm ra ngoài" và bảng Thời gian / Bộ lọc nâng cao tự đóng.
 

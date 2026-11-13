@@ -16,6 +16,11 @@
 >   một lần), hiện tối đa 8 dòng, dư thì ghi "… và N thay đổi khác".
 > - Dòng không bắt đầu bằng `- ` (như khối ghi chú này) app bỏ qua.
 
+## v2.1.14
+- Báo cáo tài chính: ô "Loại trừ đơn vị" trong Bộ lọc nâng cao — chọn các đơn vị muốn bỏ ra, khỏi phải tick từng đơn vị còn lại
+- Nhập xuất tồn (BC016) và Báo cáo bán hàng (BC017): ô "Loại trừ kho" — bỏ ra các kho không muốn xem / xuất
+- Báo cáo tài chính: nút "Chọn tất cả" ở mọi ô lọc chọn nhiều
+
 ## v2.1.13
 - Bán hàng theo nguồn đơn (BC015): lọc theo Nguồn đơn — chọn một hay nhiều nguồn (GrabFood, ShopeeFood…), có mục "Không có nguồn đơn"
 - Bán hàng theo nguồn đơn (BC015): không còn cộng phiếu xuất điều chuyển nội bộ vào số bán hàng
